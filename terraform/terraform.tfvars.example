@@ -1,0 +1,20 @@
+# AWS Configuration
+aws_region  = "il-central-1"
+environment = "prod"
+
+# Domain
+domain_name = "daatan.com"
+
+# SSH Access
+ssh_key_name     = "daatan-key"
+allowed_ssh_cidr = "YOUR_IP_ADDRESS/32"  # Replace with your IP, e.g., "203.0.113.50/32"
+
+# Database Credentials (use strong passwords!)
+db_username = "daatan_admin"
+db_password = "CHANGE_ME_TO_STRONG_PASSWORD"  # At least 16 characters
+db_name     = "daatan"
+
+# Instance Types (Free Tier eligible)
+ec2_instance_type  = "t3.micro"
+rds_instance_class = "db.t3.micro"
+
