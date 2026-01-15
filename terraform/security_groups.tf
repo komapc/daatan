@@ -31,13 +31,13 @@ resource "aws_security_group" "ec2" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Node.js API (internal, but exposed for Docker mapping)
+  # Node.js API
   ingress {
     description = "Node.js API"
     from_port   = 3000
     to_port     = 3000
     protocol    = "tcp"
-    cidr_blocks = [aws_vpc.main.cidr_block]
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   # Allow all outbound traffic
@@ -53,33 +53,3 @@ resource "aws_security_group" "ec2" {
     Name = "daatan-ec2-sg"
   }
 }
-
-# RDS Security Group
-resource "aws_security_group" "rds" {
-  name        = "daatan-rds-sg"
-  description = "Security group for DAATAN RDS instance"
-  vpc_id      = aws_vpc.main.id
-
-  # PostgreSQL from EC2 only
-  ingress {
-    description     = "PostgreSQL from EC2"
-    from_port       = 5432
-    to_port         = 5432
-    protocol        = "tcp"
-    security_groups = [aws_security_group.ec2.id]
-  }
-
-  # Allow all outbound traffic
-  egress {
-    description = "Allow all outbound"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "daatan-rds-sg"
-  }
-}
-

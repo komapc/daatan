@@ -13,14 +13,9 @@ output "ec2_instance_id" {
   value       = aws_instance.backend.id
 }
 
-output "rds_endpoint" {
-  description = "RDS PostgreSQL endpoint"
-  value       = aws_db_instance.main.endpoint
-}
-
-output "rds_port" {
-  description = "RDS PostgreSQL port"
-  value       = aws_db_instance.main.port
+output "s3_backup_bucket" {
+  description = "S3 bucket for database backups"
+  value       = aws_s3_bucket.backups.bucket
 }
 
 output "route53_zone_id" {
@@ -39,8 +34,7 @@ output "ssh_command" {
 }
 
 output "database_connection_string" {
-  description = "PostgreSQL connection string (without password)"
-  value       = "postgresql://${var.db_username}:PASSWORD@${aws_db_instance.main.endpoint}/${var.db_name}"
+  description = "PostgreSQL connection string for local Docker"
+  value       = "postgresql://daatan:PASSWORD@localhost:5432/daatan"
   sensitive   = true
 }
-

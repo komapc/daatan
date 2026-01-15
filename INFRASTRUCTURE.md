@@ -8,7 +8,7 @@ The infrastructure is designed to be **immutable and automated**. We use Terrafo
 | ----- | ------- | ------- |
 | DNS | Namecheap → AWS Route 53 | Registrar delegates to Route 53 |
 | Frontend | AWS Amplify | Auto-scaling, managed SSL, CI/CD integrated |
-| Backend | EC2 `t3.micro` | Dockerized Node.js in `il-central-1` |
+| Backend | EC2 `t3.nano` | Dockerized Node.js in `il-central-1` |
 | Database | RDS PostgreSQL `db.t3.micro` | Managed persistence |
 
 ---
@@ -25,7 +25,7 @@ The infrastructure is designed to be **immutable and automated**. We use Terrafo
 
 ### B. Compute (The Docker Engine)
 
-- **Instance:** Amazon EC2 `t3.micro` (Ubuntu 24.04)
+- **Instance:** Amazon EC2 `t3.nano` (Ubuntu 24.04)
 - **Runtime:** Docker + Docker Compose
 
 **Security Group:**
