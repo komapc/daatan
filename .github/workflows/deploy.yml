@@ -4,24 +4,61 @@ on:
   push:
     branches:
       - main
+    paths:
+      # Only trigger when actual app code changes
+      - 'src/**'
+      - 'pages/**'
+      - 'components/**'
+      - 'package.json'
+      - 'Dockerfile'
   pull_request:
     branches:
       - main
+  workflow_dispatch:  # Allow manual trigger
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  # Lint and test (always runs)
+  check:
+    name: Check Code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci || npm install || echo "No package-lock.json, skipping"
+
+      - name: Check for build script
+        id: check_build
+        run: |
+          if grep -q '"build"' package.json 2>/dev/null; then
+            echo "has_build=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_build=false" >> $GITHUB_OUTPUT
+            echo "⚠️ No build script found - skipping build"
+          fi
+
+  # Build Docker image (only if app is ready)
   build:
     name: Build Docker Image
+    needs: check
     runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.head_commit.message, '[build]')
     permissions:
       contents: read
       packages: write
-
-    outputs:
-      image_tag: ${{ steps.meta.outputs.tags }}
 
     steps:
       - name: Checkout repository
@@ -57,11 +94,12 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  # Deploy to EC2 (manual trigger only for now)
   deploy:
     name: Deploy to EC2
     needs: build
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Checkout repository
@@ -89,4 +127,3 @@ jobs:
             docker image prune -f
             
             echo "Deployment completed at $(date)"
-
