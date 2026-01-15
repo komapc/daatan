@@ -9,12 +9,9 @@ domain_name = "daatan.com"
 ssh_key_name     = "daatan-key"
 allowed_ssh_cidr = "YOUR_IP_ADDRESS/32"  # Replace with your IP, e.g., "203.0.113.50/32"
 
-# Database Credentials (use strong passwords!)
-db_username = "daatan_admin"
-db_password = "CHANGE_ME_TO_STRONG_PASSWORD"  # At least 16 characters
-db_name     = "daatan"
+# Instance Type
+ec2_instance_type = "t3.nano"  # 0.5GB RAM, ~$4/month
 
-# Instance Types (Free Tier eligible)
-ec2_instance_type  = "t3.micro"
-rds_instance_class = "db.t3.micro"
-
+# NOTE: PostgreSQL password is set in .env file on EC2, not in Terraform
+# After deployment, SSH into EC2 and create ~/app/.env with:
+#   POSTGRES_PASSWORD=your_secure_password_here

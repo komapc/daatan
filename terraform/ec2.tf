@@ -21,6 +21,7 @@ resource "aws_instance" "backend" {
   key_name                    = var.ssh_key_name
   subnet_id                   = aws_subnet.public_a.id
   vpc_security_group_ids      = [aws_security_group.ec2.id]
+  iam_instance_profile        = aws_iam_instance_profile.ec2_profile.name
   associate_public_ip_address = true
 
   root_block_device {
@@ -39,7 +40,7 @@ resource "aws_instance" "backend" {
     apt-get upgrade -y
 
     # Install Docker
-    apt-get install -y ca-certificates curl gnupg
+    apt-get install -y ca-certificates curl gnupg unzip
     install -m 0755 -d /etc/apt/keyrings
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
     chmod a+r /etc/apt/keyrings/docker.gpg
@@ -52,6 +53,12 @@ resource "aws_instance" "backend" {
     apt-get update
     apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
+    # Install AWS CLI
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+    unzip -q awscliv2.zip
+    ./aws/install
+    rm -rf aws awscliv2.zip
+
     # Add ubuntu user to docker group
     usermod -aG docker ubuntu
 
@@ -61,10 +68,39 @@ resource "aws_instance" "backend" {
 
     # Create app directory
     mkdir -p /home/ubuntu/app
-    chown ubuntu:ubuntu /home/ubuntu/app
+    mkdir -p /home/ubuntu/backups
+    chown -R ubuntu:ubuntu /home/ubuntu/app /home/ubuntu/backups
 
-    echo "Docker installation complete!" > /home/ubuntu/setup-complete.txt
+    # Create backup script
+    cat > /home/ubuntu/backup-db.sh << 'BACKUP'
+    #!/bin/bash
+    TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+    BACKUP_FILE="/home/ubuntu/backups/daatan_$TIMESTAMP.sql.gz"
+    S3_BUCKET="${aws_s3_bucket.backups.bucket}"
+
+    # Dump database
+    docker exec daatan-postgres pg_dump -U daatan daatan | gzip > "$BACKUP_FILE"
+
+    # Upload to S3
+    aws s3 cp "$BACKUP_FILE" "s3://$S3_BUCKET/daily/"
+
+    # Keep only last 3 local backups
+    ls -t /home/ubuntu/backups/*.sql.gz | tail -n +4 | xargs -r rm
+
+    echo "Backup completed: $BACKUP_FILE"
+    BACKUP
+
+    chmod +x /home/ubuntu/backup-db.sh
+    chown ubuntu:ubuntu /home/ubuntu/backup-db.sh
+
+    # Setup daily backup cron (3 AM)
+    echo "0 3 * * * ubuntu /home/ubuntu/backup-db.sh >> /home/ubuntu/backups/backup.log 2>&1" > /etc/cron.d/daatan-backup
+    chmod 644 /etc/cron.d/daatan-backup
+
+    echo "Setup complete!" > /home/ubuntu/setup-complete.txt
   EOF
+
+  user_data_replace_on_change = true
 
   tags = {
     Name = "daatan-backend"
@@ -84,4 +120,3 @@ resource "aws_eip" "backend" {
     Name = "daatan-backend-eip"
   }
 }
-
