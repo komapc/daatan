@@ -12,6 +12,9 @@ RUN npm ci
 # Copy source
 COPY . .
 
+# Create public directory if it doesn't exist
+RUN mkdir -p public
+
 # Build Next.js
 RUN npm run build
 
@@ -29,7 +32,7 @@ RUN addgroup --system --gid 1001 nodejs && \
 # Copy built application
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public 2>/dev/null || true
+COPY --from=builder /app/public ./public
 COPY --from=builder /app/node_modules ./node_modules
 
 # Change ownership
