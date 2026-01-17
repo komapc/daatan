@@ -17,7 +17,8 @@ export default function RootLayout({
       <body className="bg-white">
         <div className="flex min-h-screen">
           <Sidebar />
-          <main className="flex-1 ml-64">
+          {/* Main content with responsive margin */}
+          <main className="flex-1 lg:ml-64 mt-16 lg:mt-0">
             {children}
           </main>
         </div>
@@ -25,4 +26,3 @@ export default function RootLayout({
     </html>
   )
 }
-
