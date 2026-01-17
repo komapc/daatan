@@ -103,14 +103,14 @@ BACKUP
     echo "Setup complete!" > /home/ubuntu/setup-complete.txt
   EOF
 
-  user_data_replace_on_change = true
+  user_data_replace_on_change = false
 
   tags = {
     Name = "daatan-backend"
   }
 
   lifecycle {
-    ignore_changes = [ami]
+    ignore_changes = [ami, user_data, instance_type]
   }
 }
 
