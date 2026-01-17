@@ -1,10 +1,32 @@
 services:
+  nginx:
+    image: nginx:alpine
+    container_name: daatan-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   app:
     image: ghcr.io/komapc/daatan:main
     container_name: daatan-app
     restart: unless-stopped
-    ports:
-      - "3000:3000"
+    # Port 3000 is internal only - accessed via nginx
+    expose:
+      - "3000"
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://daatan:${POSTGRES_PASSWORD}@postgres:5432/daatan
@@ -27,6 +49,9 @@ services:
     image: postgres:16-alpine
     container_name: daatan-postgres
     restart: unless-stopped
+    # PostgreSQL is internal only - no port exposed
+    expose:
+      - "5432"
     environment:
       - POSTGRES_USER=daatan
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
