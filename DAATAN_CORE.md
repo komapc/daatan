@@ -21,16 +21,19 @@
 
 ---
 
-## 2. Technical Migration Strategy (Base44 → Manual)
-
-**Goal:** Migrate from the managed Base44 infrastructure to a scalable, developer-owned stack.
+## 2. Technical Stack
 
 | Layer | Technology |
 | ----- | ---------- |
-| Frontend | React / Next.js (SEO + fast rendering) |
-| Backend | Node.js / Supabase (Auth + PostgreSQL) |
-| AI Orchestration | Cursor/Claude for codegen; Gemini Pro/Claude API for LLM features |
-| Hosting | AWS (EC2/Amplify) + GitHub Actions CI/CD |
+| Frontend | Next.js 15 (React 19, App Router) |
+| Styling | Tailwind CSS |
+| Backend | Next.js API Routes |
+| Database | PostgreSQL 16 |
+| Hosting | AWS EC2 (eu-central-1) |
+| SSL | Let's Encrypt (auto-renewed) |
+| Reverse Proxy | Nginx |
+
+**Live URL:** https://daatan.com
 
 ---
 
@@ -72,25 +75,55 @@ To minimize manual overhead, DAATAN uses an **AI Evidence Pipeline:**
 
 ---
 
-## 5. Implementation Roadmap (90 Days)
+## 5. Current UI
 
-| Phase | Milestone | Tasks |
-| ----- | --------- | ----- |
-| **1** | Database Schema | Define `users`, `bets`, `outcomes`, `reputation` tables in SQL |
-| **2** | Core UI | Build "Prediction Card" component and "News Feed" |
-| **3** | Logic Layer | Implement Brier score math + Auth migration from Base44 |
-| **4** | AI Integration | Connect "Resolution Engine" to search APIs |
+The application features a responsive design:
+
+| Screen Size | Behavior |
+| ----------- | -------- |
+| Mobile (< 1024px) | Hamburger menu, collapsible sidebar |
+| Desktop (≥ 1024px) | Fixed sidebar always visible |
+
+**Pages:**
+- Feed — Prediction feed (home)
+- Notifications — User notifications
+- Create Bet — Create new predictions
+- Leaderboard — Top predictors
+- Profile — User profile
+- Settings — User settings
 
 ---
 
-## 6. Development Guidelines
+## 6. Implementation Roadmap
+
+| Phase | Status | Milestone |
+| ----- | ------ | --------- |
+| **1** | ✅ | Infrastructure setup (AWS, Terraform, Docker) |
+| **2** | ✅ | Core UI skeleton with responsive design |
+| **3** | 🔄 | Database schema for users, bets, outcomes |
+| **4** | ⏳ | Auth system (login/registration) |
+| **5** | ⏳ | Prediction creation and display |
+| **6** | ⏳ | AI Resolution Engine integration |
+
+---
+
+## 7. Development Guidelines
 
 ### Naming Conventions
 
 - **JavaScript/TypeScript:** `camelCase`
 - **PostgreSQL:** `snake_case`
+- **React Components:** `PascalCase`
+- **CSS Classes:** Tailwind utility classes
 
 ### Architecture Principles
 
 - **Modularity:** Keep "Scoring Logic" separate from "UI Components" for testability
 - **Security:** Manage API keys and secrets via `.env` — never hardcode credentials
+- **Mobile-First:** Design for mobile screens, enhance for desktop
+
+### Git Workflow
+
+- **Main branch is protected** — all changes require a Pull Request
+- Create feature branches: `feature/description`
+- Never push directly to `main`

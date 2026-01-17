@@ -1,0 +1,14 @@
+node_modules
+.next
+.git
+.gitignore
+*.md
+.env*
+.DS_Store
+certbot
+terraform
+*.log
+npm-debug.log*
+.npm
+.eslintcache
+

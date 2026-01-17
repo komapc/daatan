@@ -2,78 +2,174 @@
 
 ## 1. High-Level Architecture
 
-The infrastructure is designed to be **immutable and automated**. We use Terraform to provision resources and GitHub Actions to deploy Docker containers.
+The infrastructure is designed to be **immutable and automated**. We use Terraform to provision resources and Docker Compose for container orchestration.
 
 | Layer | Service | Details |
 | ----- | ------- | ------- |
 | DNS | Namecheap → AWS Route 53 | Registrar delegates to Route 53 |
-| Frontend | AWS Amplify | Auto-scaling, managed SSL, CI/CD integrated |
-| Backend | EC2 `t3.nano` | Dockerized Node.js in `il-central-1` |
-| Database | RDS PostgreSQL `db.t3.micro` | Managed persistence |
+| Compute | EC2 `t3.small` | Dockerized Next.js + Nginx in `eu-central-1` (Frankfurt) |
+| Database | PostgreSQL 16 | Docker container with persistent volume |
+| SSL | Let's Encrypt | Auto-renewed via Certbot |
 
 ---
 
-## 2. Infrastructure Components
+## 2. Live Deployment
+
+**Production URL:** https://daatan.com
+
+| Component | Value |
+| --------- | ----- |
+| EC2 Instance | `i-0e3ab3926d831bf0a` |
+| Instance Type | `t3.small` (2GB RAM) |
+| Public IP | `52.59.160.186` |
+| Region | `eu-central-1` (Frankfurt) |
+| SSL Certificate | Valid until April 17, 2026 |
+
+---
+
+## 3. Infrastructure Components
 
 ### A. Network & DNS
 
 | Component | Provider/Service | Purpose |
 | --------- | ---------------- | ------- |
 | Domain Registrar | Namecheap | Owns `daatan.com` |
-| DNS Management | Route 53 | Handles A records and CNAME |
-| VPC | AWS VPC | Private network in Tel Aviv (`il-central-1`) |
+| DNS Management | Route 53 | Hosted zone `Z0878807J7QMMQ2P8AA2` |
+| Nameservers | AWS | `ns-314.awsdns-39.com`, `ns-1000.awsdns-61.net`, `ns-1227.awsdns-25.org`, `ns-1988.awsdns-56.co.uk` |
 
-### B. Compute (The Docker Engine)
+### B. Compute (Docker Stack)
 
-- **Instance:** Amazon EC2 `t3.nano` (Ubuntu 24.04)
+- **Instance:** Amazon EC2 `t3.small` (Ubuntu 24.04)
 - **Runtime:** Docker + Docker Compose
+
+**Docker Containers:**
+
+| Container | Image | Port | Purpose |
+| --------- | ----- | ---- | ------- |
+| `daatan-nginx` | `nginx:alpine` | 80, 443 | Reverse proxy + SSL termination |
+| `daatan-app` | `daatan-app:latest` | 3000 (internal) | Next.js application |
+| `daatan-postgres` | `postgres:16-alpine` | 5432 (internal) | PostgreSQL database |
+| `daatan-certbot` | `certbot/certbot` | - | SSL certificate renewal |
 
 **Security Group:**
 
 | Port | Access | Purpose |
 | ---- | ------ | ------- |
-| 22 | Restricted to your IP | SSH |
-| 80/443 | Public | Web traffic |
-| 3000 | Internal | Backend Node.js API (Docker mapped) |
+| 22 | Restricted to `46.210.0.0/16` | SSH |
+| 80 | Public | HTTP (redirects to HTTPS) |
+| 443 | Public | HTTPS |
 
 ### C. Storage & Database
 
-- **Database:** Amazon RDS PostgreSQL
-- **Storage:** 20GB GP3 SSD
-- **Backup:** 7 days automated backups (Free Tier)
+- **Database:** PostgreSQL 16 (Docker container)
+- **Storage:** Docker volume `postgres_data`
+- **Backup:** S3 bucket `daatan-db-backups-272007598366`
 
 ---
 
-## 3. CI/CD Pipeline (The "Manual" Stack)
+## 4. Deployment Process
 
-Since you're migrating to a manual setup with Cursor/IDE, the workflow is:
+### Quick Deploy (from local machine)
 
-1. **Code Change** — Edit Node.js code in Cursor, push to GitHub
+```bash
+# 1. Sync files to EC2
+rsync -avz --exclude 'node_modules' --exclude '.next' --exclude '.git' \
+  -e "ssh -i ~/.ssh/daatan-key.pem" . ubuntu@52.59.160.186:~/app/
 
-2. **Build Phase** (GitHub Actions)
-   - Builds the Docker image
-   - Pushes to GitHub Container Registry (GHCR) or DockerHub
+# 2. Build and restart
+ssh -i ~/.ssh/daatan-key.pem ubuntu@52.59.160.186 \
+  "cd ~/app && docker compose -f docker-compose.prod.yml up -d --build"
+```
 
-3. **Deploy Phase** (GitHub Actions)
-   - Logs into EC2 via SSH
-   - Runs `docker compose pull && docker compose up -d`
+### Full Deploy Script
+
+```bash
+ssh -i ~/.ssh/daatan-key.pem ubuntu@52.59.160.186
+cd ~/app
+chmod +x deploy.sh
+./deploy.sh
+```
 
 ---
 
-## 4. Namecheap → AWS Bridge
+## 5. SSL Certificate Management
 
-To use `daatan.com` with this setup:
+Certificates are automatically renewed by Certbot. To manually renew:
 
-1. **Route 53** — Create a "Hosted Zone" for `daatan.com`
-2. **Name Servers** — Copy the 4 NS records from AWS into Namecheap's "Custom DNS" section
-3. **Propagation** — Wait ~1-2 hours for DNS to propagate globally
+```bash
+ssh -i ~/.ssh/daatan-key.pem ubuntu@52.59.160.186
+docker run --rm \
+  -v ~/app/certbot/www:/var/www/certbot \
+  -v ~/app/certbot/conf:/etc/letsencrypt \
+  certbot/certbot renew
+docker compose -f ~/app/docker-compose.prod.yml restart nginx
+```
 
 ---
 
-## 5. Terraform Prerequisites
+## 6. Configuration Files
 
-Before running the Terraform files, ensure you have:
+| File | Purpose |
+| ---- | ------- |
+| `docker-compose.prod.yml` | Production Docker stack |
+| `nginx-ssl.conf` | Nginx config with HTTPS |
+| `nginx-init.conf` | HTTP-only config for initial SSL setup |
+| `deploy.sh` | Automated deployment script |
+| `.env` | Environment variables (POSTGRES_PASSWORD) |
 
-- [ ] **AWS CLI** installed and configured with an IAM user that has `AdministratorAccess`
-- [ ] **Terraform CLI** installed locally
-- [ ] **SSH Key Pair** created in AWS Console (named `daatan-key`) for EC2 access
+---
+
+## 7. Terraform
+
+Terraform manages the AWS infrastructure:
+
+```bash
+cd terraform
+terraform init
+terraform plan
+terraform apply
+```
+
+**Key files:**
+- `main.tf` - Provider configuration
+- `ec2.tf` - EC2 instance
+- `route53.tf` - DNS records
+- `security_groups.tf` - Firewall rules
+- `s3.tf` - Backup bucket
+
+**Note:** Instance type changes are ignored in lifecycle to prevent accidental recreation.
+
+---
+
+## 8. Monitoring
+
+### Health Check
+
+```bash
+curl https://daatan.com/api/health
+# Returns: {"status":"ok","timestamp":"..."}
+```
+
+### Container Status
+
+```bash
+ssh -i ~/.ssh/daatan-key.pem ubuntu@52.59.160.186 "docker ps"
+```
+
+### Logs
+
+```bash
+ssh -i ~/.ssh/daatan-key.pem ubuntu@52.59.160.186 "docker logs daatan-app --tail 100"
+ssh -i ~/.ssh/daatan-key.pem ubuntu@52.59.160.186 "docker logs daatan-nginx --tail 100"
+```
+
+---
+
+## 9. Costs (Estimated Monthly)
+
+| Service | Cost |
+| ------- | ---- |
+| EC2 t3.small | ~$17 |
+| Route 53 | ~$0.50 |
+| S3 (backups) | ~$0.10 |
+| **Total** | **~$18/month** |
