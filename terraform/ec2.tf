@@ -71,24 +71,27 @@ resource "aws_instance" "backend" {
     mkdir -p /home/ubuntu/backups
     chown -R ubuntu:ubuntu /home/ubuntu/app /home/ubuntu/backups
 
+    # Write S3 bucket name to config file (Terraform interpolation)
+    echo "${aws_s3_bucket.backups.bucket}" > /home/ubuntu/.s3_bucket
+
     # Create backup script
     cat > /home/ubuntu/backup-db.sh << 'BACKUP'
-    #!/bin/bash
-    TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-    BACKUP_FILE="/home/ubuntu/backups/daatan_$TIMESTAMP.sql.gz"
-    S3_BUCKET="${aws_s3_bucket.backups.bucket}"
+#!/bin/bash
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+BACKUP_FILE="/home/ubuntu/backups/daatan_$TIMESTAMP.sql.gz"
+S3_BUCKET=$(cat /home/ubuntu/.s3_bucket)
 
-    # Dump database
-    docker exec daatan-postgres pg_dump -U daatan daatan | gzip > "$BACKUP_FILE"
+# Dump database
+docker exec daatan-postgres pg_dump -U daatan daatan | gzip > "$BACKUP_FILE"
 
-    # Upload to S3
-    aws s3 cp "$BACKUP_FILE" "s3://$S3_BUCKET/daily/"
+# Upload to S3
+aws s3 cp "$BACKUP_FILE" "s3://$S3_BUCKET/daily/"
 
-    # Keep only last 3 local backups
-    ls -t /home/ubuntu/backups/*.sql.gz | tail -n +4 | xargs -r rm
+# Keep only last 3 local backups
+ls -t /home/ubuntu/backups/*.sql.gz | tail -n +4 | xargs -r rm
 
-    echo "Backup completed: $BACKUP_FILE"
-    BACKUP
+echo "Backup completed: $BACKUP_FILE"
+BACKUP
 
     chmod +x /home/ubuntu/backup-db.sh
     chown ubuntu:ubuntu /home/ubuntu/backup-db.sh

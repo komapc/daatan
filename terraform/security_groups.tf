@@ -31,14 +31,8 @@ resource "aws_security_group" "ec2" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Node.js API
-  ingress {
-    description = "Node.js API"
-    from_port   = 3000
-    to_port     = 3000
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+  # Node.js API - Internal only (accessed via nginx reverse proxy)
+  # Port 3000 is NOT exposed publicly - use port 80/443 instead
 
   # Allow all outbound traffic
   egress {
