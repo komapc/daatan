@@ -1,24 +1,35 @@
-# DAATAN
+# DAaTAn
 
 **Reputation-based news prediction platform**
 
 > "Prove you were right — without shouting into the void."
 
-[![Live](https://img.shields.io/badge/Live-daatan.com-blue)](https://daatan.com)
-[![Next.js](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org/)
+[![Live](https://img.shields.io/badge/Production-daatan.com-green)](https://daatan.com)
+[![Staging](https://img.shields.io/badge/Staging-staging.daatan.com-yellow)](https://staging.daatan.com)
+[![Version](https://img.shields.io/badge/Version-0.1.0-blue)](https://github.com/komapc/daatan/releases)
+[![Next.js](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)](https://www.typescriptlang.org/)
 
 ---
 
-## What Is DAATAN?
+## What Is DAaTAn?
 
-DAATAN is a reputation-based product that enables testing understanding and predictions on news, politics, and current affairs — **without money**, with long-term accuracy measurement.
+DAaTAn is a reputation-based product that enables testing understanding and predictions on news, politics, and current affairs — **without money**, with long-term accuracy measurement.
 
 **The product doesn't measure profit — it measures understanding.**
 
 ---
 
-## What DAATAN Is NOT
+## Environments
+
+| Environment | URL | Branch | Deploy Trigger |
+|-------------|-----|--------|----------------|
+| **Production** | https://daatan.com | `main` | Push tag `v*` |
+| **Staging** | https://staging.daatan.com | `main` | Push to `main` |
+
+---
+
+## What DAaTAn Is NOT
 
 - ❌ Not a gambling platform
 - ❌ Not a trading arena
@@ -31,11 +42,15 @@ DAATAN is a reputation-based product that enables testing understanding and pred
 
 | Layer | Technology |
 | ----- | ---------- |
-| Frontend | Next.js 15 (React 19) |
+| Framework | Next.js 14 (React 18) |
+| Language | TypeScript 5 |
 | Styling | Tailwind CSS |
-| Database | PostgreSQL 16 |
-| Hosting | AWS EC2 (Frankfurt) |
+| Database | PostgreSQL 16 + Prisma 7 |
+| Auth | NextAuth.js (Google OAuth) |
+| Hosting | AWS EC2 (eu-central-1) |
 | Container | Docker + Nginx |
+| CI/CD | GitHub Actions |
+| SSL | Let's Encrypt |
 
 ---
 
@@ -49,6 +64,36 @@ npm install
 npm run dev
 
 # Open http://localhost:3000
+```
+
+---
+
+## Scripts
+
+### Development
+```bash
+npm run dev      # Start dev server
+npm run build    # Build for production
+npm run lint     # Run linter
+```
+
+### Operations
+```bash
+./scripts/check.sh    # Quick health check (up/down)
+./scripts/status.sh   # Full status (health, version, latency)
+./scripts/release.sh  # Create version tag and release
+```
+
+### Deployment
+```bash
+# Deploy to staging (automatic on push to main)
+git push origin main
+
+# Deploy to production (create version tag)
+./scripts/release.sh
+# Or manually:
+git tag v0.1.1
+git push origin v0.1.1
 ```
 
 ---
