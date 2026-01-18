@@ -3,8 +3,10 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files and prisma schema (needed for postinstall prisma generate)
 COPY package*.json ./
+COPY prisma ./prisma/
+COPY prisma.config.ts ./
 
 # Install all dependencies (including dev for build)
 RUN npm ci
