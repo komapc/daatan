@@ -1,43 +1,84 @@
 import NextAuth from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
+import { PrismaAdapter } from '@auth/prisma-adapter'
 import type { NextAuthOptions } from 'next-auth'
+import type { NextRequest } from 'next/server'
 
-// Force dynamic rendering - don't try to prerender this route
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-// Create auth options without Prisma adapter for now
-// TODO: Add Prisma adapter after database is ready
-const authOptions: NextAuthOptions = {
-  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID ?? '',
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
-    }),
-  ],
-  session: {
-    strategy: 'jwt',
-  },
-  callbacks: {
-    async session({ session, token }) {
-      if (session.user && token.sub) {
-        session.user.id = token.sub
-      }
-      return session
-    },
-    async jwt({ token, user }) {
-      if (user) {
-        token.sub = user.id
-      }
-      return token
-    },
-  },
-  pages: {
-    signIn: '/auth/signin',
-    error: '/auth/error',
-  },
+// Lazy singleton for prisma - only created on first request
+let prismaInstance: import('@prisma/client').PrismaClient | null = null
+
+const getPrisma = async () => {
+  if (!prismaInstance) {
+    const { PrismaClient } = await import('@prisma/client')
+    prismaInstance = new PrismaClient()
+  }
+  return prismaInstance
 }
 
-const handler = NextAuth(authOptions)
+const createAuthOptions = async (): Promise<NextAuthOptions> => {
+  const prisma = await getPrisma()
+  
+  return {
+    adapter: PrismaAdapter(prisma),
+    providers: [
+      GoogleProvider({
+        clientId: process.env.GOOGLE_CLIENT_ID ?? '',
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
+      }),
+    ],
+    session: {
+      strategy: 'jwt',
+    },
+    callbacks: {
+      async session({ session, token }) {
+        if (session.user && token.sub) {
+          session.user.id = token.sub
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.sub },
+            select: { username: true, isAdmin: true, brierScore: true },
+          })
+          if (dbUser) {
+            session.user.username = dbUser.username
+            session.user.isAdmin = dbUser.isAdmin
+            session.user.brierScore = dbUser.brierScore
+          }
+        }
+        return session
+      },
+      async jwt({ token, user }) {
+        if (user) {
+          token.sub = user.id
+        }
+        return token
+      },
+    },
+    pages: {
+      signIn: '/auth/signin',
+      error: '/auth/error',
+    },
+  }
+}
 
-export { handler as GET, handler as POST }
+// Cache the handler after first creation
+let cachedHandler: ReturnType<typeof NextAuth> | null = null
+
+const getHandler = async () => {
+  if (!cachedHandler) {
+    const authOptions = await createAuthOptions()
+    cachedHandler = NextAuth(authOptions)
+  }
+  return cachedHandler
+}
+
+export async function GET(request: NextRequest, context: { params: { nextauth: string[] } }) {
+  const handler = await getHandler()
+  return handler(request, context)
+}
+
+export async function POST(request: NextRequest, context: { params: { nextauth: string[] } }) {
+  const handler = await getHandler()
+  return handler(request, context)
+}

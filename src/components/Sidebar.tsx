@@ -22,12 +22,12 @@ type NavItem = {
 }
 
 const navItems: NavItem[] = [
-  { href: '#feed', label: 'Feed', icon: Home },
-  { href: '#notifications', label: 'Notifications', icon: Bell },
-  { href: '#create', label: 'Create Bet', icon: PlusCircle },
-  { href: '#leaderboard', label: 'Leaderboard', icon: Trophy },
-  { href: '#profile', label: 'Profile', icon: User },
-  { href: '#settings', label: 'Settings', icon: Settings },
+  { href: '/', label: 'Feed', icon: Home },
+  { href: '/notifications', label: 'Notifications', icon: Bell },
+  { href: '/create', label: 'Create Bet', icon: PlusCircle },
+  { href: '/leaderboard', label: 'Leaderboard', icon: Trophy },
+  { href: '/profile', label: 'Profile', icon: User },
+  { href: '/settings', label: 'Settings', icon: Settings },
 ]
 
 const Sidebar = () => {
