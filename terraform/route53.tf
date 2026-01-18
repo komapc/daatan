@@ -35,3 +35,12 @@ resource "aws_route53_record" "www" {
   records = [var.domain_name]
 }
 
+# Staging subdomain A record
+resource "aws_route53_record" "staging" {
+  zone_id = aws_route53_zone.main.zone_id
+  name    = "staging.${var.domain_name}"
+  type    = "A"
+  ttl     = 300
+  records = [aws_eip.backend.public_ip]
+}
+

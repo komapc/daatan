@@ -12,6 +12,7 @@ services:
       - ./certbot/conf:/etc/letsencrypt:ro
     depends_on:
       - app
+      - app-staging
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost/health"]
       interval: 30s
@@ -35,6 +36,37 @@ services:
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://daatan:${POSTGRES_PASSWORD}@postgres:5432/daatan
+      - NEXT_PUBLIC_ENV=production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  app-staging:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_ENV=staging
+    image: daatan-app:staging
+    container_name: daatan-app-staging
+    restart: unless-stopped
+    expose:
+      - "3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://daatan:${POSTGRES_PASSWORD}@postgres:5432/daatan
+      - NEXT_PUBLIC_ENV=staging
     depends_on:
       postgres:
         condition: service_healthy
