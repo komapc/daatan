@@ -1,5 +1,22 @@
 # DAATAN - Development TODO
 
+## 📋 Project Rules
+
+### Git & PRs
+- **Never merge to main without explicit user approval.** Always create a PR and ask for permission before merging.
+- **Update documentation on every PR.** Ensure README, TODO.md, and relevant docs reflect the changes.
+
+### Code Quality
+- **Suggest unit tests for every feature**, even when not explicitly requested. Insist on tests for large features or when too many features accumulate without test coverage.
+- **Write modular code.** Keep components, functions, and modules small and single-purpose.
+- **Prefer mainstream, battle-tested solutions** over custom implementations, unless cost-prohibitive.
+
+### Process
+- **Validate every request against project vision.** Before implementing, check if it aligns with DAATAN_CORE.md and existing documentation.
+- **Follow semantic versioning.** See VERSIONING.md for version bump rules.
+
+---
+
 ## ✅ Completed
 
 ### Infrastructure
@@ -44,6 +61,9 @@
 ---
 
 ## 🔄 In Progress
+
+### Infrastructure (High Priority)
+- [ ] **Build staging environment** (separate EC2 or branch-based preview)
 
 ### Database
 - [ ] Run Prisma migrations on EC2 to create tables
@@ -159,7 +179,7 @@
 - [ ] Add rate limiting to API
 - [ ] Add API tests
 - [ ] Add E2E tests (Playwright)
-- [ ] Set up staging environment
+- [x] Set up staging environment → moved to In Progress
 - [ ] Database backups automation
 - [ ] Log aggregation
 
