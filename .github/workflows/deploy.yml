@@ -4,10 +4,21 @@ on:
   push:
     branches:
       - main
+    tags:
+      - 'v*'
   pull_request:
     branches:
       - main
-  workflow_dispatch:  # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deploy to environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
 
 jobs:
   # Build and test (runs on all pushes and PRs)
@@ -37,18 +48,20 @@ jobs:
       - name: Run linter
         run: npm run lint || echo "No lint script configured"
 
-  # Deploy to EC2 (only on push to main, not PRs)
-  deploy:
-    name: Deploy to Production
+  # Deploy to STAGING (on push to main)
+  deploy-staging:
+    name: Deploy to Staging
     needs: build
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
     
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Deploy to EC2
+      - name: Deploy to Staging
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -56,7 +69,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             set -e
-            echo "🚀 Starting deployment at $(date)"
+            echo "🚀 Starting STAGING deployment at $(date)"
             
             cd ~/app
             
@@ -64,9 +77,81 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
             
-            # Build and restart containers
-            docker compose -f docker-compose.prod.yml build --no-cache app
-            docker compose -f docker-compose.prod.yml up -d
+            # Build and restart staging container only
+            docker compose -f docker-compose.prod.yml build app-staging
+            docker compose -f docker-compose.prod.yml up -d app-staging nginx
+            
+            # Wait for app to be healthy
+            echo "Waiting for health check..."
+            sleep 10
+            
+            # Verify deployment
+            if curl -sf http://app-staging:3000/api/health > /dev/null 2>&1 || curl -sf https://staging.daatan.com/api/health > /dev/null; then
+              echo "✅ Staging health check passed"
+            else
+              echo "⚠️ Staging health check - checking container logs"
+              docker logs daatan-app-staging --tail 20
+            fi
+            
+            # Cleanup old images
+            docker image prune -f
+            
+            echo "✅ Staging deployment completed at $(date)"
+
+      - name: Verify staging site
+        run: |
+          sleep 5
+          if curl -sf https://staging.daatan.com/api/health; then
+            echo "✅ Staging site is healthy"
+          else
+            echo "⚠️ Could not reach staging site (may be DNS propagation)"
+          fi
+
+  # Deploy to PRODUCTION (on tag push only)
+  deploy-production:
+    name: Deploy to Production
+    needs: build
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          else
+            echo "version=manual" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deploy to Production
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
+            echo "🚀 Starting PRODUCTION deployment (${{ steps.version.outputs.version }}) at $(date)"
+            
+            cd ~/app
+            
+            # Pull latest code (use tag if available)
+            git fetch origin --tags
+            if [[ "${{ steps.version.outputs.version }}" != "manual" ]]; then
+              git checkout ${{ steps.version.outputs.version }}
+            else
+              git reset --hard origin/main
+            fi
+            
+            # Build and restart production container
+            docker compose -f docker-compose.prod.yml build app
+            docker compose -f docker-compose.prod.yml up -d app nginx
             
             # Wait for app to be healthy
             echo "Waiting for health check..."
@@ -74,9 +159,9 @@ jobs:
             
             # Verify deployment
             if curl -sf http://localhost:3000/api/health > /dev/null; then
-              echo "✅ Health check passed"
+              echo "✅ Production health check passed"
             else
-              echo "❌ Health check failed"
+              echo "❌ Production health check failed"
               docker logs daatan-app --tail 20
               exit 1
             fi
@@ -84,7 +169,7 @@ jobs:
             # Cleanup old images
             docker image prune -f
             
-            echo "✅ Deployment completed at $(date)"
+            echo "✅ Production deployment completed at $(date)"
 
       - name: Verify production site
         run: |
@@ -92,5 +177,5 @@ jobs:
           if curl -sf https://daatan.com/api/health; then
             echo "✅ Production site is healthy"
           else
-            echo "⚠️ Could not reach production site (may be DNS issue)"
+            echo "⚠️ Could not reach production site"
           fi

@@ -17,6 +17,10 @@ COPY . .
 # Create public directory if it doesn't exist
 RUN mkdir -p public
 
+# Accept build-time environment variables
+ARG NEXT_PUBLIC_ENV=production
+ENV NEXT_PUBLIC_ENV=$NEXT_PUBLIC_ENV
+
 # Build Next.js
 RUN npm run build
 
