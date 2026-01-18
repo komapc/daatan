@@ -1,129 +1,112 @@
 # DAATAN Core
 
-## 1. Vision & Identity
-
-**Name:** DAATAN (Hebrew/Arabic root for "Knowledge/Data-driven")
-
-**Slogan:** "Prove you were right — without shouting into the void."
-
-**Core Mission:** Transform passive news consumption into a verifiable, gamified track record of prediction accuracy.
-
-### The DAATAN Philosophy
-
-- **Accountability:** "Следить за базаром." No deleted takes. Every prediction becomes a permanent part of your digital legacy.
-- **Interactivity over Doomscrolling:** Shift users from passive readers to active forecasters.
-
-### Three Pillars of Content
-
-1. **Facts** — Unbiased gist of the news
-2. **Analytics** — Expert breakdown
-3. **Opinions** — Personal takes (the fuel for predictions)
+> Source of Truth document. All features and decisions must align with this.
+> Last updated: January 2026
 
 ---
 
-## 2. Technical Stack
+## 1. What Is DAATAN?
 
-| Layer | Technology |
-| ----- | ---------- |
-| Frontend | Next.js 15 (React 19, App Router) |
-| Styling | Tailwind CSS |
-| Backend | Next.js API Routes |
-| Database | PostgreSQL 16 |
-| Hosting | AWS EC2 (eu-central-1) |
-| SSL | Let's Encrypt (auto-renewed) |
-| Reverse Proxy | Nginx |
+**One sentence:**
+> DAATAN is a reputation-based product that enables testing understanding and predictions on news, politics, and current affairs — without money, with long-term accuracy measurement.
 
-**Live URL:** https://daatan.com
+**The product doesn't measure profit — it measures understanding.**
 
 ---
 
-## 3. Product Features & Logic
+## 2. Who Is It For?
 
-### A. The Prediction Engine ("The Hunch")
+### Primary Audience (Israel-first launch)
+- Heavy news consumers
+- People with opinions on politics and current affairs
+- People who enjoy debates, commentary, and reality analysis
 
-- **LLM-Assisted Phrasing:** System suggests binary (Yes/No) outcomes from news text
-- **Confidence Slider:** Users select probability (50%–100%)
-- **Scoring:** Brier Score for calibration measurement
-
-$$B = \frac{1}{N} \sum_{t=1}^{N} (f_t - o_t)^2$$
-
-> Where \(f_t\) = forecast probability, \(o_t\) = actual outcome (0 or 1)
-
-### B. The Social & Authority Layer
-
-- **Resolved Bets Hub:** Primary destination for "Who was right?"
-- **Identity:** Persistent pseudonymous accounts — no real name required, but real history matters
-- **Challenges:** "Invite a Friend" or "Challenge an Expert" to specific bets
-
-### C. The Widget (Distribution Hook)
-
-- Embeddable JS snippet for external bloggers/publishers
-- Captures high-intent users directly on the news page
+### Secondary Audience
+- Journalists and commentators
+- Independent "experts"
+- People who want to build authority through accuracy, not exposure
 
 ---
 
-## 4. Automated Adjudication Logic
+## 3. What DAATAN Is NOT
 
-To minimize manual overhead, DAATAN uses an **AI Evidence Pipeline:**
+DAATAN is **not**:
+- A gambling platform
+- A trading arena
+- A real-money product
+- A consequence-free game
+- A place to "guess and forget"
 
-| Stage | Process |
-| ----- | ------- |
-| **Collection** | On resolution date, query news APIs (Perplexity/Exa) for keywords |
-| **Processing** | LLM analyzes top 5 sources |
-| **Verdict** | Success/Failure with high confidence |
-| **Escalation** | Contradictory sources → "Human Review" queue |
-
----
-
-## 5. Current UI
-
-The application features a responsive design:
-
-| Screen Size | Behavior |
-| ----------- | -------- |
-| Mobile (< 1024px) | Hamburger menu, collapsible sidebar |
-| Desktop (≥ 1024px) | Fixed sidebar always visible |
-
-**Pages:**
-- Feed — Prediction feed (home)
-- Notifications — User notifications
-- Create Bet — Create new predictions
-- Leaderboard — Top predictors
-- Profile — User profile
-- Settings — User settings
+We don't have:
+- Cash or real money
+- Cash-out functionality
+- Capital advantage (can't buy better odds)
+- Bots or algorithmic trading
 
 ---
 
-## 6. Implementation Roadmap
+## 4. Core Principles
 
-| Phase | Status | Milestone |
-| ----- | ------ | --------- |
-| **1** | ✅ | Infrastructure setup (AWS, Terraform, Docker) |
-| **2** | ✅ | Core UI skeleton with responsive design |
-| **3** | 🔄 | Database schema for users, bets, outcomes |
-| **4** | ⏳ | Auth system (login/registration) |
-| **5** | ⏳ | Prediction creation and display |
-| **6** | ⏳ | AI Resolution Engine integration |
+### DO
+- Measure accuracy over time
+- Preserve track record
+- Turn statements into testable predictions
+- Enable building authority through results
+- Use gamification that serves measurement
+
+### DON'T
+- Reward noise over accuracy
+- Allow gimmicks without consequences
+- Prefer charisma over results
+- Involve money or financial incentives
 
 ---
 
-## 7. Development Guidelines
+## 5. Layer Hierarchy
 
-### Naming Conventions
+### Core Layer: Accountability & Reputation (Non-Negotiable)
+- Cumulative reputation score
+- Permanent track record
+- Every prediction affects the future
+- Authority is built, not bought
 
-- **JavaScript/TypeScript:** `camelCase`
-- **PostgreSQL:** `snake_case`
-- **React Components:** `PascalCase`
-- **CSS Classes:** Tailwind utility classes
+### Wrapper Layer: Gamified / Engaging News
+- Short-term predictions
+- Competitions
+- "Beat the expert"
+- Interactive elements
 
-### Architecture Principles
+> **The game serves measurement. Not the other way around.**
 
-- **Modularity:** Keep "Scoring Logic" separate from "UI Components" for testability
-- **Security:** Manage API keys and secrets via `.env` — never hardcode credentials
-- **Mobile-First:** Design for mobile screens, enhance for desktop
+---
 
-### Git Workflow
+## 6. Out of Scope (For Now)
 
-- **Main branch is protected** — all changes require a Pull Request
-- Create feature branches: `feature/description`
-- Never push directly to `main`
+- Real-money trading
+- Buying/selling reputation
+- Momentary leaderboards without cumulative meaning
+- Conspiracy/provocative content for engagement
+- Any feature that doesn't pass Feature Fit Framework
+
+---
+
+## 7. Feature Fit Framework
+
+Before adding any feature, it must pass all checks:
+
+1. Does it support long-term accuracy measurement?
+2. Does it preserve or build track record?
+3. Does it avoid financial incentives?
+4. Does it serve measurement over engagement?
+5. Is authority earned, not bought?
+
+**If a feature fails any check → out of scope.**
+
+---
+
+## Related Documents
+
+- [GLOSSARY.md](./GLOSSARY.md) — Terminology definitions
+- [FORECASTS_FLOW.md](./FORECASTS_FLOW.md) — End-to-end implementation flow
+- [TODO.md](./TODO.md) — Development tasks and guidelines
+- [INFRASTRUCTURE.md](./INFRASTRUCTURE.md) — Technical infrastructure

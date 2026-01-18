@@ -1,19 +1,46 @@
 # DAATAN - Development TODO
 
+> Reference: [DAATAN_CORE.md](./DAATAN_CORE.md) | [GLOSSARY.md](./GLOSSARY.md) | [FORECASTS_FLOW.md](./FORECASTS_FLOW.md)
+
 ## 📋 Project Rules
 
+### Source of Truth
+Every feature, phrasing, or new idea must align with [DAATAN_CORE.md](./DAATAN_CORE.md).
+
+### AI Collaboration Guidelines
+When working with AI assistants:
+- **Ask first:** "Does this align with the Source of Truth document?"
+- **No hidden assumptions:** Always state assumptions explicitly
+- **Accountability over engagement:** If there's tension between the two, accountability wins
+- **Ask when uncertain:** Don't proceed if something is unclear
+- **Flag conflicts:** If something contradicts DAATAN_CORE.md, raise it immediately
+
 ### Git & PRs
-- **Never merge to main without explicit user approval.** Always create a PR and ask for permission before merging.
-- **Update documentation on every PR.** Ensure README, TODO.md, and relevant docs reflect the changes.
+- **Never merge to main without explicit user approval.** Always create a PR and ask for permission.
+- **Update documentation on every PR.** Ensure README, TODO.md, and relevant docs reflect changes.
 
 ### Code Quality
-- **Suggest unit tests for every feature**, even when not explicitly requested. Insist on tests for large features or when too many features accumulate without test coverage.
-- **Write modular code.** Keep components, functions, and modules small and single-purpose.
-- **Prefer mainstream, battle-tested solutions** over custom implementations, unless cost-prohibitive.
+- **Suggest unit tests for every feature**, even when not requested.
+- **Write modular code.** Small, single-purpose components and functions.
+- **Prefer mainstream solutions** over custom implementations.
 
-### Process
-- **Validate every request against project vision.** Before implementing, check if it aligns with DAATAN_CORE.md and existing documentation.
-- **Follow semantic versioning.** See VERSIONING.md for version bump rules.
+### Feature Fit Framework
+Every feature must pass all checks:
+1. Does it support long-term accuracy measurement?
+2. Does it preserve or build track record?
+3. Does it avoid financial incentives?
+4. Does it serve measurement over engagement?
+5. Is authority earned, not bought?
+
+**If any check fails → out of scope.**
+
+### Out of Scope (Never Implement)
+- ❌ Real-money trading or cash-out
+- ❌ Buying/selling reputation
+- ❌ Momentary leaderboards without cumulative meaning
+- ❌ Conspiracy/provocative content for engagement
+- ❌ Bots or algorithmic trading features
+- ❌ Any feature that prioritizes charisma over results
 
 ---
 
@@ -82,74 +109,151 @@
 
 ## ⏳ Pending
 
-### Priority 1: Core Functionality
+### Priority 1: Core Functionality (MVP Phase 1)
 
 #### User Authentication UI
 - [ ] Sign-in page with Google OAuth button
 - [ ] User menu in sidebar (avatar, name, sign out)
 - [ ] Protected routes (redirect to sign-in if not authenticated)
 - [ ] Admin role management
+- [ ] Pseudonymous account support with feature limits
 
-#### Forecast Creation
+#### Prediction Creation (One-Click Flow)
+- [ ] LLM-assisted phrasing for predictions
+- [ ] Default resolution date auto-suggestion
+- [ ] Confidence slider (50%–100%)
 - [ ] Connect ForecastForm to API
 - [ ] Form validation feedback
 - [ ] Success/error notifications
 - [ ] Draft saving functionality
 
-#### Forecast Feed
+#### Internal Coin Economy
+- [ ] Coin balance display in UI
+- [ ] Starter balance for new users
+- [ ] Engagement rewards (streaks, accuracy bonuses)
+- [ ] Transaction history
+
+#### Prediction Feed
 - [ ] Fetch and display forecasts from API
-- [ ] Forecast card component
-- [ ] Filter by status (active, resolved, my forecasts)
+- [ ] Prediction card component
+- [ ] Filter by status (active, resolved, my predictions)
+- [ ] **Resolved Bets section** — highlight resolved predictions prominently
 - [ ] Pagination / infinite scroll
 - [ ] Search functionality
+- [ ] Trending topics display
 
 #### Voting UI
-- [ ] Vote button on forecast cards
-- [ ] Confidence slider for binary forecasts
+- [ ] Vote button on prediction cards
+- [ ] Confidence slider for binary predictions
 - [ ] Option selector for multiple choice
 - [ ] Show vote distribution (after voting)
 - [ ] Edit/remove vote functionality
 
-### Priority 2: Resolution & Scoring
+### Priority 2: Social & Challenge Features
+
+#### Invite to Bet
+- [ ] "Invite Friend" button on predictions
+- [ ] Email/link invitation flow
+- [ ] Pending invitation notifications
+- [ ] Accept/decline invitation UI
+
+#### Challenge Mechanics
+- [ ] "Challenge an Expert" flow
+- [ ] "Beat my record" shareable links
+- [ ] Challenge leaderboards
+- [ ] Challenge history on profile
+
+#### Friend & Community
+- [ ] Friend leaderboards
+- [ ] Private leagues creation/management
+- [ ] Topical communities (elections, sports, geopolitics)
+- [ ] Follow users
+
+### Priority 3: Resolution & Scoring
 
 #### Admin Resolution Panel
 - [ ] Admin-only resolution page
-- [ ] List of pending forecasts
+- [ ] List of pending predictions (by resolution date)
 - [ ] Resolution form (select correct option, add note)
 - [ ] Confirmation dialog
+
+#### AI Adjudication Pipeline
+- [ ] News API integration (Perplexity/Exa/similar)
+- [ ] Keyword extraction from predictions
+- [ ] LLM analysis of top sources
+- [ ] Confidence threshold for auto-resolution
+- [ ] Escalation to human review queue
+- [ ] Audit trail for disputes
 
 #### Leaderboard
 - [ ] Fetch users sorted by Brier score
 - [ ] User ranking cards
 - [ ] Filter by time period (all-time, monthly, weekly)
+- [ ] **Topic leaderboards** (e.g., "Top Middle East Predictor")
 - [ ] Current user highlight
+- [ ] Calibration score display (Brier/log loss)
 
 #### User Profile
-- [ ] Display user stats (forecasts created, votes, Brier score)
-- [ ] Prediction history
+- [ ] Display user stats (predictions created, votes, Brier score)
+- [ ] Prediction history with outcomes
 - [ ] Edit username/bio
 - [ ] Public/private toggle
+- [ ] **Badges system** (e.g., "Top Middle East Predictor")
+- [ ] Verified expert badge (manual review)
+- [ ] Historical accuracy metrics
 
-### Priority 3: Enhanced Features
+### Priority 4: Embeddable Widget (MVP Phase 2)
+
+#### Widget Core
+- [ ] Embeddable JS snippet generator
+- [ ] Customizable styling (colors, fonts)
+- [ ] Iframe vs. script injection approach
+- [ ] Widget SDK documentation
+
+#### Widget Features
+- [ ] Inline prediction suggestions tied to article content
+- [ ] Quick-create prediction flow
+- [ ] Contextual leaderboards
+- [ ] Mini user profile display
+- [ ] Sign-up/sign-in within widget
+
+#### Publisher Integration
+- [ ] Publisher dashboard
+- [ ] Widget analytics (views, conversions)
+- [ ] Publisher API keys management
+- [ ] Pilot with 1–3 publishers/bloggers
+
+### Priority 5: Social Sharing & Virality
+
+#### Sharing Cards
+- [ ] Shareable prediction card images (OG images)
+- [ ] Link back to profile and source article
+- [ ] Twitter/X share integration
+- [ ] Facebook share integration
+- [ ] LinkedIn share integration
+
+#### Viral Mechanics
+- [ ] "Beat the expert" challenge links
+- [ ] Trending-topic leaderboards
+- [ ] Share-to-signup tracking
+- [ ] Embeds-driven signup attribution
+
+### Priority 6: Engagement & Retention
+
+#### Streaks & Gamification
+- [ ] Daily reading/prediction streaks
+- [ ] Streak counter in UI
+- [ ] Streak rewards (coins, badges)
+- [ ] Topical tournaments
 
 #### Notifications
-- [ ] New votes on your forecasts
-- [ ] Forecast resolution notifications
+- [ ] New votes on your predictions
+- [ ] Prediction resolution notifications
 - [ ] Challenge invitations
+- [ ] Breaking news prompts (push/email)
 - [ ] Database table for notifications
 
-#### Source Articles
-- [ ] URL preview/unfurling
-- [ ] Multiple source display
-- [ ] Link validation
-
-#### Social Features
-- [ ] Share forecast links
-- [ ] Challenge friends (invite to vote)
-- [ ] Comments on forecasts
-- [ ] Follow users
-
-### Priority 4: Polish & Optimization
+### Priority 7: Polish & Optimization
 
 #### UI/UX
 - [ ] Loading skeletons
@@ -165,10 +269,16 @@
 - [ ] Query optimization
 
 #### SEO & Analytics
-- [ ] Meta tags for forecasts
-- [ ] Open Graph images
+- [ ] Meta tags for predictions
+- [ ] Open Graph images for predictions
 - [ ] Google Analytics
 - [ ] Error tracking (Sentry)
+
+#### Content Moderation
+- [ ] Basic fraud detection workflows
+- [ ] Safety guidelines enforcement
+- [ ] Sensitive topics human review queue
+- [ ] Report prediction functionality
 
 ---
 
@@ -191,6 +301,8 @@
 - [ ] Contributing guide
 - [ ] Local development setup guide
 - [ ] Deployment runbook
+- [ ] Widget integration guide for publishers
+- [ ] Influencer onboarding guide
 
 ---
 
@@ -223,31 +335,40 @@ curl https://daatan.com/api/health
 
 ---
 
-## 📅 Suggested Sprint Plan
+## 📅 MVP 90-Day Plan
 
-### Sprint 1 (Week 1-2): Authentication & Basic Feed
+### Phase 1: Core Web App (Weeks 1–4)
 - Run database migrations
-- Add Prisma adapter to NextAuth
-- Create sign-in page
-- Display forecast feed
-- Basic forecast card component
+- Complete authentication UI
+- LLM-assisted one-click prediction creation
+- Coin economy basics
+- Personal leaderboards
+- Basic profile with accuracy stats
+- Resolved Bets section
 
-### Sprint 2 (Week 3-4): Forecast Creation & Voting
-- Connect forecast form to API
-- Voting UI
-- Vote distribution display
-- User menu in sidebar
+### Phase 2: Widget & Sharing (Weeks 5–8)
+- Embeddable widget (customizable styling, JS snippet)
+- Quick-create flow in widget
+- Sharing cards with OG images
+- Social platform integrations
+- Invite to bet functionality
 
-### Sprint 3 (Week 5-6): Resolution & Leaderboard
-- Admin resolution panel
-- Leaderboard page
-- User profile page
-- Notifications (basic)
+### Phase 3: Adjudication & Pilot (Weeks 9–12)
+- AI evidence-sourcing pipeline
+- Simple human adjudication UI
+- Launch pilot with 1–3 publisher/influencer partners
+- Instrument key metrics and iterate
+- Gather feedback, iterate
 
-### Sprint 4 (Week 7-8): Polish & Launch
-- UI polish and animations
-- Error handling
-- Performance optimization
-- Documentation
-- Beta launch 🚀
+---
 
+## 📊 Success Metrics (Track from Pilot)
+
+| Metric | Description | Target |
+| ------ | ----------- | ------ |
+| **Activation** | % of article viewers who create a prediction | 2–5% |
+| **Retention** | 7/30-day DAU/MAU for active predictors | TBD |
+| **Engagement** | Average predictions per active user per week | TBD |
+| **Virality** | Share-to-signup conversion rate | TBD |
+| **Quality** | Average user calibration score (Brier) | Lower = better |
+| **Adjudication** | % resolved without dispute | >95% |
