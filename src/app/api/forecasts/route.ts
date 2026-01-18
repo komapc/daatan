@@ -1,13 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
 import { createForecastSchema, listForecastsQuerySchema } from '@/lib/validations/forecast'
-import { ForecastStatus } from '@prisma/client'
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
+// Lazy import Prisma to avoid build-time connection
+const getPrisma = async () => {
+  const { prisma } = await import('@/lib/prisma')
+  return prisma
+}
 
 // GET /api/forecasts - List forecasts
 export async function GET(request: NextRequest) {
   try {
+    const prisma = await getPrisma()
     const { searchParams } = new URL(request.url)
     
     const query = listForecastsQuerySchema.parse({
@@ -18,12 +26,12 @@ export async function GET(request: NextRequest) {
       limit: searchParams.get('limit') || 20,
     })
 
-    const where = {
-      ...(query.status && { status: query.status as ForecastStatus }),
-      ...(query.type && { type: query.type }),
-      ...(query.creatorId && { creatorId: query.creatorId }),
-      // Don't show drafts unless filtering by creator
-      ...(!query.creatorId && !query.status && { status: { not: 'DRAFT' as ForecastStatus } }),
+    const where: Record<string, unknown> = {}
+    if (query.status) where.status = query.status
+    if (query.type) where.type = query.type
+    if (query.creatorId) where.creatorId = query.creatorId
+    if (!query.creatorId && !query.status) {
+      where.status = { not: 'DRAFT' }
     }
 
     const [forecasts, total] = await Promise.all([
@@ -73,6 +81,7 @@ export async function GET(request: NextRequest) {
 // POST /api/forecasts - Create a new forecast
 export async function POST(request: NextRequest) {
   try {
+    const prisma = await getPrisma()
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {
@@ -141,4 +150,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-

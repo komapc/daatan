@@ -1,18 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
 import { resolveForecastSchema } from '@/lib/validations/forecast'
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
+// Lazy import Prisma
+const getPrisma = async () => {
+  const { prisma } = await import('@/lib/prisma')
+  return prisma
+}
 
 type RouteParams = {
   params: { id: string }
 }
 
 // Calculate Brier score for a vote
-// Brier score = (forecast - outcome)^2
-// Lower is better (0 = perfect, 1 = worst)
 const calculateBrierScore = (confidence: number, isCorrect: boolean): number => {
-  const forecast = confidence / 100 // Convert to 0-1 range
+  const forecast = confidence / 100
   const outcome = isCorrect ? 1 : 0
   return Math.pow(forecast - outcome, 2)
 }
@@ -20,6 +26,7 @@ const calculateBrierScore = (confidence: number, isCorrect: boolean): number => 
 // POST /api/forecasts/[id]/resolve - Resolve a forecast (admin only)
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
+    const prisma = await getPrisma()
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {
@@ -64,7 +71,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const data = resolveForecastSchema.parse(body)
 
     // Validate correct option belongs to this forecast
-    const correctOption = forecast.options.find(opt => opt.id === data.correctOptionId)
+    const correctOption = forecast.options.find((opt: { id: string }) => opt.id === data.correctOptionId)
     if (!correctOption) {
       return NextResponse.json(
         { error: 'Invalid option for this forecast' },
@@ -73,9 +80,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Start transaction
-    const result = await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx) => {
       // 1. Mark forecast as resolved
-      const resolvedForecast = await tx.forecast.update({
+      await tx.forecast.update({
         where: { id: params.id },
         data: {
           status: 'RESOLVED',
@@ -113,8 +120,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         })
       }
 
-      // 4. Update user Brier scores (average of all their votes)
-      const voterIds = [...new Set(forecast.votes.map(v => v.userId))]
+      // 4. Update user Brier scores
+      const voterIds = [...new Set(forecast.votes.map((v: { userId: string }) => v.userId))]
       
       for (const voterId of voterIds) {
         const userVotes = await tx.vote.findMany({
@@ -134,11 +141,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           })
         }
       }
-
-      return resolvedForecast
     })
 
-    // Fetch the updated forecast with all relations
+    // Fetch the updated forecast
     const updatedForecast = await prisma.forecast.findUnique({
       where: { id: params.id },
       include: {
@@ -193,4 +198,3 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     )
   }
 }
-

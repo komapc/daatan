@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
 import { createVoteSchema } from '@/lib/validations/forecast'
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
+// Lazy import Prisma
+const getPrisma = async () => {
+  const { prisma } = await import('@/lib/prisma')
+  return prisma
+}
 
 type RouteParams = {
   params: { id: string }
@@ -11,6 +19,7 @@ type RouteParams = {
 // POST /api/forecasts/[id]/vote - Vote on a forecast
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
+    const prisma = await getPrisma()
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {
@@ -54,7 +63,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const data = createVoteSchema.parse(body)
 
     // Validate option belongs to this forecast
-    const optionExists = forecast.options.some(opt => opt.id === data.optionId)
+    const optionExists = forecast.options.some((opt: { id: string }) => opt.id === data.optionId)
     if (!optionExists) {
       return NextResponse.json(
         { error: 'Invalid option for this forecast' },
@@ -119,6 +128,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 // DELETE /api/forecasts/[id]/vote - Remove vote
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
+    const prisma = await getPrisma()
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {
@@ -166,4 +176,3 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     )
   }
 }
-
