@@ -29,6 +29,17 @@
 - [x] Responsive sidebar with mobile hamburger menu
 - [x] Basic page structure (Feed, Notifications, Create, Leaderboard, Profile, Settings)
 - [x] ForecastForm component (binary/multiple choice)
+- [x] Sidebar navigation with Next.js Link components (SPA)
+- [x] Clickable logo navigates to home
+- [x] Active state highlighting for current route
+
+### New Prediction System
+- [x] Extended Prisma schema (NewsAnchor, Prediction, Commitment, CuTransaction)
+- [x] Zod validation schemas for new prediction system
+- [x] API routes: news-anchors, predictions CRUD
+- [x] API routes: publish, commit, resolve predictions
+- [x] PredictionWizard multi-step form UI
+- [x] Nginx config: www.daatan.com → daatan.com redirect
 
 ---
 
@@ -42,7 +53,7 @@
   ```
 
 ### Authentication
-- [ ] Add Prisma adapter to NextAuth for user persistence
+- [x] Add Prisma adapter to NextAuth for user persistence ✅
 - [ ] Create `/auth/signin` page with Google button
 - [ ] Create `/auth/error` page for auth errors
 - [ ] Add sign-in/sign-out buttons to UI
@@ -143,7 +154,7 @@
 
 ## 🔧 Technical Debt
 
-- [ ] Add Prisma adapter back to NextAuth (removed for build compatibility)
+- [x] Add Prisma adapter back to NextAuth (removed for build compatibility) ✅
 - [ ] Add proper error handling to all API routes
 - [ ] Add rate limiting to API
 - [ ] Add API tests

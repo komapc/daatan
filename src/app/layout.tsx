@@ -5,6 +5,10 @@ import Sidebar from '@/components/Sidebar'
 export const metadata: Metadata = {
   title: 'DAATAN - Prediction Market',
   description: 'Prove you were right — without shouting into the void.',
+  icons: {
+    icon: '/logo-icon.svg',
+    apple: '/logo-icon.svg',
+  },
 }
 
 export default function RootLayout({

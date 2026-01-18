@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
+import Image from 'next/image'
 import {
   Home,
   Bell,
@@ -53,14 +54,10 @@ const Sidebar = () => {
     <>
       {/* Mobile Header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4 z-50">
-        <div className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-            <TrendingUp className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-lg font-bold text-gray-900">DAATAN</h1>
-          </div>
-        </div>
+        <Link href="/" className="flex items-center gap-2" onClick={handleCloseMenu}>
+          <Image src="/logo-icon.svg" alt="DAATAN" width={40} height={40} priority />
+          <h1 className="text-lg font-bold text-gray-900">DAATAN</h1>
+        </Link>
         <button
           onClick={handleToggleMenu}
           onKeyDown={handleKeyDown}
@@ -99,15 +96,13 @@ const Sidebar = () => {
         `}
       >
         {/* Logo - Hidden on mobile (shown in header instead) */}
-        <div className="hidden lg:flex p-6 items-center gap-3">
-          <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
-            <TrendingUp className="w-6 h-6 text-white" />
-          </div>
+        <Link href="/" className="hidden lg:flex p-6 items-center gap-3 hover:bg-gray-50 transition-colors">
+          <Image src="/logo-icon.svg" alt="DAATAN" width={48} height={48} priority />
           <div>
             <h1 className="text-xl font-bold text-gray-900">DAATAN</h1>
             <p className="text-sm text-gray-400">Prediction Market</p>
           </div>
-        </div>
+        </Link>
 
         {/* Mobile Logo Spacer */}
         <div className="lg:hidden h-16" />
@@ -116,7 +111,16 @@ const Sidebar = () => {
         <nav className="flex-1 px-4 py-6">
           <ul className="space-y-1">
             {navItems.map((item) => {
-              const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+              // Exact match for specific routes, or startsWith for parent routes (but not for sub-items)
+              const isExactMatch = pathname === item.href
+              const isParentMatch = item.href !== '/' && pathname.startsWith(item.href + '/')
+              // Don't highlight /predictions if we're on /predictions/new (which has its own nav item)
+              const hasMoreSpecificMatch = navItems.some(
+                other => other.href !== item.href && 
+                         other.href.startsWith(item.href + '/') && 
+                         pathname === other.href
+              )
+              const isActive = isExactMatch || (isParentMatch && !hasMoreSpecificMatch)
               const Icon = item.icon
 
               return (
