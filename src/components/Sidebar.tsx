@@ -23,8 +23,9 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { href: '/', label: 'Feed', icon: Home },
+  { href: '/predictions', label: 'Predictions', icon: TrendingUp },
+  { href: '/predictions/new', label: 'New Prediction', icon: PlusCircle },
   { href: '/notifications', label: 'Notifications', icon: Bell },
-  { href: '/create', label: 'Create Bet', icon: PlusCircle },
   { href: '/leaderboard', label: 'Leaderboard', icon: Trophy },
   { href: '/profile', label: 'Profile', icon: User },
   { href: '/settings', label: 'Settings', icon: Settings },
@@ -115,13 +116,12 @@ const Sidebar = () => {
         <nav className="flex-1 px-4 py-6">
           <ul className="space-y-1">
             {navItems.map((item) => {
-              const isActive = pathname === item.href || 
-                (item.href === '#feed' && pathname === '/')
+              const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
               const Icon = item.icon
 
               return (
                 <li key={item.href}>
-                  <a
+                  <Link
                     href={item.href}
                     onClick={handleCloseMenu}
                     className={`
@@ -132,11 +132,10 @@ const Sidebar = () => {
                       }
                     `}
                     aria-current={isActive ? 'page' : undefined}
-                    tabIndex={0}
                   >
                     <Icon className="w-5 h-5" />
                     <span className="font-medium">{item.label}</span>
-                  </a>
+                  </Link>
                 </li>
               )
             })}
