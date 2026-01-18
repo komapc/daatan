@@ -1,4 +1,4 @@
-# DAATAN - Development TODO
+# DAaTAn - Development TODO
 
 > Reference: [DAATAN_CORE.md](./DAATAN_CORE.md) | [GLOSSARY.md](./GLOSSARY.md) | [FORECASTS_FLOW.md](./FORECASTS_FLOW.md)
 
@@ -85,19 +85,22 @@ Every feature must pass all checks:
 - [x] PredictionWizard multi-step form UI
 - [x] Nginx config: www.daatan.com → daatan.com redirect
 
+### Infrastructure (January 2026)
+- [x] Staging environment (staging.daatan.com)
+- [x] Trunk-based deployment (push to main → staging)
+- [x] Tag-based production releases (push v* tag → production)
+- [x] Database migrations on EC2 (Prisma 7 with pg adapter)
+- [x] SSH access for GitHub Actions CI/CD
+- [x] Version API endpoint (`/api/version`)
+
+### DevOps Scripts
+- [x] `./scripts/release.sh` - Interactive version tagging
+- [x] `./scripts/status.sh` - Full health/version check
+- [x] `./scripts/check.sh` - Quick up/down check
+
 ---
 
 ## 🔄 In Progress
-
-### Infrastructure (High Priority)
-- [ ] **Build staging environment** (separate EC2 or branch-based preview)
-
-### Database
-- [ ] Run Prisma migrations on EC2 to create tables
-  ```bash
-  ssh -i ~/.ssh/daatan-key.pem ubuntu@52.59.160.186
-  docker exec -it daatan-app npx prisma db push
-  ```
 
 ### Authentication
 - [x] Add Prisma adapter to NextAuth for user persistence ✅
