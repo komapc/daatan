@@ -4,13 +4,13 @@ resource "aws_security_group" "ec2" {
   description = "Security group for DAATAN EC2 instance"
   vpc_id      = aws_vpc.main.id
 
-  # SSH - Restricted to your IP
+  # SSH - Open for GitHub Actions CI/CD (key-based auth provides security)
   ingress {
-    description = "SSH from allowed IP"
+    description = "SSH (key-based auth)"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = [var.allowed_ssh_cidr]
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   # HTTP
