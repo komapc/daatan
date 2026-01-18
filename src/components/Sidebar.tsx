@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import Image from 'next/image'
+import { VERSION } from '@/lib/version'
 import {
   Home,
   Bell,
@@ -99,7 +100,10 @@ const Sidebar = () => {
         <Link href="/" className="hidden lg:flex p-6 items-center gap-3 hover:bg-gray-50 transition-colors">
           <Image src="/logo-icon.svg" alt="DAATAN" width={48} height={48} priority />
           <div>
-            <h1 className="text-xl font-bold text-gray-900">DAATAN</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold text-gray-900">DAATAN</h1>
+              <span className="text-xs text-gray-400 font-mono">v{VERSION}</span>
+            </div>
             <p className="text-sm text-gray-400">Prediction Market</p>
           </div>
         </Link>
