@@ -6,7 +6,17 @@
 
 ## Current Name
 
-**DAATAN** — Internal project name (Hebrew root meaning "knowledge/opinion-driven")
+**DAATAN**
+
+### Etymology
+
+| Language | Meaning |
+| -------- | ------- |
+| **Hebrew** | דעתן (Da'atan) — "opinionated one" / "someone with strong opinions" (from דעת/da'at = knowledge, opinion) |
+| **Hindi/Urdu** | दातान / داتاں — "teeth" or colloquially "to show teeth" (assertiveness) |
+| **Punjabi** | ਦਾਤਾਂ — "teeth" / "bite" |
+
+The Hebrew meaning aligns with the product's core purpose: a platform for people with opinions who want to prove their understanding through track record.
 
 ---
 
