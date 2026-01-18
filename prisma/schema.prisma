@@ -18,25 +18,39 @@ model User {
   email         String    @unique
   emailVerified DateTime?
   name          String?
-  image         String?   // Avatar URL from Google
-  
+  image         String? // Avatar URL from Google
+
   // Custom profile fields
-  username      String?   @unique
-  bio           String?
-  brierScore    Float     @default(0)  // Prediction accuracy score
-  isPublic      Boolean   @default(true)
-  isAdmin       Boolean   @default(false)
-  
+  username    String? @unique
+  bio         String?
+  isPublic    Boolean @default(true)
+  isAdmin     Boolean @default(false)
+  isModerator Boolean @default(false) // Can resolve predictions
+
+  // Scoring & Currency
+  brierScore  Float @default(0) // Legacy: Prediction accuracy score
+  rs          Float @default(100) // Reputation Score (starts at 100)
+  cuAvailable Int   @default(100) // Confidence Units available to commit
+  cuLocked    Int   @default(0) // Confidence Units locked in active predictions
+
   // Timestamps
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  accounts      Account[]
-  sessions      Session[]
-  forecasts     Forecast[]        // Forecasts created by user
-  votes         Vote[]            // User's votes/predictions
-  
+  accounts Account[]
+  sessions Session[]
+
+  // Legacy relations (old forecast system)
+  forecasts Forecast[] // Forecasts created by user
+  votes     Vote[] // User's votes/predictions
+
+  // New prediction system relations
+  predictions         Prediction[] // Predictions authored by user
+  commitments         Commitment[] // User's CU commitments
+  cuTransactions      CuTransaction[] // CU ledger entries
+  resolvedPredictions Prediction[]    @relation("ResolvedBy")
+
   @@map("users")
 }
 
@@ -81,52 +95,257 @@ model VerificationToken {
 }
 
 // ============================================
-// FORECASTS (formerly "Bets")
+// NEWS ANCHORS (Context for predictions)
+// ============================================
+
+model NewsAnchor {
+  id String @id @default(cuid())
+
+  // Source information (snapshot - immutable after creation)
+  url         String    @db.VarChar(2000)
+  urlHash     String    @unique @db.VarChar(64) // SHA-256 hash for deduplication
+  title       String    @db.VarChar(500)
+  source      String?   @db.VarChar(200) // e.g., "Reuters", "BBC"
+  publishedAt DateTime?
+
+  // Snapshot of article content at time of anchor creation
+  snippet  String? @db.Text // First ~500 chars of article
+  imageUrl String? @db.VarChar(2000)
+
+  // Metadata
+  domain    String?  @db.VarChar(100) // e.g., "politics", "tech", "sports"
+  createdAt DateTime @default(now())
+
+  // Relations
+  predictions Prediction[]
+
+  @@index([urlHash])
+  @@index([domain])
+  @@index([createdAt])
+  @@map("news_anchors")
+}
+
+// ============================================
+// PREDICTIONS (New system)
+// ============================================
+
+enum OutcomeType {
+  BINARY // will happen / won't happen
+  MULTIPLE_CHOICE // one option out of N
+  NUMERIC_THRESHOLD // metric crosses a defined value
+}
+
+enum PredictionStatus {
+  DRAFT // Not yet published
+  ACTIVE // Published, accepting commitments
+  PENDING // Deadline passed, awaiting resolution
+  RESOLVED_CORRECT // Resolved as correct
+  RESOLVED_WRONG // Resolved as wrong
+  VOID // Invalidated (canceled, rule issues, abuse)
+  UNRESOLVABLE // Cannot determine outcome (conflicting sources)
+}
+
+model Prediction {
+  id String @id @default(cuid())
+
+  // Author
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  // News context (optional but encouraged)
+  newsAnchorId String?
+  newsAnchor   NewsAnchor? @relation(fields: [newsAnchorId], references: [id])
+
+  // Prediction content
+  claimText   String  @db.VarChar(500) // The testable statement
+  detailsText String? @db.Text // Additional conditions/context
+  domain      String? @db.VarChar(100) // Category
+
+  // Outcome definition
+  outcomeType    OutcomeType @default(BINARY)
+  outcomePayload Json? // Type-specific data (options, threshold, etc.)
+
+  // Resolution rules
+  resolutionRules   String?  @db.Text // How to determine outcome
+  resolveByDatetime DateTime // Deadline for resolution
+
+  // Status & timestamps
+  status      PredictionStatus @default(DRAFT)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  publishedAt DateTime? // When status changed to ACTIVE
+  lockedAt    DateTime? // When first commitment was made
+
+  // Resolution data (filled when resolved)
+  resolvedAt        DateTime?
+  resolvedById      String?
+  resolvedBy        User?     @relation("ResolvedBy", fields: [resolvedById], references: [id])
+  resolutionOutcome String?   @db.VarChar(50) // "correct", "wrong", "void", "unresolvable"
+  evidenceLinks     Json? // Array of evidence URLs
+  resolutionNote    String?   @db.Text
+
+  // Relations
+  options     PredictionOption[]
+  commitments Commitment[]
+
+  @@index([status])
+  @@index([authorId])
+  @@index([newsAnchorId])
+  @@index([resolveByDatetime])
+  @@index([domain])
+  @@map("predictions")
+}
+
+// ============================================
+// PREDICTION OPTIONS (for MC/Numeric)
+// ============================================
+
+model PredictionOption {
+  id String @id @default(cuid())
+
+  predictionId String
+  prediction   Prediction @relation(fields: [predictionId], references: [id], onDelete: Cascade)
+
+  text         String @db.VarChar(500)
+  displayOrder Int    @default(0)
+
+  // For numeric: threshold value
+  numericValue Float?
+
+  // Resolution
+  isCorrect Boolean?
+
+  // Relations
+  commitments Commitment[]
+
+  @@index([predictionId])
+  @@map("prediction_options")
+}
+
+// ============================================
+// COMMITMENTS (CU Stakes)
+// ============================================
+
+model Commitment {
+  id String @id @default(cuid())
+
+  // User making commitment
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Prediction being committed to
+  predictionId String
+  prediction   Prediction @relation(fields: [predictionId], references: [id], onDelete: Cascade)
+
+  // Selected option (for MC/Numeric)
+  optionId String?
+  option   PredictionOption? @relation(fields: [optionId], references: [id])
+
+  // For binary: true = will happen, false = won't happen
+  binaryChoice Boolean?
+
+  // CU committed
+  cuCommitted Int // Amount of CU locked
+  rsSnapshot  Float // RS at time of commitment
+
+  // Timestamps
+  createdAt DateTime @default(now())
+
+  // Result (calculated after resolution)
+  cuReturned Int? // CU returned after resolution
+  rsChange   Float? // RS delta after resolution
+
+  // Each user can only commit once per prediction
+  @@unique([userId, predictionId])
+  @@index([predictionId])
+  @@index([userId])
+  @@map("commitments")
+}
+
+// ============================================
+// CU LEDGER (Transaction history)
+// ============================================
+
+enum CuTransactionType {
+  INITIAL_GRANT // Signup bonus
+  COMMITMENT_LOCK // CU locked for prediction
+  COMMITMENT_UNLOCK // CU returned after resolution
+  REFUND // CU refunded (void/unresolvable)
+  BONUS // Streak/achievement bonus
+  ADMIN_ADJUSTMENT // Manual adjustment by admin
+}
+
+model CuTransaction {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type   CuTransactionType
+  amount Int // Positive = credit, negative = debit
+
+  // Reference to related entity
+  referenceId String? @db.VarChar(100) // e.g., commitment_id, prediction_id
+  note        String? @db.VarChar(500)
+
+  // Balance after this transaction
+  balanceAfter Int
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("cu_transactions")
+}
+
+// ============================================
+// LEGACY: FORECASTS (Old system - kept for compatibility)
 // ============================================
 
 enum ForecastType {
-  BINARY          // Yes/No predictions
+  BINARY // Yes/No predictions
   MULTIPLE_CHOICE // Up to 10 options
 }
 
 enum ForecastStatus {
-  DRAFT              // Not yet published
-  ACTIVE             // Open for voting
+  DRAFT // Not yet published
+  ACTIVE // Open for voting
   PENDING_RESOLUTION // Voting closed, awaiting resolution
-  RESOLVED           // Outcome determined
-  CANCELLED          // Forecast cancelled
+  RESOLVED // Outcome determined
+  CANCELLED // Forecast cancelled
 }
 
 model Forecast {
-  id             String          @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // Creator
-  creatorId      String
-  creator        User            @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  
+  creatorId String
+  creator   User   @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
   // Content
-  title          String          @db.VarChar(500)
-  text           String?         @db.Text  // Detailed description
-  sourceArticles Json?           // Array of { url: string, title?: string }
-  
+  title          String  @db.VarChar(500)
+  text           String? @db.Text // Detailed description
+  sourceArticles Json? // Array of { url: string, title?: string }
+
   // Timing
-  dueDate        DateTime        // When the forecast should be resolved
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  
+  dueDate   DateTime // When the forecast should be resolved
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Type and Status
-  type           ForecastType    @default(BINARY)
-  status         ForecastStatus  @default(DRAFT)
-  
+  type   ForecastType   @default(BINARY)
+  status ForecastStatus @default(DRAFT)
+
   // Resolution
   resolvedAt     DateTime?
   resolvedById   String?
-  resolutionNote String?         @db.Text  // Explanation of resolution
-  
+  resolutionNote String?   @db.Text // Explanation of resolution
+
   // Relations
-  options        ForecastOption[]
-  votes          Vote[]
-  
+  options ForecastOption[]
+  votes   Vote[]
+
   @@index([status])
   @@index([creatorId])
   @@index([dueDate])
@@ -138,22 +357,22 @@ model Forecast {
 // ============================================
 
 model ForecastOption {
-  id           String   @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // Parent forecast
-  forecastId   String
-  forecast     Forecast @relation(fields: [forecastId], references: [id], onDelete: Cascade)
-  
+  forecastId String
+  forecast   Forecast @relation(fields: [forecastId], references: [id], onDelete: Cascade)
+
   // Option content
-  text         String   @db.VarChar(500)  // e.g., "Yes", "No", or custom option
-  displayOrder Int      @default(0)        // Order to display options
-  
+  text         String @db.VarChar(500) // e.g., "Yes", "No", or custom option
+  displayOrder Int    @default(0) // Order to display options
+
   // Resolution
-  isCorrect    Boolean? // null = not yet resolved, true = this was correct
-  
+  isCorrect Boolean? // null = not yet resolved, true = this was correct
+
   // Relations
-  votes        Vote[]
-  
+  votes Vote[]
+
   @@index([forecastId])
   @@map("forecast_options")
 }
@@ -163,31 +382,31 @@ model ForecastOption {
 // ============================================
 
 model Vote {
-  id               String         @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // Voter
-  userId           String
-  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   // Forecast
-  forecastId       String
-  forecast         Forecast       @relation(fields: [forecastId], references: [id], onDelete: Cascade)
-  
+  forecastId String
+  forecast   Forecast @relation(fields: [forecastId], references: [id], onDelete: Cascade)
+
   // Selected option
-  optionId         String
-  option           ForecastOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
-  
+  optionId String
+  option   ForecastOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+
   // For binary forecasts: confidence level (50-100%)
   // For multiple choice: probability assigned to this option (0-100%)
-  confidence       Int            @default(50)  // Percentage
-  
+  confidence Int @default(50) // Percentage
+
   // Timestamps
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Scoring (calculated after resolution)
-  brierScore       Float?         // Individual score for this prediction
-  
+  brierScore Float? // Individual score for this prediction
+
   // Each user can only vote once per forecast
   @@unique([userId, forecastId])
   @@index([forecastId])
