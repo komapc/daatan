@@ -1,0 +1,196 @@
+// Prisma Schema for DAATAN
+// Forecast/Prediction Market Platform
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================
+// USER & AUTHENTICATION
+// ============================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?   // Avatar URL from Google
+  
+  // Custom profile fields
+  username      String?   @unique
+  bio           String?
+  brierScore    Float     @default(0)  // Prediction accuracy score
+  isPublic      Boolean   @default(true)
+  isAdmin       Boolean   @default(false)
+  
+  // Timestamps
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  accounts      Account[]
+  sessions      Session[]
+  forecasts     Forecast[]        // Forecasts created by user
+  votes         Vote[]            // User's votes/predictions
+  
+  @@map("users")
+}
+
+// NextAuth.js required models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ============================================
+// FORECASTS (formerly "Bets")
+// ============================================
+
+enum ForecastType {
+  BINARY          // Yes/No predictions
+  MULTIPLE_CHOICE // Up to 10 options
+}
+
+enum ForecastStatus {
+  DRAFT              // Not yet published
+  ACTIVE             // Open for voting
+  PENDING_RESOLUTION // Voting closed, awaiting resolution
+  RESOLVED           // Outcome determined
+  CANCELLED          // Forecast cancelled
+}
+
+model Forecast {
+  id             String          @id @default(cuid())
+  
+  // Creator
+  creatorId      String
+  creator        User            @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  
+  // Content
+  title          String          @db.VarChar(500)
+  text           String?         @db.Text  // Detailed description
+  sourceArticles Json?           // Array of { url: string, title?: string }
+  
+  // Timing
+  dueDate        DateTime        // When the forecast should be resolved
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  
+  // Type and Status
+  type           ForecastType    @default(BINARY)
+  status         ForecastStatus  @default(DRAFT)
+  
+  // Resolution
+  resolvedAt     DateTime?
+  resolvedById   String?
+  resolutionNote String?         @db.Text  // Explanation of resolution
+  
+  // Relations
+  options        ForecastOption[]
+  votes          Vote[]
+  
+  @@index([status])
+  @@index([creatorId])
+  @@index([dueDate])
+  @@map("forecasts")
+}
+
+// ============================================
+// FORECAST OPTIONS (Answers)
+// ============================================
+
+model ForecastOption {
+  id           String   @id @default(cuid())
+  
+  // Parent forecast
+  forecastId   String
+  forecast     Forecast @relation(fields: [forecastId], references: [id], onDelete: Cascade)
+  
+  // Option content
+  text         String   @db.VarChar(500)  // e.g., "Yes", "No", or custom option
+  displayOrder Int      @default(0)        // Order to display options
+  
+  // Resolution
+  isCorrect    Boolean? // null = not yet resolved, true = this was correct
+  
+  // Relations
+  votes        Vote[]
+  
+  @@index([forecastId])
+  @@map("forecast_options")
+}
+
+// ============================================
+// VOTES (User Predictions)
+// ============================================
+
+model Vote {
+  id               String         @id @default(cuid())
+  
+  // Voter
+  userId           String
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Forecast
+  forecastId       String
+  forecast         Forecast       @relation(fields: [forecastId], references: [id], onDelete: Cascade)
+  
+  // Selected option
+  optionId         String
+  option           ForecastOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  
+  // For binary forecasts: confidence level (50-100%)
+  // For multiple choice: probability assigned to this option (0-100%)
+  confidence       Int            @default(50)  // Percentage
+  
+  // Timestamps
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  
+  // Scoring (calculated after resolution)
+  brierScore       Float?         // Individual score for this prediction
+  
+  // Each user can only vote once per forecast
+  @@unique([userId, forecastId])
+  @@index([forecastId])
+  @@index([userId])
+  @@map("votes")
+}

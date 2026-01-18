@@ -28,6 +28,10 @@ jobs:
         run: npm ci
 
       - name: Build application
+        env:
+          DATABASE_URL: "postgresql://dummy:dummy@localhost:5432/dummy"
+          NEXTAUTH_SECRET: "dummy-secret-for-build"
+          NEXTAUTH_URL: "http://localhost:3000"
         run: npm run build
 
       - name: Run linter
