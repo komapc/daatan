@@ -55,10 +55,18 @@ check_environment() {
     # Version check (try multiple endpoints)
     local version=""
     
-    # Try /api/version endpoint
-    local version_response=$(curl -s "$url/api/version" --max-time 5 2>/dev/null || echo "")
-    if [ -n "$version_response" ] && [[ "$version_response" != *"404"* ]] && [[ "$version_response" != *"error"* ]]; then
+    # Try /api/system-version endpoint
+    local version_response=$(curl -s "$url/api/system-version" --max-time 5 2>/dev/null || echo "")
+    if [ -n "$version_response" ] && [[ "$version_response" == *"version"* ]]; then
         version=$(echo "$version_response" | grep -o '"version":"[^"]*"' | cut -d'"' -f4 2>/dev/null || echo "")
+    fi
+
+    # Fallback to /api/version endpoint
+    if [ -z "$version" ]; then
+        version_response=$(curl -s "$url/api/version" --max-time 5 2>/dev/null || echo "")
+        if [ -n "$version_response" ] && [[ "$version_response" == *"version"* ]]; then
+            version=$(echo "$version_response" | grep -o '"version":"[^"]*"' | cut -d'"' -f4 2>/dev/null || echo "")
+        fi
     fi
     
     if [ -n "$version" ]; then
