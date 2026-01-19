@@ -73,6 +73,9 @@ jobs:
             
             cd ~/app
             
+            # Ensure workspace is clean and writable (avoid node_modules permission issues)
+            rm -rf node_modules
+            
             # Pull latest code
             git fetch origin main
             git reset --hard origin/main
@@ -140,6 +143,9 @@ jobs:
             echo "🚀 Starting PRODUCTION deployment (${{ steps.version.outputs.version }}) at $(date)"
             
             cd ~/app
+            
+            # Ensure workspace is clean and writable (avoid node_modules permission issues)
+            rm -rf node_modules
             
             # Pull latest code (use tag if available)
             git fetch origin --tags
