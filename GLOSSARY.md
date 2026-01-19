@@ -100,3 +100,4 @@ A metric crosses a defined value (e.g., "Bitcoin will exceed $100k").
 | `unresolvable` | Cannot be determined |
 | `expired` | (Optional) Deadline passed without resolution |
 
+

@@ -85,12 +85,17 @@ Every feature must pass all checks:
 - [x] PredictionWizard multi-step form UI
 - [x] Nginx config: www.daatan.com → daatan.com redirect
 
-### Infrastructure (January 2026)
+### DevOps & Infrastructure (January 2026)
+- [x] Resolved `daatan.com` connectivity issue (Nginx was missing upstream `app` container)
+- [x] Hardened Security Group (restricted SSH to `allowed_ssh_cidr`, enabled ICMP)
+- [ ] Automate container restart on failure (add `restart: always` to compose if not present)
+- [ ] Implement log rotation for Docker (currently 10m/3 files, verify)
+- [ ] IP Rotation (if DPI interference persists)
 - [x] Staging environment (staging.daatan.com)
 - [x] Trunk-based deployment (push to main → staging)
 - [x] Tag-based production releases (push v* tag → production)
 - [x] Database migrations on EC2 (Prisma 7 with pg adapter)
-- [x] SSH access for GitHub Actions CI/CD
+- [x] SSH access for GitHub Actions CI/CD (Note: Restricted SSH may impact GHA)
 - [x] Version API endpoint (`/api/version`)
 
 ### DevOps Scripts
@@ -111,6 +116,46 @@ Every feature must pass all checks:
 ---
 
 ## ⏳ Pending
+
+### Priority 0: LLM Integration Preparation
+
+> **Goal:** Enable AI-assisted prediction creation by extracting structured data from URLs and natural language text.
+
+#### Use Cases
+1. **URL → Prediction Extraction:** Given a news article URL, automatically extract the core claim/prediction (who said what, about what outcome, by when).
+2. **Text → Resolution Date Extraction:** Given free-form prediction text, infer and suggest an appropriate resolution date.
+
+#### LLM Provider Options
+
+##### Option A: Local LLM (EC2 t3.micro compatible)
+- [ ] Research lightweight models that fit in ~1GB RAM (e.g., Phi-3-mini, TinyLlama, Qwen2-0.5B)
+- [ ] Set up Ollama or llama.cpp for local inference
+- [ ] Benchmark inference speed on t3.micro
+- [ ] Create fallback strategy if local LLM is too slow/limited
+- [ ] Implement rate limiting for local inference
+
+##### Option B: Gemini API
+- [ ] Create Gemini API integration module
+- [ ] Environment variable for `GEMINI_API_KEY`
+- [ ] Implement prompt templates for prediction extraction
+- [ ] Implement prompt templates for date extraction
+- [ ] Add request caching to minimize API costs
+- [ ] Error handling for API rate limits and failures
+
+#### Shared Infrastructure
+- [ ] Abstract LLM interface (`extractPrediction`, `extractResolutionDate`)
+- [ ] Provider switching via environment config (`LLM_PROVIDER=local|gemini`)
+- [ ] Structured output parsing (JSON schema validation with Zod)
+- [ ] Logging and monitoring for LLM calls
+- [ ] Unit tests with mocked LLM responses
+
+#### URL Processing Pipeline
+- [ ] URL content fetcher (handle paywalls gracefully, respect robots.txt)
+- [ ] HTML-to-text extraction (article body, title, date published)
+- [ ] Metadata extraction (author, publication)
+- [ ] Cache fetched content to avoid re-fetching
+
+---
 
 ### Priority 1: Core Functionality (MVP Phase 1)
 
@@ -343,6 +388,9 @@ curl https://daatan.com/api/health
 ### Phase 1: Core Web App (Weeks 1–4)
 - Run database migrations
 - Complete authentication UI
+- **LLM integration setup (local + Gemini providers)**
+- **URL → Prediction extraction pipeline**
+- **Text → Resolution date inference**
 - LLM-assisted one-click prediction creation
 - Coin economy basics
 - Personal leaderboards
