@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { VERSION } from '@/lib/version'
 
 export const dynamic = 'force-dynamic'
 
@@ -7,8 +8,8 @@ export const dynamic = 'force-dynamic'
  * Returns the current version and environment info
  */
 export async function GET() {
-  // Read version from package.json (set at build time)
-  const version = process.env.npm_package_version || '0.1.0'
+  // Use version from shared constant (matches package.json)
+  const version = VERSION
   
   // Get git info if available (set via build args or env)
   const gitCommit = process.env.GIT_COMMIT || process.env.VERCEL_GIT_COMMIT_SHA || null
