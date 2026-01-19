@@ -74,7 +74,9 @@ jobs:
             cd ~/app
             
             # Ensure workspace is clean and writable (avoid node_modules permission issues)
-            rm -rf node_modules
+            # Try to fix permissions first, then remove (ignore errors to prevent script failure)
+            chmod -R u+w node_modules 2>/dev/null || true
+            sudo rm -rf node_modules 2>/dev/null || rm -rf node_modules 2>/dev/null || true
             
             # Pull latest code
             git fetch origin main
@@ -145,7 +147,9 @@ jobs:
             cd ~/app
             
             # Ensure workspace is clean and writable (avoid node_modules permission issues)
-            rm -rf node_modules
+            # Try to fix permissions first, then remove (ignore errors to prevent script failure)
+            chmod -R u+w node_modules 2>/dev/null || true
+            sudo rm -rf node_modules 2>/dev/null || rm -rf node_modules 2>/dev/null || true
             
             # Pull latest code (use tag if available)
             git fetch origin --tags
