@@ -82,11 +82,12 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
             
-            # Export password for Docker Compose
+            # Export passwords and secrets for Docker Compose
             export POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+            export NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}
             
             # Build and restart staging container only
-            docker compose -f docker-compose.prod.yml build --no-cache --build-arg NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }} --build-arg DATABASE_URL="postgresql://daatan:${POSTGRES_PASSWORD}@postgres:5432/daatan" app-staging
+            docker compose -f docker-compose.prod.yml build --no-cache --build-arg DATABASE_URL="postgresql://daatan:${POSTGRES_PASSWORD}@postgres:5432/daatan" app-staging
             docker compose -f docker-compose.prod.yml up -d --force-recreate app-staging nginx
             
             # Wait for app to be healthy
@@ -162,11 +163,12 @@ jobs:
               git reset --hard origin/main
             fi
             
-            # Export password for Docker Compose
+            # Export passwords and secrets for Docker Compose
             export POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+            export NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}
             
             # Build and restart production container
-            docker compose -f docker-compose.prod.yml build --no-cache --build-arg NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }} --build-arg DATABASE_URL="postgresql://daatan:${POSTGRES_PASSWORD}@postgres:5432/daatan" app
+            docker compose -f docker-compose.prod.yml build --no-cache --build-arg DATABASE_URL="postgresql://daatan:${POSTGRES_PASSWORD}@postgres:5432/daatan" app
             docker compose -f docker-compose.prod.yml up -d --force-recreate app nginx
             
             # Wait for app to be healthy

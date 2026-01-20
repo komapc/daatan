@@ -37,6 +37,8 @@ services:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://daatan:${POSTGRES_PASSWORD}@postgres:5432/daatan
       - NEXT_PUBLIC_ENV=production
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NEXTAUTH_URL=https://daatan.com
     depends_on:
       postgres:
         condition: service_healthy
@@ -67,6 +69,8 @@ services:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://daatan:${POSTGRES_PASSWORD}@postgres:5432/daatan
       - NEXT_PUBLIC_ENV=staging
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NEXTAUTH_URL=https://staging.daatan.com
     depends_on:
       postgres:
         condition: service_healthy
