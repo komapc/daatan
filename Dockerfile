@@ -30,7 +30,7 @@ ARG NEXT_PUBLIC_ENV=production
 ENV NEXT_PUBLIC_ENV=$NEXT_PUBLIC_ENV
 
 # Build Next.js
-RUN npm run build
+RUN DATABASE_URL="$DATABASE_URL" NEXTAUTH_SECRET="$NEXTAUTH_SECRET" NEXTAUTH_URL="$NEXTAUTH_URL" npm run build
 
 # Production stage
 FROM node:20-alpine AS runner
