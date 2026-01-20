@@ -82,6 +82,9 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
             
+            # Export password for Docker Compose
+            export POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+            
             # Build and restart staging container only
             docker compose -f docker-compose.prod.yml build app-staging
             docker compose -f docker-compose.prod.yml up -d app-staging nginx
@@ -158,6 +161,9 @@ jobs:
             else
               git reset --hard origin/main
             fi
+            
+            # Export password for Docker Compose
+            export POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
             
             # Build and restart production container
             docker compose -f docker-compose.prod.yml build app
