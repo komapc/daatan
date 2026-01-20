@@ -1,11 +1,10 @@
 import type { Metadata } from 'next'
 import './globals.css'
-// import Sidebar from '@/components/Sidebar' // Remove direct import
+import Sidebar from '@/components/Sidebar' // Uncomment this import
 import { StagingBanner } from '@/components/StagingBanner'
-import { Providers } from '@/components/Providers'
-import dynamic from 'next/dynamic' // Import dynamic
-
-import { ClientOnly } from '@/components/ClientOnly'
+import { SessionProvider } from 'next-auth/react' // Directly import SessionProvider
+import dynamic from 'next/dynamic'
+import { ClientOnly } from '@/components/ClientOnly' // Import ClientOnly component
 
 // Dynamically import Sidebar with ssr: false
 const DynamicSidebar = dynamic(() => import('@/components/Sidebar'), { ssr: false })
