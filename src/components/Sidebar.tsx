@@ -65,6 +65,15 @@ const Sidebar = () => {
     handleCloseMenu()
   }
 
+  // Filter nav items based on auth status
+  const filteredNavItems = navItems.filter(item => {
+    const authRequiredRoutes = ['/predictions/new', '/notifications', '/profile']
+    if (authRequiredRoutes.includes(item.href)) {
+      return status === 'authenticated'
+    }
+    return true
+  })
+
   return (
     <>
       {/* Mobile Header */}
@@ -141,7 +150,7 @@ const Sidebar = () => {
         {/* Navigation */}
         <nav className="flex-1 px-4 py-6 overflow-y-auto">
           <ul className="space-y-1">
-            {navItems.map((item) => {
+            {filteredNavItems.map((item) => {
               // Exact match for specific routes, or startsWith for parent routes (but not for sub-items)
               const isExactMatch = pathname === item.href
               const isParentMatch = item.href !== '/' && pathname.startsWith(item.href + '/')

@@ -109,9 +109,9 @@ Every feature must pass all checks:
 
 ### Authentication
 - [x] Add Prisma adapter to NextAuth for user persistence ✅
-- [ ] Create `/auth/signin` page with Google button
-- [ ] Create `/auth/error` page for auth errors
-- [ ] Add sign-in/sign-out buttons to UI
+- [x] Create `/auth/signin` page with Google button ✅
+- [x] Create `/auth/error` page for auth errors ✅
+- [x] Add sign-in/sign-out buttons to UI ✅
 
 ---
 
@@ -160,8 +160,8 @@ Every feature must pass all checks:
 ### Priority 1: Core Functionality (MVP Phase 1)
 
 #### User Authentication UI
-- [ ] Sign-in page with Google OAuth button
-- [ ] User menu in sidebar (avatar, name, sign out)
+- [x] Sign-in page with Google OAuth button
+- [x] User menu in sidebar (avatar, name, sign out)
 - [ ] Protected routes (redirect to sign-in if not authenticated)
 - [ ] Admin role management
 - [ ] Pseudonymous account support with feature limits
@@ -332,12 +332,14 @@ Every feature must pass all checks:
 
 ## 🔧 Technical Debt
 
-- [x] Add Prisma adapter back to NextAuth (removed for build compatibility) ✅
+- [x] **(HIGH PRIORITY)** Add Prisma adapter to NextAuth to enable user persistence ✅
+- [ ] Refactor data fetching to use Server Components (e.g., in `PredictionDetailPage`)
+- [ ] Abstract client-side API calls into a reusable library (e.g., `src/lib/api-client.ts`)
+- [ ] Standardize Prisma client instantiation using a singleton pattern
 - [ ] Add proper error handling to all API routes
 - [ ] Add rate limiting to API
 - [ ] Add API tests
 - [ ] Add E2E tests (Playwright)
-- [x] Set up staging environment → moved to In Progress
 - [ ] Database backups automation
 - [ ] Log aggregation
 
