@@ -3,6 +3,14 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Accept build-time environment variables for the build process
+ARG DATABASE_URL
+ENV DATABASE_URL=$DATABASE_URL
+ARG NEXTAUTH_SECRET
+ENV NEXTAUTH_SECRET=$NEXTAUTH_SECRET
+ARG NEXTAUTH_URL="http://localhost:3000"
+ENV NEXTAUTH_URL=$NEXTAUTH_URL
+
 # Copy package files and prisma schema (needed for postinstall prisma generate)
 COPY package*.json ./
 COPY prisma ./prisma/

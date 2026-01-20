@@ -86,7 +86,7 @@ jobs:
             export POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
             
             # Build and restart staging container only
-            docker compose -f docker-compose.prod.yml build app-staging
+            docker compose -f docker-compose.prod.yml build --build-arg NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }} --build-arg DATABASE_URL="postgresql://daatan:${POSTGRES_PASSWORD}@postgres:5432/daatan" app-staging
             docker compose -f docker-compose.prod.yml up -d app-staging nginx
             
             # Wait for app to be healthy
@@ -163,10 +163,11 @@ jobs:
             fi
             
             # Export password for Docker Compose
-            export POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+            export POSTG
+RES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
             
             # Build and restart production container
-            docker compose -f docker-compose.prod.yml build app
+            docker compose -f docker-compose.prod.yml build --build-arg NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }} --build-arg DATABASE_URL="postgresql://daatan:${POSTGRES_PASSWORD}@postgres:5432/daatan" app
             docker compose -f docker-compose.prod.yml up -d app nginx
             
             # Wait for app to be healthy
