@@ -5,8 +5,10 @@ import { StagingBanner } from '@/components/StagingBanner'
 import { Providers } from '@/components/Providers'
 import dynamic from 'next/dynamic' // Import dynamic
 
+import { ClientOnly } from '@/components/ClientOnly'
+
 // Dynamically import Sidebar with ssr: false
-// const DynamicSidebar = dynamic(() => import('@/components/Sidebar'), { ssr: false })
+const DynamicSidebar = dynamic(() => import('@/components/Sidebar'), { ssr: false })
 
 export const metadata: Metadata = {
   title: 'DAATAN - Prediction Market',
@@ -23,18 +25,20 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning={true}> {/* Add suppressHydrationWarning */}
       <body className="bg-white">
-        <Providers>
+        <SessionProvider> {/* Use SessionProvider directly */}
           <StagingBanner />
           <div className="flex min-h-screen">
-            {/* <DynamicSidebar /> */} {/* Temporarily remove the Sidebar */}
+            <ClientOnly>
+              <DynamicSidebar />
+            </ClientOnly>
             {/* Main content with responsive margin */}
             <main className="flex-1 lg:ml-64 mt-16 lg:mt-0">
               {children}
             </main>
           </div>
-        </Providers>
+        </SessionProvider>
       </body>
     </html>
   )
