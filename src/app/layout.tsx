@@ -1,12 +1,13 @@
 import type { Metadata } from 'next'
 import './globals.css'
-// import Sidebar from '@/components/Sidebar' // Remove direct import
+import Sidebar from '@/components/Sidebar' // Uncomment this import
 import { StagingBanner } from '@/components/StagingBanner'
-import { Providers } from '@/components/Providers'
-import dynamic from 'next/dynamic' // Import dynamic
+// import { Providers } from '@/components/Providers' // Remove
+import { SessionProvider } from 'next-auth/react' // Directly import SessionProvider
+import dynamic from 'next/dynamic'
 
 // Dynamically import Sidebar with ssr: false
-// const DynamicSidebar = dynamic(() => import('@/components/Sidebar'), { ssr: false })
+const DynamicSidebar = dynamic(() => import('@/components/Sidebar'), { ssr: false }) // Uncomment this line
 
 export const metadata: Metadata = {
   title: 'DAATAN - Prediction Market',
@@ -23,18 +24,18 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning={true}> {/* Add suppressHydrationWarning */}
       <body className="bg-white">
-        <Providers>
-          <StagingBanner />
+        <SessionProvider> {/* Use SessionProvider directly */}
+          <StagingBanner /> {/* Re-enable StagingBanner */}
           <div className="flex min-h-screen">
-            {/* <DynamicSidebar /> */} {/* Temporarily remove the Sidebar */}
+            <DynamicSidebar /> {/* Re-enable DynamicSidebar */}
             {/* Main content with responsive margin */}
             <main className="flex-1 lg:ml-64 mt-16 lg:mt-0">
               {children}
             </main>
           </div>
-        </Providers>
+        </SessionProvider>
       </body>
     </html>
   )
