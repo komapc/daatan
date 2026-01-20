@@ -1,10 +1,9 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import Sidebar from '@/components/Sidebar' // Uncomment this import
+import Sidebar from '@/components/Sidebar'
 import { StagingBanner } from '@/components/StagingBanner'
-import { SessionProvider } from 'next-auth/react' // Directly import SessionProvider
+import { Providers } from '@/components/Providers'
 import dynamic from 'next/dynamic'
-import { ClientOnly } from '@/components/ClientOnly' // Import ClientOnly component
 
 // Dynamically import Sidebar with ssr: false
 const DynamicSidebar = dynamic(() => import('@/components/Sidebar'), { ssr: false })
@@ -24,20 +23,18 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning={true}> {/* Add suppressHydrationWarning */}
+    <html lang="en">
       <body className="bg-white">
-        <SessionProvider> {/* Use SessionProvider directly */}
+        <Providers>
           <StagingBanner />
           <div className="flex min-h-screen">
-            <ClientOnly>
-              <DynamicSidebar />
-            </ClientOnly>
+            <DynamicSidebar />
             {/* Main content with responsive margin */}
             <main className="flex-1 lg:ml-64 mt-16 lg:mt-0">
               {children}
             </main>
           </div>
-        </SessionProvider>
+        </Providers>
       </body>
     </html>
   )
