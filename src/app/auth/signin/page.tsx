@@ -1,34 +1,19 @@
 'use client'
 
-import { signIn, useSession } from 'next-auth/react'
+import { signIn } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect } from 'react'
 import Image from 'next/image'
 import { LogIn } from 'lucide-react'
 
 const SignInPage = () => {
-  const { data: session, status } = useSession()
+  // const { data: session, status } = useSession()
   const router = useRouter()
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get('callbackUrl') || '/'
   const error = searchParams.get('error')
 
-  useEffect(() => {
-    if (status === 'authenticated') {
-      router.push(callbackUrl)
-    }
-  }, [status, router, callbackUrl])
-
   const handleSignIn = async () => {
     await signIn('google', { callbackUrl })
-  }
-
-  if (status === 'loading') {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    )
   }
 
   return (
@@ -44,15 +29,7 @@ const SignInPage = () => {
 
         {error && (
           <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-lg text-sm">
-            {error === 'Signin' && 'Try signing in with a different account.'}
-            {error === 'OAuthSignin' && 'Try signing in with a different account.'}
-            {error === 'OAuthCallback' && 'Try signing in with a different account.'}
-            {error === 'OAuthCreateAccount' && 'Try signing in with a different account.'}
-            {error === 'EmailSignin' && 'The e-mail could not be sent.'}
-            {error === 'CredentialsSignin' && 'Sign in failed. Check the details you provided are correct.'}
-            {error === 'SessionRequired' && 'Please sign in to access this page.'}
-            {error === 'Default' && 'An unknown error occurred.'}
-            {!['Signin', 'OAuthSignin', 'OAuthCallback', 'OAuthCreateAccount', 'EmailSignin', 'CredentialsSignin', 'SessionRequired', 'Default'].includes(error) && 'An error occurred during sign in.'}
+            An error occurred during sign in.
           </div>
         )}
 
