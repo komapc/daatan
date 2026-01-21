@@ -4,8 +4,15 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Accept build-time environment variables for the build process
-ARG DATABASE_URL
+ARG DATABASE_URL="postgresql://daatan:dummy@localhost:5432/daatan"
+ARG NEXTAUTH_SECRET="dummy-secret-for-build"
+ARG NEXTAUTH_URL="http://localhost:3000"
+ARG NEXT_PUBLIC_ENV="production"
+
 ENV DATABASE_URL=$DATABASE_URL
+ENV NEXTAUTH_SECRET=$NEXTAUTH_SECRET
+ENV NEXTAUTH_URL=$NEXTAUTH_URL
+ENV NEXT_PUBLIC_ENV=$NEXT_PUBLIC_ENV
 
 # Copy package files and prisma schema (needed for postinstall prisma generate)
 COPY package*.json ./
@@ -21,12 +28,8 @@ COPY . .
 # Create public directory if it doesn't exist
 RUN mkdir -p public
 
-# Accept build-time environment variables
-ARG NEXT_PUBLIC_ENV=production
-ENV NEXT_PUBLIC_ENV=$NEXT_PUBLIC_ENV
-
 # Build Next.js
-RUN DATABASE_URL="$DATABASE_URL" npm run build
+RUN npm run build
 
 # Production stage
 FROM node:20-alpine AS runner
