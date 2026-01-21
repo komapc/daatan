@@ -1,12 +1,12 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import Sidebar from '@/components/Sidebar'
-import { StagingBanner } from '@/components/StagingBanner'
-import { Providers } from '@/components/Providers'
+// import Sidebar from '@/components/Sidebar'
+// import { StagingBanner } from '@/components/StagingBanner'
+// import { Providers } from '@/components/Providers'
 import dynamic from 'next/dynamic'
 
 // Dynamically import Sidebar with ssr: false
-const DynamicSidebar = dynamic(() => import('@/components/Sidebar'), { ssr: false })
+// const DynamicSidebar = dynamic(() => import('@/components/Sidebar'), { ssr: false })
 
 export const metadata: Metadata = {
   title: 'DAATAN - Prediction Market',
@@ -25,16 +25,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-white">
-        <Providers>
-          <StagingBanner />
+        {/* <Providers> */}
+          {/* <StagingBanner /> */}
           <div className="flex min-h-screen">
-            <DynamicSidebar />
+            {/* <DynamicSidebar /> */}
             {/* Main content with responsive margin */}
             <main className="flex-1 lg:ml-64 mt-16 lg:mt-0">
               {children}
             </main>
           </div>
-        </Providers>
+        {/* </Providers> */}
       </body>
     </html>
   )
