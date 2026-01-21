@@ -1,13 +1,8 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { StagingBanner } from '@/components/StagingBanner'
-import nextDynamic from 'next/dynamic'
-
-// Dynamically import Sidebar with ssr: false
-const DynamicSidebar = nextDynamic(() => import('@/components/Sidebar'), { ssr: false })
-
-// Dynamically import SessionWrapper (Allow SSR to provide context during build)
-const SessionWrapper = nextDynamic(() => import('@/components/SessionWrapper'))
+import Sidebar from '@/components/Sidebar'
+import SessionWrapper from '@/components/SessionWrapper'
 
 export const metadata: Metadata = {
   title: 'DAATAN - Prediction Market',
@@ -31,7 +26,7 @@ export default function RootLayout({
         <SessionWrapper>
           <StagingBanner />
           <div className="flex min-h-screen">
-            <DynamicSidebar />
+            <Sidebar />
             {/* Main content with responsive margin */}
             <main className="flex-1 lg:ml-64 mt-16 lg:mt-0">
               {children}
