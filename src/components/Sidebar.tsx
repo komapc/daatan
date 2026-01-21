@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import Image from 'next/image'
-import { signOut, signIn } from 'next-auth/react'
+import { useSession, signOut, signIn } from 'next-auth/react'
 import { VERSION } from '@/lib/version'
 import {
   Home,
@@ -16,6 +16,7 @@ import {
   TrendingUp,
   Menu,
   X,
+  LogOut,
   LogIn,
 } from 'lucide-react'
 
@@ -39,9 +40,10 @@ const Sidebar = () => {
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   
-  // Temporary defanging of useSession to unblock the build
-  // const { data: session, status } = useSession()
-  const status = 'unauthenticated'
+  // Safely call useSession and provide defaults to avoid build-time crashes
+  const sessionData = useSession()
+  const session = sessionData?.data || null
+  const status = sessionData?.status || 'unauthenticated'
 
   const handleToggleMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen)
@@ -57,12 +59,24 @@ const Sidebar = () => {
     }
   }
 
+  const handleSignOut = () => {
+    signOut()
+    handleCloseMenu()
+  }
+
   const handleSignIn = () => {
     signIn()
     handleCloseMenu()
   }
 
-  const filteredNavItems = navItems.filter(() => true)
+  // Filter nav items based on auth status
+  const filteredNavItems = navItems.filter((item) => {
+    const authRequiredRoutes = ['/predictions/new', '/notifications', '/profile']
+    if (authRequiredRoutes.includes(item.href)) {
+      return status === 'authenticated'
+    }
+    return true
+  })
 
   return (
     <>
@@ -73,6 +87,17 @@ const Sidebar = () => {
           <h1 className="text-lg font-bold text-gray-900">DAATAN</h1>
         </Link>
         <div className="flex items-center gap-2">
+          {status === 'authenticated' && session?.user?.image && (
+            <Link href="/profile" onClick={handleCloseMenu}>
+              <Image
+                src={session.user.image}
+                alt={session.user.name || 'User'}
+                width={32}
+                height={32}
+                className="rounded-full border border-gray-200"
+              />
+            </Link>
+          )}
           <button
             onClick={handleToggleMenu}
             onKeyDown={handleKeyDown}
@@ -156,15 +181,57 @@ const Sidebar = () => {
           </ul>
         </nav>
 
-        {/* User Section - Temporarily only showing Sign In */}
+        {/* User Section */}
         <div className="p-4 border-t border-gray-100">
-          <button
-            onClick={handleSignIn}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors"
-          >
-            <LogIn className="w-5 h-5" />
-            <span className="font-medium">Sign In</span>
-          </button>
+          {status === 'loading' ? (
+            <div className="animate-pulse flex items-center gap-3 px-4 py-3">
+              <div className="w-8 h-8 bg-gray-200 rounded-full" />
+              <div className="flex-1">
+                <div className="h-4 bg-gray-200 rounded w-24" />
+              </div>
+            </div>
+          ) : status === 'authenticated' && session?.user ? (
+            <div className="space-y-1">
+              <Link
+                href="/profile"
+                onClick={handleCloseMenu}
+                className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+              >
+                {session.user.image ? (
+                  <Image
+                    src={session.user.image}
+                    alt={session.user.name || 'User'}
+                    width={32}
+                    height={32}
+                    className="rounded-full border border-gray-200"
+                  />
+                ) : (
+                  <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold">
+                    {session.user.name?.charAt(0) || 'U'}
+                  </div>
+                )}
+                <div className="flex-1 overflow-hidden">
+                  <p className="font-medium truncate text-sm">{session.user.name || 'User'}</p>
+                  <p className="text-xs text-gray-400 truncate">{session.user.email}</p>
+                </div>
+              </Link>
+              <button
+                onClick={handleSignOut}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors"
+              >
+                <LogOut className="w-5 h-5" />
+                <span className="font-medium">Sign Out</span>
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleSignIn}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors"
+            >
+              <LogIn className="w-5 h-5" />
+              <span className="font-medium">Sign In</span>
+            </button>
+          )}
         </div>
       </aside>
     </>
