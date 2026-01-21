@@ -6,8 +6,8 @@ import dynamic from 'next/dynamic'
 // Dynamically import Sidebar with ssr: false
 const DynamicSidebar = dynamic(() => import('@/components/Sidebar'), { ssr: false })
 
-// Dynamically import SessionWrapper with ssr: false
-const SessionWrapper = dynamic(() => import('@/components/SessionWrapper'), { ssr: false })
+// Dynamically import SessionWrapper (Allow SSR to provide context during build)
+const SessionWrapper = dynamic(() => import('@/components/SessionWrapper'))
 
 export const metadata: Metadata = {
   title: 'DAATAN - Prediction Market',
