@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
+import { VERSION } from '@/lib/version'
 
 export async function GET() {
   return NextResponse.json(
     { 
       status: 'version-check',
-      version: '0.1.1'
+      version: VERSION
     },
     { status: 200 }
   )

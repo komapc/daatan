@@ -4,5 +4,5 @@
 // - MINOR: New features, significant improvements
 // - PATCH: Bug fixes, small improvements, every PR
 
-export const VERSION = '0.1.1'
+export const VERSION = process.env.NEXT_PUBLIC_APP_VERSION || '0.0.0'
 

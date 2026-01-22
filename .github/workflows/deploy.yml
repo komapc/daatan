@@ -98,19 +98,25 @@ jobs:
             export GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
             
             # Build and restart staging container only
+            # Stop and remove existing container to ensure clean slate
+            docker compose -f docker-compose.prod.yml stop app-staging || true
+            docker compose -f docker-compose.prod.yml rm -f app-staging || true
+            
+            # Rebuild and start
             docker compose -f docker-compose.prod.yml build --no-cache --build-arg DATABASE_URL="postgresql://daatan:${POSTGRES_PASSWORD}@postgres:5432/daatan" app-staging
             docker compose -f docker-compose.prod.yml up -d --force-recreate app-staging nginx
             
             # Wait for app to be healthy
             echo "Waiting for health check..."
-            sleep 10
+            sleep 15
             
-            # Verify deployment
-            if curl -sf http://app-staging:3000/api/health > /dev/null 2>&1 || curl -sf https://staging.daatan.com/api/health > /dev/null; then
-              echo "✅ Staging health check passed"
+            # Verify deployment (Health + Version)
+            if ./scripts/verify-deploy.sh "https://staging.daatan.com"; then
+              echo "✅ Staging deployment verified successfully"
             else
-              echo "⚠️ Staging health check - checking container logs"
-              docker logs daatan-app-staging --tail 20
+              echo "❌ Staging deployment verification failed"
+              docker logs daatan-app-staging --tail 50
+              exit 1
             fi
             
             # Cleanup old images
@@ -118,14 +124,11 @@ jobs:
             
             echo "✅ Staging deployment completed at $(date)"
 
-      - name: Verify staging site
+      - name: Verify staging site (External)
         run: |
+          # This runs from the GitHub runner, verifying public reachability
           sleep 5
-          if curl -sf https://staging.daatan.com/api/health; then
-            echo "✅ Staging site is healthy"
-          else
-            echo "⚠️ Could not reach staging site (may be DNS propagation)"
-          fi
+          ./scripts/verify-deploy.sh "https://staging.daatan.com"
 
   # Deploy to PRODUCTION (on tag push only)
   deploy-production:
@@ -189,16 +192,17 @@ jobs:
             
             # Wait for app to be healthy
             echo "Waiting for health check..."
-            sleep 10
+            sleep 15
             
-                # Verify deployment
-                if curl -sf https://daatan.com/api/health > /dev/null; then
-                  echo "✅ Production health check passed"
-                else
-                  echo "❌ Production health check failed"
-                  docker logs daatan-app --tail 20
-                  exit 1
-                fi            
+            # Verify deployment
+            if ./scripts/verify-deploy.sh "https://daatan.com"; then
+              echo "✅ Production deployment verified successfully"
+            else
+              echo "❌ Production deployment verification failed"
+              docker logs daatan-app --tail 50
+              exit 1
+            fi            
+
             # Cleanup old images
             docker image prune -f
             
@@ -207,8 +211,4 @@ jobs:
       - name: Verify production site
         run: |
           sleep 5
-          if curl -sf https://daatan.com/api/health; then
-            echo "✅ Production site is healthy"
-          else
-            echo "⚠️ Could not reach production site"
-          fi
+          ./scripts/verify-deploy.sh "https://daatan.com"
