@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Link as LinkIcon, Search, X, ExternalLink, Loader2 } from 'lucide-react'
+import { Link as LinkIcon, Search, X, ExternalLink, Loader2, Wand2 } from 'lucide-react'
 import type { PredictionFormData } from '../PredictionWizard'
 
 type Props = {
@@ -22,6 +22,7 @@ export const StepNewsAnchor = ({ formData, updateFormData }: Props) => {
   const [url, setUrl] = useState(formData.newsAnchorUrl || '')
   const [title, setTitle] = useState(formData.newsAnchorTitle || '')
   const [isSearching, setIsSearching] = useState(false)
+  const [isExtracting, setIsExtracting] = useState(false)
   const [searchResults, setSearchResults] = useState<NewsAnchor[]>([])
   const [selectedAnchor, setSelectedAnchor] = useState<NewsAnchor | null>(null)
 
@@ -53,6 +54,54 @@ export const StepNewsAnchor = ({ formData, updateFormData }: Props) => {
       console.error('Error creating news anchor:', error)
     } finally {
       setIsSearching(false)
+    }
+  }
+
+  const handleMagicExtract = async () => {
+    if (!url) return
+
+    setIsExtracting(true)
+    try {
+      // First, ensure the news anchor exists
+      const anchorResponse = await fetch('/api/news-anchors', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url,
+          title: title || 'Untitled Article',
+        }),
+      })
+
+      let anchorId: string | undefined
+      if (anchorResponse.ok) {
+        const anchor = await anchorResponse.json()
+        anchorId = anchor.id
+        setSelectedAnchor(anchor)
+      }
+
+      // Now call AI extraction
+      const aiResponse = await fetch('/api/ai/extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      })
+
+      if (aiResponse.ok) {
+        const data = await aiResponse.json()
+        updateFormData({
+          newsAnchorId: anchorId,
+          newsAnchorUrl: url,
+          newsAnchorTitle: title || data.claim.substring(0, 50),
+          claimText: data.claim,
+          resolveByDatetime: data.resolutionDate,
+          outcomeType: data.outcomeOptions?.length > 2 ? 'MULTIPLE_CHOICE' : 'BINARY',
+          outcomeOptions: data.outcomeOptions,
+        })
+      }
+    } catch (error) {
+      console.error('Magic extract error:', error)
+    } finally {
+      setIsExtracting(false)
     }
   }
 
@@ -208,24 +257,49 @@ export const StepNewsAnchor = ({ formData, updateFormData }: Props) => {
               />
             </div>
 
-            <button
-              onClick={handleUrlSubmit}
-              disabled={!url || !title || isSearching}
-              className="w-full py-3 px-6 rounded-lg bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {isSearching ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                'Add Article'
-              )}
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleUrlSubmit}
+                disabled={!url || !title || isSearching || isExtracting}
+                className="flex-1 py-3 px-6 rounded-lg bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isSearching ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  'Add Article'
+                )}
+              </button>
+
+              <button
+                onClick={handleMagicExtract}
+                disabled={!url || isSearching || isExtracting}
+                className="flex-1 py-3 px-6 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm"
+              >
+                {isExtracting ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <>
+                    <Wand2 className="w-5 h-5" />
+                    Magic Extract
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </>
       )}
 
-      <p className="text-sm text-gray-400 italic">
-        💡 Tip: This step is optional, but linking to a news story helps provide context.
-      </p>
+      <div className="p-4 bg-blue-50 border border-blue-100 rounded-lg flex items-start gap-3">
+        <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+          <Wand2 className="w-5 h-5" />
+        </div>
+        <div>
+          <h4 className="font-medium text-blue-900 text-sm">AI Magic Extract</h4>
+          <p className="text-sm text-blue-700 mt-0.5">
+            Paste a URL and click Magic Extract. We'll automatically identify the prediction, resolution date, and options for you.
+          </p>
+        </div>
+      </div>
     </div>
   )
 }

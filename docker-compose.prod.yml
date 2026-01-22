@@ -45,6 +45,7 @@ services:
       - NEXTAUTH_URL=https://daatan.com
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     depends_on:
       postgres:
         condition: service_healthy
@@ -82,6 +83,7 @@ services:
       - NEXTAUTH_URL=https://staging.daatan.com
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     depends_on:
       postgres:
         condition: service_healthy
