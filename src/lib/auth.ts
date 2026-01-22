@@ -17,9 +17,31 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async session({ session, token }) {
-      if (session.user) {
-        // Assign the user ID from the token (which comes from the database)
+      if (session.user && token.sub) {
+        // Assign the user ID from the token
         session.user.id = token.sub
+        
+        // Fetch latest user stats from database to keep session in sync
+        try {
+          const user = await prisma.user.findUnique({
+            where: { id: token.sub },
+            select: {
+              cuAvailable: true,
+              cuLocked: true,
+              rs: true,
+              username: true,
+            }
+          })
+          
+          if (user) {
+            session.user.cuAvailable = user.cuAvailable
+            session.user.cuLocked = user.cuLocked
+            session.user.username = user.username
+            // Note: brierScore is legacy, using RS now but keeping types compatible if needed
+          }
+        } catch (error) {
+          console.error('Error fetching user stats for session:', error)
+        }
       }
       return session
     },
