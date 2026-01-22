@@ -1,6 +1,15 @@
 import { Settings } from 'lucide-react'
+import { redirect } from 'next/navigation'
+import { getServerSession } from 'next-auth/next'
+import { authOptions } from '@/lib/auth'
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  const session = await getServerSession(authOptions)
+
+  if (!session) {
+    redirect('/auth/signin?callbackUrl=/settings')
+  }
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="flex items-center gap-3 mb-6 lg:mb-8">
