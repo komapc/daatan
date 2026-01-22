@@ -212,7 +212,11 @@ const Sidebar = () => {
                 )}
                 <div className="flex-1 overflow-hidden">
                   <p className="font-medium truncate text-sm">{session.user.name || 'User'}</p>
-                  <p className="text-xs text-gray-400 truncate">{session.user.email}</p>
+                  <p className="text-xs text-gray-400 truncate mb-1">{session.user.email}</p>
+                  <div className="flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full w-fit">
+                    <span className="w-3 h-3 rounded-full border border-amber-600 flex items-center justify-center text-[8px] font-bold">C</span>
+                    {session.user.cuAvailable ?? 0} CU
+                  </div>
                 </div>
               </Link>
               <button
