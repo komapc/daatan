@@ -29,6 +29,7 @@ COPY . .
 # Build Next.js
 RUN npx prisma generate
 RUN npm run build
+RUN echo "Verifying API routes build:" && ls -R .next/server/app/api
 
 # Production stage
 FROM node:20-alpine AS runner
@@ -37,6 +38,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
 
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs && \
@@ -58,5 +60,5 @@ USER nodejs
 
 EXPOSE 3000
 
-# Start Next.js in production mode
-CMD ["npm", "start"]
+# Start Next.js in production mode with explicit binding
+CMD ["npx", "next", "start", "-H", "0.0.0.0"]
