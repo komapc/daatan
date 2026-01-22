@@ -87,6 +87,7 @@ jobs:
             export NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}
             export GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
             export GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+            export GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
             
             # Build and restart staging container only
             docker compose -f docker-compose.prod.yml build --no-cache --build-arg DATABASE_URL="postgresql://daatan:${POSTGRES_PASSWORD}@postgres:5432/daatan" app-staging
@@ -170,6 +171,7 @@ jobs:
             export NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}
             export GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
             export GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+            export GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
             
             # Build and restart production container
             docker compose -f docker-compose.prod.yml build --no-cache --build-arg DATABASE_URL="postgresql://daatan:${POSTGRES_PASSWORD}@postgres:5432/daatan" app
