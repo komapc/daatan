@@ -84,6 +84,12 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
             
+            # Debug: Verify code update
+            echo "🔍 Debug: Current commit on server:"
+            git log -1
+            echo "🔍 Debug: Checking for API routes:"
+            ls -R src/app/api
+            
             # Export passwords and secrets for Docker Compose
             export POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
             export NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}
