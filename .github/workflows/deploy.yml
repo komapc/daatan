@@ -67,6 +67,8 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
+          timeout: 60s
+          command_timeout: 30m
           script: |
             set -e
             echo "🚀 Starting STAGING deployment at $(date)"
@@ -147,6 +149,8 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
+          timeout: 60s
+          command_timeout: 30m
           script: |
             set -e
             echo "🚀 Starting PRODUCTION deployment (${{ steps.version.outputs.version }}) at $(date)"
