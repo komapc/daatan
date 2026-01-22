@@ -96,6 +96,13 @@ git tag v0.1.1
 git push origin v0.1.1
 ```
 
+## Development Workflow
+
+1.  **Local Dev:** `npm run dev`
+2.  **Commit:** A pre-commit hook (husky) runs `npm run build` automatically to ensure the codebase is buildable.
+3.  **Deploy Staging:** Push to `main`.
+4.  **Deploy Production:** Run `./scripts/release.sh`.
+
 ---
 
 ## Documentation
