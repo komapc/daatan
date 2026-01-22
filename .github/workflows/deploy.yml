@@ -185,15 +185,14 @@ jobs:
             echo "Waiting for health check..."
             sleep 10
             
-            # Verify deployment
-            if curl -sf http://localhost:3000/api/health > /dev/null; then
-              echo "✅ Production health check passed"
-            else
-              echo "❌ Production health check failed"
-              docker logs daatan-app --tail 20
-              exit 1
-            fi
-            
+                # Verify deployment
+                if curl -sf https://daatan.com/api/health > /dev/null; then
+                  echo "✅ Production health check passed"
+                else
+                  echo "❌ Production health check failed"
+                  docker logs daatan-app --tail 20
+                  exit 1
+                fi            
             # Cleanup old images
             docker image prune -f
             

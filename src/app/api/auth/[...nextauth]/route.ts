@@ -38,12 +38,14 @@ const createAuthOptions = async (): Promise<NextAuthOptions> => {
           session.user.id = token.sub
           const dbUser = await prisma.user.findUnique({
             where: { id: token.sub },
-            select: { username: true, isAdmin: true, brierScore: true },
+            select: { username: true, isAdmin: true, brierScore: true, cuAvailable: true, cuLocked: true },
           })
           if (dbUser) {
             session.user.username = dbUser.username
             session.user.isAdmin = dbUser.isAdmin
             session.user.brierScore = dbUser.brierScore
+            session.user.cuAvailable = dbUser.cuAvailable
+            session.user.cuLocked = dbUser.cuLocked
           }
         }
         return session
@@ -53,6 +55,23 @@ const createAuthOptions = async (): Promise<NextAuthOptions> => {
           token.sub = user.id
         }
         return token
+      },
+    },
+    events: {
+      createUser: async ({ user }) => {
+        try {
+          await prisma.cuTransaction.create({
+            data: {
+              userId: user.id,
+              type: 'INITIAL_GRANT',
+              amount: 100, // Default starting amount
+              balanceAfter: 100,
+              note: 'Welcome bonus',
+            },
+          })
+        } catch (error) {
+          console.error('Failed to create initial grant transaction:', error)
+        }
       },
     },
     pages: {

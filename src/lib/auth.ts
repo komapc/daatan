@@ -31,6 +31,23 @@ export const authOptions: NextAuthOptions = {
       return token
     },
   },
+  events: {
+    createUser: async ({ user }) => {
+      try {
+        await prisma.cuTransaction.create({
+          data: {
+            userId: user.id,
+            type: 'INITIAL_GRANT',
+            amount: 100,
+            balanceAfter: 100,
+            note: 'Welcome bonus',
+          },
+        })
+      } catch (error) {
+        console.error('Failed to create initial grant transaction:', error)
+      }
+    },
+  },
   pages: {
     signIn: '/auth/signin',
     error: '/auth/error',
