@@ -21,10 +21,10 @@ const AuthErrorPage = () => {
         <div className="space-y-2">
           <h1 className="text-2xl font-bold text-gray-900">Authentication Error</h1>
           <p className="text-gray-500">
-            {error === 'Configuration' && 'There is a problem with the server configuration.'}
-            {error === 'AccessDenied' && 'Access has been denied.'}
-            {error === 'Verification' && 'The verification link has expired or has already been used.'}
-            {error || 'An unexpected error occurred during authentication.'}
+            {error === 'Configuration' ? 'There is a problem with the server configuration.' :
+             error === 'AccessDenied' ? 'Access has been denied.' :
+             error === 'Verification' ? 'The verification link has expired or has already been used.' :
+             (error || 'An unexpected error occurred during authentication.')}
           </p>
         </div>
 
