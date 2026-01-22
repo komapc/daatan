@@ -1,8 +1,8 @@
-import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai'
+import { GoogleGenerativeAI, SchemaType, type Schema } from '@google/generative-ai'
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
 
-export const predictionSchema = {
+export const predictionSchema: Schema = {
   description: "Structured prediction data extracted from text or URL",
   type: SchemaType.OBJECT,
   properties: {
