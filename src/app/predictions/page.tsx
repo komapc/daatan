@@ -5,29 +5,9 @@ import Link from 'next/link'
 import { 
   TrendingUp, 
   Plus, 
-  Loader2, 
-  Calendar, 
-  Users,
-  ChevronRight,
+  Loader2
 } from 'lucide-react'
-
-type Prediction = {
-  id: string
-  claimText: string
-  domain?: string
-  outcomeType: string
-  status: string
-  resolveByDatetime: string
-  author: {
-    id: string
-    name: string
-    username?: string
-    image?: string
-  }
-  _count: {
-    commitments: number
-  }
-}
+import PredictionCard, { Prediction } from '@/components/predictions/PredictionCard'
 
 export default function PredictionsPage() {
   const [predictions, setPredictions] = useState<Prediction[]>([])
@@ -50,27 +30,6 @@ export default function PredictionsPage() {
 
     fetchPredictions()
   }, [])
-
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    })
-  }
-
-  const getStatusBadge = (status: string) => {
-    const styles: Record<string, string> = {
-      DRAFT: 'bg-gray-100 text-gray-700',
-      ACTIVE: 'bg-green-100 text-green-700',
-      PENDING: 'bg-yellow-100 text-yellow-700',
-      RESOLVED_CORRECT: 'bg-blue-100 text-blue-700',
-      RESOLVED_WRONG: 'bg-red-100 text-red-700',
-      VOID: 'bg-gray-100 text-gray-700',
-      UNRESOLVABLE: 'bg-orange-100 text-orange-700',
-    }
-    return styles[status] || 'bg-gray-100 text-gray-700'
-  }
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -112,58 +71,9 @@ export default function PredictionsPage() {
         </div>
       ) : (
         /* Predictions List */
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
           {predictions.map((prediction) => (
-            <Link
-              key={prediction.id}
-              href={`/predictions/${prediction.id}`}
-              className="block p-4 bg-white border border-gray-200 rounded-xl hover:border-blue-200 hover:shadow-sm transition-all"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  {/* Status & Domain */}
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusBadge(prediction.status)}`}>
-                      {prediction.status.replace('_', ' ')}
-                    </span>
-                    {prediction.domain && (
-                      <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full capitalize">
-                        {prediction.domain}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Claim */}
-                  <h2 className="text-lg font-medium text-gray-900 mb-2 line-clamp-2">
-                    {prediction.claimText}
-                  </h2>
-
-                  {/* Meta */}
-                  <div className="flex items-center gap-4 text-sm text-gray-500">
-                    <div className="flex items-center gap-1">
-                      <Calendar className="w-4 h-4" />
-                      {formatDate(prediction.resolveByDatetime)}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Users className="w-4 h-4" />
-                      {prediction._count.commitments} commitment{prediction._count.commitments !== 1 ? 's' : ''}
-                    </div>
-                    {prediction.author.image && (
-                      <div className="flex items-center gap-1">
-                        <img 
-                          src={prediction.author.image} 
-                          alt="" 
-                          className="w-5 h-5 rounded-full"
-                        />
-                        <span>{prediction.author.name}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
-              </div>
-            </Link>
+            <PredictionCard key={prediction.id} prediction={prediction} />
           ))}
         </div>
       )}

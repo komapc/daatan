@@ -1,15 +1,95 @@
-import { Home } from 'lucide-react'
+'use client'
+
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import { Home, Loader2, TrendingUp, Plus } from 'lucide-react'
+import PredictionCard, { Prediction } from '@/components/predictions/PredictionCard'
 
 export default function FeedPage() {
+  const [predictions, setPredictions] = useState<Prediction[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchFeed = async () => {
+      try {
+        // Fetch active predictions for the feed
+        const response = await fetch('/api/predictions?status=ACTIVE&limit=10')
+        if (response.ok) {
+          const data = await response.json()
+          setPredictions(data.predictions)
+        }
+      } catch (error) {
+        console.error('Error fetching feed:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchFeed()
+  }, [])
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="flex items-center gap-3 mb-6 lg:mb-8">
-        <Home className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Feed</h1>
+      {/* Welcome Section */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-blue-50 rounded-lg">
+            <Home className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Feed</h1>
+            <p className="text-sm text-gray-500">Discover active predictions and commit your CU</p>
+          </div>
+        </div>
+        <Link
+          href="/predictions/new"
+          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl font-semibold shadow-sm hover:bg-blue-700 transition-all active:scale-95"
+        >
+          <Plus className="w-5 h-5" />
+          <span>New Prediction</span>
+        </Link>
       </div>
-      <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl p-8 sm:p-12 text-center">
-        <p className="text-gray-400 text-base sm:text-lg">Prediction feed will appear here</p>
-      </div>
+
+      {/* Feed Content */}
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-20">
+          <Loader2 className="w-10 h-10 text-blue-500 animate-spin mb-4" />
+          <p className="text-gray-500 font-medium">Loading your feed...</p>
+        </div>
+      ) : predictions.length === 0 ? (
+        <div className="bg-white border border-gray-100 rounded-2xl p-12 text-center shadow-sm">
+          <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
+            <TrendingUp className="w-10 h-10 text-blue-500" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-3">No active predictions</h2>
+          <p className="text-gray-500 mb-8 max-w-md mx-auto text-lg">
+            There are no active predictions at the moment. Why not create one yourself?
+          </p>
+          <Link
+            href="/predictions/new"
+            className="inline-flex items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
+          >
+            <Plus className="w-5 h-5" />
+            Create First Prediction
+          </Link>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between px-2">
+            <h2 className="text-lg font-bold text-gray-800 uppercase tracking-wider">Active Predictions</h2>
+            <Link href="/predictions" className="text-sm font-semibold text-blue-600 hover:text-blue-700">
+              View all
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {predictions.map((prediction) => (
+              <PredictionCard key={prediction.id} prediction={prediction} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Stats/Info Section could go here later */}
     </div>
   )
 }
