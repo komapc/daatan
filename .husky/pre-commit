@@ -1,1 +1,4 @@
+export DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
+export NEXTAUTH_SECRET="dummy-secret-for-build"
+export NEXTAUTH_URL="http://localhost:3000"
 npm run build
