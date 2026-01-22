@@ -84,6 +84,11 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
             
+            # Clean slate: Stop services and prune builder cache
+            echo "🧹 Cleaning Docker environment..."
+            docker compose -f docker-compose.prod.yml down app-staging nginx || true
+            docker builder prune -f
+            
             # Debug: Verify code update
             echo "🔍 Debug: Current commit on server:"
             git log -1
