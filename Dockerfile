@@ -27,6 +27,7 @@ RUN npm ci
 COPY . .
 # Explicitly copy src again to ensure Docker doesn't use a stale cache for the source directory
 COPY src ./src
+COPY __tests__ ./__tests__
 
 # Build Next.js
 RUN npx prisma generate
