@@ -124,7 +124,10 @@ jobs:
               echo "✅ Staging deployment verified successfully"
             else
               echo "❌ Staging deployment verification failed"
-              docker logs daatan-app-staging --tail 50
+              echo "📋 Container Status:"
+docker ps -a --filter name=daatan-app-staging
+echo "📋 Container Logs (last 100 lines):"
+docker logs daatan-app-staging --tail 100
               exit 1
             fi
             
