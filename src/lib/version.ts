@@ -4,5 +4,5 @@
 // - MINOR: New features, significant improvements
 // - PATCH: Bug fixes, small improvements, every PR
 
-export const VERSION = '0.1.12'
+export const VERSION = '0.1.13'
 
