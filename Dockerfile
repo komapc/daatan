@@ -67,7 +67,7 @@ COPY --from=builder /app/public ./public
 
 COPY --from=builder --chown=nodejs:nodejs /app/.next/standalone ./
 
-COPY --from=builder --chown=nodejs:nodejs /app/.next/static ./.next/static
+RUN chown -R nodejs:nodejs /app
 
 
 
@@ -81,4 +81,4 @@ EXPOSE 3000
 
 # Start Next.js using the standalone server
 
-CMD ["node", "server.js"]
+CMD ["npx", "next", "start", "-H", "0.0.0.0"]
