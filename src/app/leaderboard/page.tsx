@@ -23,11 +23,8 @@ export default function LeaderboardPage() {
   useEffect(() => {
     const fetchLeaderboard = async () => {
       try {
-        const response = await fetch('/api/leaderboard?limit=50')
-        if (response.ok) {
-          const data = await response.json()
-          setUsers(data.users)
-        }
+        const response = await fetch('/api/top-reputation?limit=50')
+        if (!response.ok) throw new Error('Failed to fetch leaderboard')
       } catch (error) {
         console.error('Error fetching leaderboard:', error)
       } finally {

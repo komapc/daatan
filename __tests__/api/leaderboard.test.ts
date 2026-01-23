@@ -29,7 +29,7 @@ describe('Leaderboard API', () => {
     
     prismaMock.user.findMany.mockResolvedValue(mockUsers)
 
-    const request = new NextRequest('http://localhost/api/leaderboard?limit=10')
+    const request = new NextRequest('http://localhost/api/top-reputation?limit=10')
     const response = await GET(request)
     const data = await response.json()
 
@@ -48,7 +48,7 @@ describe('Leaderboard API', () => {
   it('handles database errors gracefully', async () => {
     prismaMock.user.findMany.mockRejectedValue(new Error('DB Error'))
 
-    const request = new NextRequest('http://localhost/api/leaderboard')
+    const request = new NextRequest('http://localhost/api/top-reputation')
     const response = await GET(request)
     const data = await response.json()
 
