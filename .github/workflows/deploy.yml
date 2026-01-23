@@ -84,8 +84,9 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
             
-            # Clean slate: Stop services and prune builder cache
-            echo "🧹 Cleaning Docker environment..."
+            # Clean slate: Stop services, remove old builds and prune builder cache
+            echo "🧹 Cleaning Docker environment and old builds..."
+            sudo rm -rf .next node_modules 2>/dev/null || true
             docker compose -f docker-compose.prod.yml down app-staging nginx || true
             docker builder prune -f
             
