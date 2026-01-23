@@ -25,9 +25,12 @@ RUN npm ci
 
 # Copy source
 COPY . .
+# Explicitly copy src again to ensure Docker doesn't use a stale cache for the source directory
+COPY src ./src
 
 # Build Next.js
 RUN npx prisma generate
+RUN echo "Source API routes check:" && ls -R src/app/api
 RUN npm run build
 RUN echo "Verifying API routes build:" && ls -R .next/server/app/api
 
