@@ -37,7 +37,7 @@ fi
 
 # Check Version
 echo -n "Checking Version... "
-VERSION_RESPONSE=$(curl -s "$URL/api/system-version")
+VERSION_RESPONSE=$(curl -s "$URL/api/system-status")
 DEPLOYED_VERSION=$(echo "$VERSION_RESPONSE" | grep -o '"version":"[^"]*"' | cut -d'"' -f4)
 
 if [ "$DEPLOYED_VERSION" == "$EXPECTED_VERSION" ]; then
