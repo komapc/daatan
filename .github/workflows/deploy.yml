@@ -124,14 +124,12 @@ jobs:
               echo "✅ Staging deployment verified successfully"
             else
               echo "❌ Staging deployment verification failed"
-                            echo "📋 Container Status:"
               echo "📋 Container Status:"
-docker ps -a --filter name=daatan-
-              echo "📋 Container Logs (last 100 lines):"
+              docker ps -a --filter name=daatan-
               echo "📋 Nginx Logs (last 100 lines):"
-docker logs daatan-nginx --tail 100
-echo "📋 Container Logs (last 100 lines):"
-docker logs daatan-app-staging --tail 100
+              docker logs daatan-nginx --tail 100
+              echo "📋 Container Logs (last 100 lines):"
+              docker logs daatan-app-staging --tail 100
               exit 1
             fi
             
