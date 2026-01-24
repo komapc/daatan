@@ -45,6 +45,12 @@ jobs:
           NEXTAUTH_URL: "http://localhost:3000"
         run: npm run build
 
+      - name: Run unit tests
+        env:
+          DATABASE_URL: "postgresql://dummy:dummy@localhost:5432/dummy"
+          NEXTAUTH_SECRET: "dummy-secret-for-build"
+        run: npm test
+
       - name: Run linter
         run: npm run lint || echo "No lint script configured"
 
