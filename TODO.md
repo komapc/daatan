@@ -1,4 +1,11 @@
-# DAaTAn - Development TODO
+# TODO: DAaTAn
+
+## 🚨 CRITICAL / HIGH PRIORITY
+- [x] **Robust Deployment Architecture**: Decouple Nginx upstream dependencies to prevent Staging/Production from taking each other down.
+  - **Solution Implemented**: Refactored `nginx-ssl.conf` to use dynamic DNS resolution (`resolver 127.0.0.11`) and variables for `proxy_pass`. This ensures Nginx starts even if upstream containers are missing, returning 502 only for the specific route.
+  - **Validation**: Added `scripts/verify-nginx-config.sh` for pre-deployment checks.
+
+## 🛠 Features & Development
 
 > Reference: [DAATAN_CORE.md](./DAATAN_CORE.md) | [GLOSSARY.md](./GLOSSARY.md) | [FORECASTS_FLOW.md](./FORECASTS_FLOW.md)
 
