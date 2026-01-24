@@ -1,8 +1,9 @@
 /**
  * @jest-environment node
  */
-import { GET } from '../route'
+import { GET } from '@/app/api/system-status/route'
 import { NextResponse } from 'next/server'
+import { vi, describe, it, expect } from 'vitest'
 
 // Mock the version module
 vi.mock('@/lib/version', () => ({

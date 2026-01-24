@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-import { GET } from '../route'
+import { GET } from '@/app/api/top-reputation/route'
 import { NextRequest } from 'next/server'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 

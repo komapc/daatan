@@ -37,3 +37,44 @@ Components using `useSession` must handle the `undefined` or `loading` states gr
 - **Production:** ONLINE
 - **Staging:** ONLINE
 - **Auth UI:** Temporarily Disabled (Pending Restoration PR)
+
+---
+
+# Post-Mortem: Staging/Production Deadlock - 2026-01-24
+
+## Issue Summary
+On January 24, 2026, both `daatan.com` (Production) and `staging.daatan.com` (Staging) became unreachable (`HTTP 000000` / Connection Refused). The Nginx reverse proxy service repeatedly crashed upon startup.
+
+## Root Causes
+
+1.  **Nginx Startup Dependency (The Deadlock):**
+    The shared `nginx-ssl.conf` file defined static upstream groups:
+    ```nginx
+    upstream app { server app:3000; }
+    upstream app_staging { server app-staging:3000; }
+    ```
+    Nginx performs DNS resolution for all upstreams **at startup**. If *either* container (`app` or `app-staging`) was missing or stopped, Nginx would fail to start with `host not found`.
+
+2.  **Fragile Deployment Strategy:**
+    The Staging deployment pipeline (`deploy.yml`) stops the `app-staging` container before pulling new code. If the Production `app` container happened to be down (or recovering) at that moment, Nginx would crash, taking down both sites. Once Nginx was down, it could not restart because `app-staging` was also down, creating a circular dependency.
+
+## Resolution Actions
+
+1.  **Decoupled Upstreams (Dynamic Resolution):**
+    Refactored `nginx-ssl.conf` to use Docker's internal DNS resolver (`127.0.0.11`) and variables for `proxy_pass`:
+    ```nginx
+    resolver 127.0.0.11 valid=30s;
+    set $upstream_staging http://app-staging:3000;
+    proxy_pass $upstream_staging;
+    ```
+    This ensures Nginx starts successfully even if an upstream host is missing. Routes to the missing host return a `502 Bad Gateway` instead of crashing the entire server.
+
+2.  **Manual Recovery:**
+    Uploaded the patched configuration via SSH and manually started the missing `daatan-app-staging` container to restore service.
+
+3.  **Enhanced Validation:**
+    Added `scripts/verify-nginx-config.sh` to the repository and CI pipeline to validate Nginx syntax and SSL configuration before deployment.
+
+## Status
+- **Production:** ONLINE (Stable)
+- **Staging:** ONLINE (Stable)
