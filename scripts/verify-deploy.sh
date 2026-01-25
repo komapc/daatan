@@ -26,7 +26,9 @@ echo -e "Expected Version: ${GREEN}$EXPECTED_VERSION${NC}"
 
 # Check Health and Version
 echo -n "Checking Health and Version... "
-HEALTH_RESPONSE_FULL=$(curl -s -v "$URL/api/health" 2>&1)
+# Use a random query parameter to bypass cache
+CACHE_BUSTER=$(date +%s)
+HEALTH_RESPONSE_FULL=$(curl -s -v "$URL/api/health?cb=$CACHE_BUSTER" 2>&1)
 HEALTH_RESPONSE=$(echo "$HEALTH_RESPONSE_FULL" | sed -n '/^{/p')
 DEPLOYED_VERSION=$(echo "$HEALTH_RESPONSE" | grep -o '"version":"[^"]*"' | cut -d'"' -f4)
 HEALTH_STATUS=$(echo "$HEALTH_RESPONSE" | grep -o '"status":"[^"]*"' | cut -d'"' -f4)
