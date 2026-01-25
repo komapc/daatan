@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-import { GET } from '@/app/api/system-status/route'
+import { GET } from '@/app/api/version/route'
 import { NextResponse } from 'next/server'
 import { vi, describe, it, expect } from 'vitest'
 
