@@ -33,6 +33,15 @@ HEALTH_RESPONSE=$(echo "$HEALTH_RESPONSE_FULL" | sed -n '/^{/p')
 DEPLOYED_VERSION=$(echo "$HEALTH_RESPONSE" | grep -o '"version":"[^"]*"' | cut -d'"' -f4)
 HEALTH_STATUS=$(echo "$HEALTH_RESPONSE" | grep -o '"status":"[^"]*"' | cut -d'"' -f4)
 
+# Debug: If mismatch, check if logs show the call
+if [ "$DEPLOYED_VERSION" != "$EXPECTED_VERSION" ]; then
+    echo -e "${YELLOW}Mismatch detected. Checking container logs for request...${NC}"
+    # We try to see if the log message we added exists in the last 20 lines of the staging app
+    if command -v docker &> /dev/null; then
+        docker logs daatan-app-staging --tail 20 2>&1 | grep "GET /api/health called" || echo "Request not found in app logs."
+    fi
+fi
+
 if [ "$HEALTH_STATUS" == "ok" ] && [ "$DEPLOYED_VERSION" == "$EXPECTED_VERSION" ]; then
     echo -e "${GREEN}OK ($DEPLOYED_VERSION)${NC}"
 else
