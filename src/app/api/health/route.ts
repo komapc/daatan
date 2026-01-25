@@ -5,12 +5,14 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 export async function GET() {
-  console.log('GET /api/health called - returning version:', VERSION)
+  const timestamp = new Date().toISOString()
+  console.log(`[${timestamp}] GET /api/health called - returning version: ${VERSION}`)
   return NextResponse.json(
     { 
       status: 'ok',
       version: VERSION,
-      timestamp: new Date().toISOString()
+      timestamp: timestamp,
+      debug: 'v2'
     },
     { 
       status: 200,
