@@ -30,9 +30,9 @@ echo -n "Checking Health and Version... "
 CACHE_BUSTER=$(date +%s)
 HEALTH_RESPONSE_FULL=$(curl -s -v "$URL/api/health?cb=$CACHE_BUSTER" 2>&1)
 # Extract only the actual JSON response (last line that starts with {)
-HEALTH_RESPONSE=$(echo "$HEALTH_RESPONSE_FULL" | grep '^{"status"' | tail -1)
-DEPLOYED_VERSION=$(echo "$HEALTH_RESPONSE" | grep -o '"version":"[^"]*"' | cut -d'"' -f4)
-HEALTH_STATUS=$(echo "$HEALTH_RESPONSE" | grep -o '"status":"[^"]*"' | cut -d'"' -f4)
+HEALTH_RESPONSE=$(echo "$HEALTH_RESPONSE_FULL" | grep '^{' | tail -1)
+DEPLOYED_VERSION=$(echo "$HEALTH_RESPONSE" | grep -o '"version": "[^"]*"' | cut -d'"' -f4)
+HEALTH_STATUS=$(echo "$HEALTH_RESPONSE" | grep -o '"status": "[^"]*"' | cut -d'"' -f4)
 
 # Debug: If mismatch, check if logs show the call
 if [ "$DEPLOYED_VERSION" != "$EXPECTED_VERSION" ]; then
