@@ -94,6 +94,13 @@ jobs:
             echo "🧹 Cleaning Docker environment and old builds..."
             sudo rm -rf .next node_modules 2>/dev/null || true
             docker compose -f docker-compose.prod.yml down app-staging nginx || true
+            
+            # Force cleanup of any orphaned staging containers
+            echo "🧹 Force cleanup of orphaned containers..."
+            docker stop daatan-postgres-staging 2>/dev/null || true
+            docker rm daatan-postgres-staging 2>/dev/null || true
+            docker volume rm app_postgres_staging_data 2>/dev/null || true
+            
             docker builder prune -af
             docker image prune -af
             docker system prune -af --volumes
