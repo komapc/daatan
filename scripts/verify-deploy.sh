@@ -24,31 +24,22 @@ fi
 echo -e "${BLUE}🔍 Verifying deployment at $URL${NC}"
 echo -e "Expected Version: ${GREEN}$EXPECTED_VERSION${NC}"
 
-# Check Health
-echo -n "Checking Health... "
-HEALTH_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$URL/api/health")
+# Check Health and Version
+echo -n "Checking Health and Version... "
+HEALTH_RESPONSE_FULL=$(curl -s -v "$URL/api/health" 2>&1)
+HEALTH_RESPONSE=$(echo "$HEALTH_RESPONSE_FULL" | sed -n '/^{/p')
+DEPLOYED_VERSION=$(echo "$HEALTH_RESPONSE" | grep -o '"version":"[^"]*"' | cut -d'"' -f4)
+HEALTH_STATUS=$(echo "$HEALTH_RESPONSE" | grep -o '"status":"[^"]*"' | cut -d'"' -f4)
 
-if [ "$HEALTH_CODE" == "200" ]; then
-    echo -e "${GREEN}OK (200)${NC}"
+if [ "$HEALTH_STATUS" == "ok" ] && [ "$DEPLOYED_VERSION" == "$EXPECTED_VERSION" ]; then
+    echo -e "${GREEN}OK ($DEPLOYED_VERSION)${NC}"
 else
-    echo -e "${RED}FAILED ($HEALTH_CODE)${NC}"
-    exit 1
-fi
-
-# Check Version
-echo -n "Checking Version... "
-VERSION_RESPONSE_FULL=$(curl -s -v "$URL/api/version" 2>&1)
-VERSION_RESPONSE=$(echo "$VERSION_RESPONSE_FULL" | sed -n '/^{/p')
-DEPLOYED_VERSION=$(echo "$VERSION_RESPONSE" | grep -o '"version":"[^"]*"' | cut -d'"' -f4)
-
-if [ "$DEPLOYED_VERSION" == "$EXPECTED_VERSION" ]; then
-    echo -e "${GREEN}MATCH ($DEPLOYED_VERSION)${NC}"
-else
-    echo -e "${RED}MISMATCH${NC}"
-    echo -e "  Expected: ${GREEN}$EXPECTED_VERSION${NC}"
-    echo -e "  Deployed: ${RED}$DEPLOYED_VERSION${NC}"
+    echo -e "${RED}FAILED${NC}"
+    echo -e "  Expected Version: ${GREEN}$EXPECTED_VERSION${NC}"
+    echo -e "  Deployed Version: ${RED}$DEPLOYED_VERSION${NC}"
+    echo -e "  Health Status: ${RED}$HEALTH_STATUS${NC}"
     echo -e "  Full Response Log:"
-    echo "$VERSION_RESPONSE_FULL"
+    echo "$HEALTH_RESPONSE_FULL"
     exit 1
 fi
 
