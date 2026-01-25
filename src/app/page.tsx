@@ -16,7 +16,7 @@ export default function FeedPage() {
         const response = await fetch('/api/predictions?status=ACTIVE&limit=10')
         if (response.ok) {
           const data = await response.json()
-          setPredictions(data.predictions)
+          setPredictions(data.predictions || [])
         }
       } catch (error) {
         console.error('Error fetching feed:', error)

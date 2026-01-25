@@ -10,6 +10,7 @@ declare module 'next-auth' {
       username?: string | null
       isAdmin?: boolean
       brierScore?: number
+      rs?: number
       cuAvailable?: number
       cuLocked?: number
     }
@@ -20,6 +21,7 @@ declare module 'next-auth' {
     username?: string | null
     isAdmin?: boolean
     brierScore?: number
+    rs?: number
     cuAvailable?: number
     cuLocked?: number
   }
