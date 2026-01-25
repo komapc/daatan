@@ -95,6 +95,7 @@ jobs:
             sudo rm -rf .next node_modules 2>/dev/null || true
             docker compose -f docker-compose.prod.yml down app-staging nginx || true
             docker builder prune -f
+            docker image prune -af --filter "until=1h"
             
             # Debug: Verify code update
             echo "🔍 Debug: Current commit on server:"
@@ -108,6 +109,7 @@ jobs:
             export GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
             export GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
             export GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+            export DEPLOY_ID=$(date +%s)
             
             # Stop and remove existing container to ensure clean slate
             docker compose -f docker-compose.prod.yml stop app-staging || true
