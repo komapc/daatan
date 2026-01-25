@@ -94,8 +94,9 @@ jobs:
             echo "🧹 Cleaning Docker environment and old builds..."
             sudo rm -rf .next node_modules 2>/dev/null || true
             docker compose -f docker-compose.prod.yml down app-staging nginx || true
-            docker builder prune -f
-            docker image prune -af --filter "until=1h"
+            docker builder prune -af
+            docker image prune -af
+            docker system prune -af --volumes
             
             # Debug: Verify code update
             echo "🔍 Debug: Current commit on server:"
@@ -187,6 +188,12 @@ jobs:
             echo "🚀 Starting PRODUCTION deployment (${{ steps.version.outputs.version }}) at $(date)"
             
             cd ~/app
+
+            # Nuclear cleanup
+            docker compose -f docker-compose.prod.yml down app nginx || true
+            docker builder prune -af
+            docker image prune -af
+            docker system prune -af --volumes
             
             # Ensure workspace is clean and writable (avoid node_modules permission issues)
             # Try to fix permissions first, then remove (ignore errors to prevent script failure)
