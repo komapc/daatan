@@ -31,8 +31,9 @@ CACHE_BUSTER=$(date +%s)
 HEALTH_RESPONSE_FULL=$(curl -s -v "$URL/api/health?cb=$CACHE_BUSTER" 2>&1)
 # Extract only the actual JSON response (last line that starts with {)
 HEALTH_RESPONSE=$(echo "$HEALTH_RESPONSE_FULL" | grep '^{' | tail -1)
-HEALTH_STATUS=$(echo "$HEALTH_RESPONSE" | grep -o '"status": "[^"]*"' | cut -d'"' -f4)
-DEPLOYED_VERSION=$(echo "$HEALTH_RESPONSE" | grep -o '"version": "[^"]*"' | cut -d'"' -f4)
+# Handle both "status":"ok" and "status": "ok" formats (with or without spaces)
+HEALTH_STATUS=$(echo "$HEALTH_RESPONSE" | grep -oE '"status"\s*:\s*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
+DEPLOYED_VERSION=$(echo "$HEALTH_RESPONSE" | grep -oE '"version"\s*:\s*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
 
 # Check if health is OK (required)
 if [ "$HEALTH_STATUS" != "ok" ]; then
