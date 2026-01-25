@@ -37,7 +37,8 @@ fi
 
 # Check Version
 echo -n "Checking Version... "
-VERSION_RESPONSE=$(curl -s "$URL/api/version")
+VERSION_RESPONSE_FULL=$(curl -s -v "$URL/api/version" 2>&1)
+VERSION_RESPONSE=$(echo "$VERSION_RESPONSE_FULL" | sed -n '/^{/p')
 DEPLOYED_VERSION=$(echo "$VERSION_RESPONSE" | grep -o '"version":"[^"]*"' | cut -d'"' -f4)
 
 if [ "$DEPLOYED_VERSION" == "$EXPECTED_VERSION" ]; then
@@ -46,7 +47,8 @@ else
     echo -e "${RED}MISMATCH${NC}"
     echo -e "  Expected: ${GREEN}$EXPECTED_VERSION${NC}"
     echo -e "  Deployed: ${RED}$DEPLOYED_VERSION${NC}"
-    echo -e "  Response: $VERSION_RESPONSE"
+    echo -e "  Full Response Log:"
+    echo "$VERSION_RESPONSE_FULL"
     exit 1
 fi
 
