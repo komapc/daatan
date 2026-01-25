@@ -18,7 +18,6 @@ ENV NEXT_PUBLIC_ENV=$NEXT_PUBLIC_ENV
 # Copy package files
 COPY package*.json ./
 COPY prisma ./prisma/
-COPY prisma.config.ts ./
 
 # Install dependencies
 RUN npm ci
@@ -39,7 +38,8 @@ RUN echo "Verifying API routes build:" && ls -R .next/server/app/api
 
 FROM node:20-alpine AS runner
 
-
+# Install OpenSSL for Prisma
+RUN apk add --no-cache openssl
 
 WORKDIR /app
 
@@ -66,6 +66,7 @@ RUN addgroup --system --gid 1001 nodejs && \
 COPY --from=builder /app/public ./public
 
 COPY --from=builder --chown=nodejs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nodejs:nodejs /app/.next/static ./.next/static
 
 RUN chown -R nodejs:nodejs /app
 
@@ -81,4 +82,6 @@ EXPOSE 3000
 
 # Start Next.js using the standalone server
 
-CMD ["npx", "next", "start", "-H", "0.0.0.0"]
+
+
+CMD ["node", "server.js"]

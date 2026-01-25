@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma' // Make sure this path is correct
 export const authOptions: NextAuthOptions = {
   // @ts-ignore
   adapter: PrismaAdapter(prisma), // Add the Prisma adapter here
+  secret: process.env.NEXTAUTH_SECRET,
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID ?? '',
@@ -37,7 +38,7 @@ export const authOptions: NextAuthOptions = {
             session.user.cuAvailable = user.cuAvailable
             session.user.cuLocked = user.cuLocked
             session.user.username = user.username
-            // Note: brierScore is legacy, using RS now but keeping types compatible if needed
+            session.user.rs = user.rs
           }
         } catch (error) {
           console.error('Error fetching user stats for session:', error)

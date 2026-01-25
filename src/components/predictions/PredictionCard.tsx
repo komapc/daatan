@@ -175,7 +175,7 @@ export default function PredictionCard({ prediction }: PredictionCardProps) {
             {/* Resolve By Date */}
             <div className="flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5 text-gray-400" />
-              <span>{formatDate(prediction.resolveByDatetime)}</span>
+              <span suppressHydrationWarning>{formatDate(prediction.resolveByDatetime)}</span>
             </div>
 
             {/* Commitment Count */}
