@@ -4,6 +4,15 @@
 - [x] **Robust Deployment Architecture**: Decouple Nginx upstream dependencies to prevent Staging/Production from taking each other down.
   - **Solution Implemented**: Refactored `nginx-ssl.conf` to use dynamic DNS resolution (`resolver 127.0.0.11`) and variables for `proxy_pass`. This ensures Nginx starts even if upstream containers are missing, returning 502 only for the specific route.
   - **Validation**: Added `scripts/verify-nginx-config.sh` for pre-deployment checks.
+- [x] **Nuclear Cache Fix**: Implemented aggressive cache clearing for API routes and Docker builds to prevent stale deployments.
+  - **Solution Implemented**: Added nuclear cache disabling in Nginx for all `/api/*` routes and complete Docker cache clearing in CI/CD.
+  - **Status**: Merged PR #93, deployed to staging and production.
+- [x] **Separate Staging and Production Databases**: Prevent conflicts between environments.
+  - **Solution Implemented**: Created separate PostgreSQL containers (`postgres` and `postgres-staging`) with separate volumes and databases (`daatan` and `daatan_staging`).
+- [x] **Deployment Rollback Mechanism**: Quick recovery from failed deployments.
+  - **Solution Implemented**: Created `scripts/rollback.sh` for quick rollback to previous commit.
+- [x] **Blue-Green Deployment Strategy**: Zero-downtime deployments.
+  - **Solution Implemented**: Created `scripts/blue-green-deploy.sh` for zero-downtime deployments using container switching.
 
 ## 🛠 Features & Development
 
@@ -95,6 +104,10 @@ Every feature must pass all checks:
 ### DevOps & Infrastructure (January 2026)
 - [x] Resolved `daatan.com` connectivity issue (Nginx was missing upstream `app` container)
 - [x] Hardened Security Group (restricted SSH to `allowed_ssh_cidr`, enabled ICMP)
+- [x] Nuclear cache fix for deployment consistency (disabled all API caching, aggressive Docker cache clearing)
+- [x] Separate staging and production databases (postgres vs postgres-staging)
+- [x] Deployment rollback mechanism (`scripts/rollback.sh`)
+- [x] Blue-green deployment strategy (`scripts/blue-green-deploy.sh`)
 - [ ] Automate container restart on failure (add `restart: always` to compose if not present)
 - [ ] Implement log rotation for Docker (currently 10m/3 files, verify)
 - [ ] IP Rotation (if DPI interference persists)
@@ -340,6 +353,13 @@ Every feature must pass all checks:
 ## 🔧 Technical Debt
 
 - [x] **(HIGH PRIORITY)** Add Prisma adapter to NextAuth to enable user persistence ✅
+- [x] **(HIGH PRIORITY)** Separate staging and production databases ✅
+- [x] **(HIGH PRIORITY)** Implement deployment rollback mechanism ✅
+- [x] **(HIGH PRIORITY)** Implement blue-green deployment strategy ✅
+- [ ] **(MEDIUM PRIORITY)** Split docker-compose files - Separate staging and production completely
+- [ ] **(MEDIUM PRIORITY)** Implement proper health checks - More comprehensive than current `/health`
+- [ ] **(MEDIUM PRIORITY)** Add monitoring/alerting - Prometheus/Grafana or CloudWatch
+- [ ] **(MEDIUM PRIORITY)** Database migration strategy - Automated Prisma migrations in CI/CD
 - [ ] Refactor data fetching to use Server Components (e.g., in `PredictionDetailPage`)
 - [ ] Abstract client-side API calls into a reusable library (e.g., `src/lib/api-client.ts`)
 - [ ] Standardize Prisma client instantiation using a singleton pattern
@@ -372,6 +392,18 @@ rsync -avz --exclude 'node_modules' --exclude '.next' --exclude '.git' --exclude
   -e "ssh -i ~/.ssh/daatan-key.pem" . ubuntu@52.59.160.186:~/app/
 ssh -i ~/.ssh/daatan-key.pem ubuntu@52.59.160.186 \
   "cd ~/app && docker compose -f docker-compose.prod.yml up -d --build"
+```
+
+### Blue-Green Deployment (Zero Downtime)
+```bash
+ssh -i ~/.ssh/daatan-key.pem ubuntu@52.59.160.186 \
+  "cd ~/app && ./scripts/blue-green-deploy.sh production"
+```
+
+### Rollback Deployment
+```bash
+ssh -i ~/.ssh/daatan-key.pem ubuntu@52.59.160.186 \
+  "cd ~/app && ./scripts/rollback.sh production"
 ```
 
 ### View Logs
