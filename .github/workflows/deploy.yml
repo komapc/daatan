@@ -125,7 +125,7 @@ jobs:
             
             # Rebuild and start
             docker compose -f docker-compose.prod.yml build --no-cache --build-arg DATABASE_URL="postgresql://daatan:${POSTGRES_PASSWORD}@postgres:5432/daatan" app-staging
-            docker compose -f docker-compose.prod.yml up -d --force-recreate app-staging nginx
+            docker compose -f docker-compose.prod.yml --env-file .env up -d --force-recreate app-staging nginx
             
             # Debug: Check if files exist INSIDE the container
             echo "🔍 Debug: Checking API routes inside running container:"
@@ -224,7 +224,7 @@ jobs:
             
             # Build and restart production container
             docker compose -f docker-compose.prod.yml build --no-cache --build-arg DATABASE_URL="postgresql://daatan:${POSTGRES_PASSWORD}@postgres:5432/daatan" app
-            docker compose -f docker-compose.prod.yml up -d --force-recreate app nginx
+            docker compose -f docker-compose.prod.yml --env-file .env up -d --force-recreate app nginx
             
             # Wait for app to be healthy
             echo "Waiting for health check..."
