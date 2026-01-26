@@ -7,11 +7,12 @@
 ## Table of Contents
 
 1. [Quick Start](#quick-start)
-2. [Deployment Strategies](#deployment-strategies)
-3. [Rollback Procedures](#rollback-procedures)
-4. [Monitoring & Health Checks](#monitoring--health-checks)
-5. [Troubleshooting](#troubleshooting)
-6. [Infrastructure](#infrastructure)
+2. [Local Verification](#local-verification)
+3. [Deployment Strategies](#deployment-strategies)
+4. [Rollback Procedures](#rollback-procedures)
+5. [Monitoring & Health Checks](#monitoring--health-checks)
+6. [Troubleshooting](#troubleshooting)
+7. [Infrastructure](#infrastructure)
 
 ---
 
@@ -39,6 +40,62 @@ curl https://staging.daatan.com/api/health
 
 ---
 
+## Local Verification
+
+Before pushing code to staging, verify your changes locally to catch issues early.
+
+### Automatic Verification (Git Hooks)
+
+**Pre-Commit Hook:** Runs automatically on every commit
+- Builds the application
+- Runs all tests
+- Runs linter (warning only)
+
+**Pre-Push Hook:** Runs automatically before pushing
+- Detects authentication-related changes
+- Prompts for manual auth testing if needed
+
+**To bypass hooks (use sparingly):**
+```bash
+git commit --no-verify
+git push --no-verify
+```
+
+### Manual Verification Script
+
+Run comprehensive verification before pushing:
+
+```bash
+./scripts/verify-local.sh
+```
+
+**What it checks:**
+- Node.js version (18+)
+- Dependencies installed
+- Git status
+- Environment setup
+- Build success
+- All tests pass
+- Linting issues
+
+**When to use:**
+- Before creating a pull request
+- After making significant changes
+- When pre-commit hooks are bypassed
+- To verify everything works locally
+
+### Local Testing Checklist
+
+Before pushing to staging:
+- [ ] Code builds successfully (`npm run build`)
+- [ ] All tests pass (`npm test`)
+- [ ] No linting errors (`npm run lint`)
+- [ ] Changes tested in local dev environment (`npm run dev`)
+- [ ] Authentication tested if auth code changed
+- [ ] Database migrations tested if schema changed
+
+---
+
 ## Deployment Strategies
 
 ### 1. Standard Deployment (Automatic via CI/CD)
@@ -47,6 +104,9 @@ curl https://staging.daatan.com/api/health
 **Trigger:** Push tag `v*` → Production deployment
 
 ```bash
+# Verify locally first
+./scripts/verify-local.sh
+
 # Deploy to staging (automatic on push to main)
 git push origin main
 
