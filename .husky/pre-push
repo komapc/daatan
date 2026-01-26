@@ -1,0 +1,29 @@
+#!/bin/bash
+# Pre-push verification with auth change detection
+
+set -e
+
+echo "🚀 Running pre-push verification..."
+
+# Check if auth-related files changed
+AUTH_FILES_CHANGED=$(git diff --name-only origin/main...HEAD 2>/dev/null | grep -E "(auth|session|login)" || true)
+
+if [ -n "$AUTH_FILES_CHANGED" ]; then
+  echo ""
+  echo "⚠️  Authentication-related files changed:"
+  echo "$AUTH_FILES_CHANGED"
+  echo ""
+  echo "Please verify:"
+  echo "  1. Test login flow locally"
+  echo "  2. Verify OAuth configuration"
+  echo "  3. Check session management"
+  echo ""
+  read -p "Have you tested authentication locally? (y/n) " -n 1 -r
+  echo
+  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "❌ Please test authentication before pushing"
+    exit 1
+  fi
+fi
+
+echo "✅ Pre-push verification passed!"
