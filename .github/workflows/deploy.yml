@@ -111,12 +111,17 @@ jobs:
             echo "🔍 Debug: Checking for API routes:"
             ls -R src/app/api
             
-            # Export passwords and secrets for Docker Compose
-            export POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
-            export NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}
-            export GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
-            export GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
-            export GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+            # Source environment variables from server's .env file
+            # (GitHub Secrets not configured for auth vars, using server .env)
+            if [ -f .env ]; then
+              set -a
+              source .env
+              set +a
+              echo "✅ Loaded env vars from .env file"
+            else
+              echo "❌ .env file not found!"
+              exit 1
+            fi
             export DEPLOY_ID=$(date +%s)
             
             # Debug: Verify env vars are set
@@ -239,12 +244,16 @@ jobs:
               git reset --hard origin/main
             fi
             
-            # Export passwords and secrets for Docker Compose
-            export POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
-            export NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}
-            export GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
-            export GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
-            export GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+            # Source environment variables from server's .env file
+            if [ -f .env ]; then
+              set -a
+              source .env
+              set +a
+              echo "✅ Loaded env vars from .env file"
+            else
+              echo "❌ .env file not found!"
+              exit 1
+            fi
             
             # Build and restart production container
             docker compose -f docker-compose.prod.yml build --no-cache --build-arg DATABASE_URL="postgresql://daatan:${POSTGRES_PASSWORD}@postgres:5432/daatan" app
