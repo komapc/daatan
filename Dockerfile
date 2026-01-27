@@ -8,12 +8,14 @@ ARG DATABASE_URL
 ARG NEXTAUTH_SECRET
 ARG NEXTAUTH_URL
 ARG NEXT_PUBLIC_ENV="production"
+ARG GIT_COMMIT="unknown"
 
 # Hardcoded fallback values for the build phase only
 ENV DATABASE_URL=${DATABASE_URL:-"postgresql://daatan:dummy@localhost:5432/daatan"}
 ENV NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-"dummy-secret-for-build"}
 ENV NEXTAUTH_URL=${NEXTAUTH_URL:-"http://localhost:3000"}
 ENV NEXT_PUBLIC_ENV=$NEXT_PUBLIC_ENV
+ENV GIT_COMMIT=$GIT_COMMIT
 
 # Copy package files
 COPY package*.json ./
@@ -43,12 +45,12 @@ RUN apk add --no-cache openssl
 
 WORKDIR /app
 
-
+# Pass GIT_COMMIT from build stage
+ARG GIT_COMMIT="unknown"
+ENV GIT_COMMIT=$GIT_COMMIT
 
 ENV NODE_ENV=production
-
 ENV PORT=3000
-
 ENV HOSTNAME="0.0.0.0"
 
 

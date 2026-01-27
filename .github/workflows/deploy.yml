@@ -129,12 +129,16 @@ jobs:
             echo "NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:0:10}..."
             echo "GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:0:10}..."
             
+            # Get current git commit hash
+            GIT_COMMIT=$(git rev-parse HEAD)
+            echo "🔍 Git commit: $GIT_COMMIT"
+            
             # Stop and remove existing container to ensure clean slate
             docker compose -f docker-compose.prod.yml stop app-staging || true
             docker compose -f docker-compose.prod.yml rm -f app-staging || true
             
             # Rebuild and start (env vars are exported above, docker-compose will use them)
-            docker compose -f docker-compose.prod.yml build --no-cache --build-arg DATABASE_URL="postgresql://daatan:${POSTGRES_PASSWORD}@postgres:5432/daatan" app-staging
+            docker compose -f docker-compose.prod.yml build --no-cache --build-arg DATABASE_URL="postgresql://daatan:${POSTGRES_PASSWORD}@postgres:5432/daatan" --build-arg GIT_COMMIT="$GIT_COMMIT" app-staging
             docker compose -f docker-compose.prod.yml up -d --force-recreate app-staging nginx
             
             # Debug: Check if files exist INSIDE the container
@@ -255,8 +259,12 @@ jobs:
               exit 1
             fi
             
+            # Get current git commit hash
+            GIT_COMMIT=$(git rev-parse HEAD)
+            echo "🔍 Git commit: $GIT_COMMIT"
+            
             # Build and restart production container
-            docker compose -f docker-compose.prod.yml build --no-cache --build-arg DATABASE_URL="postgresql://daatan:${POSTGRES_PASSWORD}@postgres:5432/daatan" app
+            docker compose -f docker-compose.prod.yml build --no-cache --build-arg DATABASE_URL="postgresql://daatan:${POSTGRES_PASSWORD}@postgres:5432/daatan" --build-arg GIT_COMMIT="$GIT_COMMIT" app
             docker compose -f docker-compose.prod.yml up -d --force-recreate app nginx
             
             # Wait for app to be healthy
