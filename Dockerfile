@@ -9,6 +9,7 @@ ARG NEXTAUTH_SECRET
 ARG NEXTAUTH_URL
 ARG NEXT_PUBLIC_ENV="production"
 ARG GIT_COMMIT="unknown"
+ARG BUILD_TIMESTAMP="unknown"
 
 # Hardcoded fallback values for the build phase only
 ENV DATABASE_URL=${DATABASE_URL:-"postgresql://daatan:dummy@localhost:5432/daatan"}
@@ -24,6 +25,9 @@ COPY prisma ./prisma/
 # Install dependencies
 RUN npm ci
 
+# Force cache invalidation for source files
+RUN echo "Build timestamp: $BUILD_TIMESTAMP"
+
 # Copy source
 COPY . .
 # Explicitly copy src again to ensure Docker doesn't use a stale cache for the source directory
@@ -33,6 +37,7 @@ COPY __tests__ ./__tests__
 # Build Next.js
 RUN npx prisma generate
 RUN echo "Source API routes check:" && ls -R src/app/api
+RUN echo "Health route content:" && head -20 src/app/api/health/route.ts
 RUN npm run build
 RUN echo "Verifying API routes build:" && ls -R .next/server/app/api
 
