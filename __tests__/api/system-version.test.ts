@@ -3,12 +3,7 @@
  */
 import { GET } from '@/app/api/health/route'
 import { NextResponse } from 'next/server'
-import { vi, describe, it, expect } from 'vitest'
-
-// Mock the version module
-vi.mock('@/lib/version', () => ({
-  VERSION: '0.1.4'
-}))
+import { describe, it, expect } from 'vitest'
 
 describe('Health and Version API', () => {
   it('returns the correct status and version structure', async () => {
@@ -16,7 +11,9 @@ describe('Health and Version API', () => {
     const data = await response.json()
 
     expect(response).toBeInstanceOf(NextResponse)
-    expect(data).toHaveProperty('version', '0.1.4')
     expect(data).toHaveProperty('status', 'ok')
+    expect(data).toHaveProperty('version')
+    expect(data).toHaveProperty('commit')
+    expect(data).toHaveProperty('timestamp')
   })
 })
