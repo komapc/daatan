@@ -37,9 +37,11 @@ COPY __tests__ ./__tests__
 # Build Next.js
 RUN npx prisma generate
 RUN echo "Source API routes check:" && ls -R src/app/api
+RUN echo "Source auth routes check:" && ls -R src/app/auth
 RUN echo "Health route content:" && head -20 src/app/api/health/route.ts
 RUN npm run build
 RUN echo "Verifying API routes build:" && ls -R .next/server/app/api
+RUN echo "Verifying auth routes build:" && ls .next/server/app/auth || echo "No auth folder in build!"
 
 # Production stage
 
