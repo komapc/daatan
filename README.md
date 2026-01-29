@@ -6,7 +6,7 @@
 
 [![Live](https://img.shields.io/badge/Production-daatan.com-green)](https://daatan.com)
 [![Staging](https://img.shields.io/badge/Staging-staging.daatan.com-yellow)](https://staging.daatan.com)
-[![Version](https://img.shields.io/badge/Version-0.1.0-blue)](https://github.com/komapc/daatan/releases)
+[![Version](https://img.shields.io/badge/Version-0.1.16-blue)](https://github.com/komapc/daatan/releases)
 [![Next.js](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)](https://www.typescriptlang.org/)
 
