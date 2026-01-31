@@ -1,8 +1,8 @@
 # Build stage
-FROM node:20-alpine AS builder
+FROM node:20-bookworm-slim AS builder
 
 # Install OpenSSL for Prisma during build
-RUN apk add --no-cache openssl openssl-dev
+RUN apt-get update && apt-get install -y openssl libssl-dev && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -47,11 +47,10 @@ RUN echo "Verifying API routes build:" && ls -R .next/server/app/api
 RUN echo "Verifying auth routes build:" && ls .next/server/app/auth || echo "No auth folder in build!"
 
 # Production stage
-
-FROM node:20-alpine AS runner
+FROM node:20-bookworm-slim AS runner
 
 # Install OpenSSL for Prisma
-RUN apk add --no-cache openssl
+RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
