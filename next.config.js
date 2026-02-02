@@ -12,6 +12,8 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_APP_VERSION: version,
   },
+  // Ensure next-auth is properly bundled
+  transpilePackages: ['next-auth'],
 }
 
 module.exports = nextConfig
