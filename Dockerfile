@@ -42,9 +42,11 @@ RUN npx prisma generate
 RUN echo "Source API routes check:" && ls -R src/app/api
 RUN echo "Source auth routes check:" && ls -R src/app/auth
 RUN echo "Health route content:" && head -20 src/app/api/health/route.ts
+RUN echo "Signin page content:" && head -30 src/app/auth/signin/page.tsx
 RUN npm run build
 RUN echo "Verifying API routes build:" && ls -R .next/server/app/api
-RUN echo "Verifying auth routes build:" && ls .next/server/app/auth || echo "No auth folder in build!"
+RUN echo "Verifying auth routes build:" && ls -R .next/server/app/auth || echo "No auth folder in build!"
+RUN echo "Full app routes:" && ls -R .next/server/app/
 
 # Production stage
 FROM node:20-bookworm-slim AS runner
