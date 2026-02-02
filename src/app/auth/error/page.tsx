@@ -6,6 +6,9 @@ import Image from 'next/image'
 import { AlertCircle, ArrowLeft } from 'lucide-react'
 import { Suspense } from 'react'
 
+// Force dynamic rendering to ensure page is always server-rendered
+export const dynamic = 'force-dynamic'
+
 function AuthErrorContent() {
   const searchParams = useSearchParams()
   const error = searchParams.get('error')

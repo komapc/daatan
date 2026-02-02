@@ -6,6 +6,9 @@ import { useEffect, Suspense } from 'react'
 import Image from 'next/image'
 import { LogIn } from 'lucide-react'
 
+// Force dynamic rendering to ensure page is always server-rendered
+export const dynamic = 'force-dynamic'
+
 function SignInContent() {
   // Safe hook call
   const sessionData = useSession()
