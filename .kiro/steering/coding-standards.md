@@ -1,0 +1,33 @@
+# Coding Standards
+
+## General Rules
+- Write minimal code that solves the problem
+- Prefer mainstream solutions over custom implementations
+- Use TypeScript strict mode
+- No console.log in production code (use proper logging)
+
+## React/Next.js
+- Use functional components with hooks
+- Prefer Server Components where possible
+- Use App Router patterns (not Pages Router)
+- Client components must have "use client" directive
+
+## Database
+- Always use Prisma for database operations
+- Use transactions for multi-step operations
+- Add indexes for frequently queried fields
+
+## API Routes
+- Use Zod for request validation (schemas in src/lib/validations/)
+- Return consistent error responses
+- Include proper HTTP status codes
+
+## Testing
+- Use Vitest for unit tests
+- Tests go in __tests__/ or adjacent to source files
+- Mock external services
+
+## Git
+- Never merge to main without approval
+- Use conventional commits: feat:, fix:, chore:, etc.
+- Keep PRs focused and small
