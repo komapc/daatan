@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import AuthErrorPage from '../page'
+import AuthErrorClient from '../AuthErrorClient'
 import { useSearchParams } from 'next/navigation'
 import { vi, describe, it, expect, Mock } from 'vitest'
 
@@ -14,7 +14,7 @@ describe('AuthErrorPage', () => {
       get: () => null,
     })
 
-    render(<AuthErrorPage />)
+    render(<AuthErrorClient />)
 
     expect(screen.getByText('Authentication Error')).toBeInTheDocument()
     expect(screen.getByText('An unexpected error occurred during authentication.')).toBeInTheDocument()
@@ -26,7 +26,7 @@ describe('AuthErrorPage', () => {
       get: () => 'Configuration',
     })
 
-    render(<AuthErrorPage />)
+    render(<AuthErrorClient />)
 
     expect(screen.getByText('There is a problem with the server configuration.')).toBeInTheDocument()
   })
@@ -36,7 +36,7 @@ describe('AuthErrorPage', () => {
       get: () => 'AccessDenied',
     })
 
-    render(<AuthErrorPage />)
+    render(<AuthErrorClient />)
 
     expect(screen.getByText('Access has been denied.')).toBeInTheDocument()
   })
@@ -46,7 +46,7 @@ describe('AuthErrorPage', () => {
       get: () => 'Verification',
     })
 
-    render(<AuthErrorPage />)
+    render(<AuthErrorClient />)
 
     expect(screen.getByText('The verification link has expired or has already been used.')).toBeInTheDocument()
   })
