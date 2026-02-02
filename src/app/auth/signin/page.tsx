@@ -2,11 +2,11 @@
 
 import { signIn, useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, Suspense } from 'react'
 import Image from 'next/image'
 import { LogIn } from 'lucide-react'
 
-const SignInPage = () => {
+function SignInContent() {
   // Safe hook call
   const sessionData = useSession()
   const session = sessionData?.data
@@ -95,4 +95,18 @@ const SignInPage = () => {
   )
 }
 
-export default SignInPage
+function SignInLoading() {
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+    </div>
+  )
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={<SignInLoading />}>
+      <SignInContent />
+    </Suspense>
+  )
+}
