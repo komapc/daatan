@@ -378,6 +378,26 @@ export const authOptions: NextAuthOptions = {
 };
 ```
 
+### Auth Page Architecture
+
+Auth pages use a Server/Client component split pattern for proper Next.js 14 compatibility:
+
+```
+src/app/auth/
+├── signin/
+│   ├── page.tsx           # Server Component (export const dynamic)
+│   └── SignInClient.tsx   # Client Component (useSearchParams, hooks)
+└── error/
+    ├── page.tsx           # Server Component (export const dynamic)
+    └── AuthErrorClient.tsx # Client Component (useSearchParams)
+```
+
+**Why this pattern?**
+- `export const dynamic = 'force-dynamic'` only works in Server Components
+- `useSearchParams()` requires `'use client'` directive
+- Combining both in one file causes the dynamic export to be ignored
+- Docker builds may skip pages that aren't properly marked as dynamic
+
 ### OAuth Flow
 
 1. User clicks "Sign in with Google"

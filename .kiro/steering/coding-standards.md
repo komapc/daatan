@@ -11,6 +11,10 @@
 - Prefer Server Components where possible
 - Use App Router patterns (not Pages Router)
 - Client components must have "use client" directive
+- For pages with useSearchParams, split into Server/Client components:
+  - Server Component: page.tsx with `export const dynamic = 'force-dynamic'`
+  - Client Component: *Client.tsx with hooks and UI logic
+- Always wrap useSearchParams in Suspense boundary
 
 ## Database
 - Always use Prisma for database operations

@@ -43,7 +43,13 @@ src/
 │   │   ├── news-anchors/       # News anchor management
 │   │   ├── predictions/        # New prediction system
 │   │   └── version/            # Version endpoint
-│   ├── auth/                   # Auth pages (signin, error)
+│   ├── auth/                   # Auth pages
+│   │   ├── signin/             # Sign in page
+│   │   │   ├── page.tsx        # Server Component wrapper
+│   │   │   └── SignInClient.tsx # Client Component with UI
+│   │   └── error/              # Auth error page
+│   │       ├── page.tsx        # Server Component wrapper
+│   │       └── AuthErrorClient.tsx # Client Component with UI
 │   ├── create/                 # Prediction creation
 │   ├── leaderboard/            # User rankings
 │   ├── notifications/          # User notifications
