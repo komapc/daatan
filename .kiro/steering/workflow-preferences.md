@@ -30,6 +30,16 @@
 - When fixing staging/production issues, the task is NOT complete until code is pushed
 - After local tests pass, immediately commit and push to trigger deployment
 - Don't stop at "tests pass" - follow through to deployment
+- Check Docker build logs if pages are missing from production - local builds may differ from Docker builds
+
+## Next.js App Router Gotchas
+- `export const dynamic = 'force-dynamic'` only works in Server Components
+- If a page has `'use client'` at the top, the dynamic export is IGNORED
+- For client pages needing dynamic rendering, split into:
+  - `page.tsx` (Server Component with dynamic export + Suspense wrapper)
+  - `*Client.tsx` (Client Component with hooks and UI)
+- `useSearchParams()` requires Suspense boundary in Next.js 14+
+- Add `transpilePackages: ['next-auth']` in next.config.js for Docker builds
 
 ## File Operations
 - Create/modify files directly
