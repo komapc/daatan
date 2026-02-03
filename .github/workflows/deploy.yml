@@ -86,9 +86,10 @@ jobs:
             chmod -R u+w node_modules 2>/dev/null || true
             sudo rm -rf node_modules 2>/dev/null || rm -rf node_modules 2>/dev/null || true
             
-            # Pull latest code
+            # Pull latest code and clean workspace
             git fetch origin main
             git reset --hard origin/main
+            git clean -fdx -e .env -e certbot -e node_modules
             
             # Clean slate: Stop services, remove old builds and prune builder cache
             echo "🧹 Cleaning Docker environment and old builds..."
@@ -131,6 +132,7 @@ jobs:
             
             # Get current git commit hash and build timestamp
             GIT_COMMIT=$(git rev-parse HEAD)
+            export GIT_COMMIT
             BUILD_TIMESTAMP=$(date +%s)
             echo "🔍 Git commit: $GIT_COMMIT"
             echo "🔍 Build timestamp: $BUILD_TIMESTAMP"
@@ -263,6 +265,7 @@ jobs:
             
             # Get current git commit hash
             GIT_COMMIT=$(git rev-parse HEAD)
+            export GIT_COMMIT
             echo "🔍 Git commit: $GIT_COMMIT"
             
             # Build and restart production container
