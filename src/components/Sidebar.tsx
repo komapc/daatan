@@ -18,6 +18,7 @@ import {
   X,
   LogOut,
   LogIn,
+  History,
 } from 'lucide-react'
 
 type NavItem = {
@@ -32,6 +33,7 @@ const navItems: NavItem[] = [
   { href: '/predictions/new', label: 'New Prediction', icon: PlusCircle },
   { href: '/notifications', label: 'Notifications', icon: Bell },
   { href: '/leaderboard', label: 'Leaderboard', icon: Trophy },
+  { href: '/retroanalysis', label: 'Retroanalysis', icon: History },
   { href: '/profile', label: 'Profile', icon: User },
   { href: '/settings', label: 'Settings', icon: Settings },
 ]
