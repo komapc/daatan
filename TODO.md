@@ -9,6 +9,7 @@
 - [ ] Express create forecast: user writes short description (e.g. "Trump will attack one more country this year"), LLM finds relevant articles and creates well-formulated forecast with all fields filled
 - [ ] Mobile UX: Disable zoom-in (viewport settings)
 - [ ] Architecture: Refactor to classical SPA with 2026 best practices
+- [ ] Infra: Zero downtime CI/CD deployment
 
 ## Completed
 - [x] Add link to "retroanalysis" feature (2026-02-04)
