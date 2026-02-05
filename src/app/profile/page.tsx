@@ -8,9 +8,13 @@ import {
   Wallet, 
   History, 
   Award,
-  Calendar
+  Calendar,
+  Settings,
+  Globe,
+  Twitter
 } from 'lucide-react'
 import PredictionCard from '@/components/predictions/PredictionCard'
+import Link from 'next/link'
 
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions)
@@ -22,7 +26,18 @@ export default async function ProfilePage() {
   // Fetch full user data including stats
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      image: true,
+      username: true,
+      website: true,
+      twitterHandle: true,
+      rs: true,
+      cuAvailable: true,
+      cuLocked: true,
+      createdAt: true,
       _count: {
         select: {
           predictions: true,
@@ -105,8 +120,45 @@ export default async function ProfilePage() {
           </div>
           
           <div className="flex-1 text-center md:text-left">
-            <h1 className="text-3xl sm:text-4xl font-black text-gray-900 mb-1">{user.name || 'Anonymous'}</h1>
-            <p className="text-gray-500 font-medium mb-4">{user.username ? `@${user.username}` : user.email}</p>
+            <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
+              <h1 className="text-3xl sm:text-4xl font-black text-gray-900">{user.name || 'Anonymous'}</h1>
+              <Link 
+                href="/profile/edit"
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Edit profile"
+              >
+                <Settings className="w-5 h-5 text-gray-400 hover:text-gray-600" />
+              </Link>
+            </div>
+            <p className="text-gray-500 font-medium mb-2">{user.username ? `@${user.username}` : user.email}</p>
+            
+            {/* Social Links */}
+            {(user.website || user.twitterHandle) && (
+              <div className="flex items-center justify-center md:justify-start gap-3 mb-4">
+                {user.website && (
+                  <a 
+                    href={user.website} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    <Globe className="w-4 h-4" />
+                    Website
+                  </a>
+                )}
+                {user.twitterHandle && (
+                  <a 
+                    href={`https://twitter.com/${user.twitterHandle}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    <Twitter className="w-4 h-4" />
+                    @{user.twitterHandle}
+                  </a>
+                )}
+              </div>
+            )}
             
             <div className="flex flex-wrap justify-center md:justify-start gap-4">
               <div className="px-4 py-2 bg-gray-50 rounded-xl border border-gray-100">

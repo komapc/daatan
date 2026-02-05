@@ -80,6 +80,11 @@ const Sidebar = () => {
     return true
   })
 
+  // Add Sign In button to nav if unauthenticated
+  if (status === 'unauthenticated') {
+    filteredNavItems.push({ href: '#', label: 'Sign In', icon: LogIn })
+  }
+
   return (
     <>
       {/* Mobile Header */}
@@ -89,15 +94,21 @@ const Sidebar = () => {
           <h1 className="text-lg font-bold text-gray-900">DAATAN</h1>
         </Link>
         <div className="flex items-center gap-2">
-          {status === 'authenticated' && session?.user?.image && (
+          {status === 'authenticated' && session?.user && (
             <Link href="/profile" onClick={handleCloseMenu}>
-              <Image
-                src={session.user.image}
-                alt={session.user.name || 'User'}
-                width={32}
-                height={32}
-                className="rounded-full border border-gray-200"
-              />
+              {session.user.image ? (
+                <Image
+                  src={session.user.image}
+                  alt={session.user.name || 'User'}
+                  width={32}
+                  height={32}
+                  className="rounded-full border border-gray-200"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
+                  {session.user.name?.charAt(0) || '?'}
+                </div>
+              )}
             </Link>
           )}
           <button
@@ -164,7 +175,7 @@ const Sidebar = () => {
                 <li key={item.href}>
                   <Link
                     href={item.href}
-                    onClick={handleCloseMenu}
+                    onClick={item.label === 'Sign In' ? handleSignIn : handleCloseMenu}
                     className={`
                       flex items-center gap-3 px-4 py-3 rounded-lg transition-colors
                       ${isActive 

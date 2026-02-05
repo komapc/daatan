@@ -23,11 +23,13 @@ model User {
   image         String? // Avatar URL from Google
 
   // Custom profile fields
-  username    String? @unique
-  bio         String?
-  isPublic    Boolean @default(true)
-  isAdmin     Boolean @default(false)
-  isModerator Boolean @default(false) // Can resolve predictions
+  username             String? @unique
+  website              String?
+  twitterHandle        String?
+  emailNotifications   Boolean @default(true)
+  isPublic             Boolean @default(true)
+  isAdmin              Boolean @default(false)
+  isModerator          Boolean @default(false) // Can resolve predictions
 
   // Scoring & Currency
   brierScore  Float @default(0) // Legacy: Prediction accuracy score
