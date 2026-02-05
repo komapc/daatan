@@ -30,8 +30,9 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { href: '/', label: 'Feed', icon: Home },
-  { href: '/predictions', label: 'Predictions', icon: TrendingUp },
-  { href: '/predictions/new', label: 'New Prediction', icon: PlusCircle },
+  { href: '/predictions', label: 'Forecasts', icon: TrendingUp },
+  { href: '/predictions/express', label: 'Express Forecast', icon: PlusCircle },
+  { href: '/predictions/new', label: 'New Forecast', icon: PlusCircle },
   { href: '/notifications', label: 'Notifications', icon: Bell },
   { href: '/leaderboard', label: 'Leaderboard', icon: Trophy },
   { href: '/retroanalysis', label: 'Retroanalysis', icon: History },
@@ -74,7 +75,7 @@ const Sidebar = () => {
 
   // Filter nav items based on auth status
   const filteredNavItems = navItems.filter((item) => {
-    const authRequiredRoutes = ['/predictions/new', '/notifications', '/profile']
+    const authRequiredRoutes = ['/predictions/new', '/predictions/express', '/notifications', '/profile']
     if (authRequiredRoutes.includes(item.href)) {
       return status === 'authenticated'
     }

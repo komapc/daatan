@@ -100,7 +100,7 @@ export default function ExpressPredictionClient({ userId }: ExpressPredictionCli
       {step === 'input' && (
         <div className="bg-white border border-gray-100 rounded-3xl p-6 sm:p-8 shadow-sm">
           <label htmlFor="prediction-input" className="block text-sm font-bold text-gray-700 mb-3">
-            What do you want to predict?
+            What do you want to forecast?
           </label>
           <textarea
             id="prediction-input"
@@ -128,7 +128,7 @@ export default function ExpressPredictionClient({ userId }: ExpressPredictionCli
             className="mt-6 w-full flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <Sparkles className="w-5 h-5" />
-            Generate Prediction
+            Generate Forecast
           </button>
 
           <div className="mt-8 pt-6 border-t border-gray-100">
@@ -171,7 +171,7 @@ export default function ExpressPredictionClient({ userId }: ExpressPredictionCli
 
               <div className={`flex items-center gap-3 ${step === 'generating' ? 'text-blue-600' : 'text-gray-400'}`}>
                 <Sparkles className="w-5 h-5" />
-                <span className="font-medium">Generating prediction...</span>
+                <span className="font-medium">Generating forecast...</span>
               </div>
             </div>
 
@@ -191,7 +191,7 @@ export default function ExpressPredictionClient({ userId }: ExpressPredictionCli
                 <AlertCircle className="w-8 h-8 text-red-600" />
               </div>
             </div>
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Couldn't Generate Prediction</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Couldn't Generate Forecast</h3>
             <p className="text-gray-600 mb-6">{error}</p>
             <button
               onClick={handleTryAgain}
@@ -207,7 +207,7 @@ export default function ExpressPredictionClient({ userId }: ExpressPredictionCli
       {step === 'review' && generated && (
         <div className="bg-white border border-gray-100 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
           <div>
-            <h3 className="text-sm font-bold text-gray-700 mb-2">Prediction Claim</h3>
+            <h3 className="text-sm font-bold text-gray-700 mb-2">Forecast Claim</h3>
             <p className="text-lg text-gray-900">{generated.claimText}</p>
           </div>
 
@@ -266,7 +266,7 @@ export default function ExpressPredictionClient({ userId }: ExpressPredictionCli
               onClick={handleCreatePrediction}
               className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors"
             >
-              Create Prediction
+              Create Forecast
             </button>
             <button
               onClick={handleTryAgain}
