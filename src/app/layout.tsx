@@ -11,6 +11,12 @@ export const metadata: Metadata = {
     icon: '/logo-icon.svg',
     apple: '/logo-icon.svg',
   },
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+  },
 }
 
 // Force dynamic rendering to ensure session context is handled correctly at runtime
