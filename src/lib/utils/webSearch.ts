@@ -1,5 +1,4 @@
-// Web search utility for finding relevant articles
-// TODO: Integrate with Google Custom Search API or alternative
+// Web search utility for finding relevant articles using Google Custom Search API
 
 export interface SearchResult {
   title: string
@@ -9,35 +8,74 @@ export interface SearchResult {
   publishedDate?: string
 }
 
+interface GoogleSearchItem {
+  title: string
+  link: string
+  snippet: string
+  displayLink?: string
+  pagemap?: {
+    metatags?: Array<{
+      'article:published_time'?: string
+      'og:site_name'?: string
+    }>
+  }
+}
+
+interface GoogleSearchResponse {
+  items?: GoogleSearchItem[]
+}
+
 export async function searchArticles(query: string, limit: number = 5): Promise<SearchResult[]> {
-  // TODO: Implement actual web search API integration
-  // For now, return mock data for development
-  
-  console.warn('Using mock search results - implement actual search API')
-  
-  return [
-    {
-      title: `Recent developments in ${query}`,
-      url: 'https://example.com/article1',
-      snippet: `Latest news about ${query}. This is a placeholder snippet that would normally contain actual article content from search results.`,
-      source: 'Example News',
-      publishedDate: new Date().toISOString()
-    },
-    {
-      title: `Analysis: ${query} situation`,
-      url: 'https://example.com/article2',
-      snippet: `Expert analysis on ${query}. This placeholder would be replaced with real search results from Google Custom Search or similar API.`,
-      source: 'Example Analysis',
-      publishedDate: new Date(Date.now() - 86400000).toISOString() // Yesterday
+  const apiKey = process.env.GOOGLE_SEARCH_API_KEY
+  const searchEngineId = process.env.GOOGLE_SEARCH_ENGINE_ID
+
+  if (!apiKey || !searchEngineId) {
+    console.error('Google Custom Search API not configured')
+    throw new Error('Search API not configured')
+  }
+
+  try {
+    // Add "news" to query to prioritize recent articles
+    const searchQuery = `${query} news`
+    const url = `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${searchEngineId}&q=${encodeURIComponent(searchQuery)}&num=${limit}&sort=date`
+
+    const response = await fetch(url)
+    
+    if (!response.ok) {
+      throw new Error(`Search API error: ${response.status}`)
     }
-  ]
+
+    const data: GoogleSearchResponse = await response.json()
+
+    if (!data.items || data.items.length === 0) {
+      return []
+    }
+
+    return data.items.map(item => ({
+      title: item.title,
+      url: item.link,
+      snippet: item.snippet,
+      source: item.displayLink || extractDomain(item.link),
+      publishedDate: item.pagemap?.metatags?.[0]?.['article:published_time'] || undefined
+    }))
+  } catch (error) {
+    console.error('Search error:', error)
+    throw error
+  }
+}
+
+function extractDomain(url: string): string {
+  try {
+    const domain = new URL(url).hostname
+    return domain.replace('www.', '')
+  } catch {
+    return 'Unknown'
+  }
 }
 
 export async function fetchArticleContent(url: string): Promise<string> {
-  // TODO: Implement article content fetching
-  // Could use a service like Mercury Parser or custom scraper
-  
-  console.warn('Using mock article content - implement actual fetching')
-  
-  return `This is placeholder article content for ${url}. In production, this would fetch and parse the actual article text.`
+  // Note: Article content fetching requires additional service/scraper
+  // For now, we rely on snippets from search results
+  console.warn('Article content fetching not implemented - using snippets')
+  return ''
 }

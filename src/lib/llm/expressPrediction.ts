@@ -48,14 +48,22 @@ export interface ExpressPredictionResult {
 }
 
 export async function generateExpressPrediction(
-  userInput: string
+  userInput: string,
+  onProgress?: (stage: string, data?: any) => void
 ): Promise<ExpressPredictionResult> {
   // Step 1: Search for relevant articles
+  onProgress?.('searching', { message: 'Searching for relevant articles...' })
+  
   const searchResults = await searchArticles(userInput, 5)
   
   if (searchResults.length === 0) {
     throw new Error('NO_ARTICLES_FOUND')
   }
+
+  onProgress?.('found_articles', { 
+    count: searchResults.length,
+    message: `Found ${searchResults.length} relevant sources`
+  })
 
   // Step 2: Prepare articles for LLM
   const articlesText = searchResults
@@ -68,6 +76,8 @@ Snippet: ${article.snippet}
 URL: ${article.url}
 `)
     .join('\n')
+
+  onProgress?.('analyzing', { message: 'Analyzing context and forming prediction...' })
 
   // Step 3: Generate prediction with LLM
   const currentYear = new Date().getFullYear()
@@ -113,6 +123,14 @@ Return as JSON matching the schema.`
   const response = result.response
   const prediction = JSON.parse(response.text())
 
+  onProgress?.('prediction_formed', {
+    message: 'Prediction formed',
+    preview: {
+      claim: prediction.claimText,
+      resolveBy: prediction.resolveByDatetime
+    }
+  })
+
   // Step 4: Select best article as NewsAnchor
   const bestArticle = searchResults[0] // Most relevant (first result)
   
@@ -121,6 +139,8 @@ Return as JSON matching the schema.`
     url: article.url,
     title: article.title
   }))
+
+  onProgress?.('finalizing', { message: 'Finalizing prediction...' })
 
   return {
     ...prediction,

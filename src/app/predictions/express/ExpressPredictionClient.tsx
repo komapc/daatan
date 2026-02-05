@@ -33,6 +33,9 @@ export default function ExpressPredictionClient({ userId }: ExpressPredictionCli
   const [step, setStep] = useState<Step>('input')
   const [error, setError] = useState('')
   const [generated, setGenerated] = useState<GeneratedPrediction | null>(null)
+  const [progressMessage, setProgressMessage] = useState('')
+  const [articlesFound, setArticlesFound] = useState(0)
+  const [predictionPreview, setPredictionPreview] = useState<{ claim: string; resolveBy: string } | null>(null)
 
   const examples = [
     "Bitcoin will reach $100k this year",
@@ -49,32 +52,73 @@ export default function ExpressPredictionClient({ userId }: ExpressPredictionCli
 
     setError('')
     setStep('searching')
+    setProgressMessage('Searching for relevant articles...')
+    setArticlesFound(0)
+    setPredictionPreview(null)
 
     try {
-      // Simulate progress through steps
-      setTimeout(() => setStep('analyzing'), 1000)
-      setTimeout(() => setStep('generating'), 2000)
-
       const response = await fetch('/api/predictions/express/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userInput }),
       })
 
-      const data = await response.json()
-
       if (!response.ok) {
-        if (data.error === 'NO_ARTICLES_FOUND') {
-          setError(data.message || "Couldn't find relevant articles. Try rephrasing.")
-          setStep('error')
-        } else {
-          throw new Error(data.error || 'Failed to generate prediction')
-        }
-        return
+        throw new Error('Failed to generate prediction')
       }
 
-      setGenerated(data)
-      setStep('review')
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
+
+      if (!reader) {
+        throw new Error('No response stream')
+      }
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        const chunk = decoder.decode(value)
+        const lines = chunk.split('\n').filter(line => line.trim())
+
+        for (const line of lines) {
+          try {
+            const data = JSON.parse(line)
+
+            if (data.stage === 'searching') {
+              setStep('searching')
+              setProgressMessage(data.data?.message || 'Searching...')
+            } else if (data.stage === 'found_articles') {
+              setArticlesFound(data.data?.count || 0)
+              setProgressMessage(data.data?.message || `Found ${data.data?.count} sources`)
+              setStep('analyzing')
+            } else if (data.stage === 'analyzing') {
+              setStep('analyzing')
+              setProgressMessage(data.data?.message || 'Analyzing context...')
+            } else if (data.stage === 'prediction_formed') {
+              setStep('generating')
+              setProgressMessage(data.data?.message || 'Prediction formed')
+              if (data.data?.preview) {
+                setPredictionPreview(data.data.preview)
+              }
+            } else if (data.stage === 'finalizing') {
+              setProgressMessage(data.data?.message || 'Finalizing...')
+            } else if (data.stage === 'complete') {
+              setGenerated(data.data)
+              setStep('review')
+            } else if (data.stage === 'error') {
+              if (data.error === 'NO_ARTICLES_FOUND') {
+                setError(data.message || "Couldn't find relevant articles. Try rephrasing.")
+              } else {
+                setError(data.message || 'Failed to generate prediction')
+              }
+              setStep('error')
+            }
+          } catch (e) {
+            console.error('Failed to parse stream data:', e)
+          }
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
       setStep('error')
@@ -85,6 +129,9 @@ export default function ExpressPredictionClient({ userId }: ExpressPredictionCli
     setStep('input')
     setError('')
     setGenerated(null)
+    setProgressMessage('')
+    setArticlesFound(0)
+    setPredictionPreview(null)
   }
 
   const handleCreatePrediction = () => {
@@ -159,7 +206,12 @@ export default function ExpressPredictionClient({ userId }: ExpressPredictionCli
             <div className="space-y-4">
               <div className={`flex items-center gap-3 ${step === 'searching' ? 'text-blue-600' : step === 'input' ? 'text-gray-400' : 'text-green-600'}`}>
                 <Search className="w-5 h-5" />
-                <span className="font-medium">Searching articles...</span>
+                <div className="flex-1">
+                  <span className="font-medium">Searching articles...</span>
+                  {articlesFound > 0 && (
+                    <span className="ml-2 text-sm text-gray-600">({articlesFound} found)</span>
+                  )}
+                </div>
                 {step !== 'searching' && step !== 'input' && <span className="ml-auto text-green-600">✓</span>}
               </div>
 
@@ -174,6 +226,22 @@ export default function ExpressPredictionClient({ userId }: ExpressPredictionCli
                 <span className="font-medium">Generating forecast...</span>
               </div>
             </div>
+
+            {progressMessage && (
+              <p className="text-center text-sm text-gray-600 mt-4 font-medium">
+                {progressMessage}
+              </p>
+            )}
+
+            {predictionPreview && (
+              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                <p className="text-sm font-bold text-blue-900 mb-2">Preview:</p>
+                <p className="text-sm text-blue-800">{predictionPreview.claim}</p>
+                <p className="text-xs text-blue-600 mt-1">
+                  Resolves: {new Date(predictionPreview.resolveBy).toLocaleDateString()}
+                </p>
+              </div>
+            )}
 
             <p className="text-center text-sm text-gray-500 mt-6">
               This usually takes 10-15 seconds
