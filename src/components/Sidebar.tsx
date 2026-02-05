@@ -6,6 +6,7 @@ import { useState } from 'react'
 import Image from 'next/image'
 import { useSession, signOut, signIn } from 'next-auth/react'
 import { VERSION } from '@/lib/version'
+import { Avatar } from './Avatar'
 import {
   Home,
   Bell,
@@ -96,19 +97,11 @@ const Sidebar = () => {
         <div className="flex items-center gap-2">
           {status === 'authenticated' && session?.user && (
             <Link href="/profile" onClick={handleCloseMenu}>
-              {session.user.image ? (
-                <Image
-                  src={session.user.image}
-                  alt={session.user.name || 'User'}
-                  width={32}
-                  height={32}
-                  className="rounded-full border border-gray-200"
-                />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
-                  {session.user.name?.charAt(0) || '?'}
-                </div>
-              )}
+              <Avatar 
+                src={session.user.image} 
+                name={session.user.name}
+                size={32}
+              />
             </Link>
           )}
           <button
@@ -210,19 +203,11 @@ const Sidebar = () => {
                 onClick={handleCloseMenu}
                 className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
               >
-                {session.user.image ? (
-                  <Image
-                    src={session.user.image}
-                    alt={session.user.name || 'User'}
-                    width={32}
-                    height={32}
-                    className="rounded-full border border-gray-200"
-                  />
-                ) : (
-                  <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold">
-                    {session.user.name?.charAt(0) || 'U'}
-                  </div>
-                )}
+                <Avatar 
+                  src={session.user.image} 
+                  name={session.user.name}
+                  size={32}
+                />
                 <div className="flex-1 overflow-hidden">
                   <p className="font-medium truncate text-sm">{session.user.name || 'User'}</p>
                   <p className="text-xs text-gray-400 truncate mb-1">{session.user.email}</p>
