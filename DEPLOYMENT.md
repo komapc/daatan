@@ -21,9 +21,10 @@
 ### Prerequisites
 
 - SSH access to EC2 instance (`ubuntu@52.59.160.186`)
-- SSH key: `~/.ssh/daatan-key.pem`
+- SSH key: `~/.ssh/daatan-key.pem` (configured as `daatan` alias in `~/.ssh/config`)
 - Docker and Docker Compose installed on EC2
 - GitHub CLI (`gh`) for local operations
+- Access to secrets (see [SECRETS.md](./SECRETS.md))
 
 ### Verify Service Status
 
@@ -415,7 +416,7 @@ docker logs daatan-nginx --tail 100
 
 ### Environment Variables
 
-Required in `.env`:
+Required in `.env` on server (`~/app/.env`):
 
 ```bash
 POSTGRES_PASSWORD=<secure-password>
@@ -425,6 +426,13 @@ GOOGLE_CLIENT_ID=<google-oauth-id>
 GOOGLE_CLIENT_SECRET=<google-oauth-secret>
 GEMINI_API_KEY=<gemini-api-key>
 ```
+
+**Security Notes:**
+- Secrets stored in `.env` file on server (acceptable for MVP)
+- File permissions: `600` (owner read/write only)
+- Never commit `.env` to git
+- See [SECRETS.md](./SECRETS.md) for best practices and future improvements
+- Plan to migrate to AWS Secrets Manager for production scale
 
 ---
 
