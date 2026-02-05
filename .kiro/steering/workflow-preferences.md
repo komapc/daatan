@@ -51,3 +51,10 @@
 - ALWAYS use this pattern: `GIT_PAGER=cat git log ...` (set env var before command)
 - For extra safety, also add `--no-pager` flag: `GIT_PAGER=cat git --no-pager log -5`
 - Always limit output with `-n` or `| head` to prevent large outputs
+
+## Interactive Commands
+- NEVER run commands that require user input (password prompts, interactive menus, etc.)
+- SSH: Always use SSH keys configured in `~/.ssh/config`, never password authentication
+- Linters: Skip or use `--fix` flag if linter requires interactive setup
+- If a command prompts for input, stop and inform the user what needs to be configured
+- For server access, use the `daatan` SSH alias (configured with key-based auth)
