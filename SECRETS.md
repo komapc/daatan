@@ -7,12 +7,15 @@
 ### What We Use
 
 | Secret | Location | Purpose |
+| Secret | Location | Purpose |
 |--------|----------|---------|
 | `POSTGRES_PASSWORD` | Server `.env` | Database authentication |
 | `NEXTAUTH_SECRET` | Server `.env` | NextAuth.js session encryption |
 | `GOOGLE_CLIENT_ID` | Server `.env` | Google OAuth |
 | `GOOGLE_CLIENT_SECRET` | Server `.env` | Google OAuth |
 | `GEMINI_API_KEY` | Server `.env` | LLM API access |
+| `GOOGLE_SEARCH_API_KEY` | Server `.env` | Google Custom Search API for Express Forecast |
+| `GOOGLE_SEARCH_ENGINE_ID` | Server `.env` | Google Custom Search Engine ID |
 
 ### Current Setup
 
