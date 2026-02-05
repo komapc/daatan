@@ -13,10 +13,10 @@ export default async function ExpressPredictionPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-black text-gray-900 mb-2">Express Prediction</h1>
+        <h1 className="text-3xl font-black text-gray-900 mb-2">Express Forecast</h1>
         <p className="text-gray-600">
-          Quickly create a prediction by describing what you want to predict. 
-          We'll search for relevant articles and generate a structured prediction for you.
+          Quickly create a forecast by describing what you want to predict. 
+          We'll search for relevant articles and generate a structured forecast for you.
         </p>
       </div>
 
