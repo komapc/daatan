@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server'
+import { VERSION } from '@/lib/version'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
-
-// Hardcoded version - update manually for releases
-const APP_VERSION = '0.1.16'
 
 export async function GET() {
   // Read env vars at runtime
@@ -14,7 +12,7 @@ export async function GET() {
 
   return NextResponse.json({
     status: 'ok',
-    version: APP_VERSION,
+    version: VERSION,
     commit: commitShort,
     timestamp: timestamp,
   })
