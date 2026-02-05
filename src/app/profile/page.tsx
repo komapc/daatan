@@ -17,39 +17,40 @@ import PredictionCard from '@/components/predictions/PredictionCard'
 import Link from 'next/link'
 
 export default async function ProfilePage() {
-  const session = await getServerSession(authOptions)
+  try {
+    const session = await getServerSession(authOptions)
 
-  if (!session?.user?.id) {
-    redirect('/auth/signin?callbackUrl=/profile')
-  }
+    if (!session?.user?.id) {
+      redirect('/auth/signin?callbackUrl=/profile')
+    }
 
-  // Fetch full user data including stats
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      image: true,
-      username: true,
-      website: true,
-      twitterHandle: true,
-      rs: true,
-      cuAvailable: true,
-      cuLocked: true,
-      createdAt: true,
-      _count: {
-        select: {
-          predictions: true,
-          commitments: true,
+    // Fetch full user data including stats
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        image: true,
+        username: true,
+        website: true,
+        twitterHandle: true,
+        rs: true,
+        cuAvailable: true,
+        cuLocked: true,
+        createdAt: true,
+        _count: {
+          select: {
+            predictions: true,
+            commitments: true,
+          }
         }
       }
-    }
-  })
+    })
 
-  if (!user) {
-    redirect('/')
-  }
+    if (!user) {
+      redirect('/')
+    }
 
   // Fetch recent commitments (stakes)
   const commitments = await prisma.commitment.findMany({
@@ -242,4 +243,31 @@ export default async function ProfilePage() {
       </div>
     </div>
   )
+  } catch (error) {
+    console.error('Profile page error:', error)
+    return (
+      <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
+        <div className="bg-red-50 border border-red-200 rounded-3xl p-8 text-center">
+          <h1 className="text-2xl font-bold text-red-900 mb-2">Unable to Load Profile</h1>
+          <p className="text-red-700 mb-6">
+            We encountered an error loading your profile. This might be due to a database issue or missing data.
+          </p>
+          <div className="flex gap-4 justify-center">
+            <Link 
+              href="/"
+              className="px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors"
+            >
+              Go to Feed
+            </Link>
+            <Link 
+              href="/auth/signin"
+              className="px-6 py-3 bg-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-300 transition-colors"
+            >
+              Sign Out & Back In
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
 }
