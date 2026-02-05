@@ -7,6 +7,7 @@
 - [x] Show sign-in option on every screen when user is not logged in (2026-02-05)
 - [x] Infra: Zero downtime CI/CD deployment (2026-02-05) - Blue-green deployment implemented
 - [x] Mobile UX: Disable zoom-in (viewport settings) (2026-02-05)
+- [ ] Infra: Zero downtime version updates (update version without deployment downtime)
 - [ ] Comments: Add commenting system for predictions/forecasts (threaded discussions, reactions)
 - [ ] Profile: Prepare for adding custom avatar upload (S3 storage, DB schema, UI flow) - Spec ready
 - [ ] i18n: Set up internationalization infrastructure (next-intl, no translations yet) - Spec ready
