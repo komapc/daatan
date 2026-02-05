@@ -74,7 +74,7 @@ URL: ${article.url}
   const endOfYear = `${currentYear}-12-31T23:59:59Z`
 
   const model = genAI.getGenerativeModel({
-    model: "gemini-1.5-flash",
+    model: "gemini-1.5-flash-latest",
     generationConfig: {
       responseMimeType: "application/json",
       responseSchema: expressPredictionSchema,
