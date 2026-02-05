@@ -11,7 +11,9 @@ describe('Sidebar Component', () => {
     } as any)
 
     render(<Sidebar />)
-    expect(screen.getByText(/Sign In/i)).toBeInTheDocument()
+    // Use getAllByText since "Sign In" appears in both desktop and mobile views
+    const signInButtons = screen.getAllByText(/Sign In/i)
+    expect(signInButtons.length).toBeGreaterThan(0)
   })
 
   it('renders user info when authenticated', () => {

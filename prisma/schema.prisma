@@ -24,7 +24,6 @@ model User {
 
   // Custom profile fields
   username             String? @unique
-  bio                  String?
   website              String?
   twitterHandle        String?
   emailNotifications   Boolean @default(true)
