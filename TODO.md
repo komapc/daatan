@@ -6,12 +6,21 @@
 ## Up Next
 - [x] Show sign-in option on every screen when user is not logged in (2026-02-05)
 - [x] Infra: Zero downtime CI/CD deployment (2026-02-05) - Blue-green deployment implemented
-- [ ] Profile: Prepare for adding custom avatar upload (consider storage options, DB schema, UI flow)
-- [ ] Express Prediction: User enters free text (e.g. "US vs Iran conflict this year"), LLM auto-fills all fields (due date, formatted claim, context, relevant links)
-- [ ] Localization: add Hebrew language support
-- [ ] Express create forecast: user writes short description (e.g. "Trump will attack one more country this year"), LLM finds relevant articles and creates well-formulated forecast with all fields filled
-- [ ] Mobile UX: Disable zoom-in (viewport settings)
-- [ ] Architecture: Refactor to classical SPA with 2026 best practices
+- [x] Mobile UX: Disable zoom-in (viewport settings) (2026-02-05)
+- [ ] Profile: Prepare for adding custom avatar upload (S3 storage, DB schema, UI flow) - Spec ready
+- [ ] i18n: Set up internationalization infrastructure (next-intl, no translations yet) - Spec ready
+- [ ] Express Prediction: Binary predictions from free text with LLM + web search - Spec ready
+- [ ] Predictions: Add voting/commitment functionality for users
+- [ ] Predictions: Allow users to change their vote/commitment
+- [ ] Predictions: Full-screen view when clicking prediction card (currently only shows in feed)
+- [ ] SEO: Add unique slugs to all entities (users, predictions, forecasts) for better URLs
+- [ ] Express Prediction: Multiple choice support (e.g., "who will win elections")
+- [ ] Express Prediction: Numeric threshold support (e.g., "Bitcoin price by end of year")
+- [ ] Express Prediction: Advanced types (order, date-based, conditional)
+- [ ] Predictions: "Updated Context" feature - re-analyze situation with latest articles
+- [ ] Localization: Add Hebrew translations (infrastructure ready)
+- [ ] Express create forecast: Legacy forecast system with LLM assistance
+- [ ] Architecture: Refactor to classical SPA with 2026 best practices - Needs discussion
 
 ## Completed
 - [x] Add link to "retroanalysis" feature (2026-02-04)
