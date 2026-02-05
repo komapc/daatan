@@ -4,12 +4,12 @@
 <!-- Items currently being worked on -->
 
 ## Up Next
-- [ ] Show sign-in option on every screen when user is not logged in
+- [x] Show sign-in option on every screen when user is not logged in (2026-02-05)
+- [x] Infra: Zero downtime CI/CD deployment (2026-02-05) - Blue-green deployment implemented
 - [ ] Localization: add Hebrew language support
 - [ ] Express create forecast: user writes short description (e.g. "Trump will attack one more country this year"), LLM finds relevant articles and creates well-formulated forecast with all fields filled
 - [ ] Mobile UX: Disable zoom-in (viewport settings)
 - [ ] Architecture: Refactor to classical SPA with 2026 best practices
-- [ ] Infra: Zero downtime CI/CD deployment
 
 ## Completed
 - [x] Add link to "retroanalysis" feature (2026-02-04)
