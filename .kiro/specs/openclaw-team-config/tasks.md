@@ -1,0 +1,70 @@
+# Implementation Plan
+
+- [x] 1. Update global OpenClaw configuration files
+  - [x] 1.1 Update ~/.openclaw/workspace/IDENTITY.md with "The Clawborators" team identity
+    - Set name, creature, vibe, and emoji as specified in design
+    - _Requirements: 10.1, 10.2, 10.3_
+  - [x] 1.2 Update ~/.openclaw/workspace/USER.md with komap's profile
+    - Add name, timezone, quiet hours, notification preferences
+    - Add context about being new to OpenClaw
+    - _Requirements: 1.1, 1.2, 1.3, 1.4_
+  - [x] 1.3 Update ~/.openclaw/workspace/SOUL.md with DAATAN-specific safety rules
+    - Append cost control rules (model selection, token limits)
+    - Append safety rules (secrets, git workflow, HITL triggers)
+    - Append quiet hours configuration
+    - _Requirements: 3.1, 3.2, 3.3, 5.1, 5.2, 5.5_
+  - [x] 1.4 Replace ~/.openclaw/workspace/openclaw.json with new 3-agent configuration
+    - Configure Developer, QA, DevOps agents
+    - Set model preferences (gemini-1.5-pro primary, flash for QA)
+    - Configure Ollama fallback
+    - Set sandbox mode to non-main
+    - Bind gateway to 127.0.0.1
+    - Configure HITL triggers for protected operations
+    - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 3.1, 3.2, 3.3, 5.1, 5.2, 5.3, 8.1, 8.2_
+  - [x] 1.5 Delete ~/.openclaw/workspace/BOOTSTRAP.md (no longer needed)
+    - _Requirements: 7.1_
+
+- [x] 2. Create per-project configuration files in DAATAN repo
+  - [x] 2.1 Create AGENTS.md in repository root
+    - Document tech stack (Next.js 14, PostgreSQL 16, Prisma, etc.)
+    - Document commands (npm install, test, build, lint, migrate)
+    - Document git workflow (feature branch → staging → approval → prod)
+    - Document role responsibilities for Developer, QA, DevOps
+    - Document governance rules (HITL requirements)
+    - _Requirements: 2.2, 2.3, 2.4, 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 9.1_
+  - [x] 2.2 Create MEMORY.md in repository root
+    - Document architecture decisions
+    - Document environment details (URLs, ports, branches)
+    - Document key files and their purposes
+    - Document deployment notes and gotchas
+    - _Requirements: 7.2, 7.3_
+  - [x] 2.3 Create HEARTBEAT.md in repository root
+    - Configure 4-hourly checks (staging/prod health, disk space)
+    - Configure daily checks (commit summary, npm audit)
+    - Configure weekly checks (SSL expiry, error log review)
+    - Document quiet hours rules
+    - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7_
+  - [x] 2.4 Create TODO.md template in repository root
+    - Create sections for In Progress, Up Next, Completed
+    - Add instructions for agents on how to use the file
+    - _Requirements: 9.2, 9.3, 9.4_
+
+- [x] 3. Set up Ollama for local LLM fallback
+  - [x] 3.1 Create setup script or documentation for Ollama installation
+    - Include curl install command
+    - Include model pull commands (llama3.1, codellama)
+    - Include verification steps
+    - _Requirements: 5.3, 5.4_
+
+- [x] 4. Verify and test configuration
+  - [x] 4.1 Validate openclaw.json syntax and structure
+    - Ensure valid JSON
+    - Verify all env var references are correct
+    - _Requirements: 8.3_
+  - [x] 4.2 Create memory/heartbeat-state.json for tracking check timestamps
+    - Initialize with empty lastChecks object
+    - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
+  - [x] 4.3 Commit all per-project config files to git
+    - Add AGENTS.md, MEMORY.md, HEARTBEAT.md, TODO.md
+    - Commit with descriptive message
+    - _Requirements: 7.3_
