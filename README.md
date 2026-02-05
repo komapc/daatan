@@ -113,7 +113,9 @@ git push origin v0.1.1
 | [GLOSSARY.md](./GLOSSARY.md) | Terminology definitions |
 | [FORECASTS_FLOW.md](./FORECASTS_FLOW.md) | End-to-end implementation flow |
 | [TODO.md](./TODO.md) | Development tasks and guidelines |
+| [DEPLOYMENT.md](./DEPLOYMENT.md) | Deployment procedures and troubleshooting |
 | [INFRASTRUCTURE.md](./INFRASTRUCTURE.md) | AWS infrastructure details |
+| [SECRETS.md](./SECRETS.md) | Secrets management and security |
 | [VERSIONING.md](./VERSIONING.md) | Semantic versioning rules |
 
 ---
