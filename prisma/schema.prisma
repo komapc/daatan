@@ -27,6 +27,7 @@ model User {
   website              String?
   twitterHandle        String?
   emailNotifications   Boolean @default(true)
+  preferredLanguage    String  @default("en") @db.VarChar(10) // ISO 639-1 code (en, he, etc.)
   isPublic             Boolean @default(true)
   isAdmin              Boolean @default(false)
   isModerator          Boolean @default(false) // Can resolve predictions
