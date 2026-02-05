@@ -19,6 +19,15 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { userInput } = generateSchema.parse(body)
 
+    // Check if GEMINI_API_KEY is configured
+    if (!process.env.GEMINI_API_KEY) {
+      console.error('GEMINI_API_KEY not configured')
+      return NextResponse.json(
+        { error: 'Service not configured. Please contact administrator.' },
+        { status: 503 }
+      )
+    }
+
     // Generate prediction using LLM + web search
     const result = await generateExpressPrediction(userInput)
 

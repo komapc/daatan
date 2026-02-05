@@ -14,6 +14,16 @@ const nextConfig = {
   },
   // Ensure next-auth is properly bundled
   transpilePackages: ['next-auth'],
+  // Allow external images from Google OAuth
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+        pathname: '/**',
+      },
+    ],
+  },
 }
 
 module.exports = nextConfig
