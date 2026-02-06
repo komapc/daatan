@@ -56,26 +56,57 @@ export const PredictionWizard = () => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
-  const [formData, setFormData] = useState<PredictionFormData>({
-    claimText: '',
-    outcomeType: 'BINARY',
-    resolveByDatetime: '',
+  const [formData, setFormData] = useState<PredictionFormData>(() => {
+    // Check if coming from express forecast on initial mount
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search)
+      if (urlParams.get('from') === 'express') {
+        const stored = localStorage.getItem('expressPredictionData')
+        console.log('Initial state: Loading express data from localStorage:', stored)
+        if (stored) {
+          try {
+            const data = JSON.parse(stored)
+            console.log('Initial state: Parsed express data:', data)
+            localStorage.removeItem('expressPredictionData')
+            
+            return {
+              claimText: data.claimText || '',
+              detailsText: data.detailsText || '',
+              domain: data.domain || '',
+              outcomeType: 'BINARY' as const,
+              resolveByDatetime: data.resolveByDatetime || '',
+              newsAnchorUrl: data.newsAnchor?.url || '',
+              newsAnchorTitle: data.newsAnchor?.title || '',
+            }
+          } catch (e) {
+            console.error('Initial state: Failed to parse express prediction data:', e)
+          }
+        }
+      }
+    }
+    
+    return {
+      claimText: '',
+      outcomeType: 'BINARY',
+      resolveByDatetime: '',
+    }
   })
   
-  // Load express prediction data on mount
+  // Also try loading in useEffect as backup
   useEffect(() => {
     console.log('PredictionWizard useEffect running')
+    console.log('Current formData:', formData)
     const urlParams = new URLSearchParams(window.location.search)
     console.log('URL params:', urlParams.toString())
     console.log('from param:', urlParams.get('from'))
     
-    if (urlParams.get('from') === 'express') {
+    if (urlParams.get('from') === 'express' && !formData.claimText) {
       const stored = localStorage.getItem('expressPredictionData')
-      console.log('Loading express data from localStorage:', stored)
+      console.log('useEffect: Loading express data from localStorage:', stored)
       if (stored) {
         try {
           const data = JSON.parse(stored)
-          console.log('Parsed express data:', data)
+          console.log('useEffect: Parsed express data:', data)
           localStorage.removeItem('expressPredictionData')
           
           const newFormData = {
@@ -87,17 +118,17 @@ export const PredictionWizard = () => {
             newsAnchorUrl: data.newsAnchor?.url || '',
             newsAnchorTitle: data.newsAnchor?.title || '',
           }
-          console.log('Setting form data to:', newFormData)
+          console.log('useEffect: Setting form data to:', newFormData)
           setFormData(newFormData)
-          console.log('Express data loaded successfully')
+          console.log('useEffect: Express data loaded successfully')
         } catch (e) {
-          console.error('Failed to parse express prediction data:', e)
+          console.error('useEffect: Failed to parse express prediction data:', e)
         }
       } else {
-        console.warn('No express prediction data found in localStorage')
+        console.warn('useEffect: No express prediction data found in localStorage')
       }
     } else {
-      console.log('Not from express, skipping data load')
+      console.log('useEffect: Not from express or data already loaded, skipping')
     }
   }, [])
 
