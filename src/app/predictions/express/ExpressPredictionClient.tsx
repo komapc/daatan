@@ -286,6 +286,13 @@ export default function ExpressPredictionClient({ userId }: ExpressPredictionCli
       {/* Review Step */}
       {step === 'review' && generated && (
         <div className="bg-white border border-gray-100 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
+          <div className="pb-4 border-b border-gray-100">
+            <h2 className="text-xl font-bold text-gray-900 mb-1">Review Generated Forecast</h2>
+            <p className="text-sm text-gray-600">
+              Review the AI-generated forecast below, then continue to the wizard to finalize and publish it.
+            </p>
+          </div>
+
           <div>
             <h3 className="text-sm font-bold text-gray-700 mb-2">Forecast Claim</h3>
             <p className="text-lg text-gray-900">{generated.claimText}</p>
@@ -346,7 +353,7 @@ export default function ExpressPredictionClient({ userId }: ExpressPredictionCli
               onClick={handleCreatePrediction}
               className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors"
             >
-              Create Forecast
+              Continue to Wizard
             </button>
             <button
               onClick={handleTryAgain}
