@@ -56,42 +56,41 @@ export const PredictionWizard = () => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
-  const [formData, setFormData] = useState<PredictionFormData>({
-    claimText: '',
-    outcomeType: 'BINARY',
-    resolveByDatetime: '',
-  })
-  
-  // Load express prediction data on mount
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search)
-    if (urlParams.get('from') === 'express') {
-      const stored = localStorage.getItem('expressPredictionData')
-      console.log('Loading express data from localStorage:', stored)
-      if (stored) {
-        try {
-          const data = JSON.parse(stored)
-          console.log('Parsed express data:', data)
-          localStorage.removeItem('expressPredictionData')
-          
-          setFormData({
-            claimText: data.claimText || '',
-            detailsText: data.detailsText || '',
-            domain: data.domain || '',
-            outcomeType: 'BINARY' as const,
-            resolveByDatetime: data.resolveByDatetime || '',
-            newsAnchorUrl: data.newsAnchor?.url || '',
-            newsAnchorTitle: data.newsAnchor?.title || '',
-          })
-          console.log('Express data loaded successfully')
-        } catch (e) {
-          console.error('Failed to parse express prediction data:', e)
+  // Initialize formData with express data if available
+  const [formData, setFormData] = useState<PredictionFormData>(() => {
+    // Check if we're coming from express flow
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search)
+      if (urlParams.get('from') === 'express') {
+        const stored = localStorage.getItem('expressPredictionData')
+        if (stored) {
+          try {
+            const data = JSON.parse(stored)
+            localStorage.removeItem('expressPredictionData')
+            
+            return {
+              claimText: data.claimText || '',
+              detailsText: data.detailsText || '',
+              domain: data.domain || '',
+              outcomeType: 'BINARY' as const,
+              resolveByDatetime: data.resolveByDatetime || '',
+              newsAnchorUrl: data.newsAnchor?.url || '',
+              newsAnchorTitle: data.newsAnchor?.title || '',
+            }
+          } catch (e) {
+            console.error('Failed to parse express prediction data:', e)
+          }
         }
-      } else {
-        console.warn('No express prediction data found in localStorage')
       }
     }
-  }, [])
+    
+    // Default empty state
+    return {
+      claimText: '',
+      outcomeType: 'BINARY',
+      resolveByDatetime: '',
+    }
+  })
 
   const updateFormData = (updates: Partial<PredictionFormData>) => {
     setFormData(prev => ({ ...prev, ...updates }))
