@@ -56,10 +56,38 @@ export const PredictionWizard = () => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
-  const [formData, setFormData] = useState<PredictionFormData>({
-    claimText: '',
-    outcomeType: 'BINARY',
-    resolveByDatetime: '',
+  const [formData, setFormData] = useState<PredictionFormData>(() => {
+    // Check if coming from express forecast
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search)
+      if (urlParams.get('from') === 'express') {
+        const stored = localStorage.getItem('expressPredictionData')
+        if (stored) {
+          try {
+            const data = JSON.parse(stored)
+            localStorage.removeItem('expressPredictionData')
+            
+            return {
+              claimText: data.claimText || '',
+              detailsText: data.detailsText || '',
+              domain: data.domain || '',
+              outcomeType: 'BINARY' as const,
+              resolveByDatetime: data.resolveByDatetime || '',
+              newsAnchorUrl: data.newsAnchor?.url || '',
+              newsAnchorTitle: data.newsAnchor?.title || '',
+            }
+          } catch (e) {
+            console.error('Failed to parse express prediction data:', e)
+          }
+        }
+      }
+    }
+    
+    return {
+      claimText: '',
+      outcomeType: 'BINARY',
+      resolveByDatetime: '',
+    }
   })
 
   const updateFormData = (updates: Partial<PredictionFormData>) => {

@@ -135,10 +135,11 @@ export default function ExpressPredictionClient({ userId }: ExpressPredictionCli
   }
 
   const handleCreatePrediction = () => {
-    // TODO: Navigate to prediction creation with pre-filled data
-    // For now, just show alert
-    alert('Prediction creation flow will be implemented next')
-    router.push('/predictions/new')
+    if (!generated) return
+    
+    // Store generated data in localStorage for the wizard to pick up
+    localStorage.setItem('expressPredictionData', JSON.stringify(generated))
+    router.push('/predictions/new?from=express')
   }
 
   return (
