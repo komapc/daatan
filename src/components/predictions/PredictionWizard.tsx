@@ -50,7 +50,11 @@ const STEPS = [
   { id: 4, title: 'Publish', icon: Rocket, description: 'Commit & publish' },
 ]
 
-export const PredictionWizard = () => {
+interface PredictionWizardProps {
+  isExpressFlow?: boolean
+}
+
+export const PredictionWizard = ({ isExpressFlow = false }: PredictionWizardProps) => {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -59,27 +63,24 @@ export const PredictionWizard = () => {
   // Initialize formData with express data if available
   const [formData, setFormData] = useState<PredictionFormData>(() => {
     // Check if we're coming from express flow
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search)
-      if (urlParams.get('from') === 'express') {
-        const stored = localStorage.getItem('expressPredictionData')
-        if (stored) {
-          try {
-            const data = JSON.parse(stored)
-            localStorage.removeItem('expressPredictionData')
-            
-            return {
-              claimText: data.claimText || '',
-              detailsText: data.detailsText || '',
-              domain: data.domain || '',
-              outcomeType: 'BINARY' as const,
-              resolveByDatetime: data.resolveByDatetime || '',
-              newsAnchorUrl: data.newsAnchor?.url || '',
-              newsAnchorTitle: data.newsAnchor?.title || '',
-            }
-          } catch (e) {
-            console.error('Failed to parse express prediction data:', e)
+    if (isExpressFlow && typeof window !== 'undefined') {
+      const stored = localStorage.getItem('expressPredictionData')
+      if (stored) {
+        try {
+          const data = JSON.parse(stored)
+          localStorage.removeItem('expressPredictionData')
+          
+          return {
+            claimText: data.claimText || '',
+            detailsText: data.detailsText || '',
+            domain: data.domain || '',
+            outcomeType: 'BINARY' as const,
+            resolveByDatetime: data.resolveByDatetime || '',
+            newsAnchorUrl: data.newsAnchor?.url || '',
+            newsAnchorTitle: data.newsAnchor?.title || '',
           }
+        } catch (e) {
+          console.error('Failed to parse express prediction data:', e)
         }
       }
     }

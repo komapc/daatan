@@ -36,9 +36,8 @@ describe('PredictionWizard', () => {
     }
 
     localStorage.setItem('expressPredictionData', JSON.stringify(expressData))
-    ;(window as any).location = { search: '?from=express' }
 
-    render(<PredictionWizard />)
+    render(<PredictionWizard isExpressFlow={true} />)
 
     // Data should be removed from localStorage after loading
     await waitFor(() => {
@@ -53,9 +52,8 @@ describe('PredictionWizard', () => {
     }
 
     localStorage.setItem('expressPredictionData', JSON.stringify(expressData))
-    ;(window as any).location = { search: '' }
 
-    render(<PredictionWizard />)
+    render(<PredictionWizard isExpressFlow={false} />)
 
     // Data should remain in localStorage
     expect(localStorage.getItem('expressPredictionData')).toBeTruthy()
@@ -63,16 +61,13 @@ describe('PredictionWizard', () => {
 
   it('handles invalid JSON in localStorage gracefully', () => {
     localStorage.setItem('expressPredictionData', 'invalid json')
-    ;(window as any).location = { search: '?from=express' }
 
     // Should not throw
-    expect(() => render(<PredictionWizard />)).not.toThrow()
+    expect(() => render(<PredictionWizard isExpressFlow={true} />)).not.toThrow()
   })
 
   it('handles missing localStorage data gracefully', () => {
-    ;(window as any).location = { search: '?from=express' }
-
     // Should not throw
-    expect(() => render(<PredictionWizard />)).not.toThrow()
+    expect(() => render(<PredictionWizard isExpressFlow={true} />)).not.toThrow()
   })
 })

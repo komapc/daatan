@@ -4,7 +4,11 @@ import { authOptions } from '@/lib/auth'
 import { PlusCircle } from 'lucide-react'
 import { PredictionWizard } from '@/components/predictions/PredictionWizard'
 
-export default async function NewPredictionPage() {
+interface PageProps {
+  searchParams: { from?: string }
+}
+
+export default async function NewPredictionPage({ searchParams }: PageProps) {
   const session = await getServerSession(authOptions)
 
   if (!session) {
@@ -18,7 +22,7 @@ export default async function NewPredictionPage() {
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">New Prediction</h1>
       </div>
       
-      <PredictionWizard />
+      <PredictionWizard isExpressFlow={searchParams.from === 'express'} />
     </div>
   )
 }
