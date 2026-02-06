@@ -28,9 +28,9 @@ export async function POST(request: Request) {
       )
     }
 
-    // Check if Google Search API is configured
-    if (!process.env.GOOGLE_SEARCH_API_KEY || !process.env.GOOGLE_SEARCH_ENGINE_ID) {
-      console.error('Google Search API not configured')
+    // Check if Serper API is configured
+    if (!process.env.SERPER_API_KEY) {
+      console.error('Serper API not configured')
       return NextResponse.json(
         { error: 'Search service not configured. Please contact administrator.' },
         { status: 503 }
