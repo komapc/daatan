@@ -62,15 +62,21 @@ export const PredictionWizard = ({ isExpressFlow = false }: PredictionWizardProp
   
   // Initialize formData with express data if available
   const [formData, setFormData] = useState<PredictionFormData>(() => {
+    console.log('[PredictionWizard] Initializing, isExpressFlow:', isExpressFlow)
+    
     // Check if we're coming from express flow
     if (isExpressFlow && typeof window !== 'undefined') {
       const stored = localStorage.getItem('expressPredictionData')
+      console.log('[PredictionWizard] localStorage data:', stored)
+      
       if (stored) {
         try {
           const data = JSON.parse(stored)
+          console.log('[PredictionWizard] Parsed data:', data)
           localStorage.removeItem('expressPredictionData')
+          console.log('[PredictionWizard] Removed from localStorage')
           
-          return {
+          const initialData = {
             claimText: data.claimText || '',
             detailsText: data.detailsText || '',
             domain: data.domain || '',
@@ -79,13 +85,20 @@ export const PredictionWizard = ({ isExpressFlow = false }: PredictionWizardProp
             newsAnchorUrl: data.newsAnchor?.url || '',
             newsAnchorTitle: data.newsAnchor?.title || '',
           }
+          console.log('[PredictionWizard] Returning initial data:', initialData)
+          return initialData
         } catch (e) {
-          console.error('Failed to parse express prediction data:', e)
+          console.error('[PredictionWizard] Failed to parse express prediction data:', e)
         }
+      } else {
+        console.warn('[PredictionWizard] No data in localStorage')
       }
+    } else {
+      console.log('[PredictionWizard] Not express flow or window undefined')
     }
     
     // Default empty state
+    console.log('[PredictionWizard] Returning default empty state')
     return {
       claimText: '',
       outcomeType: 'BINARY',
