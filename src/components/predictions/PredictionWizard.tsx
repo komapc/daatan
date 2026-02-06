@@ -64,7 +64,11 @@ export const PredictionWizard = () => {
   
   // Load express prediction data on mount
   useEffect(() => {
+    console.log('PredictionWizard useEffect running')
     const urlParams = new URLSearchParams(window.location.search)
+    console.log('URL params:', urlParams.toString())
+    console.log('from param:', urlParams.get('from'))
+    
     if (urlParams.get('from') === 'express') {
       const stored = localStorage.getItem('expressPredictionData')
       console.log('Loading express data from localStorage:', stored)
@@ -74,7 +78,7 @@ export const PredictionWizard = () => {
           console.log('Parsed express data:', data)
           localStorage.removeItem('expressPredictionData')
           
-          setFormData({
+          const newFormData = {
             claimText: data.claimText || '',
             detailsText: data.detailsText || '',
             domain: data.domain || '',
@@ -82,7 +86,9 @@ export const PredictionWizard = () => {
             resolveByDatetime: data.resolveByDatetime || '',
             newsAnchorUrl: data.newsAnchor?.url || '',
             newsAnchorTitle: data.newsAnchor?.title || '',
-          })
+          }
+          console.log('Setting form data to:', newFormData)
+          setFormData(newFormData)
           console.log('Express data loaded successfully')
         } catch (e) {
           console.error('Failed to parse express prediction data:', e)
@@ -90,6 +96,8 @@ export const PredictionWizard = () => {
       } else {
         console.warn('No express prediction data found in localStorage')
       }
+    } else {
+      console.log('Not from express, skipping data load')
     }
   }, [])
 
