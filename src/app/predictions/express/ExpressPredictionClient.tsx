@@ -145,7 +145,9 @@ export default function ExpressPredictionClient({ userId }: ExpressPredictionCli
       // Store generated data in localStorage for the wizard to pick up
       localStorage.setItem('expressPredictionData', JSON.stringify(generated))
       console.log('Data stored in localStorage, navigating...')
-      router.push('/predictions/new?from=express')
+      
+      // Use window.location instead of router.push for more reliable navigation
+      window.location.href = '/predictions/new?from=express'
     } catch (error) {
       console.error('Error in handleCreatePrediction:', error)
     }
