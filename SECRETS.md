@@ -14,8 +14,7 @@
 | `GOOGLE_CLIENT_ID` | Server `.env` | Google OAuth |
 | `GOOGLE_CLIENT_SECRET` | Server `.env` | Google OAuth |
 | `GEMINI_API_KEY` | Server `.env` | LLM API access |
-| `GOOGLE_SEARCH_API_KEY` | Server `.env` | Google Custom Search API for Express Forecast |
-| `GOOGLE_SEARCH_ENGINE_ID` | Server `.env` | Google Custom Search Engine ID |
+| `SERPER_API_KEY` | Server `.env` | Serper.dev API for Express Forecast web search |
 
 ### Current Setup
 

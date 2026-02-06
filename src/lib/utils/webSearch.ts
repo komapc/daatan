@@ -1,4 +1,4 @@
-// Web search utility for finding relevant articles using Google Custom Search API
+// Web search utility for finding relevant articles using Serper.dev API
 
 export interface SearchResult {
   title: string
@@ -8,55 +8,62 @@ export interface SearchResult {
   publishedDate?: string
 }
 
-interface GoogleSearchItem {
+interface SerperSearchResult {
   title: string
   link: string
   snippet: string
-  displayLink?: string
-  pagemap?: {
-    metatags?: Array<{
-      'article:published_time'?: string
-      'og:site_name'?: string
-    }>
-  }
+  position: number
+  date?: string
 }
 
-interface GoogleSearchResponse {
-  items?: GoogleSearchItem[]
+interface SerperResponse {
+  organic?: SerperSearchResult[]
+  news?: SerperSearchResult[]
 }
 
 export async function searchArticles(query: string, limit: number = 5): Promise<SearchResult[]> {
-  const apiKey = process.env.GOOGLE_SEARCH_API_KEY
-  const searchEngineId = process.env.GOOGLE_SEARCH_ENGINE_ID
+  const apiKey = process.env.SERPER_API_KEY
 
-  if (!apiKey || !searchEngineId) {
-    console.error('Google Custom Search API not configured')
+  if (!apiKey) {
+    console.error('Serper API not configured')
     throw new Error('Search API not configured')
   }
 
   try {
     // Add "news" to query to prioritize recent articles
     const searchQuery = `${query} news`
-    const url = `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${searchEngineId}&q=${encodeURIComponent(searchQuery)}&num=${limit}&sort=date`
-
-    const response = await fetch(url)
+    
+    const response = await fetch('https://google.serper.dev/search', {
+      method: 'POST',
+      headers: {
+        'X-API-KEY': apiKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        q: searchQuery,
+        num: limit
+      })
+    })
     
     if (!response.ok) {
       throw new Error(`Search API error: ${response.status}`)
     }
 
-    const data: GoogleSearchResponse = await response.json()
+    const data: SerperResponse = await response.json()
 
-    if (!data.items || data.items.length === 0) {
+    // Prefer news results if available, otherwise use organic results
+    const results = data.news || data.organic || []
+
+    if (results.length === 0) {
       return []
     }
 
-    return data.items.map(item => ({
+    return results.slice(0, limit).map(item => ({
       title: item.title,
       url: item.link,
       snippet: item.snippet,
-      source: item.displayLink || extractDomain(item.link),
-      publishedDate: item.pagemap?.metatags?.[0]?.['article:published_time'] || undefined
+      source: extractDomain(item.link),
+      publishedDate: item.date || undefined
     }))
   } catch (error) {
     console.error('Search error:', error)
