@@ -16,7 +16,7 @@ export default async function ExpressPredictionPage() {
         <h1 className="text-3xl font-black text-gray-900 mb-2">Express Forecast</h1>
         <p className="text-gray-600">
           Quickly create a forecast by describing what you want to predict. 
-          We'll search for relevant articles and generate a structured forecast for you.
+          We&apos;ll search for relevant articles and generate a structured forecast for you.
         </p>
       </div>
 

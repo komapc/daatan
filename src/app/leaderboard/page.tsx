@@ -149,7 +149,7 @@ export default function LeaderboardPage() {
             What is RS?
           </h3>
           <p className="text-xs text-gray-500 leading-relaxed">
-            Reputation Score (RS) measures your prediction accuracy over time. It increases when you're right and decreases when you're wrong. Higher stakes mean bigger RS changes.
+            Reputation Score (RS) measures your prediction accuracy over time. It increases when you&apos;re right and decreases when you&apos;re wrong. Higher stakes mean bigger RS changes.
           </p>
         </div>
         <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">

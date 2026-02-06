@@ -271,7 +271,7 @@ export default function ExpressPredictionClient({ userId }: ExpressPredictionCli
                 <AlertCircle className="w-8 h-8 text-red-600" />
               </div>
             </div>
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Couldn't Generate Forecast</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Couldn&apos;t Generate Forecast</h3>
             <p className="text-gray-600 mb-6">{error}</p>
             <button
               onClick={handleTryAgain}
