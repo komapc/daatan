@@ -32,6 +32,8 @@
 - Mock external services
 
 ## Git
-- Never merge to main without approval
+- **NEVER merge to main without explicit user approval** - always create PR and wait
+- **NEVER use `gh pr merge`** - user will merge PRs manually
+- After creating PR, stop and wait for user review
 - Use conventional commits: feat:, fix:, chore:, etc.
 - Keep PRs focused and small

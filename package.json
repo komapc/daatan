@@ -35,6 +35,8 @@
     "@types/react-dom": "^18",
     "@vitejs/plugin-react": "^5.1.2",
     "autoprefixer": "^10",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.21",
     "husky": "^9.1.7",
     "jsdom": "^27.4.0",
     "postcss": "^8",

@@ -296,7 +296,7 @@ export const StepNewsAnchor = ({ formData, updateFormData }: Props) => {
         <div>
           <h4 className="font-medium text-blue-900 text-sm">AI Magic Extract</h4>
           <p className="text-sm text-blue-700 mt-0.5">
-            Paste a URL and click Magic Extract. We'll automatically identify the prediction, resolution date, and options for you.
+            Paste a URL and click Magic Extract. We&apos;ll automatically identify the prediction, resolution date, and options for you.
           </p>
         </div>
       </div>
