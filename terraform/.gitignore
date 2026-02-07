@@ -20,6 +20,10 @@ override.tf.json
 .terraform/
 .terraform.lock.hcl
 
+# Plan files
+tfplan
+*.tfplan
+
 # CLI configuration files
 .terraformrc
 terraform.rc

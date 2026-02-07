@@ -27,7 +27,7 @@ resource "aws_instance" "backend" {
   root_block_device {
     volume_size           = 20
     volume_type           = "gp3"
-    delete_on_termination = true
+    delete_on_termination = false
     encrypted             = true
   }
 

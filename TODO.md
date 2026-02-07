@@ -15,13 +15,9 @@
 - [x] Code Quality: Eliminate all compile-time warnings, runtime warnings, linter warnings and hints (2026-02-07)
 - [x] SEO: Add unique slugs to all entities (users, predictions, forecasts) for better URLs (2026-02-07)
 ### 🔴 Critical (data safety & security)
-- [ ] Security: Remove NEXTAUTH_SECRET from Docker build args — it's baked into image layers and extractable. Only pass it as runtime env var
+<!-- All critical items resolved -->
 
 ### 🟠 High Priority (stability & correctness)
-- [ ] Infra: Stop running `docker system prune -af --volumes` on every staging deploy — this nukes ALL unused volumes/images on the shared host and can destroy production data. Use targeted cleanup instead
-- [ ] Infra: Terraform state is committed to the repo and contains secrets — move to S3 backend with DynamoDB state locking, add `terraform.tfstate*` to .gitignore
-- [ ] Infra: EBS root volume has `delete_on_termination = true` — if EC2 is accidentally terminated, all data is lost. Set to `false` or move DB to RDS
-
 - [ ] DB: Run `npx prisma generate` — Comment model not recognized by Prisma client (type errors in comments API routes)
 - [ ] DB: Create/verify migration files for Commitment and CuTransaction models — no migration files found for these tables
 - [ ] CI/CD: Add `concurrency` group to GitHub Actions deploy workflow — two rapid pushes to main can trigger simultaneous deploys that conflict
@@ -78,6 +74,10 @@
 - [ ] Testing: Fix comments.test.ts — likely failing due to Prisma client type errors
 
 ## Completed
+- [x] Security: Remove NEXTAUTH_SECRET from Docker build args — now only passed as runtime env var (2026-02-08)
+- [x] Infra: Terraform state moved to S3 backend with DynamoDB locking, tfplan removed from git (2026-02-08)
+- [x] Infra: EBS delete_on_termination set to false — volume survives EC2 termination (2026-02-08)
+- [x] Infra: Removed docker system prune -af --volumes from deploy workflows (2026-02-08)
 - [x] Infra: Separate staging database from production — added `postgres-staging` service with own volume + `daatan_staging` DB, updated deploy workflow and blue-green script (2026-02-08)
 - [x] Add link to "retroanalysis" feature (2026-02-04)
 <!-- Move items here when done, with date -->

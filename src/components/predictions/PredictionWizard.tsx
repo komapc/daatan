@@ -56,55 +56,40 @@ interface PredictionWizardProps {
 
 export const PredictionWizard = ({ isExpressFlow = false }: PredictionWizardProps) => {
   const router = useRouter()
-  const [currentStep, setCurrentStep] = useState(isExpressFlow ? 2 : 1) // Start at step 2 for express
+  const [currentStep, setCurrentStep] = useState(isExpressFlow ? 2 : 1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
-  // Initialize formData with express data if available
-  const [formData, setFormData] = useState<PredictionFormData>(() => {
-    console.log('[PredictionWizard] Initializing, isExpressFlow:', isExpressFlow)
-    
-    // Check if we're coming from express flow
-    if (isExpressFlow && typeof window !== 'undefined') {
-      const stored = localStorage.getItem('expressPredictionData')
-      console.log('[PredictionWizard] localStorage data:', stored)
-      
-      if (stored) {
-        try {
-          const data = JSON.parse(stored)
-          console.log('[PredictionWizard] Parsed data:', data)
-          localStorage.removeItem('expressPredictionData')
-          console.log('[PredictionWizard] Removed from localStorage')
-          
-          const initialData = {
-            claimText: data.claimText || '',
-            detailsText: data.detailsText || '',
-            domain: data.domain || '',
-            outcomeType: 'BINARY' as const,
-            resolveByDatetime: data.resolveByDatetime || '',
-            newsAnchorUrl: data.newsAnchor?.url || '',
-            newsAnchorTitle: data.newsAnchor?.title || '',
-          }
-          console.log('[PredictionWizard] Returning initial data:', initialData)
-          return initialData
-        } catch (e) {
-          console.error('[PredictionWizard] Failed to parse express prediction data:', e)
-        }
-      } else {
-        console.warn('[PredictionWizard] No data in localStorage')
-      }
-    } else {
-      console.log('[PredictionWizard] Not express flow or window undefined')
-    }
-    
-    // Default empty state
-    console.log('[PredictionWizard] Returning default empty state')
-    return {
-      claimText: '',
-      outcomeType: 'BINARY',
-      resolveByDatetime: '',
-    }
+  const [formData, setFormData] = useState<PredictionFormData>({
+    claimText: '',
+    outcomeType: 'BINARY',
+    resolveByDatetime: '',
   })
+
+  // Load express prediction data from localStorage after mount (avoids hydration mismatch)
+  useEffect(() => {
+    if (!isExpressFlow) return
+    
+    const stored = localStorage.getItem('expressPredictionData')
+    if (!stored) return
+    
+    try {
+      const data = JSON.parse(stored)
+      localStorage.removeItem('expressPredictionData')
+      
+      setFormData({
+        claimText: data.claimText || '',
+        detailsText: data.detailsText || '',
+        domain: data.domain || '',
+        outcomeType: 'BINARY',
+        resolveByDatetime: data.resolveByDatetime || '',
+        newsAnchorUrl: data.newsAnchor?.url || '',
+        newsAnchorTitle: data.newsAnchor?.title || '',
+      })
+    } catch {
+      // Invalid JSON — ignore
+    }
+  }, [isExpressFlow])
 
   const updateFormData = (updates: Partial<PredictionFormData>) => {
     setFormData(prev => ({ ...prev, ...updates }))
