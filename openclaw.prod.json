@@ -1,0 +1,57 @@
+{
+  "meta": {
+    "description": "Production configuration for DAATAN"
+  },
+  "agents": {
+    "defaults": {
+      "workspace": "/home/mark/projects/daatan"
+    },
+    "definitions": {
+      "main": {
+        "id": "main",
+        "label": "Corvus",
+        "paths": {
+          "base": "./agents/corvus"
+        },
+        "model": {
+          "primary": "google/gemini-2.5-pro"
+        }
+      },
+      "devops": {
+        "id": "devops",
+        "label": "DevOps Agent",
+        "paths": {
+          "base": "./agents/devops"
+        },
+        "model": {
+          "primary": "google/gemini-2.5-pro"
+        }
+      },
+      "qa": {
+        "id": "qa",
+        "label": "QA Agent",
+        "paths": {
+          "base": "./agents/qa"
+        },
+        "model": {
+          "primary": "google/gemini-1.5-flash"
+        }
+      }
+    }
+  },
+  "plugins": {
+    "entries": {
+      "telegram": {
+        "enabled": true
+      }
+    }
+  },
+  "auth": {
+    "profiles": {
+      "google:default": {
+        "provider": "google",
+        "mode": "api_key"
+      }
+    }
+  }
+}
