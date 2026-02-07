@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react'
-import FeedPage from '../page'
-import { vi, describe, it, expect, beforeEach, afterEach, Mock } from 'vitest'
+import FeedClient from '../FeedClient'
+import { vi, describe, it, expect, beforeEach } from 'vitest'
 
 // Mock fetch
 const mockFetch = vi.fn()
@@ -14,7 +14,6 @@ vi.mock('@/components/predictions/PredictionCard', () => ({
 describe('FeedPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    // Reset fetch mock for each test
     mockFetch.mockReset()
   })
 
@@ -23,7 +22,7 @@ describe('FeedPage', () => {
         ok: true,
         json: async () => ({ predictions: [] }),
     } as Response)
-    render(<FeedPage />)
+    render(<FeedClient />)
     expect(screen.getByText('Loading your feed...')).toBeInTheDocument()
   })
 
@@ -34,7 +33,7 @@ describe('FeedPage', () => {
       json: async () => ({ predictions: mockPredictions }),
     } as Response)
 
-    render(<FeedPage />)
+    render(<FeedClient />)
 
     await waitFor(() => {
       expect(screen.getByTestId('prediction-card')).toBeInTheDocument()
@@ -42,20 +41,17 @@ describe('FeedPage', () => {
   })
 
   it('handles empty API response gracefully (prevents crash)', async () => {
-    // Simulate API returning valid JSON but missing 'predictions' array
     mockFetch.mockResolvedValue({
       ok: true,
       json: async () => ({ someOtherData: 'unexpected' }),
     } as Response)
 
-    render(<FeedPage />)
+    render(<FeedClient />)
 
-    // Should render empty state or at least NOT crash
     await waitFor(() => {
         expect(screen.queryByText('Loading your feed...')).not.toBeInTheDocument()
     })
     
-    // Check for empty state text
     expect(screen.getByText('No active predictions')).toBeInTheDocument()
   })
 })
