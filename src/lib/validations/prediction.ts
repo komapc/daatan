@@ -108,8 +108,8 @@ export const listCommitmentsQuerySchema = z.object({
 // ============================================
 
 export const resolvePredictionSchema = z.object({
-  resolutionOutcome: z.enum(['correct', 'wrong', 'void', 'unresolvable']),
-  evidenceLinks: z.array(z.string().url()).min(1, 'At least one evidence link required'),
+  outcome: z.enum(['correct', 'wrong', 'void', 'unresolvable']),
+  evidenceLinks: z.array(z.string().url()).optional(),
   resolutionNote: z.string().max(2000).optional(),
   // For multiple choice: which option was correct
   correctOptionId: z.string().cuid().optional(),
