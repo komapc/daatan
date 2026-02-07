@@ -146,7 +146,7 @@ jobs:
             
             # Run Prisma migrations on staging database
             echo "🗄️ Running Prisma migrations on staging database..."
-            docker exec daatan-app-staging npx prisma migrate deploy || echo "⚠️ Migration failed or no pending migrations"
+            docker exec daatan-app-staging node_modules/prisma/build/index.js migrate deploy || echo "⚠️ Migration failed or no pending migrations"
             
             # Debug: Check if files exist INSIDE the container
             echo "🔍 Debug: Checking API routes inside running container:"
@@ -275,6 +275,10 @@ jobs:
             # Build and restart production container
             docker compose -f docker-compose.prod.yml build --no-cache --build-arg DATABASE_URL="postgresql://daatan:${POSTGRES_PASSWORD}@postgres:5432/daatan" --build-arg GIT_COMMIT="$GIT_COMMIT" app
             docker compose -f docker-compose.prod.yml up -d --force-recreate app nginx
+            
+            # Run Prisma migrations on production database
+            echo "🗄️ Running Prisma migrations on production database..."
+            docker exec daatan-app node_modules/prisma/build/index.js migrate deploy || echo "⚠️ Migration failed or no pending migrations"
             
             # Wait for app to be healthy
             echo "Waiting for health check..."
