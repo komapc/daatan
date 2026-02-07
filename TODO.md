@@ -7,6 +7,7 @@
 - [x] Show sign-in option on every screen when user is not logged in (2026-02-05)
 - [x] Infra: Zero downtime CI/CD deployment (2026-02-05) - Blue-green deployment implemented
 - [x] Mobile UX: Disable zoom-in (viewport settings) (2026-02-05)
+- [ ] UX: Unify prediction creation flow - Express as default, toggle to manual wizard (left panel + button should start express, add switch to manual mode)
 - [ ] Infra: Zero downtime version updates (update version without deployment downtime)
 - [ ] Predictions: Resolving mechanism (mark predictions as resolved, calculate accuracy)
 - [ ] Feed: Add filters (tags, resolved, awaiting resolution, open - default, closing soon)
