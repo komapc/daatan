@@ -9,7 +9,7 @@
 - [x] Mobile UX: Disable zoom-in (viewport settings) (2026-02-05)
 - [x] UX: Unify prediction creation flow - Express as default, toggle to manual wizard (left panel + button should start express, add switch to manual mode) (2026-02-07)
 - [x] Infra: Zero downtime version updates (update version without deployment downtime) (2026-02-07)
-- [ ] Predictions: Resolving mechanism (mark predictions as resolved, calculate accuracy)
+- [x] Predictions: Resolving mechanism (mark predictions as resolved, calculate accuracy) (2026-02-07)
 - [ ] Feed: Add filters (tags, resolved, awaiting resolution, open - default, closing soon)
 - [ ] Comments: Add commenting system for predictions/forecasts (threaded discussions, reactions)
 - [ ] Profile: Prepare for adding custom avatar upload (S3 storage, DB schema, UI flow) - Spec ready

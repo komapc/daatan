@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { 
   Newspaper, 
@@ -14,6 +15,7 @@ import {
   AlertCircle,
   ChevronLeft,
 } from 'lucide-react'
+import { ModeratorResolutionSection } from './ModeratorResolutionSection'
 
 type Prediction = {
   id: string
@@ -319,6 +321,12 @@ export default function PredictionDetailPage() {
           )}
         </div>
       )}
+
+      {/* Moderator Resolution Section */}
+      <ModeratorResolutionSection 
+        predictionId={prediction.id} 
+        predictionStatus={prediction.status}
+      />
 
       {/* Commitments List */}
       {prediction.commitments.length > 0 && (
