@@ -20,11 +20,20 @@ interface ExistingCommitment {
   optionId?: string
 }
 
+interface Commitment {
+  id: string
+  cuCommitted: number
+  binaryChoice?: boolean
+  optionId?: string
+  predictionId: string
+  userId: string
+}
+
 interface CommitmentFormProps {
   prediction: Prediction
   existingCommitment?: ExistingCommitment
   userCuAvailable: number
-  onSuccess: (commitment: any) => void
+  onSuccess: (commitment: Commitment) => void
   onCancel?: () => void
 }
 
@@ -69,7 +78,7 @@ export default function CommitmentForm({
       const endpoint = `/api/predictions/${prediction.id}/commit`
       const method = isUpdate ? 'PATCH' : 'POST'
 
-      const body: any = {
+      const body: Record<string, unknown> = {
         cuCommitted: cuAmount,
       }
 

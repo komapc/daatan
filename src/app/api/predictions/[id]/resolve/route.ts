@@ -2,13 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { resolvePredictionSchema } from '@/lib/validations/prediction'
 import { z } from 'zod'
-
-const resolveSchema = z.object({
-  outcome: z.enum(['correct', 'wrong', 'void', 'unresolvable']),
-  evidenceLinks: z.array(z.string().url()).optional(),
-  resolutionNote: z.string().optional(),
-})
 
 export async function POST(
   request: NextRequest,
@@ -35,7 +30,7 @@ export async function POST(
     }
 
     const body = await request.json()
-    const { outcome, evidenceLinks, resolutionNote } = resolveSchema.parse(body)
+    const { outcome, evidenceLinks, resolutionNote } = resolvePredictionSchema.parse(body)
 
     // Get prediction with commitments
     const prediction = await prisma.prediction.findUnique({
