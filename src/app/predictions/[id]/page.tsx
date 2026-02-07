@@ -16,6 +16,7 @@ import {
   ChevronLeft,
 } from 'lucide-react'
 import { ModeratorResolutionSection } from './ModeratorResolutionSection'
+import CommentThread from '@/components/comments/CommentThread'
 
 type Prediction = {
   id: string
@@ -364,6 +365,11 @@ export default function PredictionDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Comments Section */}
+      <div className="border-t border-gray-200 pt-8">
+        <CommentThread predictionId={prediction.id} />
+      </div>
     </div>
   )
 }
