@@ -56,6 +56,10 @@ model User {
   cuTransactions      CuTransaction[] // CU ledger entries
   resolvedPredictions Prediction[]    @relation("ResolvedBy")
 
+  // Comments & reactions
+  comments        Comment[]
+  commentReactions CommentReaction[]
+
   @@map("users")
 }
 
@@ -192,6 +196,7 @@ model Prediction {
   // Relations
   options     PredictionOption[]
   commitments Commitment[]
+  comments    Comment[]
 
   @@index([status])
   @@index([authorId])
@@ -350,6 +355,7 @@ model Forecast {
   // Relations
   options ForecastOption[]
   votes   Vote[]
+  comments Comment[]
 
   @@index([status])
   @@index([creatorId])
@@ -417,4 +423,81 @@ model Vote {
   @@index([forecastId])
   @@index([userId])
   @@map("votes")
+}
+
+// ============================================
+// COMMENTS (Discussion system)
+// ============================================
+
+model Comment {
+  id String @id @default(cuid())
+
+  // Author
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  // Content
+  text String @db.Text
+
+  // Target (polymorphic - either prediction or forecast)
+  predictionId String?
+  prediction   Prediction? @relation(fields: [predictionId], references: [id], onDelete: Cascade)
+  
+  forecastId String?
+  forecast   Forecast? @relation(fields: [forecastId], references: [id], onDelete: Cascade)
+
+  // Threading (for replies)
+  parentId String?
+  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  Comment[] @relation("CommentReplies")
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Soft delete
+  deletedAt DateTime?
+
+  // Relations
+  reactions CommentReaction[]
+
+  @@index([predictionId])
+  @@index([forecastId])
+  @@index([authorId])
+  @@index([parentId])
+  @@index([createdAt])
+  @@map("comments")
+}
+
+// ============================================
+// COMMENT REACTIONS (likes, etc.)
+// ============================================
+
+enum ReactionType {
+  LIKE
+  INSIGHTFUL
+  DISAGREE
+}
+
+model CommentReaction {
+  id String @id @default(cuid())
+
+  // User who reacted
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Comment being reacted to
+  commentId String
+  comment   Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  // Reaction type
+  type ReactionType
+
+  createdAt DateTime @default(now())
+
+  // Each user can only have one reaction per comment
+  @@unique([userId, commentId])
+  @@index([commentId])
+  @@index([userId])
+  @@map("comment_reactions")
 }
