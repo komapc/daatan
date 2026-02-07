@@ -23,8 +23,8 @@
 - [ ] CI/CD: Add `concurrency` group to GitHub Actions deploy workflow — two rapid pushes to main can trigger simultaneous deploys that conflict
 - [ ] Security: Add rate limiting middleware to sensitive API endpoints (commit, resolve, comments) — no rate limiting exists anywhere
 - [ ] Infra: EC2 instance type is `t3.nano` (0.5GB RAM) but runs Nginx + 2 Next.js apps + PostgreSQL — upgrade to at least `t3.small` (2GB) or the containers will OOM
-- [ ] Code Quality: Fix version number drift — package.json says `0.1.19`, version.ts fallback says `0.1.36`, docker-compose hardcodes `0.1.32`, .env.example says `0.1.32`. Align to single source of truth
-- [ ] Code Quality: Move `@prisma/client` from devDependencies to dependencies in package.json — it's needed at runtime
+- [x] Code Quality: Fix version number drift — aligned all to package.json as single source of truth (2026-02-08)
+- [x] Code Quality: Move `@prisma/client` from devDependencies to dependencies in package.json (2026-02-08)
 - [ ] API: Resolve endpoint uses inline Zod schema that differs from shared `resolvePredictionSchema` (evidence links optional vs required) — use the shared schema
 - [ ] Infra: Investigate/fix zero downtime on upgrade (still doesn't work properly)
 

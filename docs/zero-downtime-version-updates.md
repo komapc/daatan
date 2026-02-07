@@ -60,5 +60,5 @@ If version update fails, the script automatically shows logs and exits with erro
 ## Technical Details
 - Version source: `src/lib/version.ts`
 - Reads from: `process.env.APP_VERSION`
-- Fallback: Build-time version (0.1.32)
+- Fallback: Build-time version (0.1.19)
 - Container env: Set in `docker-compose.prod.yml`
