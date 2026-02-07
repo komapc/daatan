@@ -15,6 +15,7 @@
     "@auth/prisma-adapter": "^2.11.1",
     "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^5.2.2",
+    "@prisma/client": "^5.16.0",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
     "lucide-react": "^0.562.0",
@@ -27,7 +28,6 @@
     "zod": "^4.3.5"
   },
   "devDependencies": {
-    "@prisma/client": "^5.16.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^20",
