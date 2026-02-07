@@ -24,6 +24,7 @@ model User {
 
   // Custom profile fields
   username             String? @unique
+  slug                 String? @unique // URL-friendly identifier (e.g., "john-doe")
   website              String?
   twitterHandle        String?
   emailNotifications   Boolean @default(true)
@@ -167,6 +168,7 @@ model Prediction {
 
   // Prediction content
   claimText   String  @db.VarChar(500) // The testable statement
+  slug        String? @unique // URL-friendly identifier (e.g., "bitcoin-100k-2026")
   detailsText String? @db.Text // Additional conditions/context
   domain      String? @db.VarChar(100) // Category
 
@@ -335,6 +337,7 @@ model Forecast {
 
   // Content
   title          String  @db.VarChar(500)
+  slug           String? @unique // URL-friendly identifier (e.g., "election-2024")
   text           String? @db.Text // Detailed description
   sourceArticles Json? // Array of { url: string, title?: string }
 

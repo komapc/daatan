@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { 
   Calendar, 
   Users, 
@@ -128,10 +129,12 @@ export default function PredictionCard({ prediction }: PredictionCardProps) {
           {prediction.newsAnchor && (
             <div className="flex items-center gap-2 mb-4 p-2 bg-gray-50 rounded-lg border border-gray-100">
               {prediction.newsAnchor.imageUrl && (
-                <img 
+                <Image 
                   src={prediction.newsAnchor.imageUrl} 
                   alt="" 
-                  className="w-8 h-8 rounded object-cover flex-shrink-0"
+                  width={32}
+                  height={32}
+                  className="rounded object-cover flex-shrink-0"
                 />
               )}
               <div className="min-w-0">
@@ -151,10 +154,12 @@ export default function PredictionCard({ prediction }: PredictionCardProps) {
             <div className="flex items-center gap-2 pr-4 border-r border-gray-100 last:border-0">
               <div className="relative">
                 {prediction.author.image ? (
-                  <img 
+                  <Image 
                     src={prediction.author.image} 
                     alt="" 
-                    className="w-5 h-5 sm:w-6 sm:h-6 rounded-full ring-1 ring-gray-100"
+                    width={24}
+                    height={24}
+                    className="rounded-full ring-1 ring-gray-100"
                   />
                 ) : (
                   <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-blue-100 flex items-center justify-center text-[10px] font-bold text-blue-600 ring-1 ring-gray-100">

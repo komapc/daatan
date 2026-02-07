@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import Image from 'next/image'
 import { 
   User as UserIcon, 
   TrendingUp, 
@@ -105,10 +106,12 @@ export default async function ProfilePage() {
         <div className="flex flex-col md:flex-row items-center gap-8">
           <div className="relative">
             {user.image ? (
-              <img 
+              <Image 
                 src={user.image} 
                 alt={user.name || ''} 
-                className="w-24 h-24 sm:w-32 sm:h-32 rounded-3xl object-cover ring-4 ring-blue-50"
+                width={128}
+                height={128}
+                className="rounded-3xl object-cover ring-4 ring-blue-50"
               />
             ) : (
               <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-3xl bg-blue-100 flex items-center justify-center text-4xl font-black text-blue-600 ring-4 ring-blue-50">

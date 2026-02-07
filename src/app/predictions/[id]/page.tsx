@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { 
   Newspaper, 
   User, 
@@ -80,6 +81,7 @@ export default function PredictionDetailPage() {
   useEffect(() => {
     const fetchPrediction = async () => {
       try {
+        // Support both ID and slug
         const response = await fetch(`/api/predictions/${params.id}`)
         if (!response.ok) {
           throw new Error('Failed to load prediction')
@@ -206,10 +208,12 @@ export default function PredictionDetailPage() {
           </div>
           <div className="flex items-center gap-2">
             {prediction.author.image && (
-              <img 
+              <Image 
                 src={prediction.author.image} 
                 alt="" 
-                className="w-8 h-8 rounded-full"
+                width={32}
+                height={32}
+                className="rounded-full"
               />
             )}
             <div>
@@ -341,10 +345,12 @@ export default function PredictionDetailPage() {
               <div key={commitment.id} className="p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   {commitment.user.image && (
-                    <img 
+                    <Image 
                       src={commitment.user.image} 
                       alt="" 
-                      className="w-8 h-8 rounded-full"
+                      width={32}
+                      height={32}
+                      className="rounded-full"
                     />
                   )}
                   <div>

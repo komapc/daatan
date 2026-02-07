@@ -140,12 +140,33 @@ export async function POST(request: NextRequest) {
       outcomePayload = { type: 'BINARY' }
     }
 
+    // Generate slug from claim text
+    const { slugify, generateUniqueSlug } = await import('@/lib/utils/slugify')
+    const baseSlug = slugify(data.claimText)
+    
+    // Check for existing slugs
+    const existingPredictions = await prisma.prediction.findMany({
+      where: {
+        slug: {
+          startsWith: baseSlug,
+        },
+      },
+      select: { slug: true },
+    })
+    
+    const existingSlugs = existingPredictions
+      .map(p => p.slug)
+      .filter((s): s is string => s !== null)
+    
+    const uniqueSlug = generateUniqueSlug(baseSlug, existingSlugs)
+
     // Create prediction
     const prediction = await prisma.prediction.create({
       data: {
         authorId: session.user.id,
         newsAnchorId: data.newsAnchorId,
         claimText: data.claimText,
+        slug: uniqueSlug,
         detailsText: data.detailsText,
         domain: data.domain,
         outcomeType: data.outcomeType,

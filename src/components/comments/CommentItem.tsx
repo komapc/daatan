@@ -3,16 +3,18 @@
 import { useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { formatDistanceToNow } from 'date-fns'
+import Image from 'next/image'
 import { ThumbsUp, Lightbulb, ThumbsDown, Reply, Trash2, Edit2, MessageSquare } from 'lucide-react'
 import CommentForm from './CommentForm'
 import type { Comment } from './CommentThread'
 
 function SimpleAvatar({ user, size = 'sm' }: { user: { name: string | null; image: string | null }; size?: 'sm' | 'md' }) {
   const sizeClass = size === 'sm' ? 'w-8 h-8 text-sm' : 'w-10 h-10 text-base'
+  const sizePixels = size === 'sm' ? 32 : 40
   const initial = user.name?.charAt(0)?.toUpperCase() || '?'
   
   if (user.image) {
-    return <img src={user.image} alt="" className={`${sizeClass} rounded-full`} />
+    return <Image src={user.image} alt="" width={sizePixels} height={sizePixels} className={`${sizeClass} rounded-full`} />
   }
   
   return (

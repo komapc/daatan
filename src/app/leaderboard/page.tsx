@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { Trophy, Loader2, Medal, TrendingUp, Wallet } from 'lucide-react'
 
 type LeaderboardUser = {
@@ -93,7 +94,7 @@ export default function LeaderboardPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         {user.image ? (
-                          <img src={user.image} alt="" className="w-10 h-10 rounded-full border border-gray-200" />
+                          <Image src={user.image} alt="" width={40} height={40} className="rounded-full border border-gray-200" />
                         ) : (
                           <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
                             {user.name?.charAt(0) || user.username?.charAt(0) || '?'}
