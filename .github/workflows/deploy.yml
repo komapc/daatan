@@ -94,17 +94,11 @@ jobs:
             # Clean slate: Stop services, remove old builds and prune builder cache
             echo "🧹 Cleaning Docker environment and old builds..."
             sudo rm -rf .next node_modules 2>/dev/null || true
-            docker compose -f docker-compose.prod.yml down app-staging nginx || true
+            docker compose -f docker-compose.prod.yml down app-staging || true
             
-            # Force cleanup of any orphaned staging containers
-            echo "🧹 Force cleanup of orphaned containers..."
-            docker stop daatan-postgres-staging 2>/dev/null || true
-            docker rm daatan-postgres-staging 2>/dev/null || true
-            docker volume rm app_postgres_staging_data 2>/dev/null || true
-            
+            # Prune build cache and dangling images (safe — does NOT touch volumes or running containers)
             docker builder prune -af
-            docker image prune -af
-            docker system prune -af --volumes
+            docker image prune -f
             
             # Debug: Verify code update
             echo "🔍 Debug: Current commit on server:"
@@ -141,9 +135,18 @@ jobs:
             docker compose -f docker-compose.prod.yml stop app-staging || true
             docker compose -f docker-compose.prod.yml rm -f app-staging || true
             
+            # Ensure staging database is running before building
+            docker compose -f docker-compose.prod.yml up -d postgres-staging
+            echo "⏳ Waiting for staging database to be ready..."
+            sleep 10
+            
             # Rebuild and start (env vars are exported above, docker-compose will use them)
-            docker compose -f docker-compose.prod.yml build --no-cache --build-arg DATABASE_URL="postgresql://daatan:${POSTGRES_PASSWORD}@postgres:5432/daatan" --build-arg GIT_COMMIT="$GIT_COMMIT" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" app-staging
+            docker compose -f docker-compose.prod.yml build --no-cache --build-arg DATABASE_URL="postgresql://daatan:${POSTGRES_PASSWORD}@postgres-staging:5432/daatan_staging" --build-arg GIT_COMMIT="$GIT_COMMIT" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" app-staging
             docker compose -f docker-compose.prod.yml up -d --force-recreate app-staging nginx
+            
+            # Run Prisma migrations on staging database
+            echo "🗄️ Running Prisma migrations on staging database..."
+            docker exec daatan-app-staging npx prisma migrate deploy || echo "⚠️ Migration failed or no pending migrations"
             
             # Debug: Check if files exist INSIDE the container
             echo "🔍 Debug: Checking API routes inside running container:"
@@ -233,11 +236,12 @@ jobs:
             
             cd ~/app
 
-            # Nuclear cleanup
+            # Stop production app and nginx for rebuild
             docker compose -f docker-compose.prod.yml down app nginx || true
+            
+            # Prune build cache and dangling images (safe — does NOT touch volumes or running containers)
             docker builder prune -af
-            docker image prune -af
-            docker system prune -af --volumes
+            docker image prune -f
             
             # Ensure workspace is clean and writable (avoid node_modules permission issues)
             # Try to fix permissions first, then remove (ignore errors to prevent script failure)
