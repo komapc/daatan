@@ -19,8 +19,8 @@ export function ModeratorResolutionSection({
 
   // Only show for moderators/admins on active or pending predictions
   const canResolve = 
-    (session?.user as any)?.isModerator || 
-    (session?.user as any)?.isAdmin
+    session?.user?.isModerator || 
+    session?.user?.isAdmin
 
   const isResolvable = 
     predictionStatus === 'ACTIVE' || 

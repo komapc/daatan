@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI, SchemaType, type Schema } from '@google/generative-ai'
-import { searchArticles, type SearchResult } from '../utils/webSearch'
+import { searchArticles } from '../utils/webSearch'
 import crypto from 'crypto'
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')

@@ -14,6 +14,26 @@
 - [x] Comments: Add commenting system for predictions/forecasts (threaded discussions, reactions) (2026-02-07)
 - [x] Code Quality: Eliminate all compile-time warnings, runtime warnings, linter warnings and hints (2026-02-07)
 - [x] SEO: Add unique slugs to all entities (users, predictions, forecasts) for better URLs (2026-02-07)
+### 🔴 Critical (data safety & security)
+- [ ] Infra: Separate staging database from production — staging and prod share the same postgres container and `daatan` DB, meaning staging writes affect production data. Add a `postgres-staging` service with its own volume
+- [ ] Security: Remove NEXTAUTH_SECRET from Docker build args — it's baked into image layers and extractable. Only pass it as runtime env var
+- [ ] Infra: Stop running `docker system prune -af --volumes` on every staging deploy — this nukes ALL unused volumes/images on the shared host and can destroy production data. Use targeted cleanup instead
+- [ ] Infra: Terraform state is committed to the repo and contains secrets — move to S3 backend with DynamoDB state locking, add `terraform.tfstate*` to .gitignore
+- [ ] Infra: EBS root volume has `delete_on_termination = true` — if EC2 is accidentally terminated, all data is lost. Set to `false` or move DB to RDS
+
+### 🟠 High Priority (stability & correctness)
+- [ ] DB: Run `npx prisma generate` — Comment model not recognized by Prisma client (type errors in comments API routes)
+- [ ] DB: Create/verify migration files for Commitment and CuTransaction models — no migration files found for these tables
+- [ ] CI/CD: Add `concurrency` group to GitHub Actions deploy workflow — two rapid pushes to main can trigger simultaneous deploys that conflict
+- [ ] Security: Add rate limiting middleware to sensitive API endpoints (commit, resolve, comments) — no rate limiting exists anywhere
+- [ ] Infra: EC2 instance type is `t3.nano` (0.5GB RAM) but runs Nginx + 2 Next.js apps + PostgreSQL — upgrade to at least `t3.small` (2GB) or the containers will OOM
+- [ ] Code Quality: Fix version number drift — package.json says `0.1.19`, version.ts fallback says `0.1.36`, docker-compose hardcodes `0.1.32`, .env.example says `0.1.32`. Align to single source of truth
+- [ ] Code Quality: Move `@prisma/client` from devDependencies to dependencies in package.json — it's needed at runtime
+- [ ] API: Resolve endpoint uses inline Zod schema that differs from shared `resolvePredictionSchema` (evidence links optional vs required) — use the shared schema
+- [ ] Infra: Investigate/fix zero downtime on upgrade (still doesn't work properly)
+- [ ] Infra: Blue-green deploy script references `postgres-staging` service that doesn't exist in docker-compose.prod.yml
+
+### 🟡 Medium Priority (features & improvements)
 - [ ] Profile: Prepare for adding custom avatar upload (S3 storage, DB schema, UI flow) - Spec ready
 - [ ] i18n: Set up internationalization infrastructure (next-intl, no translations yet) - Spec ready
 - [ ] Express Prediction: Binary predictions from free text with LLM + web search - Spec ready
@@ -27,10 +47,8 @@
 - [ ] Predictions: "Updated Context" feature - re-analyze situation with latest articles
 - [ ] Localization: Add Hebrew translations (infrastructure ready)
 - [ ] Express create forecast: Legacy forecast system with LLM assistance
-- [ ] Architecture: Refactor to classical SPA with 2026 best practices - Needs discussion
 - [ ] Admin: Admin panel for moderators/admins to remove/edit predictions and forecasts
 - [ ] UX: Clarify Feed vs Forecasts screens (remove feed or explain difference, make Forecasts default)
-- [ ] Code Quality: Eliminate all compile-time warnings, runtime warnings, linter warnings and hints
 - [ ] Notifications: Resolution feed/notifications for users with commitments on resolved predictions
 - [ ] Users: Add user role flags (admin, resolver/moderator, potentially more roles)
 - [ ] Commitments: Commitment history page with stats and performance metrics
@@ -39,8 +57,26 @@
 - [ ] Notifications: Browser notifications for commitment resolutions (high priority)
 - [ ] Notifications: Email notifications for commitment resolutions (low priority)
 - [ ] Admin: Plan admin panel/back office architecture and features
-- [ ] Infra: Investigate/fix zero downtime on upgrade (still doesn't work properly)
+- [ ] SEO: Server-render the home feed page — currently `'use client'` with useEffect fetch, no SSR/SEO for the main entry point
+- [ ] DB: Plan migration to sunset legacy Forecast/Vote/ForecastOption models — dual system adds complexity, Comment has polymorphic relations to both
+- [ ] Architecture: Refactor to classical SPA with 2026 best practices - Needs discussion
+
+### 🟢 Low Priority (hardening & polish)
+- [ ] Code Quality: Eliminate all compile-time warnings, runtime warnings, linter warnings and hints
+- [ ] Code Quality: Remove `any` types — CommitmentForm.tsx, ModeratorResolutionSection.tsx (unnecessary `as any` cast when types are already augmented in next-auth.d.ts)
+- [ ] Code Quality: Remove unused `SearchResult` import in expressPrediction.ts
+- [ ] Code Quality: Replace `console.error` in API routes with structured logging (e.g., pino)
+- [ ] Security: Add Content-Security-Policy header to nginx config
+- [ ] Security: Add HSTS header to staging nginx server block (only production has it currently)
+- [ ] Nginx: Reduce `proxy_read_timeout` from 86400s (24h) to 60-120s unless WebSockets are needed
+- [ ] DB: Add composite index on Comment `(predictionId, createdAt)` for common query pattern
+- [ ] Infra: Add SSL certificate renewal monitoring/alerting — certbot runs in a loop but no alert if renewal fails
+- [ ] Infra: Add DB migration rollback strategy — rollback.sh handles code but not schema changes
+- [ ] CI/CD: verify-deploy.sh external step reads package.json version from runner checkout which may differ from deployed version — use health endpoint version instead
+- [ ] CI/CD: Pre-commit hook runs full build + tests on every commit (slow) — consider moving to pre-push or using lint-staged
 - [ ] Testing: Implement end-to-end tests using relevant frameworks (Playwright/Cypress)
+- [ ] Testing: Add tests for commitment and resolution flows — critical business logic with zero test coverage
+- [ ] Testing: Fix comments.test.ts — likely failing due to Prisma client type errors
 
 ## Completed
 - [x] Add link to "retroanalysis" feature (2026-02-04)
