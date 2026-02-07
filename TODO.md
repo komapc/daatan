@@ -15,13 +15,13 @@
 - [x] Code Quality: Eliminate all compile-time warnings, runtime warnings, linter warnings and hints (2026-02-07)
 - [x] SEO: Add unique slugs to all entities (users, predictions, forecasts) for better URLs (2026-02-07)
 ### 🔴 Critical (data safety & security)
-- [ ] Infra: Separate staging database from production — staging and prod share the same postgres container and `daatan` DB, meaning staging writes affect production data. Add a `postgres-staging` service with its own volume
 - [ ] Security: Remove NEXTAUTH_SECRET from Docker build args — it's baked into image layers and extractable. Only pass it as runtime env var
+
+### 🟠 High Priority (stability & correctness)
 - [ ] Infra: Stop running `docker system prune -af --volumes` on every staging deploy — this nukes ALL unused volumes/images on the shared host and can destroy production data. Use targeted cleanup instead
 - [ ] Infra: Terraform state is committed to the repo and contains secrets — move to S3 backend with DynamoDB state locking, add `terraform.tfstate*` to .gitignore
 - [ ] Infra: EBS root volume has `delete_on_termination = true` — if EC2 is accidentally terminated, all data is lost. Set to `false` or move DB to RDS
 
-### 🟠 High Priority (stability & correctness)
 - [ ] DB: Run `npx prisma generate` — Comment model not recognized by Prisma client (type errors in comments API routes)
 - [ ] DB: Create/verify migration files for Commitment and CuTransaction models — no migration files found for these tables
 - [ ] CI/CD: Add `concurrency` group to GitHub Actions deploy workflow — two rapid pushes to main can trigger simultaneous deploys that conflict
@@ -31,7 +31,6 @@
 - [ ] Code Quality: Move `@prisma/client` from devDependencies to dependencies in package.json — it's needed at runtime
 - [ ] API: Resolve endpoint uses inline Zod schema that differs from shared `resolvePredictionSchema` (evidence links optional vs required) — use the shared schema
 - [ ] Infra: Investigate/fix zero downtime on upgrade (still doesn't work properly)
-- [ ] Infra: Blue-green deploy script references `postgres-staging` service that doesn't exist in docker-compose.prod.yml
 
 ### 🟡 Medium Priority (features & improvements)
 - [ ] Profile: Prepare for adding custom avatar upload (S3 storage, DB schema, UI flow) - Spec ready
@@ -79,6 +78,7 @@
 - [ ] Testing: Fix comments.test.ts — likely failing due to Prisma client type errors
 
 ## Completed
+- [x] Infra: Separate staging database from production — added `postgres-staging` service with own volume + `daatan_staging` DB, updated deploy workflow and blue-green script (2026-02-08)
 - [x] Add link to "retroanalysis" feature (2026-02-04)
 <!-- Move items here when done, with date -->
 
