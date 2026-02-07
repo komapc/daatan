@@ -40,7 +40,7 @@ This implementation plan builds upon existing commitment infrastructure (databas
     - Verify all operations succeed or all fail together
 
 - [ ] 2. Implement user commitments list endpoint
-  - [ ] 2.1 Create GET /api/commitments endpoint
+  - [x] 2.1 Create GET /api/commitments endpoint
     - Validate query parameters with listCommitmentsQuerySchema
     - Check authentication
     - Build where clause from filters (predictionId, status)
@@ -58,7 +58,7 @@ This implementation plan builds upon existing commitment infrastructure (databas
     - Verify returned in reverse chronological order
 
 - [ ] 3. Build CU Balance Indicator component
-  - [ ] 3.1 Create src/components/predictions/CUBalanceIndicator.tsx
+  - [x] 3.1 Create src/components/predictions/CUBalanceIndicator.tsx
     - Define CUBalanceIndicatorProps interface
     - Display available CU prominently
     - Display locked CU as secondary info
