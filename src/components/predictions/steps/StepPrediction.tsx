@@ -28,7 +28,7 @@ export const StepPrediction = ({ formData, updateFormData }: Props) => {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold text-gray-900 mb-2">
-          Write Your Prediction
+          Write Your Forecast
         </h2>
         <p className="text-gray-500">
           Make a specific, testable claim about what will happen.

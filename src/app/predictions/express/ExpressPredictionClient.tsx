@@ -353,7 +353,7 @@ export default function ExpressPredictionClient({ userId }: ExpressPredictionCli
               onClick={handleCreatePrediction}
               className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors"
             >
-              Continue to Wizard
+              Review & Publish
             </button>
             <button
               onClick={handleTryAgain}
