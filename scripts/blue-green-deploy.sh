@@ -57,7 +57,6 @@ if [ "$ENVIRONMENT" = "staging" ]; then
     export DEPLOY_ID=$(date +%s)
     docker build -t daatan-app:staging-$DEPLOY_ID \
         --build-arg DATABASE_URL="postgresql://daatan:${POSTGRES_PASSWORD}@postgres-staging:5432/daatan_staging" \
-        --build-arg NEXTAUTH_SECRET="${NEXTAUTH_SECRET}" \
         --build-arg NEXTAUTH_URL="https://staging.daatan.com" \
         --build-arg NEXT_PUBLIC_ENV="staging" .
     
@@ -79,7 +78,6 @@ if [ "$ENVIRONMENT" = "staging" ]; then
 else
     docker build -t daatan-app:latest \
         --build-arg DATABASE_URL="postgresql://daatan:${POSTGRES_PASSWORD}@postgres:5432/daatan" \
-        --build-arg NEXTAUTH_SECRET="${NEXTAUTH_SECRET}" \
         --build-arg NEXTAUTH_URL="https://daatan.com" \
         --build-arg NEXT_PUBLIC_ENV="production" .
     
