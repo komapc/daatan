@@ -18,6 +18,8 @@ import {
 } from 'lucide-react'
 import { ModeratorResolutionSection } from './ModeratorResolutionSection'
 import CommentThread from '@/components/comments/CommentThread'
+import CommitmentForm from '@/components/predictions/CommitmentForm'
+import CommitmentDisplay from '@/components/predictions/CommitmentDisplay'
 
 type Prediction = {
   id: string
@@ -55,6 +57,10 @@ type Prediction = {
     id: string
     cuCommitted: number
     binaryChoice?: boolean
+    rsSnapshot: number
+    createdAt: string
+    cuReturned?: number | null
+    rsChange?: number | null
     user: {
       id: string
       name: string
@@ -74,9 +80,11 @@ type Prediction = {
 
 export default function PredictionDetailPage() {
   const params = useParams()
+  const { data: session } = useSession()
   const [prediction, setPrediction] = useState<Prediction | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showCommitmentForm, setShowCommitmentForm] = useState(false)
 
   useEffect(() => {
     const fetchPrediction = async () => {
@@ -120,6 +128,33 @@ export default function PredictionDetailPage() {
     }
     return styles[status] || 'bg-gray-100 text-gray-700'
   }
+
+  const handleCommitmentSuccess = () => {
+    setShowCommitmentForm(false)
+    // Refetch prediction to get updated commitments
+    const fetchPrediction = async () => {
+      try {
+        const response = await fetch(`/api/predictions/${params.id}`)
+        if (response.ok) {
+          const data = await response.json()
+          setPrediction(data)
+        }
+      } catch (err) {
+        console.error('Failed to refetch prediction:', err)
+      }
+    }
+    fetchPrediction()
+  }
+
+  // Find user's commitment if exists
+  const userCommitment = session?.user?.id 
+    ? prediction?.commitments.find(c => c.user.id === session.user.id)
+    : undefined
+
+  const canCommit = session?.user?.id && 
+    prediction?.status === 'ACTIVE' && 
+    prediction?.author.id !== session.user.id &&
+    !userCommitment
 
   if (isLoading) {
     return (
@@ -245,6 +280,49 @@ export default function PredictionDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* User's Commitment Section */}
+      {session?.user && prediction.status === 'ACTIVE' && (
+        <div className="mb-8">
+          {userCommitment ? (
+            <CommitmentDisplay
+              commitment={userCommitment}
+              prediction={prediction}
+              onEdit={() => setShowCommitmentForm(true)}
+              onRemove={handleCommitmentSuccess}
+            />
+          ) : prediction.author.id !== session.user.id && (
+            showCommitmentForm ? (
+              <CommitmentForm
+                prediction={prediction}
+                userCuAvailable={session.user.cuAvailable || 0}
+                onSuccess={handleCommitmentSuccess}
+                onCancel={() => setShowCommitmentForm(false)}
+              />
+            ) : (
+              <button
+                onClick={() => setShowCommitmentForm(true)}
+                className="w-full py-3 px-4 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Make Your Commitment
+              </button>
+            )
+          )}
+        </div>
+      )}
+
+      {/* Sign in prompt for non-authenticated users */}
+      {!session?.user && prediction.status === 'ACTIVE' && (
+        <div className="mb-8 p-4 bg-gray-50 border border-gray-200 rounded-lg text-center">
+          <p className="text-gray-600 mb-3">Want to commit to this prediction?</p>
+          <Link
+            href="/auth/signin"
+            className="inline-block py-2 px-4 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Sign In to Commit
+          </Link>
+        </div>
+      )}
 
       {/* Outcome Type */}
       <div className="mb-8">
