@@ -24,14 +24,34 @@ export async function GET(request: NextRequest) {
       limit: searchParams.get('limit') || 20,
     })
 
+    const resolvedOnly = searchParams.get('resolvedOnly') === 'true'
+    const closingSoon = searchParams.get('closingSoon') === 'true'
+
     const where: Record<string, unknown> = {}
-    if (query.status) where.status = query.status
+    
+    // Handle resolved filter
+    if (resolvedOnly) {
+      where.status = { in: ['RESOLVED_CORRECT', 'RESOLVED_WRONG'] }
+    } else if (query.status) {
+      where.status = query.status
+    }
+    
     if (query.authorId) where.authorId = query.authorId
     if (query.domain) where.domain = query.domain
     
     // Don't show drafts unless filtering by authorId
-    if (!query.authorId && !query.status) {
+    if (!query.authorId && !query.status && !resolvedOnly) {
       where.status = { not: 'DRAFT' }
+    }
+
+    // Handle "closing soon" filter (within 7 days)
+    if (closingSoon && query.status === 'ACTIVE') {
+      const sevenDaysFromNow = new Date()
+      sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7)
+      where.resolveByDatetime = {
+        lte: sevenDaysFromNow,
+        gte: new Date(),
+      }
     }
 
     const [predictions, total] = await Promise.all([
@@ -63,7 +83,9 @@ export async function GET(request: NextRequest) {
             select: { commitments: true },
           },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: closingSoon 
+          ? { resolveByDatetime: 'asc' } 
+          : { createdAt: 'desc' },
         skip: (query.page - 1) * query.limit,
         take: query.limit,
       }),
