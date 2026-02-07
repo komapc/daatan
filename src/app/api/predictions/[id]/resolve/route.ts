@@ -1,171 +1,113 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
+import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
-import { resolvePredictionSchema } from '@/lib/validations/prediction'
+import { prisma } from '@/lib/prisma'
+import { z } from 'zod'
 
-export const dynamic = 'force-dynamic'
+const resolveSchema = z.object({
+  outcome: z.enum(['correct', 'wrong', 'void', 'unresolvable']),
+  evidenceLinks: z.array(z.string().url()).optional(),
+  resolutionNote: z.string().optional(),
+})
 
-const getPrisma = async () => {
-  const { prisma } = await import('@/lib/prisma')
-  return prisma
-}
-
-type RouteParams = {
-  params: { id: string }
-}
-
-// POST /api/predictions/[id]/resolve - Resolve a prediction (moderator/admin only)
-export async function POST(request: NextRequest, { params }: RouteParams) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    const prisma = await getPrisma()
     const session = await getServerSession(authOptions)
-    
+
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check moderator/admin permissions
+    // Check if user is moderator or admin
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { isAdmin: true, isModerator: true },
+      select: { isModerator: true, isAdmin: true },
     })
 
-    if (!user?.isAdmin && !user?.isModerator) {
+    if (!user?.isModerator && !user?.isAdmin) {
       return NextResponse.json(
-        { error: 'Only moderators and admins can resolve predictions' },
+        { error: 'Only moderators can resolve predictions' },
         { status: 403 }
       )
     }
 
+    const body = await request.json()
+    const { outcome, evidenceLinks, resolutionNote } = resolveSchema.parse(body)
+
+    // Get prediction with commitments
     const prediction = await prisma.prediction.findUnique({
       where: { id: params.id },
       include: {
-        commitments: true,
-        options: true,
+        commitments: {
+          include: {
+            user: true,
+          },
+        },
       },
     })
 
     if (!prediction) {
-      return NextResponse.json(
-        { error: 'Prediction not found' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'Prediction not found' }, { status: 404 })
     }
 
-    // Can only resolve active or pending predictions
     if (prediction.status !== 'ACTIVE' && prediction.status !== 'PENDING') {
       return NextResponse.json(
-        { error: 'Can only resolve active or pending predictions' },
+        { error: 'Prediction cannot be resolved' },
         { status: 400 }
       )
     }
 
-    const body = await request.json()
-    const data = resolvePredictionSchema.parse(body)
+    // Determine new status based on outcome
+    let newStatus: 'RESOLVED_CORRECT' | 'RESOLVED_WRONG' | 'VOID' | 'UNRESOLVABLE'
+    if (outcome === 'correct') newStatus = 'RESOLVED_CORRECT'
+    else if (outcome === 'wrong') newStatus = 'RESOLVED_WRONG'
+    else if (outcome === 'void') newStatus = 'VOID'
+    else newStatus = 'UNRESOLVABLE'
 
-    // Validate correct option for multiple choice
-    if (prediction.outcomeType === 'MULTIPLE_CHOICE') {
-      if (!data.correctOptionId) {
-        return NextResponse.json(
-          { error: 'Must specify correctOptionId for multiple choice predictions' },
-          { status: 400 }
-        )
-      }
-      const optionExists = prediction.options.some(o => o.id === data.correctOptionId)
-      if (!optionExists) {
-        return NextResponse.json(
-          { error: 'Invalid correctOptionId' },
-          { status: 400 }
-        )
-      }
-    }
-
-    // Map resolution outcome to status
-    const statusMap: Record<string, string> = {
-      correct: 'RESOLVED_CORRECT',
-      wrong: 'RESOLVED_WRONG',
-      void: 'VOID',
-      unresolvable: 'UNRESOLVABLE',
-    }
-
-    const newStatus = statusMap[data.resolutionOutcome]
-
-    // Atomic transaction for resolution
-    await prisma.$transaction(async (tx) => {
-      // 1. Update prediction status
-      await tx.prediction.update({
+    // Use transaction to update prediction and process commitments
+    const result = await prisma.$transaction(async (tx) => {
+      // Update prediction
+      const updatedPrediction = await tx.prediction.update({
         where: { id: params.id },
         data: {
-          status: newStatus as 'RESOLVED_CORRECT' | 'RESOLVED_WRONG' | 'VOID' | 'UNRESOLVABLE',
+          status: newStatus,
           resolvedAt: new Date(),
           resolvedById: session.user.id,
-          resolutionOutcome: data.resolutionOutcome,
-          evidenceLinks: data.evidenceLinks,
-          resolutionNote: data.resolutionNote,
+          resolutionOutcome: outcome,
+          evidenceLinks: evidenceLinks ? evidenceLinks : undefined,
+          resolutionNote,
         },
       })
 
-      // 2. Mark correct option for MC predictions
-      if (prediction.outcomeType === 'MULTIPLE_CHOICE' && data.correctOptionId) {
-        await tx.predictionOption.updateMany({
-          where: {
-            predictionId: params.id,
-            id: data.correctOptionId,
-          },
-          data: { isCorrect: true },
-        })
-        await tx.predictionOption.updateMany({
-          where: {
-            predictionId: params.id,
-            id: { not: data.correctOptionId },
-          },
-          data: { isCorrect: false },
-        })
-      }
-
-      // 3. Process each commitment based on outcome
+      // Process each commitment
       for (const commitment of prediction.commitments) {
         let cuReturned = 0
         let rsChange = 0
 
-        // Determine if this commitment was correct
-        let wasCorrect = false
-        if (prediction.outcomeType === 'BINARY') {
-          // For binary: correct = true means "will happen"
-          // If resolved as correct, those who chose true win
-          // If resolved as wrong, those who chose false win
-          wasCorrect = (data.resolutionOutcome === 'correct' && commitment.binaryChoice === true) ||
-                       (data.resolutionOutcome === 'wrong' && commitment.binaryChoice === false)
-        } else if (prediction.outcomeType === 'MULTIPLE_CHOICE') {
-          wasCorrect = commitment.optionId === data.correctOptionId
+        if (outcome === 'void' || outcome === 'unresolvable') {
+          // Refund CU, no RS change
+          cuReturned = commitment.cuCommitted
+        } else {
+          // Determine if user was correct
+          const wasCorrect =
+            (outcome === 'correct' && commitment.binaryChoice === true) ||
+            (outcome === 'wrong' && commitment.binaryChoice === false)
+
+          if (wasCorrect) {
+            // Correct prediction: return CU + bonus, increase RS
+            cuReturned = Math.floor(commitment.cuCommitted * 1.5) // 50% bonus
+            rsChange = commitment.cuCommitted * 0.1 // 10% of committed CU as RS gain
+          } else {
+            // Wrong prediction: lose CU, decrease RS
+            cuReturned = 0
+            rsChange = -commitment.cuCommitted * 0.05 // 5% of committed CU as RS loss
+          }
         }
 
-        // CU and RS effects based on outcome
-        switch (data.resolutionOutcome) {
-          case 'correct':
-          case 'wrong':
-            // Unlock CU regardless of individual result
-            cuReturned = commitment.cuCommitted
-            // RS change would be calculated here (out of scope for now)
-            // rsChange = calculateRsChange(commitment, wasCorrect)
-            rsChange = wasCorrect ? 5 : -5 // Simplified: +5 for correct, -5 for wrong
-            break
-          case 'void':
-            // Refund CU, no RS change
-            cuReturned = commitment.cuCommitted
-            rsChange = 0
-            break
-          case 'unresolvable':
-            // Unlock CU, no RS change
-            cuReturned = commitment.cuCommitted
-            rsChange = 0
-            break
-        }
-
-        // Update commitment record
+        // Update commitment
         await tx.commitment.update({
           where: { id: commitment.id },
           data: {
@@ -175,83 +117,45 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         })
 
         // Update user balances
+        const newCuAvailable = commitment.user.cuAvailable + cuReturned
+        const newCuLocked = commitment.user.cuLocked - commitment.cuCommitted
+        const newRs = Math.max(0, commitment.user.rs + rsChange) // RS can't go below 0
+
         await tx.user.update({
           where: { id: commitment.userId },
           data: {
-            cuAvailable: { increment: cuReturned },
-            cuLocked: { decrement: commitment.cuCommitted },
-            rs: { increment: rsChange },
+            cuAvailable: newCuAvailable,
+            cuLocked: newCuLocked,
+            rs: newRs,
           },
         })
 
-        // Create ledger entry
-        const transactionType = data.resolutionOutcome === 'void' ? 'REFUND' : 'COMMITMENT_UNLOCK'
+        // Create CU transaction record
         await tx.cuTransaction.create({
           data: {
             userId: commitment.userId,
-            type: transactionType,
+            type: outcome === 'void' || outcome === 'unresolvable' ? 'REFUND' : 'COMMITMENT_UNLOCK',
             amount: cuReturned,
             referenceId: commitment.id,
-            note: `Prediction resolved: ${data.resolutionOutcome}`,
-            balanceAfter: 0, // Will be calculated in a real implementation
+            note: `Prediction resolved: ${outcome}`,
+            balanceAfter: newCuAvailable,
           },
         })
       }
+
+      return updatedPrediction
     })
 
-    // Fetch updated prediction
-    const updatedPrediction = await prisma.prediction.findUnique({
-      where: { id: params.id },
-      include: {
-        author: {
-          select: {
-            id: true,
-            name: true,
-            username: true,
-            image: true,
-          },
-        },
-        newsAnchor: true,
-        options: {
-          orderBy: { displayOrder: 'asc' },
-        },
-        commitments: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                username: true,
-                rs: true,
-              },
-            },
-          },
-        },
-        resolvedBy: {
-          select: {
-            id: true,
-            name: true,
-            username: true,
-          },
-        },
-      },
-    })
-
-    return NextResponse.json(updatedPrediction)
+    return NextResponse.json(result)
   } catch (error) {
-    console.error('Error resolving prediction:', error)
-    
-    if (error instanceof Error && error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: 'Validation failed', details: error },
-        { status: 400 }
-      )
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.issues }, { status: 400 })
     }
-    
+
+    console.error('Error resolving prediction:', error)
     return NextResponse.json(
       { error: 'Failed to resolve prediction' },
       { status: 500 }
     )
   }
 }
-
