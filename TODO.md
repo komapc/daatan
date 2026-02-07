@@ -12,6 +12,8 @@
 - [x] Predictions: Resolving mechanism (mark predictions as resolved, calculate accuracy) (2026-02-07)
 - [x] Feed: Add filters (tags, resolved, awaiting resolution, open - default, closing soon) (2026-02-07)
 - [x] Comments: Add commenting system for predictions/forecasts (threaded discussions, reactions) (2026-02-07)
+- [x] Code Quality: Eliminate all compile-time warnings, runtime warnings, linter warnings and hints (2026-02-07)
+- [x] SEO: Add unique slugs to all entities (users, predictions, forecasts) for better URLs (2026-02-07)
 - [ ] Profile: Prepare for adding custom avatar upload (S3 storage, DB schema, UI flow) - Spec ready
 - [ ] i18n: Set up internationalization infrastructure (next-intl, no translations yet) - Spec ready
 - [ ] Express Prediction: Binary predictions from free text with LLM + web search - Spec ready
@@ -36,6 +38,9 @@
 - [ ] Commitments: Commitment leaderboard (accuracy, total correct, RS gained, most CU committed)
 - [ ] Notifications: Browser notifications for commitment resolutions (high priority)
 - [ ] Notifications: Email notifications for commitment resolutions (low priority)
+- [ ] Admin: Plan admin panel/back office architecture and features
+- [ ] Infra: Investigate/fix zero downtime on upgrade (still doesn't work properly)
+- [ ] Testing: Implement end-to-end tests using relevant frameworks (Playwright/Cypress)
 
 ## Completed
 - [x] Add link to "retroanalysis" feature (2026-02-04)

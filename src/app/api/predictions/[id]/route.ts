@@ -14,12 +14,19 @@ type RouteParams = {
   params: { id: string }
 }
 
-// GET /api/predictions/[id] - Get a single prediction
+// GET /api/predictions/[id] - Get a single prediction (supports ID or slug)
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const prisma = await getPrisma()
-    const prediction = await prisma.prediction.findUnique({
-      where: { id: params.id },
+    
+    // Try to find by ID first, then by slug
+    const prediction = await prisma.prediction.findFirst({
+      where: {
+        OR: [
+          { id: params.id },
+          { slug: params.id },
+        ],
+      },
       include: {
         author: {
           select: {

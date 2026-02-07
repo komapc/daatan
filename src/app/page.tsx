@@ -172,15 +172,8 @@ export default function FeedPage() {
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-3">No active predictions</h2>
           <p className="text-gray-500 mb-8 max-w-md mx-auto text-lg">
-            There are no active predictions at the moment. Why not create one yourself?
+            There are no active predictions at the moment. Check back soon!
           </p>
-          <Link
-            href="/predictions/new"
-            className="inline-flex items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
-          >
-            <Plus className="w-5 h-5" />
-            Create First Prediction
-          </Link>
         </div>
       ) : (
         <div className="space-y-6">

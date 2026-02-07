@@ -56,7 +56,7 @@ interface PredictionWizardProps {
 
 export const PredictionWizard = ({ isExpressFlow = false }: PredictionWizardProps) => {
   const router = useRouter()
-  const [currentStep, setCurrentStep] = useState(1)
+  const [currentStep, setCurrentStep] = useState(isExpressFlow ? 2 : 1) // Start at step 2 for express
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
@@ -117,7 +117,8 @@ export const PredictionWizard = ({ isExpressFlow = false }: PredictionWizardProp
   }
 
   const handleBack = () => {
-    if (currentStep > 1) {
+    const minStep = isExpressFlow ? 2 : 1
+    if (currentStep > minStep) {
       setCurrentStep(prev => prev - 1)
     }
   }
@@ -216,7 +217,7 @@ export const PredictionWizard = ({ isExpressFlow = false }: PredictionWizardProp
       {/* Progress Steps */}
       <nav className="mb-8">
         <ol className="flex items-center">
-          {STEPS.map((step, index) => {
+          {STEPS.filter(step => !isExpressFlow || step.id !== 1).map((step, index, filteredSteps) => {
             const Icon = step.icon
             const isActive = currentStep === step.id
             const isCompleted = currentStep > step.id
@@ -246,7 +247,7 @@ export const PredictionWizard = ({ isExpressFlow = false }: PredictionWizardProp
                     <div className="text-xs text-gray-500">{step.description}</div>
                   </div>
                 </button>
-                {index < STEPS.length - 1 && (
+                {index < filteredSteps.length - 1 && (
                   <ChevronRight className="w-5 h-5 text-gray-300 mx-2 flex-shrink-0" />
                 )}
               </li>
@@ -271,10 +272,10 @@ export const PredictionWizard = ({ isExpressFlow = false }: PredictionWizardProp
       <div className="flex justify-between">
         <button
           onClick={handleBack}
-          disabled={currentStep === 1}
+          disabled={currentStep === (isExpressFlow ? 2 : 1)}
           className={`
             flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors
-            ${currentStep === 1 
+            ${currentStep === (isExpressFlow ? 2 : 1)
               ? 'text-gray-300 cursor-not-allowed' 
               : 'text-gray-600 hover:bg-gray-100'
             }

@@ -49,7 +49,7 @@ export const StepOutcome = ({ formData, updateFormData }: Props) => {
     if (formData.outcomeType === 'MULTIPLE_CHOICE') {
       updateFormData({ outcomeOptions: options.filter(o => o.trim()) })
     }
-  }, [options])
+  }, [options, formData.outcomeType, updateFormData])
 
   const handleAddOption = () => {
     if (options.length < 10) {
