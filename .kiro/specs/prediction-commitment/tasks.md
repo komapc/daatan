@@ -7,21 +7,21 @@ This implementation plan builds upon existing commitment infrastructure (databas
 ## Tasks
 
 - [ ] 1. Enhance validation schemas and add update endpoint
-  - [ ] 1.1 Add updateCommitmentSchema to src/lib/validations/prediction.ts
+  - [x] 1.1 Add updateCommitmentSchema to src/lib/validations/prediction.ts
     - Create schema with optional cuCommitted, binaryChoice, optionId fields
     - Add refinement to ensure at least one field is provided
     - Add refinement to validate outcome changes
     - Export UpdateCommitmentInput type
     - _Requirements: 3.1, 8.1, 8.2, 8.3_
   
-  - [ ] 1.2 Add listCommitmentsQuerySchema to src/lib/validations/prediction.ts
+  - [x] 1.2 Add listCommitmentsQuerySchema to src/lib/validations/prediction.ts
     - Create schema with optional predictionId, status, page, limit
     - Set defaults: page=1, limit=20
     - Add validation: limit max 100
     - Export ListCommitmentsQuery type
     - _Requirements: 7.6_
   
-  - [ ] 1.3 Implement PATCH /api/predictions/[id]/commit endpoint
+  - [x] 1.3 Implement PATCH /api/predictions/[id]/commit endpoint
     - Validate request with updateCommitmentSchema
     - Check authentication and authorization
     - Verify prediction is ACTIVE

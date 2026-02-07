@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { createCommitmentSchema } from '@/lib/validations/prediction'
+import { createCommitmentSchema, updateCommitmentSchema } from '@/lib/validations/prediction'
 
 export const dynamic = 'force-dynamic'
 
@@ -287,6 +287,176 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     console.error('Error removing commitment:', error)
     return NextResponse.json(
       { error: 'Failed to remove commitment' },
+      { status: 500 }
+    )
+  }
+}
+
+// PATCH /api/predictions/[id]/commit - Update existing commitment
+export async function PATCH(request: NextRequest, { params }: RouteParams) {
+  try {
+    const prisma = await getPrisma()
+    const session = await getServerSession(authOptions)
+    
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    const body = await request.json()
+    const data = updateCommitmentSchema.parse(body)
+
+    // Get commitment with prediction and user data
+    const [commitment, user] = await Promise.all([
+      prisma.commitment.findUnique({
+        where: {
+          userId_predictionId: {
+            userId: session.user.id,
+            predictionId: params.id,
+          },
+        },
+        include: {
+          prediction: {
+            include: { options: true },
+          },
+        },
+      }),
+      prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { id: true, cuAvailable: true, cuLocked: true, rs: true },
+      }),
+    ])
+
+    if (!commitment) {
+      return NextResponse.json(
+        { error: 'Commitment not found' },
+        { status: 404 }
+      )
+    }
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      )
+    }
+
+    // Can only update commitments on active predictions
+    if (commitment.prediction.status !== 'ACTIVE') {
+      return NextResponse.json(
+        { error: 'Can only update commitments on active predictions' },
+        { status: 400 }
+      )
+    }
+
+    // Validate option for multiple choice if changing outcome
+    if (data.optionId !== undefined) {
+      const optionExists = commitment.prediction.options.some(o => o.id === data.optionId)
+      if (!optionExists) {
+        return NextResponse.json(
+          { error: 'Invalid option' },
+          { status: 400 }
+        )
+      }
+    }
+
+    // Calculate CU delta if changing amount
+    const newCuAmount = data.cuCommitted ?? commitment.cuCommitted
+    const cuDelta = newCuAmount - commitment.cuCommitted
+
+    // If increasing CU, check user has enough available
+    if (cuDelta > 0 && user.cuAvailable < cuDelta) {
+      return NextResponse.json(
+        { error: `Insufficient CU. Available: ${user.cuAvailable}, additional needed: ${cuDelta}` },
+        { status: 400 }
+      )
+    }
+
+    // Atomic transaction: update commitment + adjust user CU + create ledger entries
+    const result = await prisma.$transaction(async (tx) => {
+      // Update commitment
+      const updatedCommitment = await tx.commitment.update({
+        where: { id: commitment.id },
+        data: {
+          cuCommitted: newCuAmount,
+          binaryChoice: data.binaryChoice !== undefined ? data.binaryChoice : commitment.binaryChoice,
+          optionId: data.optionId !== undefined ? data.optionId : commitment.optionId,
+          rsSnapshot: user.rs, // Update RS snapshot to current RS
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              username: true,
+              image: true,
+            },
+          },
+          option: {
+            select: {
+              id: true,
+              text: true,
+            },
+          },
+        },
+      })
+
+      // Adjust user CU balances if amount changed
+      if (cuDelta !== 0) {
+        await tx.user.update({
+          where: { id: session.user.id },
+          data: {
+            cuAvailable: { decrement: cuDelta },
+            cuLocked: { increment: cuDelta },
+          },
+        })
+
+        // Create ledger entry for the adjustment
+        if (cuDelta > 0) {
+          // Increasing commitment - lock more CU
+          await tx.cuTransaction.create({
+            data: {
+              userId: session.user.id,
+              type: 'COMMITMENT_LOCK',
+              amount: -cuDelta,
+              referenceId: commitment.id,
+              note: `Increased commitment on: ${commitment.prediction.claimText.substring(0, 50)}...`,
+              balanceAfter: user.cuAvailable - cuDelta,
+            },
+          })
+        } else {
+          // Decreasing commitment - refund CU
+          await tx.cuTransaction.create({
+            data: {
+              userId: session.user.id,
+              type: 'REFUND',
+              amount: Math.abs(cuDelta),
+              referenceId: commitment.id,
+              note: `Decreased commitment on: ${commitment.prediction.claimText.substring(0, 50)}...`,
+              balanceAfter: user.cuAvailable - cuDelta,
+            },
+          })
+        }
+      }
+
+      return updatedCommitment
+    })
+
+    return NextResponse.json(result, { status: 200 })
+  } catch (error) {
+    console.error('Error updating commitment:', error)
+    
+    if (error instanceof Error && error.name === 'ZodError') {
+      return NextResponse.json(
+        { error: 'Validation failed', details: error },
+        { status: 400 }
+      )
+    }
+    
+    return NextResponse.json(
+      { error: 'Failed to update commitment' },
       { status: 500 }
     )
   }

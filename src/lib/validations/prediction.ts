@@ -78,6 +78,31 @@ export const createCommitmentSchema = z.object({
   { message: 'Must specify either binaryChoice or optionId' }
 )
 
+export const updateCommitmentSchema = z.object({
+  cuCommitted: z.number().int().min(1).max(1000).optional(),
+  binaryChoice: z.boolean().optional(),
+  optionId: z.string().cuid().optional(),
+}).refine(
+  (data) => Object.keys(data).length > 0,
+  { message: 'Must provide at least one field to update' }
+).refine(
+  (data) => {
+    // If both outcome fields are provided, that's invalid
+    if (data.binaryChoice !== undefined && data.optionId !== undefined) {
+      return false
+    }
+    return true
+  },
+  { message: 'Cannot specify both binaryChoice and optionId' }
+)
+
+export const listCommitmentsQuerySchema = z.object({
+  predictionId: z.string().cuid().optional(),
+  status: z.enum(['ACTIVE', 'PENDING', 'RESOLVED_CORRECT', 'RESOLVED_WRONG', 'VOID', 'UNRESOLVABLE']).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+})
+
 // ============================================
 // RESOLUTION SCHEMAS
 // ============================================
@@ -110,6 +135,8 @@ export type CreateNewsAnchorInput = z.infer<typeof createNewsAnchorSchema>
 export type CreatePredictionInput = z.infer<typeof createPredictionSchema>
 export type UpdatePredictionInput = z.infer<typeof updatePredictionSchema>
 export type CreateCommitmentInput = z.infer<typeof createCommitmentSchema>
+export type UpdateCommitmentInput = z.infer<typeof updateCommitmentSchema>
+export type ListCommitmentsQuery = z.infer<typeof listCommitmentsQuerySchema>
 export type ResolvePredictionInput = z.infer<typeof resolvePredictionSchema>
 export type ListPredictionsQuery = z.infer<typeof listPredictionsQuerySchema>
 
