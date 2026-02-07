@@ -75,7 +75,7 @@ This implementation plan builds upon existing commitment infrastructure (databas
     - Test total CU calculation
 
 - [ ] 4. Build Commitment Display component
-  - [ ] 4.1 Create src/components/predictions/CommitmentDisplay.tsx
+  - [x] 4.1 Create src/components/predictions/CommitmentDisplay.tsx
     - Define CommitmentDisplayProps interface
     - Display committed CU amount
     - Display selected outcome (option text or binary choice label)
@@ -86,12 +86,12 @@ This implementation plan builds upon existing commitment infrastructure (databas
     - Style with Tailwind CSS (green for gains, red for losses)
     - _Requirements: 2.1, 2.3, 2.4_
   
-  - [ ] 4.2 Implement Edit button handler
+  - [x] 4.2 Implement Edit button handler
     - Call onEdit callback prop
     - Opens CommitmentForm in update mode
     - _Requirements: 3.1_
   
-  - [ ] 4.3 Implement Remove button handler
+  - [x] 4.3 Implement Remove button handler
     - Show confirmation dialog
     - Call DELETE /api/predictions/[id]/commit
     - Handle loading state
@@ -107,7 +107,7 @@ This implementation plan builds upon existing commitment infrastructure (databas
     - Verify output contains all required fields
 
 - [ ] 5. Build Commitment Form component
-  - [ ] 5.1 Create src/components/predictions/CommitmentForm.tsx
+  - [x] 5.1 Create src/components/predictions/CommitmentForm.tsx
     - Define CommitmentFormProps interface
     - Initialize state: cuAmount, selectedOutcome, isSubmitting, error
     - For binary predictions: render "Will Happen" / "Won't Happen" toggle
