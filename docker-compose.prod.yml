@@ -47,6 +47,7 @@ services:
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - SERPER_API_KEY=${SERPER_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - APP_VERSION=${APP_VERSION:-0.1.32}
     depends_on:
       postgres:
         condition: service_healthy
@@ -86,6 +87,7 @@ services:
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - SERPER_API_KEY=${SERPER_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - APP_VERSION=${APP_VERSION:-0.1.32}
     depends_on:
       postgres:
         condition: service_healthy
