@@ -1,15 +1,29 @@
+import { redirect } from 'next/navigation'
+import { getServerSession } from 'next-auth/next'
+import { authOptions } from '@/lib/auth'
 import { PlusCircle } from 'lucide-react'
+import CreatePredictionClient from './CreatePredictionClient'
 
-export default function CreateBetPage() {
+export default async function CreatePage() {
+  const session = await getServerSession(authOptions)
+
+  if (!session?.user?.id) {
+    redirect('/auth/signin?callbackUrl=/create')
+  }
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="flex items-center gap-3 mb-6 lg:mb-8">
+      <div className="flex items-center gap-3 mb-6 lg:mb-8 max-w-4xl mx-auto">
         <PlusCircle className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Create Bet</h1>
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Create Prediction</h1>
+          <p className="text-sm text-gray-600 mt-1">
+            Use Express for quick AI-assisted creation, or Manual for full control
+          </p>
+        </div>
       </div>
-      <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl p-8 sm:p-12 text-center">
-        <p className="text-gray-400 text-base sm:text-lg">Bet creation form will appear here</p>
-      </div>
+      
+      <CreatePredictionClient userId={session.user.id} />
     </div>
   )
 }
