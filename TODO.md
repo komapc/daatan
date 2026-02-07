@@ -8,7 +8,7 @@
 - [x] Infra: Zero downtime CI/CD deployment (2026-02-05) - Blue-green deployment implemented
 - [x] Mobile UX: Disable zoom-in (viewport settings) (2026-02-05)
 - [ ] UX: Unify prediction creation flow - Express as default, toggle to manual wizard (left panel + button should start express, add switch to manual mode)
-- [ ] Infra: Zero downtime version updates (update version without deployment downtime)
+- [x] Infra: Zero downtime version updates (update version without deployment downtime) (2026-02-07)
 - [ ] Predictions: Resolving mechanism (mark predictions as resolved, calculate accuracy)
 - [ ] Feed: Add filters (tags, resolved, awaiting resolution, open - default, closing soon)
 - [ ] Comments: Add commenting system for predictions/forecasts (threaded discussions, reactions)
@@ -26,6 +26,16 @@
 - [ ] Localization: Add Hebrew translations (infrastructure ready)
 - [ ] Express create forecast: Legacy forecast system with LLM assistance
 - [ ] Architecture: Refactor to classical SPA with 2026 best practices - Needs discussion
+- [ ] Admin: Admin panel for moderators/admins to remove/edit predictions and forecasts
+- [ ] UX: Clarify Feed vs Forecasts screens (remove feed or explain difference, make Forecasts default)
+- [ ] Code Quality: Eliminate all compile-time warnings, runtime warnings, linter warnings and hints
+- [ ] Notifications: Resolution feed/notifications for users with commitments on resolved predictions
+- [ ] Users: Add user role flags (admin, resolver/moderator, potentially more roles)
+- [ ] Commitments: Commitment history page with stats and performance metrics
+- [ ] Commitments: Real-time commitment feed showing recent activity across predictions
+- [ ] Commitments: Commitment leaderboard (accuracy, total correct, RS gained, most CU committed)
+- [ ] Notifications: Browser notifications for commitment resolutions (high priority)
+- [ ] Notifications: Email notifications for commitment resolutions (low priority)
 
 ## Completed
 - [x] Add link to "retroanalysis" feature (2026-02-04)
