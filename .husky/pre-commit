@@ -1,34 +1,19 @@
 #!/bin/bash
-# Enhanced pre-commit hook with comprehensive verification
+# Pre-commit hook: fast checks only (lint + version bump check)
+# Full build + tests run on pre-push
 
 set -e
 
-echo "🔍 Running pre-commit verification..."
+echo "🔍 Running pre-commit checks..."
 
 # Check version bump for feature/fix branches
 ./scripts/check-version-bump.sh || exit 1
 
-# Set dummy environment variables for build
-export DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
-export NEXTAUTH_SECRET="dummy-secret-for-build"
-export NEXTAUTH_URL="http://localhost:3000"
-
-# 1. Build verification
-echo "📦 Building application..."
-if ! npm run build; then
-  echo "❌ Build failed. Please fix build errors before committing."
-  exit 1
-fi
-
-# 2. Test execution
-echo "🧪 Running tests..."
-if ! npm test; then
-  echo "❌ Tests failed. Please fix failing tests before committing."
-  exit 1
-fi
-
-# 3. Lint check (warning only, doesn't block)
+# Lint check (fast)
 echo "🔍 Running linter..."
-npm run lint || echo "⚠️  Linting issues detected (not blocking commit)"
+if ! npm run lint; then
+  echo "❌ Lint failed. Please fix lint errors before committing."
+  exit 1
+fi
 
-echo "✅ Pre-commit verification passed!"
+echo "✅ Pre-commit checks passed!"
