@@ -17,10 +17,10 @@ export function ModeratorResolutionSection({
   const { data: session } = useSession()
   const router = useRouter()
 
-  // Only show for moderators/admins on active or pending predictions
+  // Only show for resolvers/admins on active or pending predictions
   const canResolve = 
-    session?.user?.isModerator || 
-    session?.user?.isAdmin
+    session?.user?.role === 'RESOLVER' || 
+    session?.user?.role === 'ADMIN'
 
   const isResolvable = 
     predictionStatus === 'ACTIVE' || 
@@ -34,7 +34,7 @@ export function ModeratorResolutionSection({
     <div className="mb-6">
       <div className="flex items-center gap-2 mb-4">
         <Shield className="w-5 h-5 text-blue-600" />
-        <h2 className="text-lg font-semibold text-gray-900">Moderator Actions</h2>
+        <h2 className="text-lg font-semibold text-gray-900">Resolver Actions</h2>
       </div>
       <ResolutionForm 
         predictionId={predictionId} 
