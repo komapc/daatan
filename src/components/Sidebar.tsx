@@ -20,6 +20,7 @@ import {
   LogOut,
   LogIn,
   History,
+  Shield,
 } from 'lucide-react'
 
 type NavItem = {
@@ -96,6 +97,11 @@ const Sidebar = () => {
         const authRequiredRoutes = ['/create', '/notifications', '/profile']
         return !authRequiredRoutes.includes(item.href)
       })
+
+  // Add admin link for admin/moderator users
+  if (hasMounted && status === 'authenticated' && (session?.user?.isAdmin || session?.user?.isModerator)) {
+    filteredNavItems.push({ href: '/admin', label: 'Admin', icon: Shield })
+  }
 
   // Add Sign In button to nav if unauthenticated (only after mount)
   if (hasMounted && status === 'unauthenticated') {
@@ -231,6 +237,16 @@ const Sidebar = () => {
                     <span className="w-3 h-3 rounded-full border border-amber-600 flex items-center justify-center text-[8px] font-bold">C</span>
                     {session.user.cuAvailable ?? 0} CU
                   </div>
+                  {(session.user.isAdmin || session.user.isModerator) && (
+                    <div className="flex items-center gap-1 mt-0.5">
+                      {session.user.isAdmin && (
+                        <span className="text-[10px] font-medium text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full">Admin</span>
+                      )}
+                      {session.user.isModerator && (
+                        <span className="text-[10px] font-medium text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">Mod</span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </Link>
               <button
