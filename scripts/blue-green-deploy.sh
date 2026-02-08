@@ -2,17 +2,21 @@
 set -e
 
 # DAATAN Blue-Green Deployment Script
-# True zero-downtime: builds new container, health-checks it, then swaps.
+# True zero-downtime: builds new container, health-checks it, runs migrations,
+# then swaps traffic using Docker network aliases.
 #
 # How it works:
 # 1. Build new image while old container serves traffic
-# 2. Start new container with a temporary name on a different port
+# 2. Start new container with a temporary name (no network alias yet)
 # 3. Health-check the new container directly
-# 4. Stop old container, rename new container to take its place
-# 5. Reload nginx to pick up the new container's IP
+# 4. Run migrations on the new container (before swap — if they fail, old stays live)
+# 5. Swap traffic: disconnect old container's network alias, connect new container
+#    with the service alias so nginx resolves to the new container instantly
+# 6. Stop old container
 #
 # Nginx uses variable-based upstream ($upstream_staging / $upstream_prod) with
 # Docker DNS resolver (127.0.0.11 valid=30s), so it re-resolves on each request.
+# By swapping network aliases, Docker DNS points to the new container immediately.
 #
 # Usage:
 #   ./scripts/blue-green-deploy.sh staging [--no-cache]
@@ -28,14 +32,17 @@ if [ "$2" = "--no-cache" ]; then
 fi
 
 # Determine container and compose service names
+# SERVICE_ALIAS is the DNS name nginx uses to reach the app container
 if [ "$ENVIRONMENT" = "staging" ]; then
     SERVICE="app-staging"
+    SERVICE_ALIAS="app-staging"
     CONTAINER="daatan-app-staging"
     CONTAINER_NEW="daatan-app-staging-new"
     DB_SERVICE="postgres-staging"
     HEALTH_URL="https://staging.daatan.com"
 elif [ "$ENVIRONMENT" = "production" ]; then
     SERVICE="app"
+    SERVICE_ALIAS="app"
     CONTAINER="daatan-app"
     CONTAINER_NEW="daatan-app-new"
     DB_SERVICE="postgres"
@@ -134,6 +141,7 @@ fi
 NETWORK=$(docker inspect $CONTAINER --format '{{range $key, $val := .NetworkSettings.Networks}}{{$key}}{{end}}' 2>/dev/null || echo "app_default")
 
 # Start new container on the same network but with a temporary name
+# No network alias yet — old container still owns the service alias
 docker run -d \
     --name $CONTAINER_NEW \
     --network $NETWORK \
@@ -166,35 +174,50 @@ for i in {1..20}; do
     sleep 3
 done
 
-# ─── Phase 5: Swap containers (minimal downtime ~1-2s) ──────────────────────────
+# ─── Phase 5: Run migrations (BEFORE swap — old container still serves traffic) ─
 echo ""
-echo "🔄 Phase 5: Swapping containers..."
+echo "🗄️ Phase 5: Running Prisma migrations on new container..."
+docker exec $CONTAINER_NEW node_modules/prisma/build/index.js migrate deploy 2>&1 || {
+    echo "❌ Migration failed! Aborting deployment."
+    echo "📋 New container logs:"
+    docker logs $CONTAINER_NEW --tail 30
+    # Clean up failed new container — old container keeps serving
+    docker rm -f $CONTAINER_NEW 2>/dev/null || true
+    echo "🔄 Old container still serving traffic — no downtime occurred"
+    exit 1
+}
+echo "✅ Migrations applied successfully"
 
-# Stop old container
+# ─── Phase 6: Swap traffic via network aliases (zero downtime) ──────────────────
+echo ""
+echo "🔄 Phase 6: Swapping traffic to new container..."
+
+# Disconnect old container from network (removes its DNS alias)
+docker network disconnect $NETWORK $CONTAINER 2>/dev/null || true
+
+# Reconnect new container with the service alias so nginx resolves to it
+# First disconnect (it's already connected without alias), then reconnect with alias
+docker network disconnect $NETWORK $CONTAINER_NEW 2>/dev/null || true
+docker network connect --alias $SERVICE_ALIAS $NETWORK $CONTAINER_NEW
+
+# Reload nginx to force immediate DNS re-resolution
+docker exec daatan-nginx nginx -s reload 2>/dev/null || true
+
+echo "✅ Traffic swapped to new container"
+
+# Stop and remove old container
 docker stop $CONTAINER 2>/dev/null || true
 docker rm -f $CONTAINER 2>/dev/null || true
 
-# Rename new container to take the old name
+# Rename new container to the canonical name for future deploys
 docker rename $CONTAINER_NEW $CONTAINER
 
-# Reload nginx to pick up DNS changes immediately
-docker exec daatan-nginx nginx -s reload 2>/dev/null || true
-
-echo "✅ Container swapped (old stopped, new renamed to $CONTAINER)"
-
-# ─── Phase 6: Run migrations ───────────────────────────────────────────────────
-echo ""
-echo "🗄️ Phase 6: Running Prisma migrations..."
-docker exec $CONTAINER node_modules/prisma/build/index.js migrate deploy 2>&1 || {
-    echo "❌ Migration failed!"
-    echo "📋 Container logs:"
-    docker logs $CONTAINER --tail 30
-    exit 1
-}
+echo "✅ Old container removed, new container is now $CONTAINER"
 
 # ─── Phase 7: External verification ────────────────────────────────────────────
 echo ""
 echo "🔍 Phase 7: Verifying deployment externally..."
+echo "   (waiting for nginx DNS cache to expire...)"
 sleep 3
 if ./scripts/verify-deploy.sh "$HEALTH_URL"; then
     echo "✅ Deployment verified"
