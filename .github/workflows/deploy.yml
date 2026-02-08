@@ -156,16 +156,8 @@ jobs:
             echo "🚀 Starting PRODUCTION deployment (${{ steps.version.outputs.version }}) at $(date)"
             
             cd ~/app
-
-            # Stop production app and nginx for rebuild
-            docker compose -f docker-compose.prod.yml down app nginx || true
-            
-            # Prune build cache and dangling images (safe — does NOT touch volumes or running containers)
-            docker builder prune -af
-            docker image prune -f
             
             # Ensure workspace is clean and writable (avoid node_modules permission issues)
-            # Try to fix permissions first, then remove (ignore errors to prevent script failure)
             chmod -R u+w node_modules 2>/dev/null || true
             sudo rm -rf node_modules 2>/dev/null || rm -rf node_modules 2>/dev/null || true
             
@@ -177,64 +169,19 @@ jobs:
               git reset --hard origin/main
             fi
             
-            # Source environment variables from server's .env file
-            if [ -f .env ]; then
-              set -a
-              source .env
-              set +a
-              echo "✅ Loaded env vars from .env file"
-            else
-              echo "❌ .env file not found!"
-              exit 1
-            fi
+            # Clean old local build artifacts (not Docker — running container stays up)
+            sudo rm -rf .next node_modules 2>/dev/null || true
             
-            # Get current git commit hash
-            GIT_COMMIT=$(git rev-parse HEAD)
-            export GIT_COMMIT
-            echo "🔍 Git commit: $GIT_COMMIT"
-            
-            # Build and restart production container
-            docker compose -f docker-compose.prod.yml build --no-cache --build-arg DATABASE_URL="postgresql://daatan:${POSTGRES_PASSWORD}@postgres:5432/daatan" --build-arg GIT_COMMIT="$GIT_COMMIT" app
-            docker compose -f docker-compose.prod.yml up -d --force-recreate app nginx
-            
-            # Run Prisma migrations on production database
-            echo "🗄️ Running Prisma migrations on production database..."
-            docker exec daatan-app node_modules/prisma/build/index.js migrate deploy || echo "⚠️ Migration failed or no pending migrations"
-            
-            # Wait for app to be healthy
-            echo "Waiting for health check..."
-            sleep 15
-            
-            # Verify deployment
-            if ./scripts/verify-deploy.sh "https://daatan.com"; then
-              echo "✅ Production deployment verified successfully"
-            else
-              echo "❌ Production deployment verification failed"
-              docker logs daatan-app --tail 50
-              exit 1
-            fi
-            
-            # Verify auth is working
-            echo "🔐 Verifying authentication..."
-            AUTH_CHECK=$(curl -s "https://daatan.com/api/auth/providers" | head -c 50)
-            if echo "$AUTH_CHECK" | grep -q "google"; then
-              echo "✅ Authentication verified"
-            else
-              echo "⚠️ Auth check failed, restarting container with env vars..."
-              docker compose -f docker-compose.prod.yml --env-file .env restart app
-              sleep 10
-              AUTH_CHECK=$(curl -s "https://daatan.com/api/auth/providers" | head -c 50)
-              if echo "$AUTH_CHECK" | grep -q "google"; then
-                echo "✅ Authentication verified after restart"
-              else
-                echo "❌ Authentication still failing"
-                docker logs daatan-app --tail 30 | grep -i "auth\|secret\|error"
-                exit 1
-              fi
-            fi            
-
-            # Cleanup old images
+            # Prune build cache and dangling images
+            docker builder prune -af
             docker image prune -f
+            
+            echo "🔍 Current commit on server:"
+            git log -1 --oneline
+            
+            # Run blue-green deployment (builds image while old container serves traffic)
+            chmod +x scripts/blue-green-deploy.sh
+            ./scripts/blue-green-deploy.sh production --no-cache
             
             echo "✅ Production deployment completed at $(date)"
 

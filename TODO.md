@@ -7,6 +7,10 @@
 
 ### 🔴 High Priority
 
+- [ ] **Security: Rotate exposed API keys** — `.env` file contains real API keys (Gemini, Serper, Google Search). Verified `.env` is gitignored and not in repo history — keys are safe for now. Rotate when moving to Secrets Manager.
+
+- [ ] **Security: Clean dead env vars from `.env`** — `GOOGLE_SEARCH_API_KEY` and `GOOGLE_SEARCH_ENGINE_ID` are in `.env` but unused in code (project uses Serper now). Remove to reduce attack surface.
+
 - [ ] **Admin & Roles System** (ASAP)
   - [ ] Add `role` enum to User model (USER, RESOLVER, ADMIN), seed initial admins
   - [ ] Role-based API middleware (admin-only, resolver-only route protection)
@@ -50,6 +54,24 @@
 
 - [ ] **DB: Sunset legacy Forecast/Vote/ForecastOption models** — dual system adds complexity, Comment has polymorphic relations to both. Migrate old data to new system, drop old tables.
 
+- [x] **Security: Inconsistent authorization on resolve endpoints** — ~~`forecasts/[id]/resolve` checks `isAdmin` only, while `predictions/[id]/resolve` checks `isModerator || isAdmin`. Standardize both to `isModerator || isAdmin`.~~ ✅ Fixed
+
+- [ ] **Code Quality: Fix `@ts-ignore` in `src/lib/auth.ts`** — PrismaAdapter type mismatch. Fix the type properly instead of suppressing.
+
+- [ ] **Code Quality: Replace `any` types** — found in `commitments/route.ts` (where clause), `ai/extract/route.ts` (error catch), `express/generate/route.ts` (onProgress callback), `expressPrediction.ts`. Use proper types.
+
+- [ ] **Code Quality: Standardize error responses** — some routes return `{ error }`, others `{ error, details }`. Create a shared error response helper.
+
+- [x] **DB: Add `deletedAt` index on Comment model** — ~~soft-delete queries filter on `deletedAt: null` but there's no index for it. Add `@@index([deletedAt])`.~~ ✅ Fixed
+
+- [x] **API: Add validation on `top-reputation` route** — ~~`limit` query param has no validation (could be negative or huge). Add Zod schema with `min(1).max(100)`.~~ ✅ Fixed
+
+- [x] **API: Comment delete should also allow `isModerator`** — ~~currently only author or `isAdmin` can delete. Moderators should be able to delete too, consistent with resolve permissions.~~ ✅ Fixed
+
+- [ ] **CI/CD: Production deploy stops app+nginx before rebuild** — ~~`deploy-production` job runs `docker compose down app nginx` before building, causing downtime. Should use blue-green like staging does.~~ ✅ Fixed — now uses `blue-green-deploy.sh production` same as staging.
+
+- [ ] **CI/CD: Migration failure silently ignored** — production deploy has `|| echo "⚠️ Migration failed..."` which swallows real migration errors. Should fail the deploy on migration errors. (Note: blue-green script has same issue in Phase 5)
+
 ### 🟡 Low Priority
 
 - [ ] **Express Forecast: Polish** — add save-as-draft, regenerate button, inline field editing on review screen
@@ -74,6 +96,11 @@
 - [ ] **Testing: Commitment and resolution flow tests** — critical business logic with zero coverage
 
 - [ ] **Localization: Hebrew translations** (after i18n infrastructure is ready)
+
+- [ ] **Code Quality: Remove unused `pg` dependency** — Prisma handles DB connections, `pg` package in `package.json` may not be needed directly. Verify and remove if unused.
+- [ ] **Docs: `DEPLOYMENT_SUMMARY.md` is stale** — references version 0.1.16 and "14/14 tests". Either keep it updated or remove it (it's a snapshot, not a living doc).
+- [ ] **Docs: Remove `PRODUCT_NAMING.md` or archive** — references "ScoopBet" as proposed name, decision still pending. Low value as a root-level doc.
+- [ ] **Dockerfile: Clean up debug `RUN echo` statements** — build stage has multiple `echo` and `ls -R` commands for debugging. Remove once builds are stable.
 
 ### 🔵 Verify / Check Later
 - [ ] **SEO: Slugs** — migration exists, verify URLs actually use slugs in production

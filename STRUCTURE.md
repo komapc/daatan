@@ -38,10 +38,14 @@ src/
 ├── app/                        # Next.js App Router
 │   ├── api/                    # API routes
 │   │   ├── auth/               # NextAuth.js endpoints
+│   │   ├── comments/            # Comment CRUD + reactions
+│   │   ├── commitments/         # User commitment listing
 │   │   ├── forecasts/          # Legacy forecast CRUD
 │   │   ├── health/             # Health check endpoint
 │   │   ├── news-anchors/       # News anchor management
 │   │   ├── predictions/        # New prediction system
+│   │   ├── profile/            # User profile update
+│   │   ├── top-reputation/     # Leaderboard endpoint
 │   │   └── version/            # Version endpoint
 │   ├── auth/                   # Auth pages
 │   │   ├── signin/             # Sign in page
@@ -55,6 +59,7 @@ src/
 │   ├── notifications/          # User notifications
 │   ├── predictions/            # Prediction views
 │   ├── profile/                # User profile
+│   ├── retroanalysis/          # Retroanalysis page
 │   ├── settings/               # User settings
 │   ├── globals.css             # Global styles
 │   ├── layout.tsx              # Root layout
@@ -62,7 +67,9 @@ src/
 │   ├── not-found.tsx           # 404 page
 │   └── page.tsx                # Homepage
 ├── components/                 # React components
+│   ├── comments/               # Comment thread components
 │   ├── predictions/            # Prediction-related components
+│   ├── profile/                # Profile edit form
 │   ├── ClientOnly.tsx          # Client-side rendering wrapper
 │   ├── ForecastForm.tsx        # Legacy forecast form
 │   ├── SessionWrapper.tsx      # Auth session provider

@@ -456,7 +456,7 @@ add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" alway
 ```bash
 # Production
 curl https://daatan.com/api/health
-# Response: {"status":"ok","version":"0.1.16","timestamp":"..."}
+# Response: {"status":"ok","version":"0.1.19","commit":"abc1234","timestamp":"..."}
 
 # Staging
 curl https://staging.daatan.com/api/health
