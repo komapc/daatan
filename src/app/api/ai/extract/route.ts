@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json(result)
-  } catch (error) {
+  } catch (error: unknown) {
     return handleRouteError(error, 'Extraction failed')
   }
 }

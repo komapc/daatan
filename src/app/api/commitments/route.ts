@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
+import { Prisma } from '@prisma/client'
 import { authOptions } from '@/lib/auth'
 import { listCommitmentsQuerySchema } from '@/lib/validations/prediction'
 import { apiError, handleRouteError } from '@/lib/api-error'
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
     const { predictionId, status, page, limit } = listCommitmentsQuerySchema.parse(queryParams)
 
     // Build where clause
-    const where: any = {
+    const where: Prisma.CommitmentWhereInput = {
       userId: session.user.id,
     }
 

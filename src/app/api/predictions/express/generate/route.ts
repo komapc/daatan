@@ -38,7 +38,7 @@ export async function POST(request: Request) {
       async start(controller) {
         try {
           // Progress callback
-          const onProgress = (stage: string, data?: any) => {
+          const onProgress = (stage: string, data?: Record<string, unknown>) => {
             const message = JSON.stringify({ stage, data }) + '\n'
             controller.enqueue(encoder.encode(message))
           }

@@ -11,7 +11,6 @@ ARG DATABASE_URL
 ARG NEXTAUTH_URL
 ARG NEXT_PUBLIC_ENV="production"
 ARG GIT_COMMIT="unknown"
-ARG BUILD_TIMESTAMP="unknown"
 
 # Hardcoded fallback values for the build phase only
 ENV DATABASE_URL=${DATABASE_URL:-"postgresql://daatan:dummy@localhost:5432/daatan"}
@@ -27,26 +26,12 @@ COPY prisma ./prisma/
 # Install dependencies
 RUN npm ci
 
-# Force cache invalidation for source files
-RUN echo "Build timestamp: $BUILD_TIMESTAMP"
-
 # Copy source
 COPY . .
-# Explicitly copy src again to ensure Docker doesn't use a stale cache for the source directory
-COPY src ./src
-COPY __tests__ ./__tests__
 
 # Build Next.js
 RUN npx prisma generate
-RUN echo "Source API routes check:" && ls -R src/app/api
-RUN echo "Source auth routes check:" && ls -R src/app/auth
-RUN echo "Health route content:" && head -20 src/app/api/health/route.ts
-RUN echo "Signin page content:" && head -30 src/app/auth/signin/page.tsx
-RUN echo "SignInClient content:" && head -30 src/app/auth/signin/SignInClient.tsx
 RUN npm run build 2>&1 || (echo "Build failed!" && cat .next/build-error.log 2>/dev/null && exit 1)
-RUN echo "Verifying API routes build:" && ls -R .next/server/app/api
-RUN echo "Verifying auth routes build:" && ls -R .next/server/app/auth || echo "No auth folder in build!"
-RUN echo "Full app routes:" && ls -R .next/server/app/
 
 # Production stage
 FROM node:20-bookworm-slim AS runner
