@@ -469,6 +469,8 @@ model Comment {
   @@index([authorId])
   @@index([parentId])
   @@index([createdAt])
+  @@index([predictionId, createdAt])
+  @@index([forecastId, createdAt])
   @@map("comments")
 }
 
