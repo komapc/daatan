@@ -9,7 +9,7 @@
 
 - [ ] **Security: Rotate exposed API keys** — `.env` file contains real API keys (Gemini, Serper, Google Search). Verified `.env` is gitignored and not in repo history — keys are safe for now. Rotate when moving to Secrets Manager.
 
-- [ ] **Security: Clean dead env vars from `.env`** — `GOOGLE_SEARCH_API_KEY` and `GOOGLE_SEARCH_ENGINE_ID` are in `.env` but unused in code (project uses Serper now). Remove to reduce attack surface.
+- [x] **Security: Clean dead env vars from `.env`** — ~~`GOOGLE_SEARCH_API_KEY` and `GOOGLE_SEARCH_ENGINE_ID` are in `.env` but unused in code (project uses Serper now). Remove to reduce attack surface.~~ ✅ Removed
 
 - [ ] **Admin & Roles System** (ASAP)
   - [ ] Add `role` enum to User model (USER, RESOLVER, ADMIN), seed initial admins
@@ -56,7 +56,7 @@
 
 - [x] **Security: Inconsistent authorization on resolve endpoints** — ~~`forecasts/[id]/resolve` checks `isAdmin` only, while `predictions/[id]/resolve` checks `isModerator || isAdmin`. Standardize both to `isModerator || isAdmin`.~~ ✅ Fixed
 
-- [ ] **Code Quality: Fix `@ts-ignore` in `src/lib/auth.ts`** — PrismaAdapter type mismatch. Fix the type properly instead of suppressing.
+- [x] **Code Quality: Fix `@ts-ignore` in `src/lib/auth.ts`** — ~~PrismaAdapter type mismatch. Fix the type properly instead of suppressing.~~ ✅ Cast as `Adapter` from next-auth/adapters
 
 - [ ] **Code Quality: Replace `any` types** — found in `commitments/route.ts` (where clause), `ai/extract/route.ts` (error catch), `express/generate/route.ts` (onProgress callback), `expressPrediction.ts`. Use proper types.
 
@@ -97,7 +97,7 @@
 
 - [ ] **Localization: Hebrew translations** (after i18n infrastructure is ready)
 
-- [ ] **Code Quality: Remove unused `pg` dependency** — Prisma handles DB connections, `pg` package in `package.json` may not be needed directly. Verify and remove if unused.
+- [x] **Code Quality: Remove unused `pg` dependency** — ~~Prisma handles DB connections, `pg` package in `package.json` may not be needed directly. Verify and remove if unused.~~ ✅ Verified unused, removed
 - [ ] **Docs: `DEPLOYMENT_SUMMARY.md` is stale** — references version 0.1.16 and "14/14 tests". Either keep it updated or remove it (it's a snapshot, not a living doc).
 - [ ] **Docs: Remove `PRODUCT_NAMING.md` or archive** — references "ScoopBet" as proposed name, decision still pending. Low value as a root-level doc.
 - [ ] **Dockerfile: Clean up debug `RUN echo` statements** — build stage has multiple `echo` and `ls -R` commands for debugging. Remove once builds are stable.
