@@ -1,29 +1,38 @@
 #!/bin/bash
-# Pre-push verification with auth change detection
+# Pre-push hook: full build + test verification
 
 set -e
 
 echo "🚀 Running pre-push verification..."
 
-# Check if auth-related files changed
+# Set dummy environment variables for build
+export DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
+export NEXTAUTH_SECRET="dummy-secret-for-build"
+export NEXTAUTH_URL="http://localhost:3000"
+
+# 1. Build verification
+echo "📦 Building application..."
+if ! npm run build; then
+  echo "❌ Build failed. Please fix build errors before pushing."
+  exit 1
+fi
+
+# 2. Test execution
+echo "🧪 Running tests..."
+if ! npm test; then
+  echo "❌ Tests failed. Please fix failing tests before pushing."
+  exit 1
+fi
+
+# Check if auth-related files changed (informational warning, non-blocking)
 AUTH_FILES_CHANGED=$(git diff --name-only origin/main...HEAD 2>/dev/null | grep -E "(auth|session|login)" || true)
 
 if [ -n "$AUTH_FILES_CHANGED" ]; then
   echo ""
   echo "⚠️  Authentication-related files changed:"
   echo "$AUTH_FILES_CHANGED"
+  echo "  Please verify login flow locally before merging."
   echo ""
-  echo "Please verify:"
-  echo "  1. Test login flow locally"
-  echo "  2. Verify OAuth configuration"
-  echo "  3. Check session management"
-  echo ""
-  read -p "Have you tested authentication locally? (y/n) " -n 1 -r
-  echo
-  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo "❌ Please test authentication before pushing"
-    exit 1
-  fi
 fi
 
 echo "✅ Pre-push verification passed!"
