@@ -4,87 +4,80 @@
 <!-- Items currently being worked on -->
 
 ## Up Next
-- [x] Show sign-in option on every screen when user is not logged in (2026-02-05)
-- [x] Infra: Zero downtime CI/CD deployment (2026-02-05) - Blue-green deployment implemented
-- [x] Mobile UX: Disable zoom-in (viewport settings) (2026-02-05)
-- [x] UX: Unify prediction creation flow - Express as default, toggle to manual wizard (left panel + button should start express, add switch to manual mode) (2026-02-07)
-- [x] Infra: Zero downtime version updates (update version without deployment downtime) (2026-02-07)
-- [x] Predictions: Resolving mechanism (mark predictions as resolved, calculate accuracy) (2026-02-07)
-- [x] Feed: Add filters (tags, resolved, awaiting resolution, open - default, closing soon) (2026-02-07)
-- [x] Comments: Add commenting system for predictions/forecasts (threaded discussions, reactions) (2026-02-07)
-- [x] Code Quality: Eliminate all compile-time warnings, runtime warnings, linter warnings and hints (2026-02-07)
-- [x] SEO: Add unique slugs to all entities (users, predictions, forecasts) for better URLs (2026-02-07)
-### 🔴 Critical (data safety & security)
-<!-- All critical items resolved -->
 
-### 🟠 High Priority (stability & correctness)
-- [x] DB: Run `npx prisma generate` — Comment model not recognized by Prisma client (type errors in comments API routes) (2026-02-08)
-- [x] DB: Create/verify migration files for Commitment and CuTransaction models — migrations applied manually to both DBs (2026-02-08)
-- [x] CI/CD: Add `concurrency` group to GitHub Actions deploy workflow — prevents simultaneous deploys (2026-02-08)
-- [ ] Security: Add rate limiting middleware to sensitive API endpoints (commit, resolve, comments) — no rate limiting exists anywhere
-- [ ] Infra: EC2 instance type is `t3.nano` (0.5GB RAM) but runs Nginx + 2 Next.js apps + PostgreSQL — upgrade to at least `t3.small` (2GB) or the containers will OOM
-- [x] Code Quality: Fix version number drift — aligned all to package.json as single source of truth (2026-02-08)
-- [x] Code Quality: Move `@prisma/client` from devDependencies to dependencies in package.json (2026-02-08)
-- [x] API: Resolve endpoint now uses shared `resolvePredictionSchema` — aligned field names and optionality (2026-02-08)
-- [ ] Infra: Investigate/fix zero downtime on upgrade (still doesn't work properly)
+### 🔴 High Priority
 
-### 🟡 Medium Priority (features & improvements)
-- [ ] Profile: Prepare for adding custom avatar upload (S3 storage, DB schema, UI flow) - Spec ready
-- [ ] i18n: Set up internationalization infrastructure (next-intl, no translations yet) - Spec ready
-- [ ] Express Prediction: Binary predictions from free text with LLM + web search - Spec ready
-- [ ] Predictions: Add voting/commitment functionality for users
-- [ ] Predictions: Allow users to change their vote/commitment
-- [ ] Predictions: Full-screen view when clicking prediction card (currently only shows in feed)
-- [ ] SEO: Add unique slugs to all entities (users, predictions, forecasts) for better URLs
-- [ ] Express Prediction: Multiple choice support (e.g., "who will win elections")
-- [ ] Express Prediction: Numeric threshold support (e.g., "Bitcoin price by end of year")
-- [ ] Express Prediction: Advanced types (order, date-based, conditional)
-- [ ] Predictions: "Updated Context" feature - re-analyze situation with latest articles
-- [ ] Localization: Add Hebrew translations (infrastructure ready)
-- [ ] Express create forecast: Legacy forecast system with LLM assistance
-- [ ] Admin: Admin panel for moderators/admins to remove/edit predictions and forecasts
-- [ ] UX: Clarify Feed vs Forecasts screens (remove feed or explain difference, make Forecasts default)
-- [ ] Notifications: Resolution feed/notifications for users with commitments on resolved predictions
-- [ ] Users: Add user role flags (admin, resolver/moderator, potentially more roles)
-- [ ] Commitments: Commitment history page with stats and performance metrics
-- [ ] Commitments: Real-time commitment feed showing recent activity across predictions
-- [ ] Commitments: Commitment leaderboard (accuracy, total correct, RS gained, most CU committed)
-- [ ] Notifications: Browser notifications for commitment resolutions (high priority)
-- [ ] Notifications: Email notifications for commitment resolutions (low priority)
-- [ ] Admin: Plan admin panel/back office architecture and features
-- [ ] SEO: Server-render the home feed page — currently `'use client'` with useEffect fetch, no SSR/SEO for the main entry point
-- [ ] DB: Plan migration to sunset legacy Forecast/Vote/ForecastOption models — dual system adds complexity, Comment has polymorphic relations to both
-- [ ] Architecture: Refactor to classical SPA with 2026 best practices - Needs discussion
-- [ ] Analytics: Add anonymous usage analytics (funnel drop-off, commitment rates, filter usage) — self-hosted (Plausible/Umami) or custom DB events, no PII
-- [ ] SEO: Add OpenGraph meta tags per prediction page — dynamic title/summary/commitment split via generateMetadata() for rich social share cards
-- [ ] Predictions: Deadline resolution flow — past-deadline predictions become "awaiting resolution", moderators get notified, LLM suggests resolution (web search + reasoning), moderator approves or overrides
+- [ ] **Admin & Roles System** (ASAP)
+  - [ ] Add `role` enum to User model (USER, RESOLVER, ADMIN), seed initial admins
+  - [ ] Role-based API middleware (admin-only, resolver-only route protection)
+  - [ ] Custom `/admin` page — forecasts management (list, search, edit, soft-delete)
+  - [ ] Admin: Comments management (list, search, delete)
+  - [ ] Admin: Users management (list, assign/revoke roles)
+  - [ ] Resolver capabilities: resolve forecasts + delete comments (inline UI + admin panel)
+  - [ ] UI indicators: admin/resolver badges on profiles, inline moderation controls
 
-### 🟢 Low Priority (hardening & polish)
-- [ ] Code Quality: Eliminate all compile-time warnings, runtime warnings, linter warnings and hints
-- [x] Code Quality: Remove `any` types — CommitmentForm.tsx (replaced with typed interfaces) (2026-02-08)
-- [x] Code Quality: Remove unused `SearchResult` import in expressPrediction.ts (was already done) (2026-02-08)
-- [ ] Code Quality: Replace `console.error` in API routes with structured logging (e.g., pino)
-- [ ] Security: Add Content-Security-Policy header to nginx config
-- [x] Security: Add HSTS header to staging nginx server block (2026-02-08)
-- [x] Nginx: Reduce `proxy_read_timeout` from 86400s (24h) to 120s (2026-02-08)
-- [x] DB: Add composite index on Comment `(predictionId, createdAt)` and `(forecastId, createdAt)` (2026-02-08)
-- [ ] Infra: Add SSL certificate renewal monitoring/alerting — certbot runs in a loop but no alert if renewal fails
-- [ ] Infra: Add DB migration rollback strategy — rollback.sh handles code but not schema changes
-- [x] CI/CD: verify-deploy.sh now uses health endpoint version/commit instead of package.json (2026-02-08)
-- [x] CI/CD: Pre-commit hook now only runs lint; build+tests moved to pre-push (2026-02-08)
-- [ ] Testing: Implement end-to-end tests using relevant frameworks (Playwright/Cypress)
-- [ ] Testing: Add tests for commitment and resolution flows — critical business logic with zero test coverage
-- [ ] UX: Dark mode toggle with system preference detection and localStorage persistence
-- [x] Testing: Fix comments.test.ts — was already passing (12 tests) (2026-02-08)
+- [ ] **Infra: Fix zero-downtime deploys** — staging is down several minutes after merging PRs. Investigate deploy workflow + blue-green script, likely old container stopped before new one is healthy or DB restart during deploy
 
-## Completed
-- [x] Security: Remove NEXTAUTH_SECRET from Docker build args — now only passed as runtime env var (2026-02-08)
-- [x] Infra: Terraform state moved to S3 backend with DynamoDB locking, tfplan removed from git (2026-02-08)
-- [x] Infra: EBS delete_on_termination set to false — volume survives EC2 termination (2026-02-08)
-- [x] Infra: Removed docker system prune -af --volumes from deploy workflows (2026-02-08)
-- [x] Infra: Separate staging database from production — added `postgres-staging` service with own volume + `daatan_staging` DB, updated deploy workflow and blue-green script (2026-02-08)
-- [x] Add link to "retroanalysis" feature (2026-02-04)
-<!-- Move items here when done, with date -->
+- [ ] **Architecture: Refactor to classical SPA** with 2026 best practices — Spec ready at `.kiro/specs/spa-refactor/`
+
+- [ ] **Naming: Rename "Prediction" → "Forecast" everywhere** — DB models, API routes, file paths, components, types, UI text. Consolidate with legacy Forecast model sunset. Needs spec + careful migration plan for production data.
+
+### 🟠 Medium Priority
+
+- [ ] **Commitments: Elaborate commitment/join forecast system** — define how users commit to forecasts, change commitments, what happens on resolution. Multiple open design questions.
+
+- [ ] **Forecasts: Tags/domains system** — evolve single `domain` string to many-to-many tags. LLM auto-assigns during creation, user can edit. Existing domain values become initial tag set. Feed filtering by tags.
+
+- [ ] **Forecasts: "Updated Context" feature** — "Analyze Context" button on forecast detail page. Re-searches latest articles, updates context. Forecast claim text never changes, only context evolves.
+
+- [ ] **Notifications system** (unified)
+  - [ ] In-app notifications page (`/notifications`)
+  - [ ] Telegram channel integration
+  - [ ] Browser push notifications
+  - [ ] Email notifications
+  - [ ] Settings page: per-user notification channel configuration
+  - [ ] Triggers: commitment resolutions, comments on your forecasts, new commitments
+
+- [ ] **UX: Merge Feed and Forecasts screens** — unify `/` and `/predictions` into single feed at `/`, redirect `/predictions` there
+
+- [ ] **Commitments: History page** with stats and performance metrics
+- [ ] **Commitments: Real-time activity feed** showing recent commitments across forecasts
+- [ ] **Commitments: Leaderboard** (accuracy, total correct, RS gained, most CU committed)
+
+- [ ] **i18n: Language picker + store preference** — add language selector in UI, store user preference in DB. Infrastructure setup with next-intl.
+- [ ] **i18n: UI translations** — translate all static UI strings (buttons, labels, navigation). Start with Hebrew.
+- [ ] **i18n: Auto-translate user content** — automatic translation of forecasts, comments. Hard questions: what if translation loses meaning? Show original + translation? Flag uncertain translations?
+
+- [ ] **DB: Sunset legacy Forecast/Vote/ForecastOption models** — dual system adds complexity, Comment has polymorphic relations to both. Migrate old data to new system, drop old tables.
+
+### 🟡 Low Priority
+
+- [ ] **Express Forecast: Polish** — add save-as-draft, regenerate button, inline field editing on review screen
+- [ ] **Express Forecast: Multiple choice support** (e.g., "who will win elections")
+- [ ] **Express Forecast: Numeric threshold support** (e.g., "Bitcoin price by end of year")
+- [ ] **Express Forecast: Advanced types** (order, date-based, conditional)
+- [ ] **Express create forecast**: Legacy forecast system with LLM assistance
+
+- [ ] **Security: Rate limiting** — anti-flood on write endpoints, cost protection on LLM routes (express generate, AI extract). Nginx-level preferred.
+- [ ] **Security: Content-Security-Policy header** in nginx config
+
+- [ ] **Infra: Check EC2 memory usage** — t3.nano (0.5GB) runs Nginx + 2 Next.js + PostgreSQL. Check if actually hitting limits before upgrading.
+- [ ] **Infra: SSL certificate renewal monitoring** — certbot runs in loop but no alert if renewal fails
+- [ ] **Infra: DB migration rollback strategy** — rollback.sh handles code but not schema changes
+
+- [ ] **Profile: Custom avatar upload** (S3 storage, DB schema, UI flow) — Spec ready
+
+- [ ] **Code Quality: Eliminate all compile-time/runtime/linter warnings**
+- [ ] **Code Quality: Replace `console.error` with structured logging** (e.g., pino)
+
+- [ ] **Testing: E2E tests** (Playwright/Cypress)
+- [ ] **Testing: Commitment and resolution flow tests** — critical business logic with zero coverage
+
+- [ ] **Localization: Hebrew translations** (after i18n infrastructure is ready)
+
+### 🔵 Verify / Check Later
+- [ ] **SEO: Slugs** — migration exists, verify URLs actually use slugs in production
+- [ ] **SEO: Server-render home feed** — currently client-side fetch, no SSR. Lowest priority.
 
 ---
-*Agents: Work through "Up Next" items in order. Move to "In Progress" when starting. Move to "Completed" with date when done. Notify komap via Telegram when ready for review.*
+*Agents: Work through "Up Next" items in priority order. Move to "In Progress" when starting. Notify komap via Telegram when ready for review.*
