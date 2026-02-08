@@ -1,0 +1,142 @@
+'use client'
+import { useState, useEffect } from 'react'
+import { Loader2, Search } from 'lucide-react'
+
+export default function UsersTable() {
+  const [users, setUsers] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+
+  useEffect(() => {
+    fetchUsers()
+  }, [page])
+
+  const fetchUsers = async () => {
+    setIsLoading(true)
+    try {
+      const res = await fetch(`/api/admin/users?page=${page}&limit=20&search=${encodeURIComponent(search)}`)
+      if (res.ok) {
+        const data = await res.json()
+        setUsers(data.users)
+        setTotalPages(data.pages)
+      }
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const updateRole = async (userId: string, newRole: string) => {
+    const res = await fetch(`/api/admin/users/${userId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: newRole }),
+    })
+    if (res.ok) {
+      setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u))
+    } else {
+      alert('Failed to update role')
+    }
+  }
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    setPage(1)
+    fetchUsers()
+  }
+
+  return (
+    <div>
+      <div className="mb-6 flex gap-2">
+        <form onSubmit={handleSearch} className="flex gap-2 flex-1">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <input 
+              type="text" 
+              value={search} 
+              onChange={(e) => setSearch(e.target.value)} 
+              placeholder="Search by name, email, or username..." 
+              className="pl-10 pr-4 py-2 border rounded-lg w-full focus:ring-2 focus:ring-blue-500 outline-none"
+            />
+          </div>
+          <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+            Search
+          </button>
+        </form>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+        </div>
+      ) : (
+        <>
+          <div className="overflow-x-auto border rounded-lg shadow-sm">
+            <table className="w-full border-collapse bg-white">
+              <thead className="bg-gray-50 text-gray-700 text-sm font-semibold uppercase tracking-wider">
+                <tr>
+                  <th className="p-3 border-b text-left">User</th>
+                  <th className="p-3 border-b text-left">Email</th>
+                  <th className="p-3 border-b text-left">Role</th>
+                  <th className="p-3 border-b text-right">Reputation</th>
+                  <th className="p-3 border-b text-right">CU</th>
+                  <th className="p-3 border-b text-right">Created</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {users.map((u) => (
+                  <tr key={u.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="p-3">
+                      <div className="font-medium text-gray-900">{u.name}</div>
+                      <div className="text-xs text-gray-500 font-mono">@{u.username || 'unknown'}</div>
+                    </td>
+                    <td className="p-3 text-sm text-gray-600">{u.email}</td>
+                    <td className="p-3">
+                      <select 
+                        value={u.role} 
+                        onChange={(e) => updateRole(u.id, e.target.value)}
+                        className={`border rounded p-1 text-sm outline-none focus:ring-2 focus:ring-blue-500 ${
+                          u.role === 'ADMIN' ? 'bg-purple-50 text-purple-800 border-purple-200' :
+                          u.role === 'RESOLVER' ? 'bg-blue-50 text-blue-800 border-blue-200' :
+                          'bg-white text-gray-900 border-gray-200'
+                        }`}
+                      >
+                        <option value="USER">User</option>
+                        <option value="RESOLVER">Resolver</option>
+                        <option value="ADMIN">Admin</option>
+                      </select>
+                    </td>
+                    <td className="p-3 text-right font-mono text-sm">{Math.round(u.rs)}</td>
+                    <td className="p-3 text-right font-mono text-sm">{u.cuAvailable}</td>
+                    <td className="p-3 text-right text-xs text-gray-500">{new Date(u.createdAt).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-4 flex justify-between items-center text-sm text-gray-600">
+            <div>Page {page} of {totalPages}</div>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-gray-50"
+              >
+                Previous
+              </button>
+              <button 
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-gray-50"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}

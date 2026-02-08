@@ -11,26 +11,25 @@ export const GET = withRole(['ADMIN'], async (req) => {
   const where: any = {}
   if (search) {
     where.OR = [
-      { name: { contains: search, mode: 'insensitive' } },
-      { email: { contains: search, mode: 'insensitive' } },
-      { username: { contains: search, mode: 'insensitive' } },
+      { claimText: { contains: search, mode: 'insensitive' } },
+      { author: { name: { contains: search, mode: 'insensitive' } } },
+      { author: { email: { contains: search, mode: 'insensitive' } } },
     ]
   }
 
-  const [users, total] = await Promise.all([
-    prisma.user.findMany({
+  const [predictions, total] = await Promise.all([
+    prisma.prediction.findMany({
       where,
-      select: {
-        id: true, name: true, email: true, role: true, 
-        cuAvailable: true, rs: true, createdAt: true,
-        _count: { select: { predictions: true, commitments: true } }
+      include: {
+        author: { select: { name: true, email: true } },
+        _count: { select: { commitments: true, comments: true } }
       },
       skip: (page - 1) * limit,
       take: limit,
       orderBy: { createdAt: 'desc' }
     }),
-    prisma.user.count({ where })
+    prisma.prediction.count({ where })
   ])
 
-  return NextResponse.json({ users, total, pages: Math.ceil(total / limit) })
+  return NextResponse.json({ predictions, total, pages: Math.ceil(total / limit) })
 })

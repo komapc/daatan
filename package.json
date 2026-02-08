@@ -1,6 +1,6 @@
 {
   "name": "daatan",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -10,6 +10,9 @@
     "test": "vitest run",
     "postinstall": "prisma generate",
     "prepare": "husky"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
