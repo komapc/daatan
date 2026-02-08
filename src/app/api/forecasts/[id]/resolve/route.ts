@@ -36,10 +36,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Admin only
-    if (!session.user.isAdmin) {
+    // Admin or moderator
+    if (!session.user.isAdmin && !session.user.isModerator) {
       return NextResponse.json(
-        { error: 'Only admins can resolve forecasts' },
+        { error: 'Only admins or moderators can resolve forecasts' },
         { status: 403 }
       )
     }

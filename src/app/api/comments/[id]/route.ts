@@ -116,13 +116,13 @@ export async function DELETE(
       )
     }
 
-    // Only author or admin can delete
+    // Only author, admin, or moderator can delete
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { isAdmin: true },
+      select: { isAdmin: true, isModerator: true },
     })
 
-    if (comment.authorId !== session.user.id && !user?.isAdmin) {
+    if (comment.authorId !== session.user.id && !user?.isAdmin && !user?.isModerator) {
       return NextResponse.json(
         { error: 'Forbidden' },
         { status: 403 }
