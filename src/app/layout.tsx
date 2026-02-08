@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { StagingBanner } from '@/components/StagingBanner'
 import Sidebar from '@/components/Sidebar'
@@ -11,16 +11,14 @@ export const metadata: Metadata = {
     icon: '/logo-icon.svg',
     apple: '/logo-icon.svg',
   },
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-  },
 }
 
-// Force dynamic rendering to ensure session context is handled correctly at runtime
-export const dynamic = 'force-dynamic'
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+}
 
 export default function RootLayout({
   children,
@@ -28,8 +26,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning={true}>
-      <body className="bg-white">
+    <html lang="en" suppressHydrationWarning>
+      <body className="bg-white" suppressHydrationWarning>
         <SessionWrapper>
           <StagingBanner />
           <div className="flex min-h-screen">
