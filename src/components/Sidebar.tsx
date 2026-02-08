@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { useSession, signOut, signIn } from 'next-auth/react'
 import { VERSION } from '@/lib/version'
@@ -42,11 +42,18 @@ const navItems: NavItem[] = [
 const Sidebar = () => {
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [hasMounted, setHasMounted] = useState(false)
   
   // Safely call useSession and provide defaults to avoid build-time crashes
   const sessionData = useSession()
   const session = sessionData?.data || null
   const status = sessionData?.status || 'unauthenticated'
+
+  // Track mount state to avoid hydration mismatch
+  // Server always renders the "loading" state; client switches after mount
+  useEffect(() => {
+    setHasMounted(true)
+  }, [])
 
   const handleToggleMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen)
@@ -72,17 +79,26 @@ const Sidebar = () => {
     handleCloseMenu()
   }
 
-  // Filter nav items based on auth status
-  const filteredNavItems = navItems.filter((item) => {
-    const authRequiredRoutes = ['/create', '/notifications', '/profile']
-    if (authRequiredRoutes.includes(item.href)) {
-      return status === 'authenticated'
-    }
-    return true
-  })
+  // Use "loading" state for SSR and pre-mount to ensure server/client HTML matches
+  const effectiveStatus = hasMounted ? status : 'loading'
 
-  // Add Sign In button to nav if unauthenticated
-  if (status === 'unauthenticated') {
+  // Filter nav items based on auth status (only after mount to avoid hydration mismatch)
+  const filteredNavItems = hasMounted
+    ? navItems.filter((item) => {
+        const authRequiredRoutes = ['/create', '/notifications', '/profile']
+        if (authRequiredRoutes.includes(item.href)) {
+          return status === 'authenticated'
+        }
+        return true
+      })
+    : navItems.filter((item) => {
+        // During SSR/pre-mount, show all non-auth routes
+        const authRequiredRoutes = ['/create', '/notifications', '/profile']
+        return !authRequiredRoutes.includes(item.href)
+      })
+
+  // Add Sign In button to nav if unauthenticated (only after mount)
+  if (hasMounted && status === 'unauthenticated') {
     filteredNavItems.push({ href: '#', label: 'Sign In', icon: LogIn })
   }
 
@@ -95,7 +111,7 @@ const Sidebar = () => {
           <h1 className="text-lg font-bold text-gray-900">DAATAN</h1>
         </Link>
         <div className="flex items-center gap-2">
-          {status === 'authenticated' && session?.user && (
+          {hasMounted && status === 'authenticated' && session?.user && (
             <Link href="/profile" onClick={handleCloseMenu}>
               <Avatar 
                 src={session.user.image} 
@@ -189,14 +205,14 @@ const Sidebar = () => {
 
         {/* User Section */}
         <div className="p-4 border-t border-gray-100">
-          {status === 'loading' ? (
+          {effectiveStatus === 'loading' ? (
             <div className="animate-pulse flex items-center gap-3 px-4 py-3">
               <div className="w-8 h-8 bg-gray-200 rounded-full" />
               <div className="flex-1">
                 <div className="h-4 bg-gray-200 rounded w-24" />
               </div>
             </div>
-          ) : status === 'authenticated' && session?.user ? (
+          ) : effectiveStatus === 'authenticated' && session?.user ? (
             <div className="space-y-1">
               <Link
                 href="/profile"
