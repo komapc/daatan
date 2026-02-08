@@ -51,8 +51,8 @@ RUN echo "Full app routes:" && ls -R .next/server/app/
 # Production stage
 FROM node:20-bookworm-slim AS runner
 
-# Install OpenSSL for Prisma
-RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+# Install OpenSSL for Prisma and wget for health checks
+RUN apt-get update && apt-get install -y openssl wget && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 

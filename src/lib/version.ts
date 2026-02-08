@@ -1,9 +1,6 @@
-// Version is read from environment variable at runtime for zero-downtime updates
-// Format: MAJOR.MINOR.PATCH
-// - MAJOR: Breaking changes or major features
-// - MINOR: New features, significant improvements
-// - PATCH: Bug fixes, small improvements, every PR
-
-// Fallback to build-time version if env var not set
-export const VERSION = process.env.APP_VERSION || '0.1.20'
-
+// Version is read from NEXT_PUBLIC_APP_VERSION which is baked at build time
+// from package.json via next.config.js. This ensures server and client always
+// agree on the version, preventing hydration mismatches.
+// APP_VERSION (runtime env) is only used by the /api/health endpoint for
+// server-side reporting — it must NOT be used in any rendered component.
+export const VERSION = process.env.NEXT_PUBLIC_APP_VERSION || '0.1.19'
