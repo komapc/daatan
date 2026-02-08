@@ -126,6 +126,18 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const data = createPredictionSchema.parse(body)
 
+    // Verify user exists in database (JWT may reference a deleted/missing user)
+    const userExists = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { id: true },
+    })
+    if (!userExists) {
+      return NextResponse.json(
+        { error: 'User not found. Please sign out and sign back in.' },
+        { status: 403 }
+      )
+    }
+
     // Validate resolve-by is in the future
     if (new Date(data.resolveByDatetime) <= new Date()) {
       return NextResponse.json(
