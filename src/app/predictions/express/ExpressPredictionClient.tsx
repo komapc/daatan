@@ -135,21 +135,14 @@ export default function ExpressPredictionClient({ userId }: ExpressPredictionCli
   }
 
   const handleCreatePrediction = () => {
-    console.log('handleCreatePrediction called', { generated })
-    if (!generated) {
-      console.error('No generated data')
-      return
-    }
+    if (!generated) return
     
     try {
-      // Store generated data in localStorage for the wizard to pick up
       localStorage.setItem('expressPredictionData', JSON.stringify(generated))
-      console.log('Data stored in localStorage, navigating...')
-      
-      // Use window.location instead of router.push for more reliable navigation
       window.location.href = '/predictions/new?from=express'
-    } catch (error) {
-      console.error('Error in handleCreatePrediction:', error)
+    } catch {
+      setError('Failed to prepare prediction data')
+      setStep('error')
     }
   }
 

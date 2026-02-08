@@ -129,6 +129,8 @@ export const PredictionWizard = ({ isExpressFlow = false }: PredictionWizardProp
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           newsAnchorId: formData.newsAnchorId,
+          newsAnchorUrl: formData.newsAnchorUrl,
+          newsAnchorTitle: formData.newsAnchorTitle,
           claimText: formData.claimText,
           detailsText: formData.detailsText,
           domain: formData.domain,
