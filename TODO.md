@@ -20,7 +20,7 @@
   - [ ] Resolver capabilities: resolve forecasts + delete comments (inline UI + admin panel)
   - [ ] UI indicators: admin/resolver badges on profiles, inline moderation controls
 
-- [ ] **Infra: Fix zero-downtime deploys** — staging is down several minutes after merging PRs. Investigate deploy workflow + blue-green script, likely old container stopped before new one is healthy or DB restart during deploy
+- [x] **Infra: Fix zero-downtime deploys** — ~~staging is down several minutes after merging PRs. Investigate deploy workflow + blue-green script, likely old container stopped before new one is healthy or DB restart during deploy~~ ✅ Fixed — blue-green script now uses Docker network alias swapping instead of stop→rename. Old container serves traffic until new container is health-checked, migrations pass, and network alias is swapped atomically.
 
 - [ ] **Architecture: Refactor to classical SPA** with 2026 best practices — Spec ready at `.kiro/specs/spa-refactor/`
 
@@ -68,9 +68,9 @@
 
 - [x] **API: Comment delete should also allow `isModerator`** — ~~currently only author or `isAdmin` can delete. Moderators should be able to delete too, consistent with resolve permissions.~~ ✅ Fixed
 
-- [ ] **CI/CD: Production deploy stops app+nginx before rebuild** — ~~`deploy-production` job runs `docker compose down app nginx` before building, causing downtime. Should use blue-green like staging does.~~ ✅ Fixed — now uses `blue-green-deploy.sh production` same as staging.
+- [x] **CI/CD: Production deploy stops app+nginx before rebuild** — ~~`deploy-production` job runs `docker compose down app nginx` before building, causing downtime. Should use blue-green like staging does.~~ ✅ Fixed — now uses `blue-green-deploy.sh production` same as staging.
 
-- [ ] **CI/CD: Migration failure silently ignored** — production deploy has `|| echo "⚠️ Migration failed..."` which swallows real migration errors. Should fail the deploy on migration errors. (Note: blue-green script has same issue in Phase 5)
+- [x] **CI/CD: Migration failure silently ignored** — ~~production deploy has `|| echo "⚠️ Migration failed..."` which swallows real migration errors. Should fail the deploy on migration errors. (Note: blue-green script has same issue in Phase 5)~~ ✅ Fixed — migrations now run BEFORE the traffic swap (Phase 5). If migration fails, the new container is cleaned up and old container keeps serving. Deploy exits with error code.
 
 ### 🟡 Low Priority
 
