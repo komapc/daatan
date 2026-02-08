@@ -34,9 +34,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return apiError('Unauthorized', 401)
     }
 
-    // Admin or moderator
-    if (!session.user.isAdmin && !session.user.isModerator) {
-      return apiError('Only admins or moderators can resolve forecasts', 403)
+    // Admin or resolver
+    if (session.user.role !== 'ADMIN' && session.user.role !== 'RESOLVER') {
+      return apiError('Only admins or resolvers can resolve forecasts', 403)
     }
 
     const forecast = await prisma.forecast.findUnique({

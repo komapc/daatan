@@ -16,14 +16,14 @@ export async function POST(
       return apiError('Unauthorized', 401)
     }
 
-    // Check if user is moderator or admin
+    // Check if user is resolver or admin
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { isModerator: true, isAdmin: true },
+      select: { role: true },
     })
 
-    if (!user?.isModerator && !user?.isAdmin) {
-      return apiError('Only moderators can resolve predictions', 403)
+    if (user?.role !== 'RESOLVER' && user?.role !== 'ADMIN') {
+      return apiError('Only resolvers can resolve predictions', 403)
     }
 
     const body = await request.json()
