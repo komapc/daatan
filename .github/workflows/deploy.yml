@@ -99,8 +99,7 @@ jobs:
             # Clean old local build artifacts (not Docker — the running container stays up)
             sudo rm -rf .next node_modules 2>/dev/null || true
             
-            # Prune build cache and dangling images
-            docker builder prune -af
+            # Prune only dangling images (keep build cache for faster builds)
             docker image prune -f
             
             echo "🔍 Current commit on server:"
@@ -108,7 +107,7 @@ jobs:
             
             # Run blue-green deployment (builds image while old container serves traffic)
             chmod +x scripts/blue-green-deploy.sh
-            ./scripts/blue-green-deploy.sh staging --no-cache
+            ./scripts/blue-green-deploy.sh staging
             
             echo "✅ Staging deployment completed at $(date)"
 
@@ -172,8 +171,7 @@ jobs:
             # Clean old local build artifacts (not Docker — running container stays up)
             sudo rm -rf .next node_modules 2>/dev/null || true
             
-            # Prune build cache and dangling images
-            docker builder prune -af
+            # Prune only dangling images (keep build cache for faster builds)
             docker image prune -f
             
             echo "🔍 Current commit on server:"
@@ -181,7 +179,7 @@ jobs:
             
             # Run blue-green deployment (builds image while old container serves traffic)
             chmod +x scripts/blue-green-deploy.sh
-            ./scripts/blue-green-deploy.sh production --no-cache
+            ./scripts/blue-green-deploy.sh production
             
             echo "✅ Production deployment completed at $(date)"
 

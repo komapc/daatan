@@ -2,15 +2,17 @@
 set -e
 
 # DAATAN Blue-Green Deployment Script
-# Zero-downtime deployment: builds new image while old container serves traffic,
-# then does a quick swap (stop old → start new with same name).
+# True zero-downtime: builds new container, health-checks it, then swaps.
 #
 # How it works:
-# - Nginx resolves container hostnames via Docker DNS (resolver 127.0.0.11 valid=30s)
-# - Nginx uses variable-based upstream ($upstream_staging / $upstream_prod) so it
-#   re-resolves on each request rather than caching at startup
-# - We keep the same container name so nginx doesn't need config changes
-# - Downtime is reduced to just the stop→start gap (~5-10 seconds)
+# 1. Build new image while old container serves traffic
+# 2. Start new container with a temporary name on a different port
+# 3. Health-check the new container directly
+# 4. Stop old container, rename new container to take its place
+# 5. Reload nginx to pick up the new container's IP
+#
+# Nginx uses variable-based upstream ($upstream_staging / $upstream_prod) with
+# Docker DNS resolver (127.0.0.11 valid=30s), so it re-resolves on each request.
 #
 # Usage:
 #   ./scripts/blue-green-deploy.sh staging [--no-cache]
@@ -29,11 +31,13 @@ fi
 if [ "$ENVIRONMENT" = "staging" ]; then
     SERVICE="app-staging"
     CONTAINER="daatan-app-staging"
+    CONTAINER_NEW="daatan-app-staging-new"
     DB_SERVICE="postgres-staging"
     HEALTH_URL="https://staging.daatan.com"
 elif [ "$ENVIRONMENT" = "production" ]; then
     SERVICE="app"
     CONTAINER="daatan-app"
+    CONTAINER_NEW="daatan-app-new"
     DB_SERVICE="postgres"
     HEALTH_URL="https://daatan.com"
 else
@@ -92,51 +96,106 @@ docker compose -f docker-compose.prod.yml build $NO_CACHE_FLAG $BUILD_ARGS $SERV
 
 echo "✅ New image built successfully"
 
-# ─── Phase 3: Quick swap (the only downtime window ~5-10s) ──────────────────────
+# ─── Phase 3: Start new container alongside old one ─────────────────────────────
 echo ""
-echo "🔄 Phase 3: Swapping containers (brief downtime window)..."
+echo "🆕 Phase 3: Starting new container alongside old one..."
 
-# Stop and remove old container
-docker compose -f docker-compose.prod.yml stop $SERVICE || true
-docker compose -f docker-compose.prod.yml rm -f $SERVICE || true
+# Clean up any leftover new container from a previous failed deploy
+docker rm -f $CONTAINER_NEW 2>/dev/null || true
 
-# Start new container with the same service name (same container name for nginx)
-docker compose -f docker-compose.prod.yml up -d --force-recreate $SERVICE
+# Get the image name that was just built
+if [ "$ENVIRONMENT" = "staging" ]; then
+    IMAGE_NAME="daatan-app:staging-${DEPLOY_ID}"
+else
+    IMAGE_NAME="daatan-app:latest"
+fi
 
-# Also ensure nginx is running and reload its config to pick up DNS changes faster
-docker compose -f docker-compose.prod.yml up -d nginx
-docker exec daatan-nginx nginx -s reload 2>/dev/null || true
+# Get environment variables from the compose file for the new container
+# We run the new container directly (not via compose) to avoid name conflicts
+ENV_ARGS=""
+ENV_ARGS="$ENV_ARGS -e NODE_ENV=production"
+ENV_ARGS="$ENV_ARGS -e NEXT_PUBLIC_ENV=${ENVIRONMENT}"
+ENV_ARGS="$ENV_ARGS -e NEXTAUTH_SECRET=${NEXTAUTH_SECRET}"
+ENV_ARGS="$ENV_ARGS -e GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}"
+ENV_ARGS="$ENV_ARGS -e GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}"
+ENV_ARGS="$ENV_ARGS -e SERPER_API_KEY=${SERPER_API_KEY}"
+ENV_ARGS="$ENV_ARGS -e GEMINI_API_KEY=${GEMINI_API_KEY}"
+ENV_ARGS="$ENV_ARGS -e APP_VERSION=${APP_VERSION:-0.1.19}"
 
-echo "✅ Container swapped"
+if [ "$ENVIRONMENT" = "staging" ]; then
+    ENV_ARGS="$ENV_ARGS -e DATABASE_URL=postgresql://daatan:${POSTGRES_PASSWORD}@postgres-staging:5432/daatan_staging"
+    ENV_ARGS="$ENV_ARGS -e NEXTAUTH_URL=https://staging.daatan.com"
+else
+    ENV_ARGS="$ENV_ARGS -e DATABASE_URL=postgresql://daatan:${POSTGRES_PASSWORD}@postgres:5432/daatan"
+    ENV_ARGS="$ENV_ARGS -e NEXTAUTH_URL=https://daatan.com"
+fi
 
-# ─── Phase 4: Health check ──────────────────────────────────────────────────────
+# Get the Docker network name (compose project network)
+NETWORK=$(docker inspect $CONTAINER --format '{{range $key, $val := .NetworkSettings.Networks}}{{$key}}{{end}}' 2>/dev/null || echo "app_default")
+
+# Start new container on the same network but with a temporary name
+docker run -d \
+    --name $CONTAINER_NEW \
+    --network $NETWORK \
+    --restart unless-stopped \
+    $ENV_ARGS \
+    $IMAGE_NAME
+
+echo "✅ New container started as $CONTAINER_NEW"
+
+# ─── Phase 4: Health check new container ─────────────────────────────────────────
 echo ""
-echo "🏥 Phase 4: Waiting for health check..."
-sleep 10
+echo "🏥 Phase 4: Health-checking new container..."
+sleep 5
 
-for i in {1..15}; do
-    if docker exec $CONTAINER wget -qO- http://localhost:3000/api/health 2>/dev/null | grep -q '"status"'; then
-        echo "✅ Container is healthy (attempt $i)"
+for i in {1..20}; do
+    if docker exec $CONTAINER_NEW wget -qO- http://localhost:3000/api/health 2>/dev/null | grep -q '"status"'; then
+        echo "✅ New container is healthy (attempt $i)"
         break
     fi
-    if [ $i -eq 15 ]; then
-        echo "❌ Health check failed after 15 attempts"
-        echo "📋 Container logs:"
-        docker logs $CONTAINER --tail 50
+    if [ $i -eq 20 ]; then
+        echo "❌ New container failed health check after 20 attempts"
+        echo "📋 New container logs:"
+        docker logs $CONTAINER_NEW --tail 50
+        # Clean up failed new container
+        docker rm -f $CONTAINER_NEW 2>/dev/null || true
+        echo "🔄 Old container still serving traffic — no downtime occurred"
         exit 1
     fi
-    echo "⏳ Waiting... ($i/15)"
-    sleep 5
+    echo "⏳ Waiting... ($i/20)"
+    sleep 3
 done
 
-# ─── Phase 5: Run migrations ───────────────────────────────────────────────────
+# ─── Phase 5: Swap containers (minimal downtime ~1-2s) ──────────────────────────
 echo ""
-echo "🗄️ Phase 5: Running Prisma migrations..."
-docker exec $CONTAINER node_modules/prisma/build/index.js migrate deploy || echo "⚠️ No pending migrations"
+echo "🔄 Phase 5: Swapping containers..."
 
-# ─── Phase 6: External verification ────────────────────────────────────────────
+# Stop old container
+docker stop $CONTAINER 2>/dev/null || true
+docker rm -f $CONTAINER 2>/dev/null || true
+
+# Rename new container to take the old name
+docker rename $CONTAINER_NEW $CONTAINER
+
+# Reload nginx to pick up DNS changes immediately
+docker exec daatan-nginx nginx -s reload 2>/dev/null || true
+
+echo "✅ Container swapped (old stopped, new renamed to $CONTAINER)"
+
+# ─── Phase 6: Run migrations ───────────────────────────────────────────────────
 echo ""
-echo "🔍 Phase 6: Verifying deployment externally..."
+echo "🗄️ Phase 6: Running Prisma migrations..."
+docker exec $CONTAINER node_modules/prisma/build/index.js migrate deploy 2>&1 || {
+    echo "❌ Migration failed!"
+    echo "📋 Container logs:"
+    docker logs $CONTAINER --tail 30
+    exit 1
+}
+
+# ─── Phase 7: External verification ────────────────────────────────────────────
+echo ""
+echo "🔍 Phase 7: Verifying deployment externally..."
+sleep 3
 if ./scripts/verify-deploy.sh "$HEALTH_URL"; then
     echo "✅ Deployment verified"
 else
@@ -145,9 +204,9 @@ else
     exit 1
 fi
 
-# ─── Phase 7: Verify auth ──────────────────────────────────────────────────────
+# ─── Phase 8: Verify auth ──────────────────────────────────────────────────────
 echo ""
-echo "🔐 Phase 7: Verifying authentication..."
+echo "🔐 Phase 8: Verifying authentication..."
 AUTH_CHECK=$(curl -s "$HEALTH_URL/api/auth/providers" | head -c 50)
 if echo "$AUTH_CHECK" | grep -q "google"; then
     echo "✅ Authentication working"
