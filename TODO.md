@@ -55,6 +55,9 @@
 - [ ] SEO: Server-render the home feed page — currently `'use client'` with useEffect fetch, no SSR/SEO for the main entry point
 - [ ] DB: Plan migration to sunset legacy Forecast/Vote/ForecastOption models — dual system adds complexity, Comment has polymorphic relations to both
 - [ ] Architecture: Refactor to classical SPA with 2026 best practices - Needs discussion
+- [ ] Analytics: Add anonymous usage analytics (funnel drop-off, commitment rates, filter usage) — self-hosted (Plausible/Umami) or custom DB events, no PII
+- [ ] SEO: Add OpenGraph meta tags per prediction page — dynamic title/summary/commitment split via generateMetadata() for rich social share cards
+- [ ] Predictions: Deadline resolution flow — past-deadline predictions become "awaiting resolution", moderators get notified, LLM suggests resolution (web search + reasoning), moderator approves or overrides
 
 ### 🟢 Low Priority (hardening & polish)
 - [ ] Code Quality: Eliminate all compile-time warnings, runtime warnings, linter warnings and hints
@@ -71,6 +74,7 @@
 - [x] CI/CD: Pre-commit hook now only runs lint; build+tests moved to pre-push (2026-02-08)
 - [ ] Testing: Implement end-to-end tests using relevant frameworks (Playwright/Cypress)
 - [ ] Testing: Add tests for commitment and resolution flows — critical business logic with zero test coverage
+- [ ] UX: Dark mode toggle with system preference detection and localStorage persistence
 - [x] Testing: Fix comments.test.ts — was already passing (12 tests) (2026-02-08)
 
 ## Completed
