@@ -39,6 +39,7 @@ export const createPredictionSchema = z.object({
   // News anchor (optional)
   newsAnchorId: z.string().cuid().optional(),
   newsAnchorUrl: z.string().url().optional(), // Alternative: create anchor from URL
+  newsAnchorTitle: z.string().max(500).optional(), // Title when creating from URL
   
   // Prediction content
   claimText: z.string().min(10, 'Claim must be at least 10 characters').max(500),

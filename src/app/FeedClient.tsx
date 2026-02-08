@@ -68,7 +68,7 @@ export default function FeedClient() {
           </div>
         </div>
         <Link
-          href="/predictions/new"
+          href="/create"
           className="flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl font-semibold shadow-sm hover:bg-blue-700 transition-all active:scale-95"
         >
           <Plus className="w-5 h-5" />

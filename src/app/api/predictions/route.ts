@@ -134,6 +134,26 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Auto-create news anchor from URL if no newsAnchorId provided
+    let newsAnchorId = data.newsAnchorId
+    if (!newsAnchorId && data.newsAnchorUrl) {
+      const crypto = await import('crypto')
+      const urlHash = crypto.createHash('sha256').update(data.newsAnchorUrl).digest('hex')
+      
+      // Upsert: find existing or create new
+      const anchor = await prisma.newsAnchor.upsert({
+        where: { urlHash },
+        update: {},
+        create: {
+          url: data.newsAnchorUrl,
+          urlHash,
+          title: data.newsAnchorTitle || data.newsAnchorUrl,
+          source: data.newsAnchorUrl ? new URL(data.newsAnchorUrl).hostname.replace('www.', '') : undefined,
+        },
+      })
+      newsAnchorId = anchor.id
+    }
+
     // Build outcome payload based on type
     let outcomePayload: Record<string, unknown> = data.outcomePayload ?? {}
     if (data.outcomeType === 'BINARY' && Object.keys(outcomePayload).length === 0) {
@@ -164,7 +184,7 @@ export async function POST(request: NextRequest) {
     const prediction = await prisma.prediction.create({
       data: {
         authorId: session.user.id,
-        newsAnchorId: data.newsAnchorId,
+        newsAnchorId: newsAnchorId,
         claimText: data.claimText,
         slug: uniqueSlug,
         detailsText: data.detailsText,
