@@ -1,11 +1,11 @@
-import { NextAuthOptions } from 'next-auth'
+import type { NextAuthOptions } from 'next-auth'
+import type { Adapter } from 'next-auth/adapters'
 import GoogleProvider from 'next-auth/providers/google'
 import { PrismaAdapter } from '@auth/prisma-adapter'
-import { prisma } from '@/lib/prisma' // Make sure this path is correct
+import { prisma } from '@/lib/prisma'
 
 export const authOptions: NextAuthOptions = {
-  // @ts-ignore
-  adapter: PrismaAdapter(prisma), // Add the Prisma adapter here
+  adapter: PrismaAdapter(prisma) as Adapter,
   secret: process.env.NEXTAUTH_SECRET,
   providers: [
     GoogleProvider({
