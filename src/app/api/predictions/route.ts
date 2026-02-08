@@ -82,6 +82,12 @@ export async function GET(request: NextRequest) {
           _count: {
             select: { commitments: true },
           },
+          commitments: {
+            select: {
+              cuCommitted: true,
+              userId: true,
+            },
+          },
         },
         orderBy: closingSoon 
           ? { resolveByDatetime: 'asc' } 
@@ -92,8 +98,19 @@ export async function GET(request: NextRequest) {
       prisma.prediction.count({ where }),
     ])
 
+    // Get current user ID for commitment indicator
+    const session = await getServerSession(authOptions)
+    const userId = session?.user?.id
+
+    // Transform predictions to include totalCuCommitted and userHasCommitted
+    const enrichedPredictions = predictions.map(({ commitments, ...pred }) => ({
+      ...pred,
+      totalCuCommitted: commitments.reduce((sum, c) => sum + c.cuCommitted, 0),
+      userHasCommitted: userId ? commitments.some(c => c.userId === userId) : false,
+    }))
+
     return NextResponse.json({
-      predictions,
+      predictions: enrichedPredictions,
       pagination: {
         page: query.page,
         limit: query.limit,

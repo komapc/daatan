@@ -35,6 +35,8 @@ export type Prediction = {
   _count: {
     commitments: number
   }
+  totalCuCommitted?: number
+  userHasCommitted?: boolean
 }
 
 interface PredictionCardProps {
@@ -183,12 +185,23 @@ export default function PredictionCard({ prediction }: PredictionCardProps) {
               <span suppressHydrationWarning>{formatDate(prediction.resolveByDatetime)}</span>
             </div>
 
-            {/* Commitment Count */}
+            {/* Commitment Count & CU */}
             <div className="flex items-center gap-1.5">
               <Users className="w-3.5 h-3.5 text-gray-400" />
               <span className="font-medium text-gray-700">{prediction._count.commitments}</span>
               <span className="hidden sm:inline">commitments</span>
+              {prediction.totalCuCommitted !== undefined && prediction.totalCuCommitted > 0 && (
+                <span className="text-gray-400">• {prediction.totalCuCommitted} CU</span>
+              )}
             </div>
+
+            {/* User Committed Indicator */}
+            {prediction.userHasCommitted && (
+              <div className="flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full text-xs font-medium">
+                <CheckCircle2 className="w-3 h-3" />
+                <span>Committed</span>
+              </div>
+            )}
           </div>
         </div>
 
