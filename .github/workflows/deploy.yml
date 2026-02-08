@@ -83,12 +83,11 @@ jobs:
           command_timeout: 30m
           script: |
             set -e
-            echo "🚀 Starting STAGING deployment at $(date)"
+            echo "🚀 Starting STAGING deployment (blue-green) at $(date)"
             
             cd ~/app
             
             # Ensure workspace is clean and writable (avoid node_modules permission issues)
-            # Try to fix permissions first, then remove (ignore errors to prevent script failure)
             chmod -R u+w node_modules 2>/dev/null || true
             sudo rm -rf node_modules 2>/dev/null || rm -rf node_modules 2>/dev/null || true
             
@@ -97,106 +96,19 @@ jobs:
             git reset --hard origin/main
             git clean -fdx -e .env -e certbot -e node_modules
             
-            # Clean slate: Stop services, remove old builds and prune builder cache
-            echo "🧹 Cleaning Docker environment and old builds..."
+            # Clean old local build artifacts (not Docker — the running container stays up)
             sudo rm -rf .next node_modules 2>/dev/null || true
-            docker compose -f docker-compose.prod.yml down app-staging || true
             
-            # Prune build cache and dangling images (safe — does NOT touch volumes or running containers)
+            # Prune build cache and dangling images
             docker builder prune -af
             docker image prune -f
             
-            # Debug: Verify code update
-            echo "🔍 Debug: Current commit on server:"
-            git log -1
-            echo "🔍 Debug: Checking for API routes:"
-            ls -R src/app/api
+            echo "🔍 Current commit on server:"
+            git log -1 --oneline
             
-            # Source environment variables from server's .env file
-            # (GitHub Secrets not configured for auth vars, using server .env)
-            if [ -f .env ]; then
-              set -a
-              source .env
-              set +a
-              echo "✅ Loaded env vars from .env file"
-            else
-              echo "❌ .env file not found!"
-              exit 1
-            fi
-            export DEPLOY_ID=$(date +%s)
-            
-            # Debug: Verify env vars are set
-            echo "🔍 Debug: Checking env vars (first 10 chars):"
-            echo "NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:0:10}..."
-            echo "GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:0:10}..."
-            
-            # Get current git commit hash and build timestamp
-            GIT_COMMIT=$(git rev-parse HEAD)
-            export GIT_COMMIT
-            BUILD_TIMESTAMP=$(date +%s)
-            echo "🔍 Git commit: $GIT_COMMIT"
-            echo "🔍 Build timestamp: $BUILD_TIMESTAMP"
-            
-            # Stop and remove existing container to ensure clean slate
-            docker compose -f docker-compose.prod.yml stop app-staging || true
-            docker compose -f docker-compose.prod.yml rm -f app-staging || true
-            
-            # Ensure staging database is running before building
-            docker compose -f docker-compose.prod.yml up -d postgres-staging
-            echo "⏳ Waiting for staging database to be ready..."
-            sleep 10
-            
-            # Rebuild and start (env vars are exported above, docker-compose will use them)
-            docker compose -f docker-compose.prod.yml build --no-cache --build-arg DATABASE_URL="postgresql://daatan:${POSTGRES_PASSWORD}@postgres-staging:5432/daatan_staging" --build-arg GIT_COMMIT="$GIT_COMMIT" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" app-staging
-            docker compose -f docker-compose.prod.yml up -d --force-recreate app-staging nginx
-            
-            # Run Prisma migrations on staging database
-            echo "🗄️ Running Prisma migrations on staging database..."
-            docker exec daatan-app-staging node_modules/prisma/build/index.js migrate deploy || echo "⚠️ Migration failed or no pending migrations"
-            
-            # Debug: Check if files exist INSIDE the container
-            echo "🔍 Debug: Checking API routes inside running container:"
-            docker exec daatan-app-staging ls -R .next/server/app/api || echo "Could not list files in container"
-            
-            # Wait for app to be healthy
-            echo "Waiting for health check..."
-            sleep 15
-            
-            # Verify deployment (Health + Version)
-            if ./scripts/verify-deploy.sh "https://staging.daatan.com"; then
-              echo "✅ Staging deployment verified successfully"
-            else
-              echo "❌ Staging deployment verification failed"
-              echo "📋 Container Status:"
-              docker ps -a --filter name=daatan-
-              echo "📋 Nginx Logs (last 100 lines):"
-              docker logs daatan-nginx --tail 100
-              echo "📋 Container Logs (last 100 lines):"
-              docker logs daatan-app-staging --tail 100
-              exit 1
-            fi
-            
-            # Verify auth is working
-            echo "🔐 Verifying authentication..."
-            AUTH_CHECK=$(curl -s "https://staging.daatan.com/api/auth/providers" | head -c 50)
-            if echo "$AUTH_CHECK" | grep -q "google"; then
-              echo "✅ Authentication verified"
-            else
-              echo "⚠️ Auth check failed, restarting container with env vars..."
-              docker compose -f docker-compose.prod.yml --env-file .env restart app-staging
-              sleep 10
-              AUTH_CHECK=$(curl -s "https://staging.daatan.com/api/auth/providers" | head -c 50)
-              if echo "$AUTH_CHECK" | grep -q "google"; then
-                echo "✅ Authentication verified after restart"
-              else
-                echo "❌ Authentication still failing"
-                docker logs daatan-app-staging --tail 30 | grep -i "auth\|secret\|error"
-                exit 1
-              fi
-            fi
-            
-            # Cleanup old images
-            docker image prune -f
+            # Run blue-green deployment (builds image while old container serves traffic)
+            chmod +x scripts/blue-green-deploy.sh
+            ./scripts/blue-green-deploy.sh staging --no-cache
             
             echo "✅ Staging deployment completed at $(date)"
 
