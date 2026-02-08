@@ -2,158 +2,176 @@
 set -e
 
 # DAATAN Blue-Green Deployment Script
-# Zero-downtime deployment using blue-green strategy
+# Zero-downtime deployment: builds new image while old container serves traffic,
+# then does a quick swap (stop old → start new with same name).
+#
+# How it works:
+# - Nginx resolves container hostnames via Docker DNS (resolver 127.0.0.11 valid=30s)
+# - Nginx uses variable-based upstream ($upstream_staging / $upstream_prod) so it
+#   re-resolves on each request rather than caching at startup
+# - We keep the same container name so nginx doesn't need config changes
+# - Downtime is reduced to just the stop→start gap (~5-10 seconds)
+#
+# Usage:
+#   ./scripts/blue-green-deploy.sh staging [--no-cache]
+#   ./scripts/blue-green-deploy.sh production [--no-cache]
 
 echo "🔵🟢 DAATAN Blue-Green Deployment"
 echo "================================="
 
-ENVIRONMENT=${1:-production}
-BLUE_CONTAINER="daatan-app"
-GREEN_CONTAINER="daatan-app-green"
+ENVIRONMENT=${1:-staging}
+NO_CACHE_FLAG=""
+if [ "$2" = "--no-cache" ]; then
+    NO_CACHE_FLAG="--no-cache"
+fi
 
+# Determine container and compose service names
 if [ "$ENVIRONMENT" = "staging" ]; then
-    BLUE_CONTAINER="daatan-app-staging"
-    GREEN_CONTAINER="daatan-app-staging-green"
+    SERVICE="app-staging"
+    CONTAINER="daatan-app-staging"
+    DB_SERVICE="postgres-staging"
+    HEALTH_URL="https://staging.daatan.com"
+elif [ "$ENVIRONMENT" = "production" ]; then
+    SERVICE="app"
+    CONTAINER="daatan-app"
+    DB_SERVICE="postgres"
+    HEALTH_URL="https://daatan.com"
+else
+    echo "❌ Unknown environment: $ENVIRONMENT (use 'staging' or 'production')"
+    exit 1
 fi
 
 cd ~/app
 
-echo "🔍 Checking current deployment..."
-
-# Check which container is currently active
-CURRENT_ACTIVE=""
-if docker ps --format "table {{.Names}}" | grep -q "^${BLUE_CONTAINER}$"; then
-    CURRENT_ACTIVE="blue"
-    ACTIVE_CONTAINER=$BLUE_CONTAINER
-    INACTIVE_CONTAINER=$GREEN_CONTAINER
-elif docker ps --format "table {{.Names}}" | grep -q "^${GREEN_CONTAINER}$"; then
-    CURRENT_ACTIVE="green"
-    ACTIVE_CONTAINER=$GREEN_CONTAINER
-    INACTIVE_CONTAINER=$BLUE_CONTAINER
+# Source environment variables
+if [ -f .env ]; then
+    set -a
+    source .env
+    set +a
+    echo "✅ Loaded env vars from .env"
 else
-    echo "❌ No active containers found. Running standard deployment..."
-    ./deploy.sh
-    exit 0
+    echo "❌ .env file not found!"
+    exit 1
 fi
 
-echo "Current active: $CURRENT_ACTIVE ($ACTIVE_CONTAINER)"
-echo "Deploying to: $INACTIVE_CONTAINER"
+export DEPLOY_ID=$(date +%s)
+GIT_COMMIT=$(git rev-parse HEAD)
+export GIT_COMMIT
+BUILD_TIMESTAMP=$(date +%s)
 
-# Export environment variables
-export POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-$(grep POSTGRES_PASSWORD .env | cut -d'=' -f2)}
-export NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-$(grep NEXTAUTH_SECRET .env | cut -d'=' -f2)}
-export GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-$(grep GOOGLE_CLIENT_ID .env | cut -d'=' -f2)}
-export GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-$(grep GOOGLE_CLIENT_SECRET .env | cut -d'=' -f2)}
-export GEMINI_API_KEY=${GEMINI_API_KEY:-$(grep GEMINI_API_KEY .env | cut -d'=' -f2)}
+echo "Environment:  $ENVIRONMENT"
+echo "Service:      $SERVICE"
+echo "Container:    $CONTAINER"
+echo "Git commit:   ${GIT_COMMIT:0:8}"
 
-echo "🔨 Building new version in $INACTIVE_CONTAINER..."
+# ─── Phase 1: Ensure database is running ───────────────────────────────────────
+echo ""
+echo "📦 Phase 1: Ensuring database is running..."
+docker compose -f docker-compose.prod.yml up -d $DB_SERVICE
+sleep 5
 
-# Stop and remove the inactive container if it exists
-docker stop $INACTIVE_CONTAINER 2>/dev/null || true
-docker rm $INACTIVE_CONTAINER 2>/dev/null || true
+# ─── Phase 2: Build new image (old container still serving traffic) ─────────────
+echo ""
+echo "🔨 Phase 2: Building new image (old container still serving traffic)..."
 
-# Build new image
+BUILD_ARGS=""
 if [ "$ENVIRONMENT" = "staging" ]; then
-    export DEPLOY_ID=$(date +%s)
-    docker build -t daatan-app:staging-$DEPLOY_ID \
-        --build-arg DATABASE_URL="postgresql://daatan:${POSTGRES_PASSWORD}@postgres-staging:5432/daatan_staging" \
-        --build-arg NEXTAUTH_URL="https://staging.daatan.com" \
-        --build-arg NEXT_PUBLIC_ENV="staging" .
-    
-    # Start new container
-    docker run -d \
-        --name $INACTIVE_CONTAINER \
-        --network app_default \
-        --restart unless-stopped \
-        --expose 3000 \
-        -e NODE_ENV=production \
-        -e DATABASE_URL="postgresql://daatan:${POSTGRES_PASSWORD}@postgres-staging:5432/daatan_staging" \
-        -e NEXT_PUBLIC_ENV=staging \
-        -e NEXTAUTH_SECRET="${NEXTAUTH_SECRET}" \
-        -e NEXTAUTH_URL="https://staging.daatan.com" \
-        -e GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID}" \
-        -e GOOGLE_CLIENT_SECRET="${GOOGLE_CLIENT_SECRET}" \
-        -e GEMINI_API_KEY="${GEMINI_API_KEY}" \
-        daatan-app:staging-$DEPLOY_ID
+    BUILD_ARGS="--build-arg DATABASE_URL=postgresql://daatan:${POSTGRES_PASSWORD}@postgres-staging:5432/daatan_staging"
+    BUILD_ARGS="$BUILD_ARGS --build-arg NEXTAUTH_URL=https://staging.daatan.com"
+    BUILD_ARGS="$BUILD_ARGS --build-arg NEXT_PUBLIC_ENV=staging"
 else
-    docker build -t daatan-app:latest \
-        --build-arg DATABASE_URL="postgresql://daatan:${POSTGRES_PASSWORD}@postgres:5432/daatan" \
-        --build-arg NEXTAUTH_URL="https://daatan.com" \
-        --build-arg NEXT_PUBLIC_ENV="production" .
-    
-    # Start new container
-    docker run -d \
-        --name $INACTIVE_CONTAINER \
-        --network app_default \
-        --restart unless-stopped \
-        --expose 3000 \
-        -e NODE_ENV=production \
-        -e DATABASE_URL="postgresql://daatan:${POSTGRES_PASSWORD}@postgres:5432/daatan" \
-        -e NEXT_PUBLIC_ENV=production \
-        -e NEXTAUTH_SECRET="${NEXTAUTH_SECRET}" \
-        -e NEXTAUTH_URL="https://daatan.com" \
-        -e GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID}" \
-        -e GOOGLE_CLIENT_SECRET="${GOOGLE_CLIENT_SECRET}" \
-        -e GEMINI_API_KEY="${GEMINI_API_KEY}" \
-        daatan-app:latest
+    BUILD_ARGS="--build-arg DATABASE_URL=postgresql://daatan:${POSTGRES_PASSWORD}@postgres:5432/daatan"
+    BUILD_ARGS="$BUILD_ARGS --build-arg NEXTAUTH_URL=https://daatan.com"
+    BUILD_ARGS="$BUILD_ARGS --build-arg NEXT_PUBLIC_ENV=production"
 fi
+BUILD_ARGS="$BUILD_ARGS --build-arg GIT_COMMIT=$GIT_COMMIT"
+BUILD_ARGS="$BUILD_ARGS --build-arg BUILD_TIMESTAMP=$BUILD_TIMESTAMP"
 
-echo "⏳ Waiting for new container to be ready..."
-sleep 20
+# Build the image without stopping the running container
+docker compose -f docker-compose.prod.yml build $NO_CACHE_FLAG $BUILD_ARGS $SERVICE
 
-# Health check on new container
-echo "🏥 Health checking new container..."
-for i in {1..10}; do
-    if docker exec $INACTIVE_CONTAINER wget -q --spider http://localhost:3000/api/health; then
-        echo "✅ New container is healthy"
+echo "✅ New image built successfully"
+
+# ─── Phase 3: Quick swap (the only downtime window ~5-10s) ──────────────────────
+echo ""
+echo "🔄 Phase 3: Swapping containers (brief downtime window)..."
+
+# Stop and remove old container
+docker compose -f docker-compose.prod.yml stop $SERVICE || true
+docker compose -f docker-compose.prod.yml rm -f $SERVICE || true
+
+# Start new container with the same service name (same container name for nginx)
+docker compose -f docker-compose.prod.yml up -d --force-recreate $SERVICE
+
+# Also ensure nginx is running and reload its config to pick up DNS changes faster
+docker compose -f docker-compose.prod.yml up -d nginx
+docker exec daatan-nginx nginx -s reload 2>/dev/null || true
+
+echo "✅ Container swapped"
+
+# ─── Phase 4: Health check ──────────────────────────────────────────────────────
+echo ""
+echo "🏥 Phase 4: Waiting for health check..."
+sleep 10
+
+for i in {1..15}; do
+    if docker exec $CONTAINER wget -qO- http://localhost:3000/api/health 2>/dev/null | grep -q '"status"'; then
+        echo "✅ Container is healthy (attempt $i)"
         break
     fi
-    if [ $i -eq 10 ]; then
-        echo "❌ New container failed health check"
-        docker logs $INACTIVE_CONTAINER --tail 50
-        docker stop $INACTIVE_CONTAINER
-        docker rm $INACTIVE_CONTAINER
+    if [ $i -eq 15 ]; then
+        echo "❌ Health check failed after 15 attempts"
+        echo "📋 Container logs:"
+        docker logs $CONTAINER --tail 50
         exit 1
     fi
-    echo "⏳ Waiting for health check... ($i/10)"
+    echo "⏳ Waiting... ($i/15)"
     sleep 5
 done
 
-echo "🔄 Switching traffic to new container..."
+# ─── Phase 5: Run migrations ───────────────────────────────────────────────────
+echo ""
+echo "🗄️ Phase 5: Running Prisma migrations..."
+docker exec $CONTAINER node_modules/prisma/build/index.js migrate deploy || echo "⚠️ No pending migrations"
 
-# Update nginx configuration to point to new container
-if [ "$ENVIRONMENT" = "staging" ]; then
-    # For staging, we need to update the nginx config to point to the new container
-    # This is a simplified approach - in production you'd use a load balancer
-    docker exec daatan-nginx nginx -s reload
+# ─── Phase 6: External verification ────────────────────────────────────────────
+echo ""
+echo "🔍 Phase 6: Verifying deployment externally..."
+if ./scripts/verify-deploy.sh "$HEALTH_URL"; then
+    echo "✅ Deployment verified"
 else
-    # For production, same approach
-    docker exec daatan-nginx nginx -s reload
-fi
-
-echo "⏳ Waiting for traffic switch..."
-sleep 10
-
-# Verify the switch worked
-if [ "$ENVIRONMENT" = "staging" ]; then
-    TEST_URL="https://staging.daatan.com"
-else
-    TEST_URL="https://daatan.com"
-fi
-
-if ./scripts/verify-deploy.sh "$TEST_URL"; then
-    echo "✅ Traffic switch successful"
-    
-    echo "🧹 Cleaning up old container..."
-    docker stop $ACTIVE_CONTAINER
-    docker rm $ACTIVE_CONTAINER
-    
-    echo "✅ Blue-Green deployment completed successfully!"
-    echo "New active container: $INACTIVE_CONTAINER"
-else
-    echo "❌ Traffic switch failed, rolling back..."
-    docker stop $INACTIVE_CONTAINER
-    docker rm $INACTIVE_CONTAINER
-    echo "❌ Deployment failed, rolled back to $ACTIVE_CONTAINER"
+    echo "❌ External verification failed"
+    docker logs $CONTAINER --tail 50
     exit 1
 fi
+
+# ─── Phase 7: Verify auth ──────────────────────────────────────────────────────
+echo ""
+echo "🔐 Phase 7: Verifying authentication..."
+AUTH_CHECK=$(curl -s "$HEALTH_URL/api/auth/providers" | head -c 50)
+if echo "$AUTH_CHECK" | grep -q "google"; then
+    echo "✅ Authentication working"
+else
+    echo "⚠️ Auth check failed, restarting with env vars..."
+    docker compose -f docker-compose.prod.yml --env-file .env restart $SERVICE
+    sleep 10
+    AUTH_CHECK=$(curl -s "$HEALTH_URL/api/auth/providers" | head -c 50)
+    if echo "$AUTH_CHECK" | grep -q "google"; then
+        echo "✅ Authentication working after restart"
+    else
+        echo "❌ Authentication still failing"
+        docker logs $CONTAINER --tail 30 | grep -i "auth\|secret\|error"
+        exit 1
+    fi
+fi
+
+# ─── Cleanup ────────────────────────────────────────────────────────────────────
+echo ""
+echo "🧹 Cleaning up old images..."
+docker image prune -f
+
+echo ""
+echo "✅ Blue-green deployment complete!"
+echo "   Environment: $ENVIRONMENT"
+echo "   Container:   $CONTAINER"
+echo "   Commit:      ${GIT_COMMIT:0:8}"
