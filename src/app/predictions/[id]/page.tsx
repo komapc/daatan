@@ -20,6 +20,7 @@ import { ModeratorResolutionSection } from './ModeratorResolutionSection'
 import CommentThread from '@/components/comments/CommentThread'
 import CommitmentForm from '@/components/predictions/CommitmentForm'
 import CommitmentDisplay from '@/components/predictions/CommitmentDisplay'
+import CUBalanceIndicator from '@/components/predictions/CUBalanceIndicator'
 
 type Prediction = {
   id: string
@@ -283,13 +284,26 @@ export default function PredictionDetailPage() {
 
       {/* User's Commitment Section */}
       {session?.user && prediction.status === 'ACTIVE' && (
-        <div className="mb-8">
-          {userCommitment ? (
+        <div className="mb-8 space-y-4">
+          {/* CU Balance */}
+          <CUBalanceIndicator
+            cuAvailable={session.user.cuAvailable || 0}
+            cuLocked={session.user.cuLocked || 0}
+          />
+          {userCommitment && !showCommitmentForm ? (
             <CommitmentDisplay
               commitment={userCommitment}
               prediction={prediction}
               onEdit={() => setShowCommitmentForm(true)}
               onRemove={handleCommitmentSuccess}
+            />
+          ) : userCommitment && showCommitmentForm ? (
+            <CommitmentForm
+              prediction={prediction}
+              existingCommitment={userCommitment}
+              userCuAvailable={session.user.cuAvailable || 0}
+              onSuccess={handleCommitmentSuccess}
+              onCancel={() => setShowCommitmentForm(false)}
             />
           ) : prediction.author.id !== session.user.id && (
             showCommitmentForm ? (

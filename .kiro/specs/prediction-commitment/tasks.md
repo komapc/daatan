@@ -118,7 +118,7 @@ This implementation plan builds upon existing commitment infrastructure (databas
     - Style with Tailwind CSS
     - _Requirements: 1.1, 1.2, 8.1_
   
-  - [ ] 5.2 Implement form submission handler
+  - [x] 5.2 Implement form submission handler
     - Determine if creating new or updating existing commitment
     - Call POST /api/predictions/[id]/commit for new
     - Call PATCH /api/predictions/[id]/commit for update
@@ -134,7 +134,7 @@ This implementation plan builds upon existing commitment infrastructure (databas
     - Test submission (create and update modes)
     - Test error handling
 
-- [ ] 6. Checkpoint - Ensure all tests pass
+- [x] 6. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 7. Write property tests for commitment creation
@@ -243,7 +243,7 @@ This implementation plan builds upon existing commitment infrastructure (databas
     - Verify displayed counts and totals match actual data
 
 - [ ] 11. Integrate components into prediction pages
-  - [ ] 11.1 Update prediction detail page to use commitment components
+  - [x] 11.1 Update prediction detail page to use commitment components
     - Import CommitmentForm, CommitmentDisplay, CUBalanceIndicator
     - Fetch user's commitment for the prediction
     - Show CUBalanceIndicator in header/sidebar
