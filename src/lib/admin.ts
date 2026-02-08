@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth/next'
 import { NextResponse } from 'next/server'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { apiError } from '@/lib/api-error'
 
 export type RoleCheck = 'admin' | 'moderator' | 'adminOrModerator'
 
@@ -13,7 +14,7 @@ export async function requireRole(role: RoleCheck) {
   const session = await getServerSession(authOptions)
 
   if (!session?.user?.id) {
-    return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
+    return { error: apiError('Unauthorized', 401) }
   }
 
   const user = await prisma.user.findUnique({
@@ -22,7 +23,7 @@ export async function requireRole(role: RoleCheck) {
   })
 
   if (!user) {
-    return { error: NextResponse.json({ error: 'User not found' }, { status: 401 }) }
+    return { error: apiError('User not found', 401) }
   }
 
   const authorized =
@@ -33,7 +34,7 @@ export async function requireRole(role: RoleCheck) {
         : user.isAdmin || user.isModerator
 
   if (!authorized) {
-    return { error: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) }
+    return { error: apiError('Forbidden', 403) }
   }
 
   return { user }

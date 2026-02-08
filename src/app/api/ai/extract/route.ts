@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { fetchUrlContent } from '@/lib/utils/scraper'
 import { extractPrediction } from '@/lib/llm/gemini'
+import { apiError, handleRouteError } from '@/lib/api-error'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,7 +11,7 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return apiError('Unauthorized', 401)
     }
 
     const { url, text } = await req.json()
@@ -22,7 +23,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (!contentToProcess) {
-      return NextResponse.json({ error: 'No content provided' }, { status: 400 })
+      return apiError('No content provided', 400)
     }
 
     const result = await extractPrediction(contentToProcess)
@@ -33,8 +34,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json(result)
-  } catch (error: any) {
-    console.error('Extraction API error:', error)
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 })
+  } catch (error) {
+    return handleRouteError(error, 'Extraction failed')
   }
 }

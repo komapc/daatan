@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { createPredictionSchema, listPredictionsQuerySchema } from '@/lib/validations/prediction'
+import { apiError, handleRouteError } from '@/lib/api-error'
 
 export const dynamic = 'force-dynamic'
 
@@ -119,11 +120,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Error fetching predictions:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch predictions' },
-      { status: 500 }
-    )
+    return handleRouteError(error, 'Failed to fetch predictions')
   }
 }
 
@@ -134,10 +131,7 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return apiError('Unauthorized', 401)
     }
 
     const body = await request.json()
@@ -149,18 +143,12 @@ export async function POST(request: NextRequest) {
       select: { id: true },
     })
     if (!userExists) {
-      return NextResponse.json(
-        { error: 'User not found. Please sign out and sign back in.' },
-        { status: 403 }
-      )
+      return apiError('User not found. Please sign out and sign back in.', 403)
     }
 
     // Validate resolve-by is in the future
     if (new Date(data.resolveByDatetime) <= new Date()) {
-      return NextResponse.json(
-        { error: 'Resolution date must be in the future' },
-        { status: 400 }
-      )
+      return apiError('Resolution date must be in the future', 400)
     }
 
     // Auto-create news anchor from URL if no newsAnchorId provided
@@ -273,19 +261,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result, { status: 201 })
   } catch (error) {
-    console.error('Error creating prediction:', error)
-    
-    if (error instanceof Error && error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: 'Validation failed', details: error },
-        { status: 400 }
-      )
-    }
-    
-    return NextResponse.json(
-      { error: 'Failed to create prediction' },
-      { status: 500 }
-    )
+    return handleRouteError(error, 'Failed to create prediction')
   }
 }
 

@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { resolvePredictionSchema } from '@/lib/validations/prediction'
-import { z } from 'zod'
+import { apiError, handleRouteError } from '@/lib/api-error'
 
 export async function POST(
   request: NextRequest,
@@ -13,7 +13,7 @@ export async function POST(
     const session = await getServerSession(authOptions)
 
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return apiError('Unauthorized', 401)
     }
 
     // Check if user is moderator or admin
@@ -23,10 +23,7 @@ export async function POST(
     })
 
     if (!user?.isModerator && !user?.isAdmin) {
-      return NextResponse.json(
-        { error: 'Only moderators can resolve predictions' },
-        { status: 403 }
-      )
+      return apiError('Only moderators can resolve predictions', 403)
     }
 
     const body = await request.json()
@@ -45,14 +42,11 @@ export async function POST(
     })
 
     if (!prediction) {
-      return NextResponse.json({ error: 'Prediction not found' }, { status: 404 })
+      return apiError('Prediction not found', 404)
     }
 
     if (prediction.status !== 'ACTIVE' && prediction.status !== 'PENDING') {
-      return NextResponse.json(
-        { error: 'Prediction cannot be resolved' },
-        { status: 400 }
-      )
+      return apiError('Prediction cannot be resolved', 400)
     }
 
     // Determine new status based on outcome
@@ -143,14 +137,6 @@ export async function POST(
 
     return NextResponse.json(result)
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.issues }, { status: 400 })
-    }
-
-    console.error('Error resolving prediction:', error)
-    return NextResponse.json(
-      { error: 'Failed to resolve prediction' },
-      { status: 500 }
-    )
+    return handleRouteError(error, 'Failed to resolve prediction')
   }
 }

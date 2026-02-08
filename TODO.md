@@ -60,7 +60,7 @@
 
 - [ ] **Code Quality: Replace `any` types** — found in `commitments/route.ts` (where clause), `ai/extract/route.ts` (error catch), `express/generate/route.ts` (onProgress callback), `expressPrediction.ts`. Use proper types.
 
-- [ ] **Code Quality: Standardize error responses** — some routes return `{ error }`, others `{ error, details }`. Create a shared error response helper.
+- [x] **Code Quality: Standardize error responses** — ~~some routes return `{ error }`, others `{ error, details }`. Create a shared error response helper.~~ ✅ Fixed — created `src/lib/api-error.ts` with `apiError()` and `handleRouteError()`. All 20 API routes now use consistent shape: `{ error: string, details?: Array<{path, message}> }`.
 
 - [x] **DB: Add `deletedAt` index on Comment model** — ~~soft-delete queries filter on `deletedAt: null` but there's no index for it. Add `@@index([deletedAt])`.~~ ✅ Fixed
 
@@ -91,6 +91,12 @@
 
 - [ ] **Code Quality: Eliminate all compile-time/runtime/linter warnings**
 - [ ] **Code Quality: Replace `console.error` with structured logging** (e.g., pino)
+- [ ] **Code Quality: Inconsistent Prisma import pattern** — `comments/route.ts` and `comments/[id]/route.ts` use dynamic import wrapper (`getPrisma`), all other routes import singleton directly. Standardize to direct import.
+- [ ] **Code Quality: Move profile validation schema to `src/lib/validations/`** — `updateProfileSchema` is defined inline in `profile/update/route.ts` instead of centralized like other domains.
+- [ ] **Code Quality: Stub `fetchArticleContent()` in `webSearch.ts`** — returns empty string with console.warn. Either implement or remove.
+- [ ] **Code Quality: Client error handling uses `alert()`** — `CommentForm.tsx` uses `alert()` for errors. Replace with proper error state UI across components.
+- [ ] **Security: Missing env var validation at startup** — GEMINI_API_KEY, SERPER_API_KEY checked at request time, not at boot. Add startup validation.
+- [ ] **Security: Remove `@types/pg` from devDependencies** — unused, Prisma handles DB connections.
 
 - [ ] **Testing: E2E tests** (Playwright/Cypress)
 - [ ] **Testing: Commitment and resolution flow tests** — critical business logic with zero coverage

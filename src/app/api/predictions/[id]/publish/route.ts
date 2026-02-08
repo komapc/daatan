@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { apiError, handleRouteError } from '@/lib/api-error'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,10 +21,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return apiError('Unauthorized', 401)
     }
 
     const prediction = await prisma.prediction.findUnique({
@@ -34,49 +32,31 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!prediction) {
-      return NextResponse.json(
-        { error: 'Prediction not found' },
-        { status: 404 }
-      )
+      return apiError('Prediction not found', 404)
     }
 
     // Only author can publish
     if (prediction.authorId !== session.user.id) {
-      return NextResponse.json(
-        { error: 'Forbidden' },
-        { status: 403 }
-      )
+      return apiError('Forbidden', 403)
     }
 
     // Can only publish drafts
     if (prediction.status !== 'DRAFT') {
-      return NextResponse.json(
-        { error: 'Prediction is already published' },
-        { status: 400 }
-      )
+      return apiError('Prediction is already published', 400)
     }
 
     // Validate prediction is complete
     if (!prediction.claimText || prediction.claimText.length < 10) {
-      return NextResponse.json(
-        { error: 'Claim text must be at least 10 characters' },
-        { status: 400 }
-      )
+      return apiError('Claim text must be at least 10 characters', 400)
     }
 
     if (prediction.resolveByDatetime <= new Date()) {
-      return NextResponse.json(
-        { error: 'Resolution date must be in the future' },
-        { status: 400 }
-      )
+      return apiError('Resolution date must be in the future', 400)
     }
 
     // For multiple choice, ensure options exist
     if (prediction.outcomeType === 'MULTIPLE_CHOICE' && prediction.options.length < 2) {
-      return NextResponse.json(
-        { error: 'Multiple choice predictions need at least 2 options' },
-        { status: 400 }
-      )
+      return apiError('Multiple choice predictions need at least 2 options', 400)
     }
 
     // Publish the prediction
@@ -105,11 +85,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json(updated)
   } catch (error) {
-    console.error('Error publishing prediction:', error)
-    return NextResponse.json(
-      { error: 'Failed to publish prediction' },
-      { status: 500 }
-    )
+    return handleRouteError(error, 'Failed to publish prediction')
   }
 }
 

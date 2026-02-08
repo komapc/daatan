@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { updateCommentSchema } from '@/lib/validations/comment'
+import { apiError, handleRouteError } from '@/lib/api-error'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,10 +21,7 @@ export async function PATCH(
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return apiError('Unauthorized', 401)
     }
 
     const comment = await prisma.comment.findUnique({
@@ -31,18 +29,12 @@ export async function PATCH(
     })
 
     if (!comment || comment.deletedAt) {
-      return NextResponse.json(
-        { error: 'Comment not found' },
-        { status: 404 }
-      )
+      return apiError('Comment not found', 404)
     }
 
     // Only author can edit
     if (comment.authorId !== session.user.id) {
-      return NextResponse.json(
-        { error: 'Forbidden' },
-        { status: 403 }
-      )
+      return apiError('Forbidden', 403)
     }
 
     const body = await request.json()
@@ -73,19 +65,7 @@ export async function PATCH(
 
     return NextResponse.json(updated)
   } catch (error) {
-    console.error('Error updating comment:', error)
-    
-    if (error instanceof Error && error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: 'Validation failed', details: error },
-        { status: 400 }
-      )
-    }
-    
-    return NextResponse.json(
-      { error: 'Failed to update comment' },
-      { status: 500 }
-    )
+    return handleRouteError(error, 'Failed to update comment')
   }
 }
 
@@ -99,10 +79,7 @@ export async function DELETE(
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return apiError('Unauthorized', 401)
     }
 
     const comment = await prisma.comment.findUnique({
@@ -110,10 +87,7 @@ export async function DELETE(
     })
 
     if (!comment || comment.deletedAt) {
-      return NextResponse.json(
-        { error: 'Comment not found' },
-        { status: 404 }
-      )
+      return apiError('Comment not found', 404)
     }
 
     // Only author, admin, or moderator can delete
@@ -123,10 +97,7 @@ export async function DELETE(
     })
 
     if (comment.authorId !== session.user.id && !user?.isAdmin && !user?.isModerator) {
-      return NextResponse.json(
-        { error: 'Forbidden' },
-        { status: 403 }
-      )
+      return apiError('Forbidden', 403)
     }
 
     // Soft delete
@@ -139,10 +110,6 @@ export async function DELETE(
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error deleting comment:', error)
-    return NextResponse.json(
-      { error: 'Failed to delete comment' },
-      { status: 500 }
-    )
+    return handleRouteError(error, 'Failed to delete comment')
   }
 }

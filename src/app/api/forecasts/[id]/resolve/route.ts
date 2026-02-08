@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { resolveForecastSchema } from '@/lib/validations/forecast'
+import { apiError, handleRouteError } from '@/lib/api-error'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
@@ -30,18 +31,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return apiError('Unauthorized', 401)
     }
 
     // Admin or moderator
     if (!session.user.isAdmin && !session.user.isModerator) {
-      return NextResponse.json(
-        { error: 'Only admins or moderators can resolve forecasts' },
-        { status: 403 }
-      )
+      return apiError('Only admins or moderators can resolve forecasts', 403)
     }
 
     const forecast = await prisma.forecast.findUnique({
@@ -53,18 +48,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!forecast) {
-      return NextResponse.json(
-        { error: 'Forecast not found' },
-        { status: 404 }
-      )
+      return apiError('Forecast not found', 404)
     }
 
     // Can only resolve active or pending_resolution forecasts
     if (forecast.status !== 'ACTIVE' && forecast.status !== 'PENDING_RESOLUTION') {
-      return NextResponse.json(
-        { error: 'Can only resolve active or pending forecasts' },
-        { status: 400 }
-      )
+      return apiError('Can only resolve active or pending forecasts', 400)
     }
 
     const body = await request.json()
@@ -73,10 +62,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Validate correct option belongs to this forecast
     const correctOption = forecast.options.find((opt: { id: string }) => opt.id === data.correctOptionId)
     if (!correctOption) {
-      return NextResponse.json(
-        { error: 'Invalid option for this forecast' },
-        { status: 400 }
-      )
+      return apiError('Invalid option for this forecast', 400)
     }
 
     // Start transaction
@@ -183,18 +169,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json(updatedForecast)
   } catch (error) {
-    console.error('Error resolving forecast:', error)
-    
-    if (error instanceof Error && error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: 'Validation failed', details: error },
-        { status: 400 }
-      )
-    }
-    
-    return NextResponse.json(
-      { error: 'Failed to resolve forecast' },
-      { status: 500 }
-    )
+    return handleRouteError(error, 'Failed to resolve forecast')
   }
 }

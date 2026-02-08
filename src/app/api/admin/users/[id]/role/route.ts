@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireRole } from '@/lib/admin'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { apiError, handleRouteError } from '@/lib/api-error'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,10 +21,7 @@ export async function PATCH(
 
   // Prevent self-demotion
   if (params.id === auth.user.id) {
-    return NextResponse.json(
-      { error: 'Cannot modify your own roles' },
-      { status: 400 }
-    )
+    return apiError('Cannot modify your own roles', 400)
   }
 
   const target = await prisma.user.findUnique({
@@ -32,7 +30,7 @@ export async function PATCH(
   })
 
   if (!target) {
-    return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    return apiError('User not found', 404)
   }
 
   const body = await request.json()

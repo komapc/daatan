@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { updateForecastSchema } from '@/lib/validations/forecast'
+import { apiError, handleRouteError } from '@/lib/api-error'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
@@ -66,19 +67,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!forecast) {
-      return NextResponse.json(
-        { error: 'Forecast not found' },
-        { status: 404 }
-      )
+      return apiError('Forecast not found', 404)
     }
 
     return NextResponse.json(forecast)
   } catch (error) {
-    console.error('Error fetching forecast:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch forecast' },
-      { status: 500 }
-    )
+    return handleRouteError(error, 'Failed to fetch forecast')
   }
 }
 
@@ -89,10 +83,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return apiError('Unauthorized', 401)
     }
 
     const forecast = await prisma.forecast.findUnique({
@@ -101,26 +92,17 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!forecast) {
-      return NextResponse.json(
-        { error: 'Forecast not found' },
-        { status: 404 }
-      )
+      return apiError('Forecast not found', 404)
     }
 
     // Only creator or admin can update
     if (forecast.creatorId !== session.user.id && !session.user.isAdmin) {
-      return NextResponse.json(
-        { error: 'Forbidden' },
-        { status: 403 }
-      )
+      return apiError('Forbidden', 403)
     }
 
     // Can't update resolved or cancelled forecasts
     if (forecast.status === 'RESOLVED' || forecast.status === 'CANCELLED') {
-      return NextResponse.json(
-        { error: 'Cannot update resolved or cancelled forecasts' },
-        { status: 400 }
-      )
+      return apiError('Cannot update resolved or cancelled forecasts', 400)
     }
 
     const body = await request.json()
@@ -156,19 +138,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json(updated)
   } catch (error) {
-    console.error('Error updating forecast:', error)
-    
-    if (error instanceof Error && error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: 'Validation failed', details: error },
-        { status: 400 }
-      )
-    }
-    
-    return NextResponse.json(
-      { error: 'Failed to update forecast' },
-      { status: 500 }
-    )
+    return handleRouteError(error, 'Failed to update forecast')
   }
 }
 
@@ -179,10 +149,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return apiError('Unauthorized', 401)
     }
 
     const forecast = await prisma.forecast.findUnique({
@@ -191,26 +158,17 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!forecast) {
-      return NextResponse.json(
-        { error: 'Forecast not found' },
-        { status: 404 }
-      )
+      return apiError('Forecast not found', 404)
     }
 
     // Only creator or admin can delete
     if (forecast.creatorId !== session.user.id && !session.user.isAdmin) {
-      return NextResponse.json(
-        { error: 'Forbidden' },
-        { status: 403 }
-      )
+      return apiError('Forbidden', 403)
     }
 
     // Can only delete drafts (cancel active ones instead)
     if (forecast.status !== 'DRAFT') {
-      return NextResponse.json(
-        { error: 'Can only delete draft forecasts. Use cancel for active forecasts.' },
-        { status: 400 }
-      )
+      return apiError('Can only delete draft forecasts. Use cancel for active forecasts.', 400)
     }
 
     await prisma.forecast.delete({
@@ -219,10 +177,6 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error deleting forecast:', error)
-    return NextResponse.json(
-      { error: 'Failed to delete forecast' },
-      { status: 500 }
-    )
+    return handleRouteError(error, 'Failed to delete forecast')
   }
 }

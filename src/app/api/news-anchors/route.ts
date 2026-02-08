@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { createNewsAnchorSchema } from '@/lib/validations/prediction'
 import { createHash } from 'crypto'
+import { apiError, handleRouteError } from '@/lib/api-error'
 
 export const dynamic = 'force-dynamic'
 
@@ -60,11 +61,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ anchors })
   } catch (error) {
-    console.error('Error fetching news anchors:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch news anchors' },
-      { status: 500 }
-    )
+    return handleRouteError(error, 'Failed to fetch news anchors')
   }
 }
 
@@ -75,10 +72,7 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return apiError('Unauthorized', 401)
     }
 
     const body = await request.json()
@@ -128,19 +122,7 @@ export async function POST(request: NextRequest) {
       isExisting: false,
     }, { status: 201 })
   } catch (error) {
-    console.error('Error creating news anchor:', error)
-    
-    if (error instanceof Error && error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: 'Validation failed', details: error },
-        { status: 400 }
-      )
-    }
-    
-    return NextResponse.json(
-      { error: 'Failed to create news anchor' },
-      { status: 500 }
-    )
+    return handleRouteError(error, 'Failed to create news anchor')
   }
 }
 
