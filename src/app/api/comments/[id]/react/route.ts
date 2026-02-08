@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { addReactionSchema } from '@/lib/validations/comment'
+import { apiError, handleRouteError } from '@/lib/api-error'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,10 +21,7 @@ export async function POST(
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return apiError('Unauthorized', 401)
     }
 
     const comment = await prisma.comment.findUnique({
@@ -31,10 +29,7 @@ export async function POST(
     })
 
     if (!comment || comment.deletedAt) {
-      return NextResponse.json(
-        { error: 'Comment not found' },
-        { status: 404 }
-      )
+      return apiError('Comment not found', 404)
     }
 
     const body = await request.json()
@@ -69,19 +64,7 @@ export async function POST(
 
     return NextResponse.json(reaction)
   } catch (error) {
-    console.error('Error adding reaction:', error)
-    
-    if (error instanceof Error && error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: 'Validation failed', details: error },
-        { status: 400 }
-      )
-    }
-    
-    return NextResponse.json(
-      { error: 'Failed to add reaction' },
-      { status: 500 }
-    )
+    return handleRouteError(error, 'Failed to add reaction')
   }
 }
 
@@ -95,10 +78,7 @@ export async function DELETE(
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return apiError('Unauthorized', 401)
     }
 
     await prisma.commentReaction.deleteMany({
@@ -110,10 +90,6 @@ export async function DELETE(
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error removing reaction:', error)
-    return NextResponse.json(
-      { error: 'Failed to remove reaction' },
-      { status: 500 }
-    )
+    return handleRouteError(error, 'Failed to remove reaction')
   }
 }

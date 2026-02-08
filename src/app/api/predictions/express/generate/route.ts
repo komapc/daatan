@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { generateExpressPrediction } from '@/lib/llm/expressPrediction'
 import { z } from 'zod'
+import { apiError, handleRouteError } from '@/lib/api-error'
 
 const generateSchema = z.object({
   userInput: z.string().min(5).max(200),
@@ -13,7 +14,7 @@ export async function POST(request: Request) {
     const session = await getServerSession(authOptions)
 
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return apiError('Unauthorized', 401)
     }
 
     const body = await request.json()
@@ -22,19 +23,13 @@ export async function POST(request: Request) {
     // Check if GEMINI_API_KEY is configured
     if (!process.env.GEMINI_API_KEY) {
       console.error('GEMINI_API_KEY not configured')
-      return NextResponse.json(
-        { error: 'Service not configured. Please contact administrator.' },
-        { status: 503 }
-      )
+      return apiError('Service not configured. Please contact administrator.', 503)
     }
 
     // Check if Serper API is configured
     if (!process.env.SERPER_API_KEY) {
       console.error('Serper API not configured')
-      return NextResponse.json(
-        { error: 'Search service not configured. Please contact administrator.' },
-        { status: 503 }
-      )
+      return apiError('Search service not configured. Please contact administrator.', 503)
     }
 
     // Create a readable stream for progress updates
@@ -85,17 +80,6 @@ export async function POST(request: Request) {
       },
     })
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: error.issues },
-        { status: 400 }
-      )
-    }
-
-    console.error('Express prediction generation error:', error)
-    return NextResponse.json(
-      { error: 'Failed to generate prediction' },
-      { status: 500 }
-    )
+    return handleRouteError(error, 'Failed to generate prediction')
   }
 }

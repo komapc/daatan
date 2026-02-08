@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { updatePredictionSchema } from '@/lib/validations/prediction'
+import { apiError, handleRouteError } from '@/lib/api-error'
 
 export const dynamic = 'force-dynamic'
 
@@ -75,10 +76,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!prediction) {
-      return NextResponse.json(
-        { error: 'Prediction not found' },
-        { status: 404 }
-      )
+      return apiError('Prediction not found', 404)
     }
 
     // Calculate total CU committed
@@ -92,11 +90,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       totalCuCommitted,
     })
   } catch (error) {
-    console.error('Error fetching prediction:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch prediction' },
-      { status: 500 }
-    )
+    return handleRouteError(error, 'Failed to fetch prediction')
   }
 }
 
@@ -107,10 +101,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return apiError('Unauthorized', 401)
     }
 
     const prediction = await prisma.prediction.findUnique({
@@ -119,26 +110,17 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!prediction) {
-      return NextResponse.json(
-        { error: 'Prediction not found' },
-        { status: 404 }
-      )
+      return apiError('Prediction not found', 404)
     }
 
     // Only author can update
     if (prediction.authorId !== session.user.id) {
-      return NextResponse.json(
-        { error: 'Forbidden' },
-        { status: 403 }
-      )
+      return apiError('Forbidden', 403)
     }
 
     // Can only update drafts
     if (prediction.status !== 'DRAFT') {
-      return NextResponse.json(
-        { error: 'Cannot update published predictions' },
-        { status: 400 }
-      )
+      return apiError('Cannot update published predictions', 400)
     }
 
     const body = await request.json()
@@ -146,10 +128,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     // Validate resolve-by if provided
     if (data.resolveByDatetime && new Date(data.resolveByDatetime) <= new Date()) {
-      return NextResponse.json(
-        { error: 'Resolution date must be in the future' },
-        { status: 400 }
-      )
+      return apiError('Resolution date must be in the future', 400)
     }
 
     const updateData: Record<string, unknown> = {}
@@ -181,19 +160,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json(updated)
   } catch (error) {
-    console.error('Error updating prediction:', error)
-    
-    if (error instanceof Error && error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: 'Validation failed', details: error },
-        { status: 400 }
-      )
-    }
-    
-    return NextResponse.json(
-      { error: 'Failed to update prediction' },
-      { status: 500 }
-    )
+    return handleRouteError(error, 'Failed to update prediction')
   }
 }
 
@@ -204,10 +171,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return apiError('Unauthorized', 401)
     }
 
     const prediction = await prisma.prediction.findUnique({
@@ -216,24 +180,15 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!prediction) {
-      return NextResponse.json(
-        { error: 'Prediction not found' },
-        { status: 404 }
-      )
+      return apiError('Prediction not found', 404)
     }
 
     if (prediction.authorId !== session.user.id && !session.user.isAdmin) {
-      return NextResponse.json(
-        { error: 'Forbidden' },
-        { status: 403 }
-      )
+      return apiError('Forbidden', 403)
     }
 
     if (prediction.status !== 'DRAFT') {
-      return NextResponse.json(
-        { error: 'Can only delete draft predictions' },
-        { status: 400 }
-      )
+      return apiError('Can only delete draft predictions', 400)
     }
 
     await prisma.prediction.delete({
@@ -242,11 +197,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error deleting prediction:', error)
-    return NextResponse.json(
-      { error: 'Failed to delete prediction' },
-      { status: 500 }
-    )
+    return handleRouteError(error, 'Failed to delete prediction')
   }
 }
 

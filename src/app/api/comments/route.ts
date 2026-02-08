@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { createCommentSchema, listCommentsQuerySchema } from '@/lib/validations/comment'
+import { apiError, handleRouteError } from '@/lib/api-error'
 
 export const dynamic = 'force-dynamic'
 
@@ -82,11 +83,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Error fetching comments:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch comments' },
-      { status: 500 }
-    )
+    return handleRouteError(error, 'Failed to fetch comments')
   }
 }
 
@@ -97,10 +94,7 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return apiError('Unauthorized', 401)
     }
 
     const body = await request.json()
@@ -112,10 +106,7 @@ export async function POST(request: NextRequest) {
         where: { id: data.predictionId },
       })
       if (!prediction) {
-        return NextResponse.json(
-          { error: 'Prediction not found' },
-          { status: 404 }
-        )
+        return apiError('Prediction not found', 404)
       }
     }
 
@@ -124,10 +115,7 @@ export async function POST(request: NextRequest) {
         where: { id: data.forecastId },
       })
       if (!forecast) {
-        return NextResponse.json(
-          { error: 'Forecast not found' },
-          { status: 404 }
-        )
+        return apiError('Forecast not found', 404)
       }
     }
 
@@ -137,10 +125,7 @@ export async function POST(request: NextRequest) {
         where: { id: data.parentId },
       })
       if (!parentComment || parentComment.deletedAt) {
-        return NextResponse.json(
-          { error: 'Parent comment not found' },
-          { status: 404 }
-        )
+        return apiError('Parent comment not found', 404)
       }
     }
 
@@ -171,18 +156,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(comment, { status: 201 })
   } catch (error) {
-    console.error('Error creating comment:', error)
-    
-    if (error instanceof Error && error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: 'Validation failed', details: error },
-        { status: 400 }
-      )
-    }
-    
-    return NextResponse.json(
-      { error: 'Failed to create comment' },
-      { status: 500 }
-    )
+    return handleRouteError(error, 'Failed to create comment')
   }
 }

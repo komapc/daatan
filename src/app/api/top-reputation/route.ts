@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { handleRouteError } from '@/lib/api-error'
 
 const getPrisma = async () => {
   const { prisma } = await import('@/lib/prisma')
@@ -47,16 +48,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ users: topUsers })
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid limit parameter (must be 1-100)' },
-        { status: 400 }
-      )
-    }
-    console.error('Error fetching leaderboard:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch leaderboard' },
-      { status: 500 }
-    )
+    return handleRouteError(error, 'Failed to fetch leaderboard')
   }
 }

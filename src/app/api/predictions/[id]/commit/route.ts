@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { createCommitmentSchema, updateCommitmentSchema } from '@/lib/validations/prediction'
+import { apiError, handleRouteError } from '@/lib/api-error'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,10 +22,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return apiError('Unauthorized', 401)
     }
 
     const body = await request.json()
@@ -43,33 +41,21 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     ])
 
     if (!prediction) {
-      return NextResponse.json(
-        { error: 'Prediction not found' },
-        { status: 404 }
-      )
+      return apiError('Prediction not found', 404)
     }
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      )
+      return apiError('User not found', 404)
     }
 
     // Can only commit to active predictions
     if (prediction.status !== 'ACTIVE') {
-      return NextResponse.json(
-        { error: 'Can only commit to active predictions' },
-        { status: 400 }
-      )
+      return apiError('Can only commit to active predictions', 400)
     }
 
     // Can't commit to own prediction
     if (prediction.authorId === session.user.id) {
-      return NextResponse.json(
-        { error: 'Cannot commit to your own prediction' },
-        { status: 400 }
-      )
+      return apiError('Cannot commit to your own prediction', 400)
     }
 
     // Check if already committed
@@ -83,43 +69,28 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     })
 
     if (existingCommitment) {
-      return NextResponse.json(
-        { error: 'Already committed to this prediction' },
-        { status: 400 }
-      )
+      return apiError('Already committed to this prediction', 400)
     }
 
     // Check user has enough CU
     if (user.cuAvailable < data.cuCommitted) {
-      return NextResponse.json(
-        { error: `Insufficient CU. Available: ${user.cuAvailable}, requested: ${data.cuCommitted}` },
-        { status: 400 }
-      )
+      return apiError(`Insufficient CU. Available: ${user.cuAvailable}, requested: ${data.cuCommitted}`, 400)
     }
 
     // Validate option for multiple choice
     if (prediction.outcomeType === 'MULTIPLE_CHOICE') {
       if (!data.optionId) {
-        return NextResponse.json(
-          { error: 'Must select an option for multiple choice predictions' },
-          { status: 400 }
-        )
+        return apiError('Must select an option for multiple choice predictions', 400)
       }
       const optionExists = prediction.options.some(o => o.id === data.optionId)
       if (!optionExists) {
-        return NextResponse.json(
-          { error: 'Invalid option' },
-          { status: 400 }
-        )
+        return apiError('Invalid option', 400)
       }
     }
 
     // For binary, validate binaryChoice
     if (prediction.outcomeType === 'BINARY' && data.binaryChoice === undefined) {
-      return NextResponse.json(
-        { error: 'Must specify binaryChoice for binary predictions' },
-        { status: 400 }
-      )
+      return apiError('Must specify binaryChoice for binary predictions', 400)
     }
 
     // Atomic transaction: create commitment + update user CU + create ledger entry
@@ -191,19 +162,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json(result, { status: 201 })
   } catch (error) {
-    console.error('Error creating commitment:', error)
-    
-    if (error instanceof Error && error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: 'Validation failed', details: error },
-        { status: 400 }
-      )
-    }
-    
-    return NextResponse.json(
-      { error: 'Failed to create commitment' },
-      { status: 500 }
-    )
+    return handleRouteError(error, 'Failed to create commitment')
   }
 }
 
@@ -214,10 +173,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return apiError('Unauthorized', 401)
     }
 
     const commitment = await prisma.commitment.findUnique({
@@ -235,18 +191,12 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!commitment) {
-      return NextResponse.json(
-        { error: 'Commitment not found' },
-        { status: 404 }
-      )
+      return apiError('Commitment not found', 404)
     }
 
     // Can't remove commitment from locked/resolved predictions
     if (commitment.prediction.status !== 'ACTIVE') {
-      return NextResponse.json(
-        { error: 'Cannot remove commitment from non-active predictions' },
-        { status: 400 }
-      )
+      return apiError('Cannot remove commitment from non-active predictions', 400)
     }
 
     // If prediction is locked (has commitments), can't remove
@@ -284,11 +234,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error removing commitment:', error)
-    return NextResponse.json(
-      { error: 'Failed to remove commitment' },
-      { status: 500 }
-    )
+    return handleRouteError(error, 'Failed to remove commitment')
   }
 }
 
@@ -299,10 +245,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return apiError('Unauthorized', 401)
     }
 
     const body = await request.json()
@@ -330,35 +273,23 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     ])
 
     if (!commitment) {
-      return NextResponse.json(
-        { error: 'Commitment not found' },
-        { status: 404 }
-      )
+      return apiError('Commitment not found', 404)
     }
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      )
+      return apiError('User not found', 404)
     }
 
     // Can only update commitments on active predictions
     if (commitment.prediction.status !== 'ACTIVE') {
-      return NextResponse.json(
-        { error: 'Can only update commitments on active predictions' },
-        { status: 400 }
-      )
+      return apiError('Can only update commitments on active predictions', 400)
     }
 
     // Validate option for multiple choice if changing outcome
     if (data.optionId !== undefined) {
       const optionExists = commitment.prediction.options.some(o => o.id === data.optionId)
       if (!optionExists) {
-        return NextResponse.json(
-          { error: 'Invalid option' },
-          { status: 400 }
-        )
+        return apiError('Invalid option', 400)
       }
     }
 
@@ -368,10 +299,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     // If increasing CU, check user has enough available
     if (cuDelta > 0 && user.cuAvailable < cuDelta) {
-      return NextResponse.json(
-        { error: `Insufficient CU. Available: ${user.cuAvailable}, additional needed: ${cuDelta}` },
-        { status: 400 }
-      )
+      return apiError(`Insufficient CU. Available: ${user.cuAvailable}, additional needed: ${cuDelta}`, 400)
     }
 
     // Atomic transaction: update commitment + adjust user CU + create ledger entries
@@ -446,19 +374,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json(result, { status: 200 })
   } catch (error) {
-    console.error('Error updating commitment:', error)
-    
-    if (error instanceof Error && error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: 'Validation failed', details: error },
-        { status: 400 }
-      )
-    }
-    
-    return NextResponse.json(
-      { error: 'Failed to update commitment' },
-      { status: 500 }
-    )
+    return handleRouteError(error, 'Failed to update commitment')
   }
 }
 

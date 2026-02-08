@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { createForecastSchema, listForecastsQuerySchema } from '@/lib/validations/forecast'
+import { apiError, handleRouteError } from '@/lib/api-error'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
@@ -70,11 +71,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Error fetching forecasts:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch forecasts' },
-      { status: 500 }
-    )
+    return handleRouteError(error, 'Failed to fetch forecasts')
   }
 }
 
@@ -85,10 +82,7 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return apiError('Unauthorized', 401)
     }
 
     const body = await request.json()
@@ -96,10 +90,7 @@ export async function POST(request: NextRequest) {
 
     // Validate binary forecasts have exactly 2 options
     if (data.type === 'BINARY' && data.options.length !== 2) {
-      return NextResponse.json(
-        { error: 'Binary forecasts must have exactly 2 options' },
-        { status: 400 }
-      )
+      return apiError('Binary forecasts must have exactly 2 options', 400)
     }
 
     const forecast = await prisma.forecast.create({
@@ -135,18 +126,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(forecast, { status: 201 })
   } catch (error) {
-    console.error('Error creating forecast:', error)
-    
-    if (error instanceof Error && error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: 'Validation failed', details: error },
-        { status: 400 }
-      )
-    }
-    
-    return NextResponse.json(
-      { error: 'Failed to create forecast' },
-      { status: 500 }
-    )
+    return handleRouteError(error, 'Failed to create forecast')
   }
 }

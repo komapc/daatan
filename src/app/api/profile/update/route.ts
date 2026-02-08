@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { apiError, handleRouteError } from '@/lib/api-error'
 
 const updateProfileSchema = z.object({
   username: z.string().min(1).max(30).regex(/^[a-zA-Z0-9_]+$/).optional().or(z.literal('')),
@@ -16,7 +17,7 @@ export async function PATCH(request: Request) {
     const session = await getServerSession(authOptions)
 
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return apiError('Unauthorized', 401)
     }
 
     const body = await request.json()
@@ -29,10 +30,7 @@ export async function PATCH(request: Request) {
       })
 
       if (existingUser && existingUser.id !== session.user.id) {
-        return NextResponse.json(
-          { error: 'Username already taken' },
-          { status: 400 }
-        )
+        return apiError('Username already taken', 400)
       }
     }
 
@@ -56,17 +54,6 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json(updatedUser)
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: error.issues },
-        { status: 400 }
-      )
-    }
-
-    console.error('Profile update error:', error)
-    return NextResponse.json(
-      { error: 'Failed to update profile' },
-      { status: 500 }
-    )
+    return handleRouteError(error, 'Failed to update profile')
   }
 }
