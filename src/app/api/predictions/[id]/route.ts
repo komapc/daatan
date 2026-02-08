@@ -113,13 +113,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       return apiError('Prediction not found', 404)
     }
 
-    // Only author can update
-    if (prediction.authorId !== session.user.id) {
+    // Only author or admin can update
+    if (prediction.authorId !== session.user.id && session.user.role !== 'ADMIN') {
       return apiError('Forbidden', 403)
     }
 
-    // Can only update drafts
-    if (prediction.status !== 'DRAFT') {
+    // Can only update drafts (unless admin)
+    if (prediction.status !== 'DRAFT' && session.user.role !== 'ADMIN') {
       return apiError('Cannot update published predictions', 400)
     }
 
@@ -183,11 +183,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return apiError('Prediction not found', 404)
     }
 
-    if (prediction.authorId !== session.user.id && !session.user.isAdmin) {
+    if (prediction.authorId !== session.user.id && session.user.role !== 'ADMIN') {
       return apiError('Forbidden', 403)
     }
 
-    if (prediction.status !== 'DRAFT') {
+    if (prediction.status !== 'DRAFT' && session.user.role !== 'ADMIN') {
       return apiError('Can only delete draft predictions', 400)
     }
 

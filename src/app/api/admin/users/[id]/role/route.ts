@@ -7,8 +7,7 @@ import { apiError, handleRouteError } from '@/lib/api-error'
 export const dynamic = 'force-dynamic'
 
 const updateRoleSchema = z.object({
-  isAdmin: z.boolean().optional(),
-  isModerator: z.boolean().optional(),
+  role: z.enum(['USER', 'RESOLVER', 'ADMIN']),
 })
 
 // PATCH /api/admin/users/[id]/role — assign or revoke roles
@@ -21,36 +20,34 @@ export async function PATCH(
 
   // Prevent self-demotion
   if (params.id === auth.user.id) {
-    return apiError('Cannot modify your own roles', 400)
+    return NextResponse.json({ error: 'Cannot modify your own roles' }, { status: 400 })
   }
 
-  const target = await prisma.user.findUnique({
-    where: { id: params.id },
-    select: { id: true },
-  })
+  try {
+    const body = await request.json()
+    const { role } = updateRoleSchema.parse(body)
 
-  if (!target) {
-    return apiError('User not found', 404)
+    // Update role and sync legacy boolean flags
+    const updated = await prisma.user.update({
+      where: { id: params.id },
+      data: {
+        role,
+        isAdmin: role === 'ADMIN',
+        isModerator: role === 'RESOLVER' || role === 'ADMIN',
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        username: true,
+        role: true,
+        isAdmin: true,
+        isModerator: true,
+      },
+    })
+
+    return NextResponse.json(updated)
+  } catch (error) {
+    return handleRouteError(error, 'Failed to update user role')
   }
-
-  const body = await request.json()
-  const data = updateRoleSchema.parse(body)
-
-  const updated = await prisma.user.update({
-    where: { id: params.id },
-    data: {
-      ...(data.isAdmin !== undefined && { isAdmin: data.isAdmin }),
-      ...(data.isModerator !== undefined && { isModerator: data.isModerator }),
-    },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      username: true,
-      isAdmin: true,
-      isModerator: true,
-    },
-  })
-
-  return NextResponse.json(updated)
 }

@@ -49,6 +49,7 @@ export default function CommentItem({
   const [reactions, setReactions] = useState(comment.reactions)
 
   const isAuthor = session?.user?.id === comment.author.id
+  const canDelete = isAuthor || session?.user?.role === 'ADMIN' || session?.user?.role === 'RESOLVER'
 
   const reactionCounts = {
     LIKE: reactions.filter(r => r.type === 'LIKE').length,
@@ -258,22 +259,26 @@ export default function CommentItem({
             )}
 
             {/* Edit/Delete */}
-            {isAuthor && !isEditing && (
+            {(isAuthor || canDelete) && !isEditing && (
               <>
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="flex items-center gap-1 px-2 py-1 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <Edit2 className="w-4 h-4" />
-                  Edit
-                </button>
-                <button
-                  onClick={handleDelete}
-                  className="flex items-center gap-1 px-2 py-1 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Delete
-                </button>
+                {isAuthor && (
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="flex items-center gap-1 px-2 py-1 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                    Edit
+                  </button>
+                )}
+                {canDelete && (
+                  <button
+                    onClick={handleDelete}
+                    className="flex items-center gap-1 px-2 py-1 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete
+                  </button>
+                )}
               </>
             )}
           </div>
