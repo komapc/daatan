@@ -19,7 +19,7 @@ export async function requireRole(role: RoleCheck) {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { id: true, isAdmin: true, isModerator: true },
+    select: { id: true, role: true, isAdmin: true, isModerator: true },
   })
 
   if (!user) {
@@ -28,10 +28,10 @@ export async function requireRole(role: RoleCheck) {
 
   const authorized =
     role === 'admin'
-      ? user.isAdmin
+      ? user.role === 'ADMIN' || user.isAdmin
       : role === 'moderator'
-        ? user.isModerator
-        : user.isAdmin || user.isModerator
+        ? user.role === 'RESOLVER' || user.role === 'ADMIN' || user.isModerator || user.isAdmin
+        : user.role === 'RESOLVER' || user.role === 'ADMIN' || user.isModerator || user.isAdmin
 
   if (!authorized) {
     return { error: apiError('Forbidden', 403) }

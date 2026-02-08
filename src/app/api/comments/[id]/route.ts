@@ -93,10 +93,15 @@ export async function DELETE(
     // Only author, admin, or moderator can delete
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { isAdmin: true, isModerator: true },
+      select: { role: true, isAdmin: true, isModerator: true },
     })
 
-    if (comment.authorId !== session.user.id && !user?.isAdmin && !user?.isModerator) {
+    const canDelete = 
+      comment.authorId === session.user.id || 
+      user?.role === 'ADMIN' || 
+      user?.role === 'RESOLVER'
+
+    if (!canDelete) {
       return apiError('Forbidden', 403)
     }
 

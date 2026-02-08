@@ -8,6 +8,7 @@ declare module 'next-auth' {
       email?: string | null
       image?: string | null
       username?: string | null
+      role: 'USER' | 'RESOLVER' | 'ADMIN'
       isAdmin?: boolean
       isModerator?: boolean
       brierScore?: number
@@ -20,6 +21,7 @@ declare module 'next-auth' {
   interface User {
     id: string
     username?: string | null
+    role: 'USER' | 'RESOLVER' | 'ADMIN'
     isAdmin?: boolean
     isModerator?: boolean
     brierScore?: number

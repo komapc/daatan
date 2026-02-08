@@ -99,7 +99,7 @@ const Sidebar = () => {
       })
 
   // Add admin link for admin/moderator users
-  if (hasMounted && status === 'authenticated' && (session?.user?.isAdmin || session?.user?.isModerator)) {
+  if (hasMounted && status === 'authenticated' && (session?.user?.role === 'ADMIN' || session?.user?.role === 'RESOLVER')) {
     filteredNavItems.push({ href: '/admin', label: 'Admin', icon: Shield })
   }
 
@@ -237,13 +237,13 @@ const Sidebar = () => {
                     <span className="w-3 h-3 rounded-full border border-amber-600 flex items-center justify-center text-[8px] font-bold">C</span>
                     {session.user.cuAvailable ?? 0} CU
                   </div>
-                  {(session.user.isAdmin || session.user.isModerator) && (
+                  {(session.user.role === 'ADMIN' || session.user.role === 'RESOLVER') && (
                     <div className="flex items-center gap-1 mt-0.5">
-                      {session.user.isAdmin && (
+                      {session.user.role === 'ADMIN' && (
                         <span className="text-[10px] font-medium text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full">Admin</span>
                       )}
-                      {session.user.isModerator && (
-                        <span className="text-[10px] font-medium text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">Mod</span>
+                      {session.user.role === 'RESOLVER' && (
+                        <span className="text-[10px] font-medium text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">Resolver</span>
                       )}
                     </div>
                   )}

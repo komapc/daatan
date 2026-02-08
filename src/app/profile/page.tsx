@@ -12,7 +12,8 @@ import {
   Calendar,
   Settings,
   Globe,
-  Twitter
+  Twitter,
+  Shield
 } from 'lucide-react'
 import PredictionCard from '@/components/predictions/PredictionCard'
 import Link from 'next/link'
@@ -34,6 +35,7 @@ export default async function ProfilePage() {
         email: true,
         image: true,
         username: true,
+        role: true,
         website: true,
         twitterHandle: true,
         rs: true,
@@ -126,6 +128,16 @@ export default async function ProfilePage() {
           <div className="flex-1 text-center md:text-left">
             <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
               <h1 className="text-3xl sm:text-4xl font-black text-gray-900">{user.name || 'Anonymous'}</h1>
+              {user.role === 'ADMIN' && (
+                <span className="bg-red-100 text-red-700 text-xs font-bold px-2 py-1 rounded-full uppercase tracking-wider flex items-center gap-1">
+                  <Shield className="w-3 h-3" /> Admin
+                </span>
+              )}
+              {user.role === 'RESOLVER' && (
+                <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded-full uppercase tracking-wider flex items-center gap-1">
+                  <Shield className="w-3 h-3" /> Resolver
+                </span>
+              )}
               <Link 
                 href="/profile/edit"
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"

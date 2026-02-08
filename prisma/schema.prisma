@@ -15,6 +15,12 @@ datasource db {
 // USER & AUTHENTICATION
 // ============================================
 
+enum UserRole {
+  USER
+  RESOLVER
+  ADMIN
+}
+
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
@@ -30,8 +36,11 @@ model User {
   emailNotifications   Boolean @default(true)
   preferredLanguage    String  @default("en") @db.VarChar(10) // ISO 639-1 code (en, he, etc.)
   isPublic             Boolean @default(true)
-  isAdmin              Boolean @default(false)
-  isModerator          Boolean @default(false) // Can resolve predictions
+  
+  // Roles
+  role                 UserRole @default(USER)
+  isAdmin              Boolean @default(false) // Deprecated: use role instead
+  isModerator          Boolean @default(false) // Deprecated: use role instead
 
   // Scoring & Currency
   brierScore  Float @default(0) // Legacy: Prediction accuracy score

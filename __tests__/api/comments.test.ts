@@ -319,6 +319,7 @@ describe('Comments API', () => {
 
       vi.mocked(prisma.user.findUnique).mockResolvedValue({
         id: 'admin1',
+        role: 'ADMIN',
         isAdmin: true, // Admin user
       } as any)
 

@@ -29,6 +29,7 @@ type AdminUser = {
   email: string
   username: string | null
   image: string | null
+  role: 'USER' | 'RESOLVER' | 'ADMIN'
   isAdmin: boolean
   isModerator: boolean
   rs: number
@@ -75,7 +76,7 @@ export default function AdminClient() {
 
   // Redirect non-admin/moderator users
   useEffect(() => {
-    if (status === 'authenticated' && !session?.user?.isAdmin && !session?.user?.isModerator) {
+    if (status === 'authenticated' && session?.user?.role !== 'ADMIN' && session?.user?.role !== 'RESOLVER') {
       router.push('/')
     }
   }, [status, session, router])
@@ -88,11 +89,11 @@ export default function AdminClient() {
     )
   }
 
-  if (!session?.user?.isAdmin && !session?.user?.isModerator) {
+  if (session?.user?.role !== 'ADMIN' && session?.user?.role !== 'RESOLVER') {
     return null
   }
 
-  const isAdmin = session.user.isAdmin
+  const isAdmin = session.user.role === 'ADMIN'
   const tabs: { key: Tab; label: string; icon: React.ComponentType<{ className?: string }>; adminOnly?: boolean }[] = [
     { key: 'forecasts', label: 'Forecasts', icon: TrendingUp },
     { key: 'comments', label: 'Comments', icon: MessageSquare },
@@ -480,18 +481,18 @@ function UsersTab() {
 
   useEffect(() => { fetchUsers() }, [fetchUsers])
 
-  const toggleRole = async (userId: string, field: 'isAdmin' | 'isModerator', currentValue: boolean) => {
+  const updateRole = async (userId: string, newRole: 'USER' | 'RESOLVER' | 'ADMIN') => {
     setUpdatingId(userId)
     try {
       const res = await fetch(`/api/admin/users/${userId}/role`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [field]: !currentValue }),
+        body: JSON.stringify({ role: newRole }),
       })
       if (res.ok) {
         const updated = await res.json()
         setUsers((prev) =>
-          prev.map((u) => u.id === userId ? { ...u, isAdmin: updated.isAdmin, isModerator: updated.isModerator } : u)
+          prev.map((u) => u.id === userId ? { ...u, role: updated.role, isAdmin: updated.isAdmin, isModerator: updated.isModerator } : u)
         )
       }
     } catch {
@@ -558,17 +559,17 @@ function UsersTab() {
                       </td>
                       <td className="px-4 py-3 text-center">
                         <div className="flex items-center justify-center gap-1">
-                          {u.isAdmin && (
+                          {u.role === 'ADMIN' && (
                             <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
                               <Crown className="w-3 h-3" /> Admin
                             </span>
                           )}
-                          {u.isModerator && (
+                          {u.role === 'RESOLVER' && (
                             <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                              <ShieldCheck className="w-3 h-3" /> Mod
+                              <ShieldCheck className="w-3 h-3" /> Resolver
                             </span>
                           )}
-                          {!u.isAdmin && !u.isModerator && (
+                          {u.role === 'USER' && (
                             <span className="text-xs text-gray-400">User</span>
                           )}
                         </div>
@@ -586,32 +587,16 @@ function UsersTab() {
                         {new Date(u.createdAt).toLocaleDateString()}
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <button
-                            onClick={() => toggleRole(u.id, 'isModerator', u.isModerator)}
-                            disabled={updatingId === u.id}
-                            className={`p-1.5 rounded-lg text-xs transition-colors ${
-                              u.isModerator
-                                ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                            }`}
-                            title={u.isModerator ? 'Revoke moderator' : 'Grant moderator'}
-                          >
-                            <ShieldCheck className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => toggleRole(u.id, 'isAdmin', u.isAdmin)}
-                            disabled={updatingId === u.id}
-                            className={`p-1.5 rounded-lg text-xs transition-colors ${
-                              u.isAdmin
-                                ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                            }`}
-                            title={u.isAdmin ? 'Revoke admin' : 'Grant admin'}
-                          >
-                            <ShieldAlert className="w-4 h-4" />
-                          </button>
-                        </div>
+                        <select
+                          value={u.role}
+                          onChange={(e) => updateRole(u.id, e.target.value as any)}
+                          disabled={updatingId === u.id}
+                          className="text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                        >
+                          <option value="USER">User</option>
+                          <option value="RESOLVER">Resolver</option>
+                          <option value="ADMIN">Admin</option>
+                        </select>
                       </td>
                     </tr>
                   ))}
