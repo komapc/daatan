@@ -12,11 +12,11 @@
 - [x] **Security: Clean dead env vars from `.env`** — ~~`GOOGLE_SEARCH_API_KEY` and `GOOGLE_SEARCH_ENGINE_ID` are in `.env` but unused in code (project uses Serper now). Remove to reduce attack surface.~~ ✅ Removed
 
 - [ ] **Admin & Roles System** (ASAP)
-  - [ ] Add `role` enum to User model (USER, RESOLVER, ADMIN), seed initial admins
-  - [ ] Role-based API middleware (admin-only, resolver-only route protection)
-  - [ ] Custom `/admin` page — forecasts management (list, search, edit, soft-delete)
-  - [ ] Admin: Comments management (list, search, delete)
-  - [ ] Admin: Users management (list, assign/revoke roles)
+  - [x] Add `role` enum to User model (USER, RESOLVER, ADMIN), seed initial admins
+  - [x] Role-based API middleware (admin-only, resolver-only route protection)
+  - [x] Custom `/admin` page — forecasts management (list, search, edit, soft-delete)
+  - [x] Admin: Comments management (list, search, delete)
+  - [x] Admin: Users management (list, assign/revoke roles)
   - [ ] Resolver capabilities: resolve forecasts + delete comments (inline UI + admin panel)
   - [ ] UI indicators: admin/resolver badges on profiles, inline moderation controls
 

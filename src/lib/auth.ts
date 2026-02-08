@@ -56,6 +56,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         // When a user signs in, user object is available. Set token.sub to user.id
         token.sub = user.id
+        token.role = user.role
       }
       return token
     },
