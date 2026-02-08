@@ -1,9 +1,10 @@
-// Version is read from environment variable at runtime for zero-downtime updates
 // Format: MAJOR.MINOR.PATCH
 // - MAJOR: Breaking changes or major features
 // - MINOR: New features, significant improvements
-// - PATCH: Bug fixes, small improvements, every PR
+// - PATCH: Bug fixes, small improvements
 
-// Fallback to build-time version if env var not set
-export const VERSION = process.env.APP_VERSION || '0.1.20'
+// Server-side: reads APP_VERSION env var (set in docker-compose)
+// Client-side: reads NEXT_PUBLIC_APP_VERSION (baked at build time from package.json via next.config.js)
+// Fallback: hardcoded version
+export const VERSION = process.env.APP_VERSION || process.env.NEXT_PUBLIC_APP_VERSION || '0.1.19'
 

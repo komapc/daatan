@@ -28,8 +28,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning={true}>
-      <body className="bg-white">
+    <html lang="en" suppressHydrationWarning>
+      <body className="bg-white" suppressHydrationWarning>
         <SessionWrapper>
           <StagingBanner />
           <div className="flex min-h-screen">
