@@ -49,7 +49,7 @@ export interface ExpressPredictionResult {
 
 export async function generateExpressPrediction(
   userInput: string,
-  onProgress?: (stage: string, data?: any) => void
+  onProgress?: (stage: string, data?: Record<string, unknown>) => void
 ): Promise<ExpressPredictionResult> {
   // Step 1: Search for relevant articles
   onProgress?.('searching', { message: 'Searching for relevant articles...' })

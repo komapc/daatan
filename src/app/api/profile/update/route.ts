@@ -2,15 +2,8 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { z } from 'zod'
+import { updateProfileSchema } from '@/lib/validations/profile'
 import { apiError, handleRouteError } from '@/lib/api-error'
-
-const updateProfileSchema = z.object({
-  username: z.string().min(1).max(30).regex(/^[a-zA-Z0-9_]+$/).optional().or(z.literal('')),
-  website: z.string().url().optional().or(z.literal('')),
-  twitterHandle: z.string().max(15).regex(/^[a-zA-Z0-9_]*$/).optional().or(z.literal('')),
-  emailNotifications: z.boolean(),
-})
 
 export async function PATCH(request: Request) {
   try {

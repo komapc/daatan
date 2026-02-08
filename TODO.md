@@ -58,7 +58,7 @@
 
 - [x] **Code Quality: Fix `@ts-ignore` in `src/lib/auth.ts`** — ~~PrismaAdapter type mismatch. Fix the type properly instead of suppressing.~~ ✅ Cast as `Adapter` from next-auth/adapters
 
-- [ ] **Code Quality: Replace `any` types** — found in `commitments/route.ts` (where clause), `ai/extract/route.ts` (error catch), `express/generate/route.ts` (onProgress callback), `expressPrediction.ts`. Use proper types.
+- [x] **Code Quality: Replace `any` types** — ~~found in `commitments/route.ts` (where clause), `ai/extract/route.ts` (error catch), `express/generate/route.ts` (onProgress callback), `expressPrediction.ts`. Use proper types.~~ ✅ Replaced with `Prisma.CommitmentWhereInput`, `Record<string, unknown>`, and `unknown`
 
 - [x] **Code Quality: Standardize error responses** — ~~some routes return `{ error }`, others `{ error, details }`. Create a shared error response helper.~~ ✅ Fixed — created `src/lib/api-error.ts` with `apiError()` and `handleRouteError()`. All 20 API routes now use consistent shape: `{ error: string, details?: Array<{path, message}> }`.
 
@@ -92,7 +92,7 @@
 - [ ] **Code Quality: Eliminate all compile-time/runtime/linter warnings**
 - [ ] **Code Quality: Replace `console.error` with structured logging** (e.g., pino)
 - [ ] **Code Quality: Inconsistent Prisma import pattern** — `comments/route.ts` and `comments/[id]/route.ts` use dynamic import wrapper (`getPrisma`), all other routes import singleton directly. Standardize to direct import.
-- [ ] **Code Quality: Move profile validation schema to `src/lib/validations/`** — `updateProfileSchema` is defined inline in `profile/update/route.ts` instead of centralized like other domains.
+- [x] **Code Quality: Move profile validation schema to `src/lib/validations/`** — ~~`updateProfileSchema` is defined inline in `profile/update/route.ts` instead of centralized like other domains.~~ ✅ Moved to `src/lib/validations/profile.ts`
 - [ ] **Code Quality: Stub `fetchArticleContent()` in `webSearch.ts`** — returns empty string with console.warn. Either implement or remove.
 - [ ] **Code Quality: Client error handling uses `alert()`** — `CommentForm.tsx` uses `alert()` for errors. Replace with proper error state UI across components.
 - [ ] **Security: Missing env var validation at startup** — GEMINI_API_KEY, SERPER_API_KEY checked at request time, not at boot. Add startup validation.
@@ -104,9 +104,9 @@
 - [ ] **Localization: Hebrew translations** (after i18n infrastructure is ready)
 
 - [x] **Code Quality: Remove unused `pg` dependency** — ~~Prisma handles DB connections, `pg` package in `package.json` may not be needed directly. Verify and remove if unused.~~ ✅ Verified unused, removed
-- [ ] **Docs: `DEPLOYMENT_SUMMARY.md` is stale** — references version 0.1.16 and "14/14 tests". Either keep it updated or remove it (it's a snapshot, not a living doc).
+- [x] **Docs: `DEPLOYMENT_SUMMARY.md` is stale** — ~~references version 0.1.16 and "14/14 tests". Either keep it updated or remove it (it's a snapshot, not a living doc).~~ ✅ Removed
 - [ ] **Docs: Remove `PRODUCT_NAMING.md` or archive** — references "ScoopBet" as proposed name, decision still pending. Low value as a root-level doc.
-- [ ] **Dockerfile: Clean up debug `RUN echo` statements** — build stage has multiple `echo` and `ls -R` commands for debugging. Remove once builds are stable.
+- [x] **Dockerfile: Clean up debug `RUN echo` statements** — ~~build stage has multiple `echo` and `ls -R` commands for debugging. Remove once builds are stable.~~ ✅ Removed debug echo/ls statements and stale BUILD_TIMESTAMP arg
 
 ### 🔵 Verify / Check Later
 - [ ] **SEO: Slugs** — migration exists, verify URLs actually use slugs in production
