@@ -253,7 +253,7 @@ This implementation plan builds upon existing commitment infrastructure (databas
     - Refresh prediction data after commitment changes
     - _Requirements: 2.1, 2.2, 5.1_
   
-  - [ ] 11.2 Update prediction list page to show commitment indicators
+  - [x] 11.2 Update prediction list page to show commitment indicators
     - Display commitment count and total CU for each prediction
     - Add visual indicator for predictions user has committed to
     - _Requirements: 9.1, 9.2, 9.3_
@@ -263,7 +263,7 @@ This implementation plan builds upon existing commitment infrastructure (databas
     - Test UI updates after commitment operations
     - Test error handling and display
 
-- [ ] 12. Final checkpoint - Ensure all tests pass
+- [x] 12. Final checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes
