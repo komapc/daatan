@@ -20,12 +20,12 @@
 ### 🟠 High Priority (stability & correctness)
 - [x] DB: Run `npx prisma generate` — Comment model not recognized by Prisma client (type errors in comments API routes) (2026-02-08)
 - [x] DB: Create/verify migration files for Commitment and CuTransaction models — migrations applied manually to both DBs (2026-02-08)
-- [ ] CI/CD: Add `concurrency` group to GitHub Actions deploy workflow — two rapid pushes to main can trigger simultaneous deploys that conflict
+- [x] CI/CD: Add `concurrency` group to GitHub Actions deploy workflow — prevents simultaneous deploys (2026-02-08)
 - [ ] Security: Add rate limiting middleware to sensitive API endpoints (commit, resolve, comments) — no rate limiting exists anywhere
 - [ ] Infra: EC2 instance type is `t3.nano` (0.5GB RAM) but runs Nginx + 2 Next.js apps + PostgreSQL — upgrade to at least `t3.small` (2GB) or the containers will OOM
 - [x] Code Quality: Fix version number drift — aligned all to package.json as single source of truth (2026-02-08)
 - [x] Code Quality: Move `@prisma/client` from devDependencies to dependencies in package.json (2026-02-08)
-- [ ] API: Resolve endpoint uses inline Zod schema that differs from shared `resolvePredictionSchema` (evidence links optional vs required) — use the shared schema
+- [x] API: Resolve endpoint now uses shared `resolvePredictionSchema` — aligned field names and optionality (2026-02-08)
 - [ ] Infra: Investigate/fix zero downtime on upgrade (still doesn't work properly)
 
 ### 🟡 Medium Priority (features & improvements)
@@ -58,20 +58,20 @@
 
 ### 🟢 Low Priority (hardening & polish)
 - [ ] Code Quality: Eliminate all compile-time warnings, runtime warnings, linter warnings and hints
-- [ ] Code Quality: Remove `any` types — CommitmentForm.tsx, ModeratorResolutionSection.tsx (unnecessary `as any` cast when types are already augmented in next-auth.d.ts)
-- [ ] Code Quality: Remove unused `SearchResult` import in expressPrediction.ts
+- [x] Code Quality: Remove `any` types — CommitmentForm.tsx (replaced with typed interfaces) (2026-02-08)
+- [x] Code Quality: Remove unused `SearchResult` import in expressPrediction.ts (was already done) (2026-02-08)
 - [ ] Code Quality: Replace `console.error` in API routes with structured logging (e.g., pino)
 - [ ] Security: Add Content-Security-Policy header to nginx config
-- [ ] Security: Add HSTS header to staging nginx server block (only production has it currently)
-- [ ] Nginx: Reduce `proxy_read_timeout` from 86400s (24h) to 60-120s unless WebSockets are needed
-- [ ] DB: Add composite index on Comment `(predictionId, createdAt)` for common query pattern
+- [x] Security: Add HSTS header to staging nginx server block (2026-02-08)
+- [x] Nginx: Reduce `proxy_read_timeout` from 86400s (24h) to 120s (2026-02-08)
+- [x] DB: Add composite index on Comment `(predictionId, createdAt)` and `(forecastId, createdAt)` (2026-02-08)
 - [ ] Infra: Add SSL certificate renewal monitoring/alerting — certbot runs in a loop but no alert if renewal fails
 - [ ] Infra: Add DB migration rollback strategy — rollback.sh handles code but not schema changes
-- [ ] CI/CD: verify-deploy.sh external step reads package.json version from runner checkout which may differ from deployed version — use health endpoint version instead
-- [ ] CI/CD: Pre-commit hook runs full build + tests on every commit (slow) — consider moving to pre-push or using lint-staged
+- [x] CI/CD: verify-deploy.sh now uses health endpoint version/commit instead of package.json (2026-02-08)
+- [x] CI/CD: Pre-commit hook now only runs lint; build+tests moved to pre-push (2026-02-08)
 - [ ] Testing: Implement end-to-end tests using relevant frameworks (Playwright/Cypress)
 - [ ] Testing: Add tests for commitment and resolution flows — critical business logic with zero test coverage
-- [ ] Testing: Fix comments.test.ts — likely failing due to Prisma client type errors
+- [x] Testing: Fix comments.test.ts — was already passing (12 tests) (2026-02-08)
 
 ## Completed
 - [x] Security: Remove NEXTAUTH_SECRET from Docker build args — now only passed as runtime env var (2026-02-08)
