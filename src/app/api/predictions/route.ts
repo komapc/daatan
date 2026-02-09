@@ -28,9 +28,7 @@ export async function GET(request: NextRequest) {
     const resolvedOnly = searchParams.get('resolvedOnly') === 'true'
     const closingSoon = searchParams.get('closingSoon') === 'true'
 
-    const where: Record<string, unknown> = {
-      deletedAt: null,
-    }
+    const where: Record<string, unknown> = {}
     
     // Handle resolved filter
     if (resolvedOnly) {

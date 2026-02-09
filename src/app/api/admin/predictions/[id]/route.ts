@@ -24,15 +24,12 @@ export const PATCH = withRole(['ADMIN', 'RESOLVER'], async (req, { params }) => 
   return NextResponse.json(prediction)
 })
 
-// Soft-delete a prediction (admin only)
+// Delete a prediction (admin only)
 export const DELETE = withRole(['ADMIN'], async (req, { params }) => {
   const { id } = params
 
-  await prisma.prediction.update({
+  await prisma.prediction.delete({
     where: { id },
-    data: {
-      deletedAt: new Date(),
-    },
   })
 
   return NextResponse.json({ success: true })
