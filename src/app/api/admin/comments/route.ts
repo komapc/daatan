@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { withRole } from '@/lib/api-middleware'
 import { prisma } from '@/lib/prisma'
 
-export const GET = withRole(['ADMIN'], async (req) => {
+export const GET = withRole(['ADMIN', 'RESOLVER'], async (req) => {
   const { searchParams } = new URL(req.url)
   const page = parseInt(searchParams.get('page') || '1')
   const limit = parseInt(searchParams.get('limit') || '20')

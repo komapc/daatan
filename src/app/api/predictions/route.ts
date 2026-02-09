@@ -66,6 +66,7 @@ export async function GET(request: NextRequest) {
               username: true,
               image: true,
               rs: true,
+              role: true,
             },
           },
           newsAnchor: {

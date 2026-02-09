@@ -36,6 +36,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             username: true,
             image: true,
             rs: true,
+            role: true,
           },
         },
         newsAnchor: true,

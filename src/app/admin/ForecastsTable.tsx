@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Loader2, Search, Trash2, CheckCircle, XCircle, AlertTriangle } from 'lucide-react'
+import { Loader2, Search } from 'lucide-react'
+import PredictionCard from '@/components/predictions/PredictionCard'
 
 export default function ForecastsTable() {
   const [predictions, setPredictions] = useState<any[]>([])
@@ -32,27 +33,6 @@ export default function ForecastsTable() {
     setPage(1)
     fetchPredictions()
   }
-
-  const updateStatus = async (id: string, newStatus: string) => {
-    if (!confirm(`Are you sure you want to change status to ${newStatus}?`)) return
-
-    try {
-      const res = await fetch(`/api/admin/predictions/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
-      })
-      if (res.ok) {
-        setPredictions(predictions.map(p => p.id === id ? { ...p, status: newStatus } : p))
-      } else {
-        alert('Failed to update status')
-      }
-    } catch (err) {
-      console.error(err)
-      alert('Error updating status')
-    }
-  }
-
   return (
     <div>
       <div className="mb-6 flex gap-2">
@@ -79,67 +59,10 @@ export default function ForecastsTable() {
         </div>
       ) : (
         <>
-          <div className="overflow-x-auto border rounded-lg shadow-sm">
-            <table className="w-full border-collapse bg-white">
-              <thead className="bg-gray-50 text-gray-700 text-sm font-semibold uppercase tracking-wider">
-                <tr>
-                  <th className="p-3 border-b text-left">Details</th>
-                  <th className="p-3 border-b text-left">Author</th>
-                  <th className="p-3 border-b text-left">Status</th>
-                  <th className="p-3 border-b text-center">Stats</th>
-                  <th className="p-3 border-b text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {predictions.map((p) => (
-                  <tr key={p.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="p-3 max-w-md">
-                      <div className="font-medium text-gray-900 mb-1">{p.claimText}</div>
-                      <div className="text-xs text-gray-500 font-mono">{p.id}</div>
-                    </td>
-                    <td className="p-3">
-                      <div className="text-sm font-medium text-gray-900">{p.author.name}</div>
-                      <div className="text-xs text-gray-500">{p.author.email}</div>
-                    </td>
-                    <td className="p-3">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        p.status === 'ACTIVE' ? 'bg-green-100 text-green-800' :
-                        p.status === 'RESOLVED_CORRECT' ? 'bg-blue-100 text-blue-800' :
-                        p.status === 'RESOLVED_WRONG' ? 'bg-orange-100 text-orange-800' :
-                        p.status === 'VOID' ? 'bg-red-100 text-red-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {p.status}
-                      </span>
-                    </td>
-                    <td className="p-3 text-center text-sm text-gray-600">
-                      <div title="Commitments">{p._count.commitments} commits</div>
-                      <div title="Comments" className="text-xs text-gray-400 mt-0.5">{p._count.comments} comments</div>
-                    </td>
-                    <td className="p-3 text-right space-x-2">
-                      {p.status !== 'VOID' && (
-                        <button 
-                          onClick={() => updateStatus(p.id, 'VOID')}
-                          className="text-red-600 hover:text-red-900 text-sm font-medium"
-                          title="Void Prediction"
-                        >
-                          Void
-                        </button>
-                      )}
-                      {p.status === 'VOID' && (
-                         <button 
-                          onClick={() => updateStatus(p.id, 'DRAFT')}
-                          className="text-gray-600 hover:text-gray-900 text-sm font-medium"
-                          title="Restore to Draft"
-                        >
-                          Restore
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="space-y-4">
+            {predictions.map((p) => (
+              <PredictionCard key={p.id} prediction={p} showModerationControls={true} />
+            ))}
           </div>
 
           <div className="mt-4 flex justify-between items-center text-sm text-gray-600">

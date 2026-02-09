@@ -15,12 +15,16 @@ import {
   Loader2,
   AlertCircle,
   ChevronLeft,
+  Edit2,
+  Trash2,
 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { ModeratorResolutionSection } from './ModeratorResolutionSection'
 import CommentThread from '@/components/comments/CommentThread'
 import CommitmentForm from '@/components/predictions/CommitmentForm'
 import CommitmentDisplay from '@/components/predictions/CommitmentDisplay'
 import CUBalanceIndicator from '@/components/predictions/CUBalanceIndicator'
+import { RoleBadge } from '@/components/RoleBadge'
 
 type Prediction = {
   id: string
@@ -42,6 +46,7 @@ type Prediction = {
     username?: string
     image?: string
     rs: number
+    role?: 'USER' | 'RESOLVER' | 'ADMIN'
   }
   newsAnchor?: {
     id: string
@@ -81,6 +86,7 @@ type Prediction = {
 
 export default function PredictionDetailPage() {
   const params = useParams()
+  const router = useRouter()
   const { data: session } = useSession()
   const [prediction, setPrediction] = useState<Prediction | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -147,6 +153,32 @@ export default function PredictionDetailPage() {
     fetchPrediction()
   }
 
+  const handleDelete = async () => {
+    if (!confirm('Are you sure you want to delete this prediction? This action cannot be undone.')) return
+
+    try {
+      const response = await fetch(`/api/admin/predictions/${prediction?.id}`, {
+        method: 'DELETE',
+      })
+      if (response.ok) {
+        router.push('/')
+      } else {
+        alert('Failed to delete prediction')
+      }
+    } catch (error) {
+      console.error('Error deleting prediction:', error)
+      alert('Error deleting prediction')
+    }
+  }
+
+  const handleEdit = () => {
+    if (!prediction?.id) return
+    // Admin-only edit page (future enhancement could be a modal)
+    window.location.href = `/admin/predictions/${prediction.id}/edit`
+  }
+
+  const canAdminister = session?.user?.role === 'ADMIN'
+
   // Find user's commitment if exists
   const userCommitment = session?.user?.id 
     ? prediction?.commitments.find(c => c.user.id === session.user.id)
@@ -194,14 +226,35 @@ export default function PredictionDetailPage() {
 
       {/* Header */}
       <div className="mb-6">
-        <div className="flex items-center gap-3 mb-3">
-          <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusBadge(prediction.status)}`}>
-            {prediction.status.replace('_', ' ')}
-          </span>
-          {prediction.domain && (
-            <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full capitalize">
-              {prediction.domain}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusBadge(prediction.status)}`}>
+              {prediction.status.replace('_', ' ')}
             </span>
+            {prediction.domain && (
+              <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full capitalize">
+                {prediction.domain}
+              </span>
+            )}
+          </div>
+          
+          {canAdminister && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleEdit}
+                className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                title="Edit Prediction"
+              >
+                <Edit2 className="w-5 h-5" />
+              </button>
+              <button
+                onClick={handleDelete}
+                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                title="Delete Prediction"
+              >
+                <Trash2 className="w-5 h-5" />
+              </button>
+            </div>
           )}
         </div>
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">
@@ -253,7 +306,12 @@ export default function PredictionDetailPage() {
               />
             )}
             <div>
-              <div className="font-medium">{prediction.author.name}</div>
+              <div className="flex items-center gap-2">
+                <span className="font-medium">{prediction.author.name}</span>
+                {prediction.author.role && (
+                  <RoleBadge role={prediction.author.role} size="sm" />
+                )}
+              </div>
               <div className="text-xs text-gray-500">RS: {prediction.author.rs.toFixed(0)}</div>
             </div>
           </div>
