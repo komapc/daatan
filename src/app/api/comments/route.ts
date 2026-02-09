@@ -146,6 +146,7 @@ export async function POST(request: NextRequest) {
             username: true,
             image: true,
             rs: true,
+            role: true,
           },
         },
         reactions: true,

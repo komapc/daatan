@@ -13,10 +13,10 @@ import {
   Settings,
   Globe,
   Twitter,
-  Shield
 } from 'lucide-react'
 import PredictionCard from '@/components/predictions/PredictionCard'
 import Link from 'next/link'
+import { RoleBadge } from '@/components/RoleBadge'
 
 export default async function ProfilePage() {
   try {
@@ -55,51 +55,53 @@ export default async function ProfilePage() {
       redirect('/')
     }
 
-  // Fetch recent commitments (stakes)
-  const commitments = await prisma.commitment.findMany({
-    where: { userId: user.id },
-    include: {
-      prediction: {
-        include: {
-          author: {
-            select: {
-              id: true,
-              name: true,
-              username: true,
-              image: true,
-              rs: true,
-            }
+    // Fetch recent commitments (stakes)
+    const commitments = await prisma.commitment.findMany({
+      where: { userId: user.id },
+      include: {
+        prediction: {
+          include: {
+            author: {
+              select: {
+                id: true,
+                name: true,
+                username: true,
+                image: true,
+                rs: true,
+                role: true,
+              },
+            },
+            _count: {
+              select: { commitments: true },
+            },
           },
-          _count: {
-            select: { commitments: true }
-          }
-        }
-      }
-    },
-    orderBy: { createdAt: 'desc' },
-    take: 5
-  })
-
-  // Fetch predictions created by user
-  const myPredictions = await prisma.prediction.findMany({
-    where: { authorId: user.id },
-    include: {
-      author: {
-        select: {
-          id: true,
-          name: true,
-          username: true,
-          image: true,
-          rs: true,
-        }
+        },
       },
-      _count: {
-        select: { commitments: true }
-      }
-    },
-    orderBy: { createdAt: 'desc' },
-    take: 5
-  })
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+    })
+
+    // Fetch predictions created by user
+    const myPredictions = await prisma.prediction.findMany({
+      where: { authorId: user.id },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            username: true,
+            image: true,
+            rs: true,
+            role: true,
+          },
+        },
+        _count: {
+          select: { commitments: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+    })
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
@@ -128,15 +130,8 @@ export default async function ProfilePage() {
           <div className="flex-1 text-center md:text-left">
             <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
               <h1 className="text-3xl sm:text-4xl font-black text-gray-900">{user.name || 'Anonymous'}</h1>
-              {user.role === 'ADMIN' && (
-                <span className="bg-red-100 text-red-700 text-xs font-bold px-2 py-1 rounded-full uppercase tracking-wider flex items-center gap-1">
-                  <Shield className="w-3 h-3" /> Admin
-                </span>
-              )}
-              {user.role === 'RESOLVER' && (
-                <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded-full uppercase tracking-wider flex items-center gap-1">
-                  <Shield className="w-3 h-3" /> Resolver
-                </span>
+              {user.role && (
+                <RoleBadge role={user.role} size="md" />
               )}
               <Link 
                 href="/profile/edit"

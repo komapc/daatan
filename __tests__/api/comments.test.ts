@@ -333,6 +333,46 @@ describe('Comments API', () => {
 
       expect(response.status).toBe(200)
     })
+
+    it('allows RESOLVER to delete any comment', async () => {
+      const { getServerSession } = await import('next-auth')
+      const { prisma } = await import('@/lib/prisma')
+
+      vi.mocked(getServerSession).mockResolvedValue({
+        user: { id: 'resolver1', email: 'resolver@example.com' },
+      } as any)
+
+      vi.mocked(prisma.comment.findUnique).mockResolvedValue({
+        id: 'comment1',
+        authorId: 'user2', // Different user - resolver can still delete
+        deletedAt: null,
+      } as any)
+
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        id: 'resolver1',
+        role: 'RESOLVER',
+        isAdmin: false,
+        isModerator: true,
+      } as any)
+
+      vi.mocked(prisma.comment.update).mockResolvedValue({} as any)
+
+      const request = new NextRequest('http://localhost/api/comments/comment1', {
+        method: 'DELETE',
+      })
+
+      const response = await deleteComment(request, { params: { id: 'comment1' } })
+
+      expect(response.status).toBe(200)
+      expect(prisma.comment.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'comment1' },
+          data: expect.objectContaining({
+            deletedAt: expect.any(Date),
+          }),
+        })
+      )
+    })
   })
 
   describe('POST /api/comments/[id]/react', () => {
