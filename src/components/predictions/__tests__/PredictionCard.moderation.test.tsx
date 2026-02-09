@@ -10,6 +10,7 @@ vi.mock('next-auth/react', () => ({
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
     refresh: vi.fn(),
+    push: vi.fn(),
   }),
 }))
 
@@ -56,7 +57,7 @@ describe('PredictionCard moderation controls', () => {
     expect(screen.queryByTitle(/Delete Prediction/i)).toBeNull()
   })
 
-  it('does not show moderation controls for non-admin users even when flag is true', () => {
+  it('does not show Edit/Delete for resolvers but shows Resolve for active predictions', () => {
     vi.mocked(useSession).mockReturnValue({
       data: {
         user: { role: 'RESOLVER' },
@@ -69,6 +70,22 @@ describe('PredictionCard moderation controls', () => {
 
     expect(screen.queryByTitle(/Edit Prediction/i)).toBeNull()
     expect(screen.queryByTitle(/Delete Prediction/i)).toBeNull()
+    expect(screen.getByTitle(/Resolve forecast/i)).toBeInTheDocument()
+  })
+
+  it('does not show Resolve for resolved predictions', () => {
+    vi.mocked(useSession).mockReturnValue({
+      data: {
+        user: { role: 'RESOLVER' },
+        expires: 'any',
+      } as any,
+      status: 'authenticated',
+    } as any)
+
+    const resolvedPrediction = { ...basePrediction, status: 'RESOLVED_CORRECT' as const }
+    render(<PredictionCard prediction={resolvedPrediction} showModerationControls />)
+
+    expect(screen.queryByTitle(/Resolve forecast/i)).toBeNull()
   })
 
   it('shows moderation controls for admins when flag is true', () => {
@@ -82,6 +99,7 @@ describe('PredictionCard moderation controls', () => {
 
     render(<PredictionCard prediction={basePrediction} showModerationControls />)
 
+    expect(screen.getByTitle(/Resolve forecast/i)).toBeInTheDocument()
     expect(screen.getByTitle(/Edit Prediction/i)).toBeInTheDocument()
     expect(screen.getByTitle(/Delete Prediction/i)).toBeInTheDocument()
   })

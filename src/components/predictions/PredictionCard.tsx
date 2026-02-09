@@ -16,6 +16,7 @@ import {
   Clock,
   Trash2,
   Edit2,
+  Gavel,
 } from 'lucide-react'
 import { RoleBadge } from '@/components/RoleBadge'
 
@@ -61,12 +62,18 @@ export default function PredictionCard({
 
   const canAdminister =
     showModerationControls && session?.user?.role === 'ADMIN'
+  const canResolve =
+    showModerationControls &&
+    (session?.user?.role === 'RESOLVER' || session?.user?.role === 'ADMIN') &&
+    (prediction.status === 'ACTIVE' || prediction.status === 'PENDING')
   const isEditable =
     prediction.status === 'DRAFT' ||
     prediction.status === 'ACTIVE' ||
     prediction.status === 'PENDING'
 
-  const handleDelete = async () => {
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
     if (!confirm('Are you sure you want to delete this prediction? This action cannot be undone.')) return
 
     try {
@@ -84,9 +91,17 @@ export default function PredictionCard({
     }
   }
 
-  const handleEdit = () => {
+  const handleEdit = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
     // TODO: Implement actual edit page/modal
     alert('Edit functionality not yet implemented')
+  }
+
+  const handleResolve = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    router.push(`/predictions/${prediction.id}`)
   }
 
   const formatDate = (date: string | Date) => {
@@ -257,24 +272,40 @@ export default function PredictionCard({
           </div>
         </div>
 
-        {canAdminister && (
+        {(canAdminister || canResolve) && (
           <div className="flex-shrink-0 flex gap-2 self-start mt-1">
-            {isEditable && (
+            {canResolve && (
               <button
-                onClick={handleEdit}
+                onClick={handleResolve}
                 className="p-1 rounded-full text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                title="Edit Prediction"
+                title="Resolve forecast"
+                aria-label="Resolve forecast"
               >
-                <Edit2 className="w-4 h-4" />
+                <Gavel className="w-4 h-4" />
               </button>
             )}
-            <button
-              onClick={handleDelete}
-              className="p-1 rounded-full text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-              title="Delete Prediction"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            {canAdminister && (
+              <>
+                {isEditable && (
+                  <button
+                    onClick={handleEdit}
+                    className="p-1 rounded-full text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                    title="Edit Prediction"
+                    aria-label="Edit prediction"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                )}
+                <button
+                  onClick={handleDelete}
+                  className="p-1 rounded-full text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                  title="Delete Prediction"
+                  aria-label="Delete prediction"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </>
+            )}
           </div>
         )}
 

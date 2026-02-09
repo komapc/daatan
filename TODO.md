@@ -7,8 +7,6 @@
 
 ### 🔴 High Priority
 
-- [ ] **Security: Rotate exposed API keys** — `.env` file contains real API keys (Gemini, Serper, Google Search). Verified `.env` is gitignored and not in repo history — keys are safe for now. Rotate when moving to Secrets Manager.
-
 - [x] **Security: Clean dead env vars from `.env`** — ~~`GOOGLE_SEARCH_API_KEY` and `GOOGLE_SEARCH_ENGINE_ID` are in `.env` but unused in code (project uses Serper now). Remove to reduce attack surface.~~ ✅ Removed
 
 - [ ] **Admin & Roles System** (ASAP)
@@ -17,7 +15,7 @@
   - [x] Custom `/admin` page — forecasts management (list, search, edit, soft-delete)
   - [x] Admin: Comments management (list, search, delete)
   - [x] Admin: Users management (list, assign/revoke roles)
-  - [ ] Resolver capabilities: resolve forecasts + delete comments (inline UI + admin panel)
+  - [x] Resolver capabilities: resolve forecasts + delete comments (inline UI + admin panel)
   - [ ] UI indicators: admin/resolver badges on profiles, inline moderation controls
 
 - [x] **Infra: Fix zero-downtime deploys** — ~~staging is down several minutes after merging PRs. Investigate deploy workflow + blue-green script, likely old container stopped before new one is healthy or DB restart during deploy~~ ✅ Fixed — blue-green script now uses Docker network alias swapping instead of stop→rename. Old container serves traffic until new container is health-checked, migrations pass, and network alias is swapped atomically.
@@ -27,6 +25,8 @@
 - [ ] **Naming: Rename "Prediction" → "Forecast" everywhere** — DB models, API routes, file paths, components, types, UI text. Consolidate with legacy Forecast model sunset. Needs spec + careful migration plan for production data.
 
 ### 🟠 Medium Priority
+
+- [ ] **Security: Rotate exposed API keys** — `.env` file contains real API keys (Gemini, Serper, Google Search). Verified `.env` is gitignored and not in repo history — keys are safe for now. Rotate when moving to Secrets Manager.
 
 - [ ] **Commitments: Elaborate commitment/join forecast system** — define how users commit to forecasts, change commitments, what happens on resolution. Multiple open design questions.
 
