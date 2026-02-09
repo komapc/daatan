@@ -23,6 +23,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // Try to find by ID first, then by slug
     const prediction = await prisma.prediction.findFirst({
       where: {
+        deletedAt: null,
         OR: [
           { id: params.id },
           { slug: params.id },
@@ -36,6 +37,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             username: true,
             image: true,
             rs: true,
+            role: true,
           },
         },
         newsAnchor: true,

@@ -28,7 +28,9 @@ export async function GET(request: NextRequest) {
     const resolvedOnly = searchParams.get('resolvedOnly') === 'true'
     const closingSoon = searchParams.get('closingSoon') === 'true'
 
-    const where: Record<string, unknown> = {}
+    const where: Record<string, unknown> = {
+      deletedAt: null,
+    }
     
     // Handle resolved filter
     if (resolvedOnly) {
@@ -66,6 +68,7 @@ export async function GET(request: NextRequest) {
               username: true,
               image: true,
               rs: true,
+              role: true,
             },
           },
           newsAnchor: {

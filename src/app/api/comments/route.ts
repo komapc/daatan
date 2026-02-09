@@ -42,15 +42,16 @@ export async function GET(request: NextRequest) {
       prisma.comment.findMany({
         where,
         include: {
-          author: {
-            select: {
-              id: true,
-              name: true,
-              username: true,
-              image: true,
-              rs: true,
-            },
+        author: {
+          select: {
+            id: true,
+            name: true,
+            username: true,
+            image: true,
+            rs: true,
+            role: true,
           },
+        },
           reactions: {
             include: {
               user: {

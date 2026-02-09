@@ -1,16 +1,21 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { 
-  Calendar, 
-  Users, 
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+import {
+  Calendar,
+  Users,
   ChevronRight,
   TrendingUp,
   AlertCircle,
   CheckCircle2,
   XCircle,
   HelpCircle,
-  Clock
+  Clock,
+  Trash2,
+  Edit2,
 } from 'lucide-react'
+import { RoleBadge } from '@/components/RoleBadge'
 
 export type Prediction = {
   id: string
@@ -25,6 +30,7 @@ export type Prediction = {
     username?: string | null
     image?: string | null
     rs?: number
+    role?: 'USER' | 'RESOLVER' | 'ADMIN'
   }
   newsAnchor?: {
     id: string
@@ -41,9 +47,46 @@ export type Prediction = {
 
 interface PredictionCardProps {
   prediction: Prediction
+  showModerationControls?: boolean
 }
 
-export default function PredictionCard({ prediction }: PredictionCardProps) {
+export default function PredictionCard({
+  prediction,
+  showModerationControls = false,
+}: PredictionCardProps) {
+  const { data: session } = useSession()
+  const router = useRouter()
+
+  const canAdminister =
+    showModerationControls && session?.user?.role === 'ADMIN'
+  const isEditable =
+    prediction.status === 'DRAFT' ||
+    prediction.status === 'ACTIVE' ||
+    prediction.status === 'PENDING'
+
+  const handleDelete = async () => {
+    if (!confirm('Are you sure you want to delete this prediction? This action cannot be undone.')) return
+
+    try {
+      const response = await fetch(`/api/admin/predictions/${prediction.id}`, {
+        method: 'DELETE',
+      })
+      if (response.ok) {
+        router.refresh()
+      } else {
+        alert('Failed to delete prediction')
+      }
+    } catch (error) {
+      console.error('Error deleting prediction:', error)
+      alert('Error deleting prediction')
+    }
+  }
+
+  const handleEdit = () => {
+    // TODO: Implement actual edit page/modal
+    alert('Edit functionality not yet implemented')
+  }
+
   const formatDate = (date: string | Date) => {
     return new Date(date).toLocaleDateString('en-US', {
       month: 'short',
@@ -156,9 +199,9 @@ export default function PredictionCard({ prediction }: PredictionCardProps) {
             <div className="flex items-center gap-2 pr-4 border-r border-gray-100 last:border-0">
               <div className="relative">
                 {prediction.author.image ? (
-                  <Image 
-                    src={prediction.author.image} 
-                    alt="" 
+                  <Image
+                    src={prediction.author.image}
+                    alt=""
                     width={24}
                     height={24}
                     className="rounded-full ring-1 ring-gray-100"
@@ -174,9 +217,16 @@ export default function PredictionCard({ prediction }: PredictionCardProps) {
                   </div>
                 )}
               </div>
-              <span className="font-medium text-gray-700 truncate max-w-[100px]">
-                {prediction.author.name || 'Anonymous'}
-              </span>
+              <div className="flex flex-col">
+                <span className="font-medium text-gray-700 truncate max-w-[120px]">
+                  {prediction.author.name || 'Anonymous'}
+                </span>
+                {prediction.author.role && (
+                  <span className="mt-0.5">
+                    <RoleBadge role={prediction.author.role} size="sm" />
+                  </span>
+                )}
+              </div>
             </div>
 
             {/* Resolve By Date */}
@@ -204,6 +254,27 @@ export default function PredictionCard({ prediction }: PredictionCardProps) {
             )}
           </div>
         </div>
+
+        {canAdminister && (
+          <div className="flex-shrink-0 flex gap-2 self-start mt-1">
+            {isEditable && (
+              <button
+                onClick={handleEdit}
+                className="p-1 rounded-full text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                title="Edit Prediction"
+              >
+                <Edit2 className="w-4 h-4" />
+              </button>
+            )}
+            <button
+              onClick={handleDelete}
+              className="p-1 rounded-full text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+              title="Delete Prediction"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
         <div className="flex-shrink-0 self-center">
           <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-blue-50 transition-colors">

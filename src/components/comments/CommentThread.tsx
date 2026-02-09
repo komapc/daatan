@@ -18,6 +18,7 @@ export interface Comment {
     username: string | null
     image: string | null
     rs: number
+    role?: 'USER' | 'RESOLVER' | 'ADMIN'
   }
   reactions: Array<{
     id: string
