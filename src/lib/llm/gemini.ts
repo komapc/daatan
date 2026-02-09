@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI, SchemaType, type Schema } from '@google/generative-ai'
+import { getExtractPredictionPrompt } from './prompts'
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
 
@@ -42,15 +43,7 @@ export async function extractPrediction(text: string) {
     },
   })
 
-  const prompt = `
-    Extract a structured prediction from the following text. 
-    If a resolution date is not explicitly mentioned, infer the most logical one based on the context.
-    If the text contains multiple predictions, focus on the most prominent one.
-    
-    Text:
-    ${text}
-  `
-
+  const prompt = getExtractPredictionPrompt(text)
   const result = await model.generateContent(prompt)
   const response = result.response
   return JSON.parse(response.text())
