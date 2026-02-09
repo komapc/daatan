@@ -33,7 +33,6 @@ export default function ForecastsTable() {
     setPage(1)
     fetchPredictions()
   }
-
   return (
     <div>
       <div className="mb-6 flex gap-2">

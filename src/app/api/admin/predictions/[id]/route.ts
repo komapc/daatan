@@ -18,7 +18,7 @@ export const PATCH = withRole(['ADMIN', 'RESOLVER'], async (req, { params }) => 
   
   const prediction = await prisma.prediction.update({
     where: { id },
-    data: { status: result.data.status },
+    data: { status: result.data.status }
   })
   
   return NextResponse.json(prediction)
