@@ -40,6 +40,8 @@
 | CI/CD | GitHub Actions | - |
 | AI Integration | Google Gemini API | - |
 
+**LLM prompts** (forecast/prediction creation) are defined in `src/lib/llm/prompts/`: `expressPrediction.ts` (Express flow) and `extractPrediction.ts` (extract from text). See [STRUCTURE.md](./STRUCTURE.md) for the full `lib/llm` layout.
+
 ---
 
 ## Architecture Overview

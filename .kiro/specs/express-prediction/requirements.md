@@ -86,20 +86,15 @@ If no relevant articles found:
 
 ### LLM Prompt Structure
 
-**System Prompt:**
-```
-You are a prediction assistant for DAATAN, a reputation-based prediction platform. Your job is to convert user's casual prediction ideas into formal, testable predictions.
+Prompts are maintained as the single source of truth in **`src/lib/llm/prompts/`**:
+- **Express forecast creation:** `src/lib/llm/prompts/expressPrediction.ts` — `getExpressPredictionPrompt()`
+- **Extract prediction from text:** `src/lib/llm/prompts/extractPrediction.ts` — `getExtractPredictionPrompt()`
 
-Rules:
-1. Create clear, unambiguous claims that can be objectively verified
-2. Infer resolution dates from context (e.g., "this year" = Dec 31 of current year)
-3. If no timeframe mentioned, default to end of current year
-4. Summarize current situation based on provided articles
-5. Focus on factual, verifiable outcomes
-6. Avoid subjective or opinion-based predictions
-```
+The Express prompt (summary):
+- **System / rules:** Prediction assistant for DAATAN; convert casual ideas into formal, testable predictions. Create clear claims, infer resolution dates, summarize from articles, factual outcomes only.
+- **User payload:** `User wants to predict: "{userInput}"` plus current date/year and article list.
 
-**User Prompt:**
+**User Prompt (conceptual):**
 ```
 User wants to predict: "{userInput}"
 

@@ -77,6 +77,13 @@ src/
 │   └── StagingBanner.tsx       # Staging environment indicator
 ├── lib/                        # Shared utilities
 │   ├── llm/                    # LLM integration (Gemini)
+│   │   ├── prompts/            # LLM prompt templates (single source of truth)
+│   │   │   ├── README.md       # Prompt inventory and usage
+│   │   │   ├── expressPrediction.ts  # Express forecast creation
+│   │   │   ├── extractPrediction.ts  # Extract prediction from text
+│   │   │   └── index.ts
+│   │   ├── expressPrediction.ts
+│   │   └── gemini.ts
 │   ├── utils/                  # Utility functions
 │   ├── validations/            # Zod schemas
 │   ├── auth.ts                 # NextAuth configuration
