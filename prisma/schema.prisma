@@ -145,6 +145,21 @@ model NewsAnchor {
 }
 
 // ============================================
+// TAGS (Categorization)
+// ============================================
+
+model Tag {
+  id        String   @id @default(cuid())
+  name      String   @unique @db.VarChar(50) // e.g., "Politics", "AI", "Crypto"
+  slug      String   @unique @db.VarChar(50) // e.g., "politics", "ai", "crypto"
+  createdAt DateTime @default(now())
+
+  predictions Prediction[]
+
+  @@map("tags")
+}
+
+// ============================================
 // PREDICTIONS (New system)
 // ============================================
 
@@ -179,7 +194,8 @@ model Prediction {
   claimText   String  @db.VarChar(500) // The testable statement
   slug        String? @unique // URL-friendly identifier (e.g., "bitcoin-100k-2026")
   detailsText String? @db.Text // Additional conditions/context
-  domain      String? @db.VarChar(100) // Category
+  domain      String? @db.VarChar(100) // Category (Deprecated: use tags)
+  tags        Tag[]
 
   // Outcome definition
   outcomeType    OutcomeType @default(BINARY)

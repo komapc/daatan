@@ -2,22 +2,12 @@
 
 import { AlertCircle } from 'lucide-react'
 import type { PredictionFormData } from '../PredictionWizard'
+import { TagSelector } from '@/components/ui/TagSelector'
 
 type Props = {
   formData: PredictionFormData
   updateFormData: (updates: Partial<PredictionFormData>) => void
 }
-
-const DOMAINS = [
-  { value: 'politics', label: 'Politics' },
-  { value: 'tech', label: 'Technology' },
-  { value: 'finance', label: 'Finance' },
-  { value: 'sports', label: 'Sports' },
-  { value: 'entertainment', label: 'Entertainment' },
-  { value: 'science', label: 'Science' },
-  { value: 'world', label: 'World Events' },
-  { value: 'other', label: 'Other' },
-]
 
 export const StepPrediction = ({ formData, updateFormData }: Props) => {
   const claimLength = formData.claimText?.length || 0
@@ -47,9 +37,8 @@ export const StepPrediction = ({ formData, updateFormData }: Props) => {
           placeholder="e.g., Bitcoin will reach $100,000 before July 2026"
           rows={3}
           maxLength={500}
-          className={`w-full px-4 py-3 rounded-lg border ${
-            isClaimTooShort ? 'border-amber-500' : 'border-gray-200'
-          } focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none`}
+          className={`w-full px-4 py-3 rounded-lg border ${isClaimTooShort ? 'border-amber-500' : 'border-gray-200'
+            } focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none`}
         />
         <div className="flex justify-between mt-1">
           {isClaimTooShort && (
@@ -80,25 +69,17 @@ export const StepPrediction = ({ formData, updateFormData }: Props) => {
         <p className="text-sm text-gray-400 mt-1 text-right">{detailsLength}/5000</p>
       </div>
 
-      {/* Domain */}
+      {/* Tags */}
       <div>
-        <label htmlFor="domain" className="block text-sm font-medium text-gray-700 mb-2">
-          Category
-          <span className="text-gray-400 font-normal ml-2">(optional)</span>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Tags
+          <span className="text-gray-400 font-normal ml-2">(optional, max 5)</span>
         </label>
-        <select
-          id="domain"
-          value={formData.domain || ''}
-          onChange={(e) => updateFormData({ domain: e.target.value || undefined })}
-          className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-        >
-          <option value="">Select a category...</option>
-          {DOMAINS.map((domain) => (
-            <option key={domain.value} value={domain.value}>
-              {domain.label}
-            </option>
-          ))}
-        </select>
+        <TagSelector
+          selectedTags={formData.tags || []} // Handle potential undefined during migration
+          onChange={(tags) => updateFormData({ tags })}
+          placeholder="Add tags (e.g. Politics, Crypto)..."
+        />
       </div>
 
       {/* Tips */}

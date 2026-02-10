@@ -15,7 +15,7 @@ describe('PredictionWizard', () => {
     localStorage.clear()
     // Clear URL search params
     delete (window as any).location
-    ;(window as any).location = { search: '' }
+      ; (window as any).location = { search: '' }
   })
 
   it('renders with empty form by default', () => {
@@ -29,9 +29,12 @@ describe('PredictionWizard', () => {
       resolveByDatetime: '2026-12-31T23:59:59Z',
       detailsText: 'Bitcoin has been rising',
       domain: 'economics',
+      tags: ['Crypto', 'Finance'],
+      resolutionRules: 'Resolved by CoinMarketCap',
       newsAnchor: {
         url: 'https://example.com/article',
         title: 'Bitcoin News',
+        snippet: 'Bitcoin is booming'
       },
     }
 
@@ -49,6 +52,7 @@ describe('PredictionWizard', () => {
     const expressData = {
       claimText: 'Bitcoin will reach $100k',
       resolveByDatetime: '2026-12-31T23:59:59Z',
+      tags: ['Crypto'],
     }
 
     localStorage.setItem('expressPredictionData', JSON.stringify(expressData))

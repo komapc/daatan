@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Sparkles, Search, FileText, Loader2, AlertCircle } from 'lucide-react'
+import { Sparkles, Search, FileText, Loader2, AlertCircle, Edit2, RotateCcw, ArrowLeft, X, Plus } from 'lucide-react'
 
 interface ExpressPredictionClientProps {
   userId: string
@@ -13,6 +13,8 @@ interface GeneratedPrediction {
   resolveByDatetime: string
   detailsText: string
   domain: string
+  tags: string[]
+  resolutionRules: string
   newsAnchor: {
     url: string
     title: string
@@ -37,11 +39,16 @@ export default function ExpressPredictionClient({ userId }: ExpressPredictionCli
   const [articlesFound, setArticlesFound] = useState(0)
   const [predictionPreview, setPredictionPreview] = useState<{ claim: string; resolveBy: string } | null>(null)
 
+  // Edit mode state
+  const [isEditing, setIsEditing] = useState(false)
+  const [editForm, setEditForm] = useState<GeneratedPrediction | null>(null)
+  const [newTag, setNewTag] = useState('')
+
   const examples = [
     "Bitcoin will reach $100k this year",
     "Trump will win 2024 US elections",
     "AI will pass the Turing test by 2025",
-    "SpaceX will land humans on Mars by 2030"
+    "https://www.bbc.com/news/world-middle-east-12345678"
   ]
 
   const handleGenerate = async () => {
@@ -50,9 +57,12 @@ export default function ExpressPredictionClient({ userId }: ExpressPredictionCli
       return
     }
 
+    // URL detection for UI feedback
+    const isUrl = /^(https?:\/\/[^\s]+)$/i.test(userInput.trim())
+
     setError('')
     setStep('searching')
-    setProgressMessage('Searching for relevant articles...')
+    setProgressMessage(isUrl ? 'Fetching article content...' : 'Searching for relevant articles...')
     setArticlesFound(0)
     setPredictionPreview(null)
 
@@ -105,6 +115,7 @@ export default function ExpressPredictionClient({ userId }: ExpressPredictionCli
               setProgressMessage(data.data?.message || 'Finalizing...')
             } else if (data.stage === 'complete') {
               setGenerated(data.data)
+              setEditForm(data.data) // Initialize edit form
               setStep('review')
             } else if (data.stage === 'error') {
               if (data.error === 'NO_ARTICLES_FOUND') {
@@ -129,20 +140,50 @@ export default function ExpressPredictionClient({ userId }: ExpressPredictionCli
     setStep('input')
     setError('')
     setGenerated(null)
+    setEditForm(null)
+    setIsEditing(false)
     setProgressMessage('')
     setArticlesFound(0)
     setPredictionPreview(null)
   }
 
   const handleCreatePrediction = () => {
-    if (!generated) return
-    
+    const finalData = isEditing ? editForm : generated
+    if (!finalData) return
+
     try {
-      localStorage.setItem('expressPredictionData', JSON.stringify(generated))
+      localStorage.setItem('expressPredictionData', JSON.stringify(finalData))
       window.location.href = '/predictions/new?from=express'
     } catch {
       setError('Failed to prepare prediction data')
       setStep('error')
+    }
+  }
+
+  const handleSaveEdit = () => {
+    if (editForm) {
+      setGenerated(editForm)
+      setIsEditing(false)
+    }
+  }
+
+  // Tag management in edit mode
+  const addTag = () => {
+    if (newTag && editForm && !editForm.tags?.includes(newTag)) {
+      setEditForm({
+        ...editForm,
+        tags: [...(editForm.tags || []), newTag]
+      })
+      setNewTag('')
+    }
+  }
+
+  const removeTag = (tag: string) => {
+    if (editForm) {
+      setEditForm({
+        ...editForm,
+        tags: (editForm.tags || []).filter(t => t !== tag)
+      })
     }
   }
 
@@ -158,13 +199,16 @@ export default function ExpressPredictionClient({ userId }: ExpressPredictionCli
             id="prediction-input"
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
-            placeholder="e.g., US vs Iran conflict this year"
+            placeholder="Describe your event OR paste a news article URL..."
             className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
             rows={3}
-            maxLength={200}
+            maxLength={1000} // Increased for URLs
           />
           <div className="flex justify-between items-center mt-2">
-            <span className="text-xs text-gray-500">{userInput.length}/200 characters</span>
+            <span className="text-xs text-gray-500">{userInput.length}/1000 characters</span>
+            {/^(https?:\/\/[^\s]+)$/i.test(userInput.trim()) && (
+              <span className="text-xs text-blue-600 font-medium">URL detected - will fetch content directly</span>
+            )}
           </div>
 
           {error && (
@@ -190,7 +234,7 @@ export default function ExpressPredictionClient({ userId }: ExpressPredictionCli
                 <button
                   key={i}
                   onClick={() => setUserInput(example)}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors truncate"
                 >
                   • {example}
                 </button>
@@ -212,7 +256,7 @@ export default function ExpressPredictionClient({ userId }: ExpressPredictionCli
               <div className={`flex items-center gap-3 ${step === 'searching' ? 'text-blue-600' : step === 'input' ? 'text-gray-400' : 'text-green-600'}`}>
                 <Search className="w-5 h-5" />
                 <div className="flex-1">
-                  <span className="font-medium">Searching articles...</span>
+                  <span className="font-medium">Searching / Fetching...</span>
                   {articlesFound > 0 && (
                     <span className="ml-2 text-sm text-gray-600">({articlesFound} found)</span>
                   )}
@@ -247,10 +291,6 @@ export default function ExpressPredictionClient({ userId }: ExpressPredictionCli
                 </p>
               </div>
             )}
-
-            <p className="text-center text-sm text-gray-500 mt-6">
-              This usually takes 10-15 seconds
-            </p>
           </div>
         </div>
       )}
@@ -279,81 +319,179 @@ export default function ExpressPredictionClient({ userId }: ExpressPredictionCli
       {/* Review Step */}
       {step === 'review' && generated && (
         <div className="bg-white border border-gray-100 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
-          <div className="pb-4 border-b border-gray-100">
-            <h2 className="text-xl font-bold text-gray-900 mb-1">Review Generated Forecast</h2>
-            <p className="text-sm text-gray-600">
-              Review the AI-generated forecast below, then continue to the wizard to finalize and publish it.
-            </p>
-          </div>
-
-          <div>
-            <h3 className="text-sm font-bold text-gray-700 mb-2">Forecast Claim</h3>
-            <p className="text-lg text-gray-900">{generated.claimText}</p>
-          </div>
-
-          <div>
-            <h3 className="text-sm font-bold text-gray-700 mb-2">Resolution Date</h3>
-            <p className="text-gray-900">
-              {new Date(generated.resolveByDatetime).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              })}
-            </p>
-          </div>
-
-          <div>
-            <h3 className="text-sm font-bold text-gray-700 mb-2">Context</h3>
-            <p className="text-gray-700">{generated.detailsText}</p>
-          </div>
-
-          <div>
-            <h3 className="text-sm font-bold text-gray-700 mb-2">News Anchor</h3>
-            <a
-              href={generated.newsAnchor.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block p-4 border border-gray-200 rounded-xl hover:border-blue-300 hover:bg-blue-50 transition-colors"
-            >
-              <p className="font-medium text-gray-900 mb-1">{generated.newsAnchor.title}</p>
-              {generated.newsAnchor.source && (
-                <p className="text-sm text-gray-500">{generated.newsAnchor.source}</p>
-              )}
-            </a>
-          </div>
-
-          {generated.additionalLinks.length > 0 && (
+          <div className="flex justify-between items-start border-b border-gray-100 pb-4">
             <div>
-              <h3 className="text-sm font-bold text-gray-700 mb-2">Additional Links</h3>
-              <div className="space-y-2">
-                {generated.additionalLinks.map((link, i) => (
-                  <a
-                    key={i}
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block text-sm text-blue-600 hover:text-blue-700 hover:underline"
+              <h2 className="text-xl font-bold text-gray-900 mb-1">Review Forecast</h2>
+              <p className="text-sm text-gray-600">
+                Review and refine the generated forecast before publishing.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              {!isEditing && (
+                <>
+                  <button
+                    onClick={handleGenerate}
+                    className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    title="Regenerate"
                   >
-                    • {link.title}
-                  </a>
+                    <RotateCcw className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={() => { setIsEditing(true); setEditForm(generated) }}
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                    Edit
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            {/* Claim */}
+            <div>
+              <h3 className="text-sm font-bold text-gray-700 mb-2">Forecast Claim</h3>
+              {isEditing ? (
+                <textarea
+                  value={editForm?.claimText}
+                  onChange={e => setEditForm(prev => prev ? ({ ...prev, claimText: e.target.value }) : null)}
+                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                  rows={3}
+                />
+              ) : (
+                <p className="text-lg text-gray-900">{generated.claimText}</p>
+              )}
+            </div>
+
+            {/* Resolution Date */}
+            <div>
+              <h3 className="text-sm font-bold text-gray-700 mb-2">Resolution Date</h3>
+              {isEditing ? (
+                <input
+                  type="datetime-local"
+                  value={editForm?.resolveByDatetime?.slice(0, 16)} // Format for input
+                  onChange={e => setEditForm(prev => prev ? ({ ...prev, resolveByDatetime: new Date(e.target.value).toISOString() }) : null)}
+                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                />
+              ) : (
+                <p className="text-gray-900">
+                  {new Date(generated.resolveByDatetime).toLocaleDateString(undefined, { dateStyle: 'long', timeStyle: 'short' })}
+                </p>
+              )}
+            </div>
+
+            {/* Tags */}
+            <div>
+              <h3 className="text-sm font-bold text-gray-700 mb-2">Tags</h3>
+              <div className="flex flex-wrap gap-2">
+                {(isEditing ? editForm?.tags : generated.tags)?.map((tag, i) => (
+                  <span key={i} className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
+                    {tag}
+                    {isEditing && (
+                      <button onClick={() => removeTag(tag)} className="hover:text-red-500">
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </span>
                 ))}
+                {isEditing && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={newTag}
+                      onChange={e => setNewTag(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && addTag()}
+                      placeholder="Add tag..."
+                      className="px-3 py-1 border rounded-full text-sm w-32"
+                    />
+                    <button onClick={addTag} className="p-1 text-blue-600 hover:bg-blue-50 rounded-full">
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
-          )}
 
-          <div className="flex gap-3 pt-4">
-            <button
-              onClick={handleCreatePrediction}
-              className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors"
-            >
-              Review & Publish
-            </button>
-            <button
-              onClick={handleTryAgain}
-              className="bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-bold hover:bg-gray-200 transition-colors"
-            >
-              Start Over
-            </button>
+            {/* Context */}
+            <div>
+              <h3 className="text-sm font-bold text-gray-700 mb-2">Context</h3>
+              {isEditing ? (
+                <textarea
+                  value={editForm?.detailsText}
+                  onChange={e => setEditForm(prev => prev ? ({ ...prev, detailsText: e.target.value }) : null)}
+                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                  rows={4}
+                />
+              ) : (
+                <p className="text-gray-700">{generated.detailsText}</p>
+              )}
+            </div>
+
+            {/* Resolution Rules */}
+            <div>
+              <h3 className="text-sm font-bold text-gray-700 mb-2">Resolution Rules</h3>
+              {isEditing ? (
+                <textarea
+                  value={editForm?.resolutionRules}
+                  onChange={e => setEditForm(prev => prev ? ({ ...prev, resolutionRules: e.target.value }) : null)}
+                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                  rows={2}
+                />
+              ) : (
+                <p className="text-gray-700 italic">{generated.resolutionRules}</p>
+              )}
+            </div>
+
+            {/* News Anchor */}
+            <div>
+              <h3 className="text-sm font-bold text-gray-700 mb-2">News Anchor</h3>
+              <a
+                href={generated.newsAnchor.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block p-4 border border-gray-200 rounded-xl hover:border-blue-300 hover:bg-blue-50 transition-colors"
+              >
+                <p className="font-medium text-gray-900 mb-1">{generated.newsAnchor.title}</p>
+                {generated.newsAnchor.source && (
+                  <p className="text-sm text-gray-500">{generated.newsAnchor.source}</p>
+                )}
+              </a>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-6 border-t border-gray-100">
+            {isEditing ? (
+              <>
+                <button
+                  onClick={handleSaveEdit}
+                  className="flex-1 bg-green-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-green-700 transition-colors"
+                >
+                  Save Changes
+                </button>
+                <button
+                  onClick={() => { setIsEditing(false); setEditForm(null) }}
+                  className="px-6 py-3 rounded-xl border border-gray-300 font-bold hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={handleCreatePrediction}
+                  className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors"
+                >
+                  Review & Publish
+                </button>
+                <button
+                  onClick={handleTryAgain} // Uses "Start Over" logic but maybe we want "Back"
+                  className="px-6 py-3 rounded-xl border border-gray-300 font-bold hover:bg-gray-50 transition-colors"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}
