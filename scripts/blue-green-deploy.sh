@@ -85,6 +85,20 @@ sleep 5
 echo ""
 echo "🔨 Phase 2: Building new image (old container still serving traffic)..."
 
+echo ""
+echo "🧹 Pre-build cleanup: Docker disk usage before prune"
+docker system df || true
+
+echo ""
+echo "🧹 Pre-build cleanup: pruning unused Docker data to free space..."
+docker image prune -af || true
+docker builder prune -af || true
+docker volume prune -f || true
+
+echo ""
+echo "🧹 Pre-build cleanup: Docker disk usage after prune"
+docker system df || true
+
 BUILD_ARGS=""
 if [ "$ENVIRONMENT" = "staging" ]; then
     BUILD_ARGS="--build-arg DATABASE_URL=postgresql://daatan:${POSTGRES_PASSWORD}@postgres-staging:5432/daatan_staging"

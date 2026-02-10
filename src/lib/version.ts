@@ -3,5 +3,5 @@
 // agree on the version, preventing hydration mismatches.
 // APP_VERSION (runtime env) is only used by the /api/health endpoint for
 // server-side reporting — it must NOT be used in any rendered component.
-// Bumped to 1.0.7 (PWA install support)
-export const VERSION = process.env.NEXT_PUBLIC_APP_VERSION || '1.0.7'
+// Bumped to 1.0.8 (Deploy disk-space cleanup)
+export const VERSION = process.env.NEXT_PUBLIC_APP_VERSION || '1.0.8'
