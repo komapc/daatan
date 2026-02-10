@@ -1,7 +1,7 @@
-import { GoogleGenerativeAI, SchemaType, type Schema } from '@google/generative-ai'
+import { SchemaType, type Schema } from '@google/generative-ai'
 import { getExtractPredictionPrompt } from './prompts'
+import { llmService } from './index'
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
 
 export const predictionSchema: Schema = {
   description: "Structured prediction data extracted from text or URL",
@@ -35,16 +35,18 @@ export const predictionSchema: Schema = {
 }
 
 export async function extractPrediction(text: string) {
-  const model = genAI.getGenerativeModel({
-    model: "gemini-1.5-flash",
-    generationConfig: {
-      responseMimeType: "application/json",
-      responseSchema: predictionSchema,
-    },
-  })
-
   const prompt = getExtractPredictionPrompt(text)
-  const result = await model.generateContent(prompt)
-  const response = result.response
-  return JSON.parse(response.text())
+  
+  try {
+    const result = await llmService.generateContent({
+      prompt,
+      schema: predictionSchema,
+      temperature: 0.1,
+    })
+    
+    return JSON.parse(result.text)
+  } catch (error) {
+    console.error('Failed to extract prediction:', error)
+    throw error
+  }
 }

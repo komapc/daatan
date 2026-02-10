@@ -1,9 +1,8 @@
-import { GoogleGenerativeAI, SchemaType, type Schema } from '@google/generative-ai'
+import { SchemaType, type Schema } from '@google/generative-ai'
 import { getExpressPredictionPrompt } from './prompts'
+import { llmService } from './index'
 import { searchArticles } from '../utils/webSearch'
 import crypto from 'crypto'
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
 
 export const expressPredictionSchema: Schema = {
   description: "Structured prediction generated from user's casual input",
@@ -84,14 +83,6 @@ URL: ${article.url}
   const currentYear = new Date().getFullYear()
   const endOfYear = `${currentYear}-12-31T23:59:59Z`
 
-  const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-flash",
-    generationConfig: {
-      responseMimeType: "application/json",
-      responseSchema: expressPredictionSchema,
-    },
-  })
-
   const prompt = getExpressPredictionPrompt({
     userInput,
     articlesText,
@@ -100,9 +91,18 @@ URL: ${article.url}
     currentDate: new Date().toISOString().split('T')[0],
   })
 
-  const result = await model.generateContent(prompt)
-  const response = result.response
-  const prediction = JSON.parse(response.text())
+  let prediction: any
+  try {
+    const result = await llmService.generateContent({
+      prompt,
+      schema: expressPredictionSchema,
+      temperature: 0.2, // Slightly creative but structured
+    })
+    prediction = JSON.parse(result.text)
+  } catch (error) {
+    console.error('Failed to generate express prediction:', error)
+    throw error
+  }
 
   onProgress?.('prediction_formed', {
     message: 'Prediction formed',
