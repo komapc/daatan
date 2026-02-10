@@ -1,6 +1,6 @@
 {
   "name": "daatan",
-  "version": "1.0.1",
+  "version": "1.0.4",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -40,6 +40,7 @@
     "autoprefixer": "^10",
     "eslint": "^8",
     "eslint-config-next": "14.2.21",
+    "fast-check": "^4.5.3",
     "husky": "^9.1.7",
     "jsdom": "^27.4.0",
     "postcss": "^8",

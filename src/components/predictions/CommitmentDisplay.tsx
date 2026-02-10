@@ -37,6 +37,7 @@ export default function CommitmentDisplay({
 }: CommitmentDisplayProps) {
   const [isRemoving, setIsRemoving] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const isActive = prediction.status === 'ACTIVE'
   const isResolved = commitment.cuReturned !== null && commitment.cuReturned !== undefined
@@ -71,6 +72,7 @@ export default function CommitmentDisplay({
     }
 
     setIsRemoving(true)
+    setError(null)
     try {
       const response = await fetch(`/api/predictions/${prediction.id}/commit`, {
         method: 'DELETE',
@@ -85,7 +87,7 @@ export default function CommitmentDisplay({
       }
     } catch (error) {
       console.error('Error removing commitment:', error)
-      alert('Failed to remove commitment. Please try again.')
+      setError('Failed to remove commitment. Please try again.')
     } finally {
       setIsRemoving(false)
       setShowConfirm(false)
@@ -115,11 +117,10 @@ export default function CommitmentDisplay({
                 <button
                   onClick={handleRemove}
                   disabled={isRemoving}
-                  className={`rounded-md px-3 py-1 text-sm font-medium ${
-                    showConfirm
-                      ? 'bg-red-600 text-white hover:bg-red-700'
-                      : 'bg-red-50 text-red-700 hover:bg-red-100'
-                  } disabled:opacity-50`}
+                  className={`rounded-md px-3 py-1 text-sm font-medium ${showConfirm
+                    ? 'bg-red-600 text-white hover:bg-red-700'
+                    : 'bg-red-50 text-red-700 hover:bg-red-100'
+                    } disabled:opacity-50`}
                 >
                   {isRemoving ? 'Removing...' : showConfirm ? 'Confirm?' : 'Remove'}
                 </button>
@@ -127,6 +128,13 @@ export default function CommitmentDisplay({
             </div>
           )}
         </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="rounded-md bg-red-50 p-2 text-sm text-red-600">
+            {error}
+          </div>
+        )}
 
         {/* Outcome */}
         <div>
@@ -156,13 +164,12 @@ export default function CommitmentDisplay({
               <div>
                 <p className="text-xs text-gray-500">RS Change</p>
                 <p
-                  className={`mt-1 text-lg font-semibold ${
-                    (commitment.rsChange ?? 0) > 0
-                      ? 'text-green-600'
-                      : (commitment.rsChange ?? 0) < 0
+                  className={`mt-1 text-lg font-semibold ${(commitment.rsChange ?? 0) > 0
+                    ? 'text-green-600'
+                    : (commitment.rsChange ?? 0) < 0
                       ? 'text-red-600'
                       : 'text-gray-600'
-                  }`}
+                    }`}
                 >
                   {(commitment.rsChange ?? 0) > 0 ? '+' : ''}
                   {commitment.rsChange?.toFixed(1) ?? '0.0'}
