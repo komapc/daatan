@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import { Prisma } from '@prisma/client'
 import { authOptions } from '@/lib/auth'
 import { listCommitmentsQuerySchema } from '@/lib/validations/prediction'
 import { apiError, handleRouteError } from '@/lib/api-error'
+import { Prisma } from '@prisma/client'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,49 +17,33 @@ export async function GET(request: NextRequest) {
   try {
     const prisma = await getPrisma()
     const session = await getServerSession(authOptions)
-    
+
     if (!session?.user?.id) {
       return apiError('Unauthorized', 401)
     }
 
-    // Parse and validate query parameters
-    const { searchParams } = new URL(request.url)
-    const queryParams = {
-      predictionId: searchParams.get('predictionId') || undefined,
-      status: searchParams.get('status') || undefined,
-      page: searchParams.get('page') || '1',
-      limit: searchParams.get('limit') || '20',
-    }
+    // Parse query params
+    const searchParams = Object.fromEntries(request.nextUrl.searchParams)
+    const query = listCommitmentsQuerySchema.parse(searchParams)
 
-    const { predictionId, status, page, limit } = listCommitmentsQuerySchema.parse(queryParams)
+    const { page, limit, predictionId, status } = query
+    const skip = (page - 1) * limit
 
     // Build where clause
     const where: Prisma.CommitmentWhereInput = {
       userId: session.user.id,
+      ...(predictionId && { predictionId }),
+      ...(status && {
+        prediction: {
+          status: status as any, // Cast because status enum might not match exactly if Prisma types lag
+        },
+      }),
     }
 
-    if (predictionId) {
-      where.predictionId = predictionId
-    }
-
-    if (status) {
-      where.prediction = {
-        status,
-      }
-    }
-
-    // Calculate pagination
-    const skip = (page - 1) * limit
-
-    // Query commitments with pagination
+    // Execute query
     const [commitments, total] = await Promise.all([
       prisma.commitment.findMany({
         where,
-        skip,
-        take: limit,
-        orderBy: {
-          createdAt: 'desc',
-        },
         include: {
           prediction: {
             select: {
@@ -76,20 +60,14 @@ export async function GET(request: NextRequest) {
               text: true,
             },
           },
-          user: {
-            select: {
-              id: true,
-              name: true,
-              username: true,
-              image: true,
-            },
-          },
         },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
       }),
       prisma.commitment.count({ where }),
     ])
 
-    // Calculate pagination metadata
     const totalPages = Math.ceil(total / limit)
 
     return NextResponse.json({
@@ -101,7 +79,8 @@ export async function GET(request: NextRequest) {
         totalPages,
       },
     })
+
   } catch (error) {
-    return handleRouteError(error, 'Failed to fetch commitments')
+    return handleRouteError(error, 'Failed to list commitments')
   }
 }

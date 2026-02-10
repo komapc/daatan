@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Loader2, Search } from 'lucide-react'
 import PredictionCard from '@/components/predictions/PredictionCard'
 
@@ -10,11 +10,7 @@ export default function ForecastsTable() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
 
-  useEffect(() => {
-    fetchPredictions()
-  }, [page]) // Refetch on page change
-
-  const fetchPredictions = async () => {
+  const fetchPredictions = useCallback(async () => {
     setIsLoading(true)
     try {
       const res = await fetch(`/api/admin/predictions?page=${page}&limit=20&search=${encodeURIComponent(search)}`)
@@ -26,7 +22,11 @@ export default function ForecastsTable() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [page, search])
+
+  useEffect(() => {
+    fetchPredictions()
+  }, [fetchPredictions])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -39,11 +39,11 @@ export default function ForecastsTable() {
         <form onSubmit={handleSearch} className="flex gap-2 flex-1">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input 
-              type="text" 
-              value={search} 
-              onChange={(e) => setSearch(e.target.value)} 
-              placeholder="Search by claim, author, or email..." 
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by claim, author, or email..."
               className="pl-10 pr-4 py-2 border rounded-lg w-full focus:ring-2 focus:ring-blue-500 outline-none"
             />
           </div>
@@ -68,14 +68,14 @@ export default function ForecastsTable() {
           <div className="mt-4 flex justify-between items-center text-sm text-gray-600">
             <div>Page {page} of {totalPages}</div>
             <div className="flex gap-2">
-              <button 
+              <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
                 className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-gray-50"
               >
                 Previous
               </button>
-              <button 
+              <button
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
                 className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-gray-50"

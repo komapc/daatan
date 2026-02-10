@@ -16,7 +16,7 @@
   - [x] Admin: Comments management (list, search, delete)
   - [x] Admin: Users management (list, assign/revoke roles)
   - [x] Resolver capabilities: resolve forecasts + delete comments (inline UI + admin panel)
-  - [ ] UI indicators: admin/resolver badges on profiles, inline moderation controls
+  - [x] UI indicators: admin/resolver badges on profiles, inline moderation controls
 
 - [x] **Infra: Fix zero-downtime deploys** — ~~staging is down several minutes after merging PRs. Investigate deploy workflow + blue-green script, likely old container stopped before new one is healthy or DB restart during deploy~~ ✅ Fixed — blue-green script now uses Docker network alias swapping instead of stop→rename. Old container serves traffic until new container is health-checked, migrations pass, and network alias is swapped atomically.
 
@@ -75,6 +75,8 @@
 ### 🟡 Low Priority
 
 - [ ] **Express Forecast: Polish** — add save-as-draft, regenerate button, inline field editing on review screen
+- [ ] **Express Forecast: Edit options** — add ability to edit/refine generated options before finalizing prediction
+- [ ] **Manual Forecast: Visual improvements** — enhance UI/UX of manual prediction creation flow
 - [ ] **Express Forecast: Multiple choice support** (e.g., "who will win elections")
 - [ ] **Express Forecast: Numeric threshold support** (e.g., "Bitcoin price by end of year")
 - [ ] **Express Forecast: Advanced types** (order, date-based, conditional)
@@ -89,7 +91,7 @@
 
 - [ ] **Profile: Custom avatar upload** (S3 storage, DB schema, UI flow) — Spec ready
 
-- [ ] **Code Quality: Eliminate all compile-time/runtime/linter warnings**
+- [x] **Code Quality: Eliminate all compile-time/runtime/linter warnings** — ~~Fixed ESLint warnings in admin tables (CommentsTable, ForecastsTable, UsersTable) by wrapping fetch functions in useCallback.~~ ✅ Fixed
 - [ ] **Code Quality: Replace `console.error` with structured logging** (e.g., pino)
 - [ ] **Code Quality: Inconsistent Prisma import pattern** — `comments/route.ts` and `comments/[id]/route.ts` use dynamic import wrapper (`getPrisma`), all other routes import singleton directly. Standardize to direct import.
 - [x] **Code Quality: Move profile validation schema to `src/lib/validations/`** — ~~`updateProfileSchema` is defined inline in `profile/update/route.ts` instead of centralized like other domains.~~ ✅ Moved to `src/lib/validations/profile.ts`
@@ -99,7 +101,7 @@
 - [ ] **Security: Remove `@types/pg` from devDependencies** — unused, Prisma handles DB connections.
 
 - [ ] **Testing: E2E tests** (Playwright/Cypress)
-- [ ] **Testing: Commitment and resolution flow tests** — critical business logic with zero coverage
+- [x] **Testing: Commitment and resolution flow tests** — ~~critical business logic with zero coverage~~ ✅ Added comprehensive tests (9 commitment tests + 6 resolution tests)
 
 - [ ] **Localization: Hebrew translations** (after i18n infrastructure is ready)
 

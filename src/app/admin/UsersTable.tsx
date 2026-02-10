@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Loader2, Search } from 'lucide-react'
 
 export default function UsersTable() {
@@ -9,11 +9,7 @@ export default function UsersTable() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
 
-  useEffect(() => {
-    fetchUsers()
-  }, [page])
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setIsLoading(true)
     try {
       const res = await fetch(`/api/admin/users?page=${page}&limit=20&search=${encodeURIComponent(search)}`)
@@ -25,7 +21,11 @@ export default function UsersTable() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [page, search])
+
+  useEffect(() => {
+    fetchUsers()
+  }, [fetchUsers])
 
   const updateRole = async (userId: string, newRole: string) => {
     const res = await fetch(`/api/admin/users/${userId}`, {
@@ -52,11 +52,11 @@ export default function UsersTable() {
         <form onSubmit={handleSearch} className="flex gap-2 flex-1">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input 
-              type="text" 
-              value={search} 
-              onChange={(e) => setSearch(e.target.value)} 
-              placeholder="Search by name, email, or username..." 
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name, email, or username..."
               className="pl-10 pr-4 py-2 border rounded-lg w-full focus:ring-2 focus:ring-blue-500 outline-none"
             />
           </div>
@@ -93,14 +93,13 @@ export default function UsersTable() {
                     </td>
                     <td className="p-3 text-sm text-gray-600">{u.email}</td>
                     <td className="p-3">
-                      <select 
-                        value={u.role} 
+                      <select
+                        value={u.role}
                         onChange={(e) => updateRole(u.id, e.target.value)}
-                        className={`border rounded p-1 text-sm outline-none focus:ring-2 focus:ring-blue-500 ${
-                          u.role === 'ADMIN' ? 'bg-purple-50 text-purple-800 border-purple-200' :
-                          u.role === 'RESOLVER' ? 'bg-blue-50 text-blue-800 border-blue-200' :
-                          'bg-white text-gray-900 border-gray-200'
-                        }`}
+                        className={`border rounded p-1 text-sm outline-none focus:ring-2 focus:ring-blue-500 ${u.role === 'ADMIN' ? 'bg-purple-50 text-purple-800 border-purple-200' :
+                            u.role === 'RESOLVER' ? 'bg-blue-50 text-blue-800 border-blue-200' :
+                              'bg-white text-gray-900 border-gray-200'
+                          }`}
                       >
                         <option value="USER">User</option>
                         <option value="RESOLVER">Resolver</option>
@@ -119,14 +118,14 @@ export default function UsersTable() {
           <div className="mt-4 flex justify-between items-center text-sm text-gray-600">
             <div>Page {page} of {totalPages}</div>
             <div className="flex gap-2">
-              <button 
+              <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
                 className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-gray-50"
               >
                 Previous
               </button>
-              <button 
+              <button
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
                 className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-gray-50"

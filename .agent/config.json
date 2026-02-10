@@ -1,0 +1,93 @@
+{
+    "projectName": "DAaTAn",
+    "projectDescription": "Reputation-based news prediction platform built with Next.js 14, TypeScript, PostgreSQL, and deployed on AWS",
+    "primaryLanguage": "TypeScript",
+    "framework": "Next.js 14 (App Router)",
+    "testFramework": "Vitest",
+    "lintCommand": "npm run lint",
+    "testCommand": "npm test",
+    "buildCommand": "npm run build",
+    "devCommand": "npm run dev",
+    "mcpServers": {
+        "aws-docs": {
+            "command": "uvx",
+            "args": [
+                "awslabs.aws-documentation-mcp-server@latest"
+            ],
+            "env": {
+                "FASTMCP_LOG_LEVEL": "ERROR"
+            },
+            "disabled": false,
+            "autoApprove": [
+                "search_documentation",
+                "get_documentation"
+            ]
+        },
+        "github": {
+            "command": "uvx",
+            "args": [
+                "mcp-server-github@latest"
+            ],
+            "env": {
+                "GITHUB_TOKEN": "${GITHUB_TOKEN}"
+            },
+            "disabled": false,
+            "autoApprove": [
+                "list_issues",
+                "get_issue",
+                "list_pull_requests",
+                "get_pull_request"
+            ]
+        },
+        "fetch": {
+            "command": "uvx",
+            "args": [
+                "mcp-server-fetch@latest"
+            ],
+            "disabled": false,
+            "autoApprove": [
+                "fetch"
+            ]
+        }
+    },
+    "importantFiles": [
+        "DAATAN_CORE.md",
+        "STRUCTURE.md",
+        "TECH.md",
+        "TODO.md",
+        "PRODUCT.md",
+        "GLOSSARY.md",
+        "prisma/schema.prisma",
+        "src/lib/auth.ts"
+    ],
+    "codeConventions": {
+        "componentPattern": "PascalCase for components, camelCase for utilities",
+        "fileNaming": "kebab-case for routes, PascalCase for components",
+        "apiRoutes": "src/app/api/[resource]/route.ts",
+        "errorHandling": "Use src/lib/api-error.ts helpers for consistent API responses",
+        "validation": "Zod schemas in src/lib/validations/",
+        "authentication": "NextAuth.js with Google OAuth, session strategy: JWT"
+    },
+    "deploymentInfo": {
+        "production": {
+            "url": "https://daatan.com",
+            "trigger": "Push tag v*",
+            "branch": "main"
+        },
+        "staging": {
+            "url": "https://staging.daatan.com",
+            "trigger": "Push to main",
+            "branch": "main"
+        }
+    },
+    "criticalRules": [
+        "🚨 NEVER push to main or staging branches - ALWAYS create a PR and wait for user review",
+        "🚨 NEVER use 'gh pr merge' - user will merge PRs manually after review",
+        "📖 See .agent/RULES.md for complete workflow and coding standards",
+        "All features must pass the Feature Fit Check in DAATAN_CORE.md",
+        "No real money, no gambling, no financial incentives - this is a reputation platform",
+        "Measure accuracy over engagement",
+        "Use consistent error responses via src/lib/api-error.ts",
+        "Server/Client component split for auth pages (dynamic export in Server Component only)"
+    ],
+    "rulesFile": ".agent/RULES.md"

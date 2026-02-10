@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Loader2, Search, Trash2 } from 'lucide-react'
 
 export default function CommentsTable() {
@@ -9,11 +9,7 @@ export default function CommentsTable() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
 
-  useEffect(() => {
-    fetchComments()
-  }, [page])
-
-  const fetchComments = async () => {
+  const fetchComments = useCallback(async () => {
     setIsLoading(true)
     try {
       const res = await fetch(`/api/admin/comments?page=${page}&limit=20&search=${encodeURIComponent(search)}`)
@@ -25,7 +21,11 @@ export default function CommentsTable() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [page, search])
+
+  useEffect(() => {
+    fetchComments()
+  }, [fetchComments])
 
   const deleteComment = async (id: string) => {
     if (!confirm('Are you sure you want to delete this comment?')) return
@@ -57,11 +57,11 @@ export default function CommentsTable() {
         <form onSubmit={handleSearch} className="flex gap-2 flex-1">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input 
-              type="text" 
-              value={search} 
-              onChange={(e) => setSearch(e.target.value)} 
-              placeholder="Search comments..." 
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search comments..."
               className="pl-10 pr-4 py-2 border rounded-lg w-full focus:ring-2 focus:ring-blue-500 outline-none"
             />
           </div>
@@ -97,7 +97,7 @@ export default function CommentsTable() {
                     <td className="p-3 text-right text-xs text-gray-500">{new Date(c.createdAt).toLocaleDateString()}</td>
                     <td className="p-3 text-right">
                       {!c.deletedAt && (
-                        <button 
+                        <button
                           onClick={() => deleteComment(c.id)}
                           className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50"
                           title="Delete Comment"
@@ -116,14 +116,14 @@ export default function CommentsTable() {
           <div className="mt-4 flex justify-between items-center text-sm text-gray-600">
             <div>Page {page} of {totalPages}</div>
             <div className="flex gap-2">
-              <button 
+              <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
                 className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-gray-50"
               >
                 Previous
               </button>
-              <button 
+              <button
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
                 className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-gray-50"

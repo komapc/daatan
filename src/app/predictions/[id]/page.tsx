@@ -5,11 +5,11 @@ import { useParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { 
-  Newspaper, 
-  User, 
-  Calendar, 
-  Target, 
+import {
+  Newspaper,
+  User,
+  Calendar,
+  Target,
   Users,
   ExternalLink,
   Loader2,
@@ -87,7 +87,7 @@ type Prediction = {
 export default function PredictionDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const { data: session } = useSession()
+  const { data: session, update: updateSession } = useSession()
   const [prediction, setPrediction] = useState<Prediction | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -136,8 +136,11 @@ export default function PredictionDetailPage() {
     return styles[status] || 'bg-gray-100 text-gray-700'
   }
 
-  const handleCommitmentSuccess = () => {
+  const handleCommitmentSuccess = async () => {
     setShowCommitmentForm(false)
+    // Update session to get fresh CU balance
+    await updateSession()
+
     // Refetch prediction to get updated commitments
     const fetchPrediction = async () => {
       try {
@@ -180,12 +183,12 @@ export default function PredictionDetailPage() {
   const canAdminister = session?.user?.role === 'ADMIN'
 
   // Find user's commitment if exists
-  const userCommitment = session?.user?.id 
+  const userCommitment = session?.user?.id
     ? prediction?.commitments.find(c => c.user.id === session.user.id)
     : undefined
 
-  const canCommit = session?.user?.id && 
-    prediction?.status === 'ACTIVE' && 
+  const canCommit = session?.user?.id &&
+    prediction?.status === 'ACTIVE' &&
     prediction?.author.id !== session.user.id &&
     !userCommitment
 
@@ -216,7 +219,7 @@ export default function PredictionDetailPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
       {/* Back Link */}
-      <Link 
+      <Link
         href="/"
         className="inline-flex items-center gap-1 text-gray-500 hover:text-gray-700 mb-6"
       >
@@ -237,7 +240,7 @@ export default function PredictionDetailPage() {
               </span>
             )}
           </div>
-          
+
           {canAdminister && (
             <div className="flex items-center gap-2">
               <button
@@ -272,7 +275,7 @@ export default function PredictionDetailPage() {
             <Newspaper className="w-4 h-4" />
             Related News
           </div>
-          <a 
+          <a
             href={prediction.newsAnchor.url}
             target="_blank"
             rel="noopener noreferrer"
@@ -297,9 +300,9 @@ export default function PredictionDetailPage() {
           </div>
           <div className="flex items-center gap-2">
             {prediction.author.image && (
-              <Image 
-                src={prediction.author.image} 
-                alt="" 
+              <Image
+                src={prediction.author.image}
+                alt=""
                 width={32}
                 height={32}
                 className="rounded-full"
@@ -402,7 +405,7 @@ export default function PredictionDetailPage() {
           <Target className="w-5 h-5" />
           Outcome
         </h2>
-        
+
         {prediction.outcomeType === 'BINARY' && (
           <div className="grid grid-cols-2 gap-4">
             <div className="p-4 border-2 border-green-200 bg-green-50 rounded-lg text-center">
@@ -425,11 +428,10 @@ export default function PredictionDetailPage() {
             {prediction.options.map((option) => {
               const commitCount = prediction.commitments.filter(c => c.option?.id === option.id).length
               return (
-                <div 
+                <div
                   key={option.id}
-                  className={`p-3 border rounded-lg flex justify-between items-center ${
-                    option.isCorrect ? 'border-green-500 bg-green-50' : 'border-gray-200'
-                  }`}
+                  className={`p-3 border rounded-lg flex justify-between items-center ${option.isCorrect ? 'border-green-500 bg-green-50' : 'border-gray-200'
+                    }`}
                 >
                   <span className={option.isCorrect ? 'font-medium text-green-700' : ''}>
                     {option.text}
@@ -460,7 +462,7 @@ export default function PredictionDetailPage() {
               <ul className="space-y-1">
                 {prediction.evidenceLinks.map((link, i) => (
                   <li key={i}>
-                    <a 
+                    <a
                       href={link}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -478,8 +480,8 @@ export default function PredictionDetailPage() {
       )}
 
       {/* Moderator Resolution Section */}
-      <ModeratorResolutionSection 
-        predictionId={prediction.id} 
+      <ModeratorResolutionSection
+        predictionId={prediction.id}
         predictionStatus={prediction.status}
       />
 
@@ -495,9 +497,9 @@ export default function PredictionDetailPage() {
               <div key={commitment.id} className="p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   {commitment.user.image && (
-                    <Image 
-                      src={commitment.user.image} 
-                      alt="" 
+                    <Image
+                      src={commitment.user.image}
+                      alt=""
                       width={32}
                       height={32}
                       className="rounded-full"
@@ -506,7 +508,7 @@ export default function PredictionDetailPage() {
                   <div>
                     <div className="font-medium">{commitment.user.name}</div>
                     <div className="text-sm text-gray-500">
-                      {prediction.outcomeType === 'BINARY' 
+                      {prediction.outcomeType === 'BINARY'
                         ? (commitment.binaryChoice ? 'Will happen' : 'Won\'t happen')
                         : commitment.option?.text
                       }
