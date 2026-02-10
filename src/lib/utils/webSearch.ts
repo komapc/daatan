@@ -32,7 +32,7 @@ export async function searchArticles(query: string, limit: number = 5): Promise<
   try {
     // Add "news" to query to prioritize recent articles
     const searchQuery = `${query} news`
-    
+
     const response = await fetch('https://google.serper.dev/search', {
       method: 'POST',
       headers: {
@@ -44,7 +44,7 @@ export async function searchArticles(query: string, limit: number = 5): Promise<
         num: limit
       })
     })
-    
+
     if (!response.ok) {
       throw new Error(`Search API error: ${response.status}`)
     }
@@ -81,8 +81,32 @@ function extractDomain(url: string): string {
 }
 
 export async function fetchArticleContent(url: string): Promise<string> {
-  // Note: Article content fetching requires additional service/scraper
-  // For now, we rely on snippets from search results
-  console.warn('Article content fetching not implemented - using snippets')
-  return ''
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; DaatanBot/1.0; +http://daatan.ai)'
+      }
+    })
+
+    if (!response.ok) {
+      console.warn(`Failed to fetch article: ${response.status}`)
+      return ''
+    }
+
+    const html = await response.text()
+
+    // valid simple strategies to extract text:
+    // 1. remove scripts and styles
+    const noScripts = html.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gim, "")
+      .replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gim, "")
+
+    // 2. remove tags
+    const text = noScripts.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+
+    // Limit to ~5000 chars to avoid token limits
+    return text.substring(0, 5000)
+  } catch (error) {
+    console.warn('Error fetching article content:', error)
+    return ''
+  }
 }

@@ -1,8 +1,8 @@
 'use client'
 
-import { 
-  Newspaper, 
-  FileText, 
+import {
+  Newspaper,
+  FileText,
   Target,
   Calendar,
   Check,
@@ -64,7 +64,7 @@ export const StepPublish = ({ formData }: Props) => {
             </div>
             <p className="font-medium text-gray-900">{formData.newsAnchorTitle}</p>
             {formData.newsAnchorUrl && (
-              <a 
+              <a
                 href={formData.newsAnchorUrl}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -86,10 +86,14 @@ export const StepPublish = ({ formData }: Props) => {
           {formData.detailsText && (
             <p className="text-gray-600 mt-2">{formData.detailsText}</p>
           )}
-          {formData.domain && (
-            <span className="inline-block mt-2 px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full capitalize">
-              {formData.domain}
-            </span>
+          {formData.tags && formData.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {formData.tags.map((tag, i) => (
+                <span key={i} className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full border border-blue-100">
+                  {tag}
+                </span>
+              ))}
+            </div>
           )}
         </div>
 
@@ -100,7 +104,7 @@ export const StepPublish = ({ formData }: Props) => {
             Outcome Type
           </div>
           <p className="font-medium text-gray-900">{getOutcomeDescription()}</p>
-          
+
           {formData.outcomeType === 'MULTIPLE_CHOICE' && formData.outcomeOptions && (
             <ul className="mt-2 space-y-1">
               {formData.outcomeOptions.map((option, index) => (

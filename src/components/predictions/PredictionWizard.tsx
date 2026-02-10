@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { 
-  Newspaper, 
-  FileText, 
-  Target, 
+import {
+  Newspaper,
+  FileText,
+  Target,
   Rocket,
   ChevronRight,
   ChevronLeft,
@@ -22,12 +22,13 @@ export type PredictionFormData = {
   newsAnchorId?: string
   newsAnchorUrl?: string
   newsAnchorTitle?: string
-  
+
   // Step 2: Prediction
   claimText: string
   detailsText?: string
-  domain?: string
-  
+  tags: string[]
+  domain?: string // Deprecated
+
   // Step 3: Outcome
   outcomeType: 'BINARY' | 'MULTIPLE_CHOICE' | 'NUMERIC_THRESHOLD'
   outcomeOptions?: string[]
@@ -38,7 +39,7 @@ export type PredictionFormData = {
   }
   resolveByDatetime: string
   resolutionRules?: string
-  
+
   // Step 4: Publish
   cuCommitted?: number
 }
@@ -59,9 +60,10 @@ export const PredictionWizard = ({ isExpressFlow = false }: PredictionWizardProp
   const [currentStep, setCurrentStep] = useState(isExpressFlow ? 2 : 1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  
+
   const [formData, setFormData] = useState<PredictionFormData>({
     claimText: '',
+    tags: [],
     outcomeType: 'BINARY',
     resolveByDatetime: '',
   })
@@ -69,20 +71,22 @@ export const PredictionWizard = ({ isExpressFlow = false }: PredictionWizardProp
   // Load express prediction data from localStorage after mount (avoids hydration mismatch)
   useEffect(() => {
     if (!isExpressFlow) return
-    
+
     const stored = localStorage.getItem('expressPredictionData')
     if (!stored) return
-    
+
     try {
       const data = JSON.parse(stored)
       localStorage.removeItem('expressPredictionData')
-      
+
       setFormData({
         claimText: data.claimText || '',
         detailsText: data.detailsText || '',
+        tags: data.tags || [],
         domain: data.domain || '',
         outcomeType: 'BINARY',
         resolveByDatetime: data.resolveByDatetime || '',
+        resolutionRules: data.resolutionRules || '',
         newsAnchorUrl: data.newsAnchor?.url || '',
         newsAnchorTitle: data.newsAnchor?.title || '',
       })
@@ -133,6 +137,7 @@ export const PredictionWizard = ({ isExpressFlow = false }: PredictionWizardProp
           newsAnchorTitle: formData.newsAnchorTitle,
           claimText: formData.claimText,
           detailsText: formData.detailsText,
+          tags: formData.tags, // Added tags
           domain: formData.domain,
           outcomeType: formData.outcomeType,
           outcomePayload,
@@ -263,7 +268,7 @@ export const PredictionWizard = ({ isExpressFlow = false }: PredictionWizardProp
           className={`
             flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors
             ${currentStep === (isExpressFlow ? 2 : 1)
-              ? 'text-gray-300 cursor-not-allowed' 
+              ? 'text-gray-300 cursor-not-allowed'
               : 'text-gray-600 hover:bg-gray-100'
             }
           `}
