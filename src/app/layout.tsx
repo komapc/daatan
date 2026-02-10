@@ -3,6 +3,7 @@ import './globals.css'
 import { StagingBanner } from '@/components/StagingBanner'
 import Sidebar from '@/components/Sidebar'
 import SessionWrapper from '@/components/SessionWrapper'
+import PwaInstaller from '@/components/PwaInstaller'
 
 export const metadata: Metadata = {
   title: 'DAATAN - Prediction Market',
@@ -11,6 +12,7 @@ export const metadata: Metadata = {
     icon: '/logo-icon.svg',
     apple: '/logo-icon.svg',
   },
+  manifest: '/manifest.webmanifest',
 }
 
 export const viewport: Viewport = {
@@ -37,6 +39,7 @@ export default function RootLayout({
               {children}
             </main>
           </div>
+          <PwaInstaller />
         </SessionWrapper>
       </body>
     </html>

@@ -41,6 +41,7 @@
   - [ ] Email notifications
   - [ ] Settings page: per-user notification channel configuration
   - [ ] Triggers: commitment resolutions, comments on your forecasts, new commitments
+  - [ ] Comment `@mentions`: when a comment includes `@username`, notify that user via their configured notification channels
 
 - [ ] **UX: Merge Feed and Forecasts screens** — unify `/` and `/predictions` into single feed at `/`, redirect `/predictions` there
 
