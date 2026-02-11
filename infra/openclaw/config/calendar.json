@@ -1,0 +1,57 @@
+{
+  "meta": {
+    "description": "OpenClaw configuration for Calendar (Mixed Strategy + Local Fallback)"
+  },
+  "agents": {
+    "defaults": {
+      "workspace": "/workspace"
+    },
+    "definitions": {
+      "main": {
+        "id": "main",
+        "label": "Calendar Agent",
+        "paths": { "base": "./agents/main" },
+        "model": {
+          "primary": "google/gemini-1.5-pro",
+          "fallbacks": ["ollama/qwen:1.5b"]
+        },
+        "identity": {
+          "name": "Calendar Agent",
+          "theme": "Year-shape (Vite, TypeScript)",
+          "emoji": "📅"
+        }
+      }
+    }
+  },
+  "models": {
+    "providers": {
+      "ollama": {
+        "baseUrl": "http://host.docker.internal:11434/v1",
+        "apiKey": "ollama-local",
+        "api": "openai-responses"
+      }
+    }
+  },
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "botToken": "${TELEGRAM_BOT_TOKEN}",
+      "chatId": "${TELEGRAM_CHAT_ID}",
+      "dmPolicy": "pairing",
+      "streamMode": "partial"
+    }
+  },
+  "plugins": {
+    "entries": {
+      "telegram": { "enabled": true }
+    }
+  },
+  "auth": {
+    "profiles": {
+      "google:default": {
+        "provider": "google",
+        "mode": "api_key"
+      }
+    }
+  }
+}

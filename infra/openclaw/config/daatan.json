@@ -1,0 +1,85 @@
+{
+  "meta": {
+    "description": "OpenClaw configuration for DAATAN (Mixed Strategy + Local Fallback)"
+  },
+  "agents": {
+    "defaults": {
+      "workspace": "/workspace"
+    },
+    "definitions": {
+      "main": {
+        "id": "main",
+        "label": "Corvus",
+        "paths": { "base": "./agents/corvus" },
+        "model": {
+          "primary": "google/gemini-1.5-pro",
+          "fallbacks": ["ollama/qwen:1.5b"]
+        },
+        "identity": {
+          "name": "Corvus",
+          "theme": "Full-stack development (Next.js, Prisma)",
+          "emoji": "🦅"
+        }
+      },
+      "devops": {
+        "id": "devops",
+        "label": "DevOps Agent",
+        "paths": { "base": "./agents/devops" },
+        "model": {
+          "primary": "google/gemini-1.5-pro",
+          "fallbacks": ["ollama/qwen:1.5b"]
+        },
+        "identity": {
+          "name": "DevOps Agent",
+          "theme": "Docker, GitHub Actions, Terraform",
+          "emoji": "🔧"
+        }
+      },
+      "qa": {
+        "id": "qa",
+        "label": "QA Agent",
+        "paths": { "base": "./agents/qa" },
+        "model": {
+          "primary": "google/gemini-1.5-flash",
+          "fallbacks": ["ollama/qwen:1.5b"]
+        },
+        "identity": {
+          "name": "QA Agent",
+          "theme": "Testing and monitoring",
+          "emoji": "🔬"
+        }
+      }
+    }
+  },
+  "models": {
+    "providers": {
+      "ollama": {
+        "baseUrl": "http://host.docker.internal:11434/v1",
+        "apiKey": "ollama-local",
+        "api": "openai-responses"
+      }
+    }
+  },
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "botToken": "${TELEGRAM_BOT_TOKEN}",
+      "chatId": "${TELEGRAM_CHAT_ID}",
+      "dmPolicy": "pairing",
+      "streamMode": "partial"
+    }
+  },
+  "plugins": {
+    "entries": {
+      "telegram": { "enabled": true }
+    }
+  },
+  "auth": {
+    "profiles": {
+      "google:default": {
+        "provider": "google",
+        "mode": "api_key"
+      }
+    }
+  }
+}
