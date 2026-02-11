@@ -10,6 +10,7 @@ type FilterStatus = 'ACTIVE' | 'PENDING' | 'RESOLVED' | 'CLOSING_SOON' | 'ALL'
 export default function FeedClient() {
   const [predictions, setPredictions] = useState<Prediction[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
   const [filter, setFilter] = useState<FilterStatus>('ACTIVE')
   const [domains, setDomains] = useState<string[]>([])
   const [selectedDomain, setSelectedDomain] = useState<string>('')
@@ -17,6 +18,7 @@ export default function FeedClient() {
   useEffect(() => {
     const fetchFeed = async () => {
       setIsLoading(true)
+      setFetchError(null)
       try {
         let url = '/api/predictions?limit=50'
         
@@ -43,9 +45,16 @@ export default function FeedClient() {
             new Set(data.predictions.map((p: Prediction) => p.domain).filter(Boolean))
           ) as string[]
           setDomains(uniqueDomains.sort())
+        } else {
+          const errData = await response.json().catch(() => ({}))
+          const errMsg = errData?.details?.[0]?.message || errData?.error || `Failed to load predictions (${response.status})`
+          setFetchError(errMsg)
+          setPredictions([])
         }
       } catch (error) {
         console.error('Error fetching feed:', error)
+        setFetchError(error instanceof Error ? error.message : 'Failed to load predictions')
+        setPredictions([])
       } finally {
         setIsLoading(false)
       }
@@ -155,6 +164,11 @@ export default function FeedClient() {
       </div>
 
       {/* Feed Content */}
+      {fetchError && (
+        <div className="mb-6 bg-red-50 border border-red-100 text-red-700 px-4 py-3 rounded-lg text-sm">
+          <strong>Error loading forecasts:</strong> {fetchError}
+        </div>
+      )}
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-20">
           <Loader2 className="w-10 h-10 text-blue-500 animate-spin mb-4" />
