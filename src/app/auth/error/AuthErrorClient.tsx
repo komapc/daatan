@@ -24,6 +24,15 @@ export default function AuthErrorClient() {
             {error === 'Configuration' ? 'There is a problem with the server configuration.' :
              error === 'AccessDenied' ? 'Access has been denied.' :
              error === 'Verification' ? 'The verification link has expired or has already been used.' :
+             error === 'OAuthSignin' ? (
+               <>
+                 Google sign-in failed. Add this to your Google OAuth client&apos;s Authorized redirect URIs in Google Cloud Console:{' '}
+                 <code className="block mt-2 p-2 bg-gray-100 rounded text-sm break-all">
+                   {typeof window !== 'undefined' ? `${window.location.origin}/api/auth/callback/google` : 'https://your-domain.com/api/auth/callback/google'}
+                 </code>
+                 {' '}Also verify GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set on the server.
+               </>
+             ) :
              (error || 'An unexpected error occurred during authentication.')}
           </p>
         </div>

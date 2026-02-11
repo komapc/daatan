@@ -45,8 +45,13 @@ export default function SignInClient() {
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-lg text-sm">
-            An error occurred during sign in.
+          <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-lg text-sm space-y-2">
+            <p>An error occurred during sign in.</p>
+            {error === 'OAuthSignin' && (
+              <p className="text-xs text-red-500">
+                Google OAuth failed. Ensure your OAuth client has this redirect URI configured: {typeof window !== 'undefined' ? `${window.location.origin}/api/auth/callback/google` : ''}
+              </p>
+            )}
           </div>
         )}
 
