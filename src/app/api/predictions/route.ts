@@ -100,9 +100,14 @@ export async function GET(request: NextRequest) {
       prisma.prediction.count({ where }),
     ])
 
-    // Get current user ID for commitment indicator
-    const session = await getServerSession(authOptions)
-    const userId = session?.user?.id
+    // Get current user ID for commitment indicator (guard: session can throw on malformed cookie)
+    let userId: string | undefined
+    try {
+      const session = await getServerSession(authOptions)
+      userId = session?.user?.id
+    } catch {
+      userId = undefined
+    }
 
     // Transform predictions to include totalCuCommitted and userHasCommitted
     const enrichedPredictions = predictions.map(({ commitments, ...pred }) => ({
