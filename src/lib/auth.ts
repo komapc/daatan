@@ -109,4 +109,30 @@ export const authOptions: NextAuthOptions = {
     signIn: '/auth/signin',
     error: '/auth/error',
   },
+  // Explicit cookie options for staging behind nginx - ensures PKCE/state cookies
+  // are set with correct domain/path so they're sent when Google redirects back
+  ...(isStaging && {
+    cookies: {
+      pkceCodeVerifier: {
+        name: `__Secure-next-auth.pkce.code_verifier`,
+        options: {
+          httpOnly: true,
+          sameSite: 'lax',
+          path: '/',
+          secure: true,
+          maxAge: 900,
+        },
+      },
+      state: {
+        name: `__Secure-next-auth.state`,
+        options: {
+          httpOnly: true,
+          sameSite: 'lax',
+          path: '/',
+          secure: true,
+          maxAge: 900,
+        },
+      },
+    },
+  }),
 }
