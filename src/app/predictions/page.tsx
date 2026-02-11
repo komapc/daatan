@@ -15,6 +15,7 @@ type FilterStatus = 'ACTIVE' | 'PENDING' | 'RESOLVED' | 'CLOSING_SOON' | 'ALL'
 export default function PredictionsPage() {
   const [predictions, setPredictions] = useState<Prediction[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
   const [filter, setFilter] = useState<FilterStatus>('ACTIVE')
   const [domains, setDomains] = useState<string[]>([])
   const [selectedDomain, setSelectedDomain] = useState<string>('')
@@ -22,6 +23,7 @@ export default function PredictionsPage() {
   useEffect(() => {
     const fetchPredictions = async () => {
       setIsLoading(true)
+      setFetchError(null)
       try {
         let url = '/api/predictions?limit=50'
         
@@ -51,9 +53,16 @@ export default function PredictionsPage() {
             new Set(data.predictions.map((p: Prediction) => p.domain).filter(Boolean))
           ) as string[]
           setDomains(uniqueDomains.sort())
+        } else {
+          const errData = await response.json().catch(() => ({}))
+          const errMsg = errData?.details?.[0]?.message || errData?.error || `Failed to load (${response.status})`
+          setFetchError(errMsg)
+          setPredictions([])
         }
       } catch (error) {
         console.error('Error fetching predictions:', error)
+        setFetchError(error instanceof Error ? error.message : 'Failed to load predictions')
+        setPredictions([])
       } finally {
         setIsLoading(false)
       }
@@ -78,6 +87,12 @@ export default function PredictionsPage() {
           <span className="hidden sm:inline">New Prediction</span>
         </Link>
       </div>
+
+      {fetchError && (
+        <div className="mb-6 bg-red-50 border border-red-100 text-red-700 px-4 py-3 rounded-lg text-sm">
+          <strong>Error loading forecasts:</strong> {fetchError}
+        </div>
+      )}
 
       {/* Filters */}
       <div className="mb-6 space-y-4">

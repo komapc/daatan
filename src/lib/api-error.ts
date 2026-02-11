@@ -28,6 +28,7 @@ export function apiError(message: string, status: number): NextResponse<ApiError
  * Handle caught errors at the end of a route handler.
  * - ZodError → 400 with field-level details
  * - Everything else → 500 with generic message
+ * - In staging: include error details for debugging
  */
 export function handleRouteError(
   error: unknown,
@@ -47,5 +48,13 @@ export function handleRouteError(
   }
 
   console.error(fallbackMessage, error)
-  return NextResponse.json({ error: fallbackMessage }, { status: 500 })
+
+  // Include error details in staging for easier debugging
+  const isStaging = process.env.NEXT_PUBLIC_ENV === 'staging'
+  const body: ApiErrorBody = { error: fallbackMessage }
+  if (isStaging && error instanceof Error) {
+    body.details = [{ path: [], message: error.message }]
+  }
+
+  return NextResponse.json(body, { status: 500 })
 }
