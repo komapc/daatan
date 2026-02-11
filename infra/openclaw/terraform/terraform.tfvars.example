@@ -1,0 +1,9 @@
+# Copy to terraform.tfvars and fill in values.
+# terraform.tfvars is gitignored for security.
+
+aws_region        = "eu-central-1"
+ec2_instance_type = "t4g.medium"
+ssh_key_name      = "daatan-key"
+
+# Your IP for SSH access (use /32 for single IP). Get with: curl -s ifconfig.me
+allowed_ssh_cidr = "YOUR_IP/32"
