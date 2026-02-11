@@ -36,7 +36,10 @@ export default function FeedClient() {
           url += `&domain=${encodeURIComponent(selectedDomain)}`
         }
         
-        const response = await fetch(url)
+        const response = await fetch(url, {
+          credentials: 'include',
+          cache: 'no-store',
+        })
         if (response.ok) {
           const data = await response.json()
           setPredictions(data.predictions || [])
@@ -47,7 +50,9 @@ export default function FeedClient() {
           setDomains(uniqueDomains.sort())
         } else {
           const errData = await response.json().catch(() => ({}))
-          const errMsg = errData?.details?.[0]?.message || errData?.error || `Failed to load predictions (${response.status})`
+          const baseMsg = errData?.error || `Failed to load predictions (${response.status})`
+          const detailMsg = errData?.details?.[0]?.message
+          const errMsg = detailMsg ? `${baseMsg}: ${detailMsg}` : baseMsg
           setFetchError(errMsg)
           setPredictions([])
         }
