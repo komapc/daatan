@@ -4,13 +4,26 @@ import GoogleProvider from 'next-auth/providers/google'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from '@/lib/prisma'
 
+const googleClientId = process.env.GOOGLE_CLIENT_ID?.trim() ?? ''
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim() ?? ''
+const isStaging = process.env.NEXT_PUBLIC_ENV === 'staging'
+
+// Fail fast with clear error if OAuth credentials are missing
+if ((!googleClientId || !googleClientSecret) && typeof window === 'undefined') {
+  console.error(
+    '[Auth] Google OAuth misconfigured: GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set. ' +
+      'For staging, also ensure https://staging.daatan.com/api/auth/callback/google is in your Google OAuth client\'s Authorized redirect URIs.'
+  )
+}
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as Adapter,
   secret: process.env.NEXTAUTH_SECRET,
+  debug: isStaging,
   providers: [
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID ?? '',
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
+      clientId: googleClientId,
+      clientSecret: googleClientSecret,
     }),
   ],
   session: {

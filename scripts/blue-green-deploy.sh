@@ -146,6 +146,7 @@ ENV_ARGS="$ENV_ARGS -e APP_VERSION=${APP_VERSION:-0.1.19}"
 if [ "$ENVIRONMENT" = "staging" ]; then
     ENV_ARGS="$ENV_ARGS -e DATABASE_URL=postgresql://daatan:${POSTGRES_PASSWORD}@postgres-staging:5432/daatan_staging"
     ENV_ARGS="$ENV_ARGS -e NEXTAUTH_URL=https://staging.daatan.com"
+    ENV_ARGS="$ENV_ARGS -e AUTH_TRUST_HOST=true"
 else
     ENV_ARGS="$ENV_ARGS -e DATABASE_URL=postgresql://daatan:${POSTGRES_PASSWORD}@postgres:5432/daatan"
     ENV_ARGS="$ENV_ARGS -e NEXTAUTH_URL=https://daatan.com"
