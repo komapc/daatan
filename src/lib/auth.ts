@@ -30,6 +30,20 @@ export const authOptions: NextAuthOptions = {
     strategy: 'jwt',
   },
   callbacks: {
+    async signIn({ user, account }) {
+      if (isStaging) {
+        console.log('[Auth] signIn callback', { userId: user?.id, email: user?.email, provider: account?.provider })
+      }
+      return true
+    },
+    async redirect({ url, baseUrl }) {
+      if (isStaging) {
+        console.log('[Auth] redirect callback', { url, baseUrl })
+      }
+      if (url.startsWith('/')) return `${baseUrl}${url}`
+      if (new URL(url).origin === baseUrl) return url
+      return baseUrl
+    },
     async session({ session, token }) {
       if (session.user && token.sub) {
         // Assign the user ID from the token
