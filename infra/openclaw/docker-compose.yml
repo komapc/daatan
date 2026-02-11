@@ -1,32 +1,17 @@
 services:
-  agent-daatan:
-    image: ghcr.io/openclaw/openclaw:main
-    container_name: openclaw-daatan
+  openclaw:
+    build: .
+    image: openclaw-daatan:local
+    container_name: openclaw
     restart: unless-stopped
+    group_add:
+      - "999"
     volumes:
-      - ./daatan:/workspace
-      - ./config/daatan.json:/root/.openclaw/openclaw.json:ro
-      - /home/ubuntu/.ssh/id_github:/root/.ssh/id_ed25519:ro
-      - /home/ubuntu/.ssh/id_github.pub:/root/.ssh/id_ed25519.pub:ro
-    env_file:
-      - .env
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  agent-calendar:
-    image: ghcr.io/openclaw/openclaw:main
-    container_name: openclaw-calendar
-    restart: unless-stopped
-    volumes:
-      - ./calendar:/workspace
-      - ./config/calendar.json:/root/.openclaw/openclaw.json:ro
-      - /home/ubuntu/.ssh/id_github:/root/.ssh/id_ed25519:ro
-      - /home/ubuntu/.ssh/id_github.pub:/root/.ssh/id_ed25519.pub:ro
+      - /home/ubuntu/projects:/workspace
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./config/unified.json:/home/node/.openclaw/openclaw.json:ro
+      - /home/ubuntu/.ssh/id_github:/home/node/.ssh/id_ed25519:ro
+      - /home/ubuntu/.ssh/id_github.pub:/home/node/.ssh/id_ed25519.pub:ro
     env_file:
       - .env
     extra_hosts:

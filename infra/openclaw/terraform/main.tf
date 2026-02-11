@@ -1,8 +1,9 @@
 terraform {
   required_version = ">= 1.0"
 
-  # Using local backend for separation from main project state
-  # To use S3, change this to a different key in the same bucket or a new bucket
+  # Local backend: state in terraform/terraform.tfstate
+  # Drawback: if you lose this file, you cannot terraform destroy or manage the stack.
+  # Mitigation: back up terraform.tfstate; or switch to S3 backend if running from multiple machines.
   backend "local" {
     path = "terraform.tfstate"
   }
@@ -90,56 +91,7 @@ resource "aws_instance" "openclaw" {
     encrypted             = true
   }
 
-  user_data = <<-EOF
-    #!/bin/bash
-    set -e
-
-    # Update system
-    apt-get update
-    apt-get upgrade -y
-
-    # Install Docker
-    apt-get install -y ca-certificates curl gnupg unzip
-    install -m 0755 -d /etc/apt/keyrings
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-    chmod a+r /etc/apt/keyrings/docker.gpg
-
-    echo \
-      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-      $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
-      tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-    apt-get update
-    apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-
-    # Add ubuntu user to docker group
-    usermod -aG docker ubuntu
-
-    # Install Ollama
-    curl -fsSL https://ollama.com/install.sh | sh
-
-    # Configure Ollama to listen on all interfaces (for Docker access)
-    mkdir -p /etc/systemd/system/ollama.service.d
-    echo '[Service]
-Environment="OLLAMA_HOST=0.0.0.0"' > /etc/systemd/system/ollama.service.d/override.conf
-
-    systemctl daemon-reload
-    systemctl restart ollama
-
-    # Pull Qwen 1.5B model (with timeout so boot continues if network slow)
-    timeout 300 sudo -u ubuntu ollama pull qwen:1.5b || true
-
-    # Create workspace structure
-    mkdir -p /home/ubuntu/openclaw/daatan
-    mkdir -p /home/ubuntu/openclaw/calendar
-    mkdir -p /home/ubuntu/openclaw/config
-    chown -R ubuntu:ubuntu /home/ubuntu/openclaw
-
-    # Generate SSH key for GitHub access
-    sudo -u ubuntu ssh-keygen -t ed25519 -N "" -f /home/ubuntu/.ssh/id_github
-
-    echo "Provisioning complete!" > /home/ubuntu/setup-complete.txt
-  EOF
+  user_data = file("${path.module}/scripts/user-data.sh")
 
   tags = {
     Name = "openclaw-worker"

@@ -23,7 +23,11 @@ variable "ssh_key_name" {
 }
 
 variable "allowed_ssh_cidr" {
-  description = "CIDR block allowed for SSH access"
+  description = "CIDR block allowed for SSH access (e.g. 1.2.3.4/32). Get your IP: curl -s ifconfig.me"
   type        = string
-  default     = "0.0.0.0/0" # User should ideally override this
+
+  validation {
+    condition     = var.allowed_ssh_cidr != "" && var.allowed_ssh_cidr != "0.0.0.0/0" && !startswith(var.allowed_ssh_cidr, "YOUR_IP")
+    error_message = "allowed_ssh_cidr must be set to your IP/32 in terraform.tfvars. Refusing 0.0.0.0/0 and placeholder."
+  }
 }
