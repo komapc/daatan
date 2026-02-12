@@ -7,7 +7,7 @@ domain_name = "daatan.com"
 
 # SSH Access
 ssh_key_name     = "daatan-key"
-allowed_ssh_cidr = "YOUR_IP_ADDRESS/32"  # Replace with your IP, e.g., "203.0.113.50/32"
+allowed_ssh_cidr = "46.210.199.87/32"
 
 # Instance Type
 ec2_instance_type = "t3.nano"  # 0.5GB RAM, ~$4/month

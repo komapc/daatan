@@ -1,9 +1,15 @@
 # S3 Bucket for database backups
 resource "aws_s3_bucket" "backups" {
-  bucket = "daatan-db-backups-${data.aws_caller_identity.current.account_id}"
+  # Use existing naming convention for Prod to prevent bucket recreation/data loss
+  # Use environment suffix for Staging to ensure unique bucket name
+  bucket = var.environment == "prod" ? "daatan-db-backups-${data.aws_caller_identity.current.account_id}" : "daatan-db-backups-${var.environment}-${data.aws_caller_identity.current.account_id}"
 
   tags = {
     Name = "daatan-db-backups"
+  }
+
+  lifecycle {
+    prevent_destroy = true
   }
 }
 
@@ -64,7 +70,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "backups" {
 
 # IAM role for EC2 to access S3
 resource "aws_iam_role" "ec2_role" {
-  name = "daatan-ec2-role"
+  name = "daatan-ec2-role-${var.environment}"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -80,7 +86,7 @@ resource "aws_iam_role" "ec2_role" {
   })
 
   tags = {
-    Name = "daatan-ec2-role"
+    Name = "daatan-ec2-role-${var.environment}"
   }
 }
 
@@ -111,7 +117,7 @@ resource "aws_iam_role_policy" "ec2_s3_policy" {
 
 # Instance profile to attach role to EC2
 resource "aws_iam_instance_profile" "ec2_profile" {
-  name = "daatan-ec2-profile"
+  name = "daatan-ec2-profile-${var.environment}"
   role = aws_iam_role.ec2_role.name
 }
 
