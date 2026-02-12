@@ -1,6 +1,10 @@
 {
   "name": "daatan",
+<<<<<<< HEAD
   "version": "1.0.17",
+=======
+  "version": "1.0.16",
+>>>>>>> 09deee9 (fix: automate prisma migrations in terraform, update docs with current ips, and bump version)
   "private": true,
   "scripts": {
     "dev": "next dev",
