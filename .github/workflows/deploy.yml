@@ -115,6 +115,25 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Configure AWS credentials for Security Group modification
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-central-1
+
+      # Authorize Runner IP for SSH access
+      - name: Authorize Security Group Ingress
+        run: |
+          IP=$(curl -s https://checkip.amazonaws.com)
+          echo "Runner IP: $IP"
+          aws ec2 authorize-security-group-ingress \
+            --group-id sg-0e6c80fd13e5efb9a \
+            --protocol tcp \
+            --port 22 \
+            --cidr $IP/32
+
       - name: Deploy to Staging
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -152,6 +171,17 @@ jobs:
             
             echo "✅ Staging deployment completed at $(date)"
 
+      # Revoke Runner IP (Always run this, even if deploy fails)
+      - name: Revoke Security Group Ingress
+        if: always()
+        run: |
+          IP=$(curl -s https://checkip.amazonaws.com)
+          aws ec2 revoke-security-group-ingress \
+            --group-id sg-0e6c80fd13e5efb9a \
+            --protocol tcp \
+            --port 22 \
+            --cidr $IP/32
+
       - name: Verify staging site (External)
         run: |
           # This runs from the GitHub runner, verifying public reachability
@@ -173,6 +203,25 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      # Configure AWS credentials for Security Group modification
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-central-1
+
+      # Authorize Runner IP for SSH access
+      - name: Authorize Security Group Ingress
+        run: |
+          IP=$(curl -s https://checkip.amazonaws.com)
+          echo "Runner IP: $IP"
+          aws ec2 authorize-security-group-ingress \
+            --group-id sg-0e6c80fd13e5efb9a \
+            --protocol tcp \
+            --port 22 \
+            --cidr $IP/32
 
       - name: Get version from tag
         id: version
@@ -221,8 +270,8 @@ jobs:
             echo "⬇️  Pulling image from ECR (tag: $IMAGE_TAG)..."
             docker pull 272007598366.dkr.ecr.eu-central-1.amazonaws.com/daatan-app:$IMAGE_TAG
             
-            # Tag for local use
-            docker tag 272007598366.dkr.ecr.eu-central-1.amazonaws.com/daatan-app:$IMAGE_TAG daatan-app:staging-latest
+            # Tag for local use as 'latest' for production
+            docker tag 272007598366.dkr.ecr.eu-central-1.amazonaws.com/daatan-app:$IMAGE_TAG daatan-app:latest
             
             # Run blue-green deployment
             echo "🔄 Running blue-green deployment..."
@@ -230,6 +279,17 @@ jobs:
             ./scripts/blue-green-deploy.sh production
             
             echo "✅ Production deployment completed at $(date)"
+
+      # Revoke Runner IP (Always run this, even if deploy fails)
+      - name: Revoke Security Group Ingress
+        if: always()
+        run: |
+          IP=$(curl -s https://checkip.amazonaws.com)
+          aws ec2 revoke-security-group-ingress \
+            --group-id sg-0e6c80fd13e5efb9a \
+            --protocol tcp \
+            --port 22 \
+            --cidr $IP/32
 
       - name: Verify production site
         run: |
