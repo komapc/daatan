@@ -19,9 +19,10 @@ The infrastructure is designed to be **immutable and automated**. We use Terrafo
 
 | Component | Value |
 | --------- | ----- |
-| EC2 Instance | `i-0e3ab3926d831bf0a` |
-| Instance Type | `t3.small` (2GB RAM) |
-| Public IP | `52.59.160.186` |
+| EC2 Instance (Prod) | `i-0e3ab3926d831bf0a` (verify current) |
+| Public IP (Prod) | `3.126.238.216` |
+| EC2 Instance (Staging) | `i-0286f62b47117b85c` |
+| Public IP (Staging) | `63.182.198.80` |
 | Region | `eu-central-1` (Frankfurt) |
 | SSL Certificate | Valid until April 17, 2026 |
 
