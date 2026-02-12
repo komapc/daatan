@@ -116,7 +116,22 @@ resource "aws_instance" "backend" {
     # Only start if docker-compose.prod.yml exists (meaning clone was successful)
     if [ -f "docker-compose.prod.yml" ]; then
       docker compose -f docker-compose.prod.yml up -d
-      echo "Application started!"
+      
+      # Wait for containers to be ready
+      sleep 20
+      
+      # Run migrations
+      if docker ps | grep -q daatan-app-staging; then
+        echo "Running staging migrations..."
+        docker exec daatan-app-staging node node_modules/prisma/build/index.js migrate deploy || echo "Staging migration failed"
+      fi
+      
+      if docker ps | grep -q daatan-app; then
+        echo "Running production migrations..."
+        docker exec daatan-app node node_modules/prisma/build/index.js migrate deploy || echo "Production migration failed"
+      fi
+      
+      echo "Application started and migrations applied!"
     else
       echo "docker-compose.prod.yml not found. Is the repo cloned? check /var/log/user-data.log"
     fi

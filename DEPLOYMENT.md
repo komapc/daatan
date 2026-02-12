@@ -20,8 +20,8 @@
 
 ### Prerequisites
 
-- SSH access to EC2 instance (`ubuntu@52.59.160.186`)
-- SSH key: `~/.ssh/daatan-key.pem` (configured as `daatan` alias in `~/.ssh/config`)
+- SSH access to EC2 instance (configured as `daatan-release` or `daatan-staging` in `~/.ssh/config`)
+- SSH key: `~/.ssh/daatan-key.pem`
 - Docker and Docker Compose installed on EC2
 - GitHub CLI (`gh`) for local operations
 - Access to secrets (see [SECRETS.md](./SECRETS.md))
@@ -128,12 +128,10 @@ git push origin v0.1.17
 
 ```bash
 # Deploy to staging with zero downtime
-ssh -i ~/.ssh/daatan-key.pem ubuntu@52.59.160.186 \
-  "cd ~/app && ./scripts/blue-green-deploy.sh staging"
+ssh daatan-staging "cd ~/app && ./scripts/blue-green-deploy.sh staging"
 
 # Deploy to production with zero downtime
-ssh -i ~/.ssh/daatan-key.pem ubuntu@52.59.160.186 \
-  "cd ~/app && ./scripts/blue-green-deploy.sh production"
+ssh daatan-release "cd ~/app && ./scripts/blue-green-deploy.sh production"
 ```
 
 **How it works:**
