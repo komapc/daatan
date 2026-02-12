@@ -54,8 +54,50 @@ jobs:
           NEXTAUTH_SECRET: "dummy-secret-for-build"
         run: npm test
 
+
       - name: Run linter
         run: npm run lint || echo "No lint script configured"
+
+      # ECR Integration: Configure AWS credentials
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-central-1
+
+      # ECR Integration: Login to Amazon ECR
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # ECR Integration: Extract metadata for Docker tags
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.login-ecr.outputs.registry }}/daatan-app
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=staging-latest,enable={{is_default_branch}}
+
+      # ECR Integration: Build and push Docker image
+      - name: Build and push to ECR
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            NEXT_PUBLIC_APP_VERSION=${{ github.ref_name }}
+            DATABASE_URL=postgresql://placeholder
+            NEXTAUTH_URL=https://daatan.com
+            NEXT_PUBLIC_ENV=production
 
   # Deploy to STAGING (on push to main)
   deploy-staging:
@@ -85,27 +127,26 @@ jobs:
             set -e
             echo "🚀 Starting STAGING deployment (blue-green) at $(date)"
             
-            cd ~/app
+            cd /home/ubuntu/app
             
-            # Ensure workspace is clean and writable (avoid node_modules permission issues)
-            chmod -R u+w node_modules 2>/dev/null || true
-            sudo rm -rf node_modules 2>/dev/null || rm -rf node_modules 2>/dev/null || true
-            
-            # Pull latest code and clean workspace
+            # Pull latest code for deployment scripts
             git fetch origin main
             git reset --hard origin/main
-            git clean -fdx -e .env -e certbot -e node_modules
             
-            # Clean old local build artifacts (not Docker — the running container stays up)
-            sudo rm -rf .next node_modules 2>/dev/null || true
+            # Login to ECR
+            echo "🔐 Logging in to ECR..."
+            aws ecr get-login-password --region eu-central-1 | \
+              docker login --username AWS --password-stdin 272007598366.dkr.ecr.eu-central-1.amazonaws.com
             
-            # Prune only dangling images (keep build cache for faster builds)
-            docker image prune -f
+            # Pull latest staging image from ECR
+            echo "⬇️  Pulling image from ECR..."
+            docker pull 272007598366.dkr.ecr.eu-central-1.amazonaws.com/daatan-app:staging-latest
             
-            echo "🔍 Current commit on server:"
-            git log -1 --oneline
+            # Tag for local use
+            docker tag 272007598366.dkr.ecr.eu-central-1.amazonaws.com/daatan-app:staging-latest daatan-app:staging-latest
             
-            # Run blue-green deployment (builds image while old container serves traffic)
+            # Run blue-green deployment
+            echo "🔄 Running blue-green deployment..."
             chmod +x scripts/blue-green-deploy.sh
             ./scripts/blue-green-deploy.sh staging
             
@@ -154,13 +195,9 @@ jobs:
             set -e
             echo "🚀 Starting PRODUCTION deployment (${{ steps.version.outputs.version }}) at $(date)"
             
-            cd ~/app
+            cd /home/ubuntu/app
             
-            # Ensure workspace is clean and writable (avoid node_modules permission issues)
-            chmod -R u+w node_modules 2>/dev/null || true
-            sudo rm -rf node_modules 2>/dev/null || rm -rf node_modules 2>/dev/null || true
-            
-            # Pull latest code (use tag if available)
+            # Pull latest code for deployment scripts
             git fetch origin --tags
             if [[ "${{ steps.version.outputs.version }}" != "manual" ]]; then
               git checkout ${{ steps.version.outputs.version }}
@@ -168,16 +205,27 @@ jobs:
               git reset --hard origin/main
             fi
             
-            # Clean old local build artifacts (not Docker — running container stays up)
-            sudo rm -rf .next node_modules 2>/dev/null || true
+            # Login to ECR
+            echo "🔐 Logging in to ECR..."
+            aws ecr get-login-password --region eu-central-1 | \
+              docker login --username AWS --password-stdin 272007598366.dkr.ecr.eu-central-1.amazonaws.com
             
-            # Prune only dangling images (keep build cache for faster builds)
-            docker image prune -f
+            # Determine image tag
+            if [[ "${{ steps.version.outputs.version }}" != "manual" ]]; then
+              IMAGE_TAG="${{ steps.version.outputs.version }}"
+            else
+              IMAGE_TAG="staging-latest"
+            fi
             
-            echo "🔍 Current commit on server:"
-            git log -1 --oneline
+            # Pull production image from ECR
+            echo "⬇️  Pulling image from ECR (tag: $IMAGE_TAG)..."
+            docker pull 272007598366.dkr.ecr.eu-central-1.amazonaws.com/daatan-app:$IMAGE_TAG
             
-            # Run blue-green deployment (builds image while old container serves traffic)
+            # Tag for local use
+            docker tag 272007598366.dkr.ecr.eu-central-1.amazonaws.com/daatan-app:$IMAGE_TAG daatan-app:staging-latest
+            
+            # Run blue-green deployment
+            echo "🔄 Running blue-green deployment..."
             chmod +x scripts/blue-green-deploy.sh
             ./scripts/blue-green-deploy.sh production
             

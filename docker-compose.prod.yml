@@ -14,7 +14,7 @@ services:
       - app
       - app-staging
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost/health"]
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -25,13 +25,14 @@ services:
         max-file: "3"
 
   app:
+    # Build context kept for reference/local builds, but image points to ECR
     build:
       context: .
       dockerfile: Dockerfile
       args:
         - DATABASE_URL=postgresql://daatan:${POSTGRES_PASSWORD}@postgres:5432/daatan
         - NEXTAUTH_URL=https://daatan.com
-    image: daatan-app:staging-latest
+    image: 272007598366.dkr.ecr.eu-central-1.amazonaws.com/daatan-app:staging-latest
     container_name: daatan-app
     restart: unless-stopped
     expose:
@@ -51,7 +52,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -63,6 +64,7 @@ services:
         max-file: "3"
 
   app-staging:
+    # Build context kept for reference, image points to ECR
     build:
       context: .
       dockerfile: Dockerfile
@@ -70,7 +72,7 @@ services:
         - NEXT_PUBLIC_ENV=staging
         - DATABASE_URL=postgresql://daatan:${POSTGRES_PASSWORD}@postgres-staging:5432/daatan_staging
         - NEXTAUTH_URL=https://staging.daatan.com
-    image: daatan-app:staging-${DEPLOY_ID:-latest}
+    image: 272007598366.dkr.ecr.eu-central-1.amazonaws.com/daatan-app:staging-latest
     container_name: daatan-app-staging
     restart: unless-stopped
     expose:
@@ -91,7 +93,7 @@ services:
       postgres-staging:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -115,7 +117,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U daatan -d daatan"]
+      test: [ "CMD-SHELL", "pg_isready -U daatan -d daatan" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -138,7 +140,7 @@ services:
     volumes:
       - postgres_staging_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U daatan -d daatan_staging"]
+      test: [ "CMD-SHELL", "pg_isready -U daatan -d daatan_staging" ]
       interval: 10s
       timeout: 5s
       retries: 5
