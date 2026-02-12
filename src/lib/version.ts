@@ -4,8 +4,4 @@
 // APP_VERSION (runtime env) is only used by the /api/health endpoint for
 // server-side reporting — it must NOT be used in any rendered component.
 // Bumped to 1.0.15 (Resolving merge conflict + version bump)
-<<<<<<< HEAD
-export const VERSION = process.env.NEXT_PUBLIC_APP_VERSION || '1.0.18'
-=======
-export const VERSION = process.env.NEXT_PUBLIC_APP_VERSION || '1.0.16'
->>>>>>> 09deee9 (fix: automate prisma migrations in terraform, update docs with current ips, and bump version)
+export const VERSION = process.env.NEXT_PUBLIC_APP_VERSION || '1.0.19'
