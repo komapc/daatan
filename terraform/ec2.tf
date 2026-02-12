@@ -183,7 +183,7 @@ BACKUP
   }
 
   lifecycle {
-    ignore_changes = [ami, user_data, instance_type]
+    ignore_changes = [ami, user_data]
   }
 }
 

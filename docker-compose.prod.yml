@@ -31,7 +31,7 @@ services:
       args:
         - DATABASE_URL=postgresql://daatan:${POSTGRES_PASSWORD}@postgres:5432/daatan
         - NEXTAUTH_URL=https://daatan.com
-    image: daatan-app:latest
+    image: daatan-app:staging-latest
     container_name: daatan-app
     restart: unless-stopped
     expose:
