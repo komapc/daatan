@@ -113,9 +113,14 @@ BUILD_ARGS="$BUILD_ARGS --build-arg GIT_COMMIT=$GIT_COMMIT"
 BUILD_ARGS="$BUILD_ARGS --build-arg BUILD_TIMESTAMP=$BUILD_TIMESTAMP"
 
 # Build the image without stopping the running container
-docker compose -f docker-compose.prod.yml build $NO_CACHE_FLAG $BUILD_ARGS $SERVICE
-
-echo "✅ New image built successfully"
+if [ "${SKIP_BUILD}" == "true" ]; then
+    echo "🔨 Phase 2: Skipping build (using pre-pulled image)..."
+    IMAGE_NAME="daatan-app:staging-latest"
+else
+    # Build the image without stopping the running container
+    docker compose -f docker-compose.prod.yml build $NO_CACHE_FLAG $BUILD_ARGS $SERVICE
+    echo "✅ New image built successfully"
+fi
 
 # ─── Phase 3: Start new container alongside old one ─────────────────────────────
 echo ""
@@ -124,8 +129,10 @@ echo "🆕 Phase 3: Starting new container alongside old one..."
 # Clean up any leftover new container from a previous failed deploy
 docker rm -f $CONTAINER_NEW 2>/dev/null || true
 
-# Get the image name that was just built
-if [ "$ENVIRONMENT" = "staging" ]; then
+# Get the image name that was just built (or pre-pulled)
+if [ "${SKIP_BUILD}" == "true" ]; then
+    IMAGE_NAME="daatan-app:staging-latest"
+elif [ "$ENVIRONMENT" = "staging" ]; then
     IMAGE_NAME="daatan-app:staging-${DEPLOY_ID}"
 else
     IMAGE_NAME="daatan-app:latest"
