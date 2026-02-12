@@ -133,6 +133,8 @@ jobs:
             --protocol tcp \
             --port 22 \
             --cidr $IP/32
+          echo "⏳ Waiting 10s for Security Group rule to propagate..."
+          sleep 10
 
       - name: Deploy to Staging
         uses: appleboy/ssh-action@v1.0.3
@@ -222,6 +224,8 @@ jobs:
             --protocol tcp \
             --port 22 \
             --cidr $IP/32
+          echo "⏳ Waiting 10s for Security Group rule to propagate..."
+          sleep 10
 
       - name: Get version from tag
         id: version
