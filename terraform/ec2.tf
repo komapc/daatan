@@ -34,13 +34,14 @@ resource "aws_instance" "backend" {
   user_data = <<-EOF
     #!/bin/bash
     set -e
+    exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
 
     # Update system
     apt-get update
     apt-get upgrade -y
+    apt-get install -y ca-certificates curl gnupg unzip jq git
 
     # Install Docker
-    apt-get install -y ca-certificates curl gnupg unzip
     install -m 0755 -d /etc/apt/keyrings
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
     chmod a+r /etc/apt/keyrings/docker.gpg
@@ -66,12 +67,62 @@ resource "aws_instance" "backend" {
     systemctl enable docker
     systemctl start docker
 
-    # Create app directory
+    # --- Zero Touch Setup ---
+    
+    # 1. Setup App Directory
     mkdir -p /home/ubuntu/app
-    mkdir -p /home/ubuntu/backups
-    chown -R ubuntu:ubuntu /home/ubuntu/app /home/ubuntu/backups
+    chown ubuntu:ubuntu /home/ubuntu/app
+    
+    # 2. Retrieve Secrets (SSH Key first for cloning)
+    REGION="${var.aws_region}"
+    SECRET_ENV_Name="${aws_secretsmanager_secret.env_vars.name}"
+    SECRET_KEY_NAME="${aws_secretsmanager_secret.deploy_key.name}"
 
-    # Write S3 bucket name to config file (Terraform interpolation)
+    # Get SSH Key
+    mkdir -p /home/ubuntu/.ssh
+    if aws secretsmanager get-secret-value --region "$REGION" --secret-id "$SECRET_KEY_NAME" --query SecretString --output text > /home/ubuntu/.ssh/id_rsa; then
+        chown ubuntu:ubuntu /home/ubuntu/.ssh/id_rsa
+        chmod 600 /home/ubuntu/.ssh/id_rsa
+    else
+        echo "Failed to retrieve SSH Key"
+        exit 1
+    fi
+
+    # Add GitHub to known hosts
+    ssh-keyscan github.com >> /home/ubuntu/.ssh/known_hosts
+    chown ubuntu:ubuntu /home/ubuntu/.ssh/known_hosts
+
+    # 3. Clone Repository
+    # Remove directory if it exists and is empty, or if it only contains .env from a failed previous run (though we moved .env retrieval to later/temp)
+    # Actually, to be safe, we will write .env AFTER cloning.
+    
+    # Use || true to prevent failure if repo is already there
+    if [ ! -d "/home/ubuntu/app/.git" ]; then
+        sudo -u ubuntu git clone git@github.com:komapc/daatan.git /home/ubuntu/app || echo "Repo clone failed"
+    else
+        echo "Repo already exists"
+    fi
+
+    # 4. Retrieve .env (NOW, after clone)
+    if aws secretsmanager get-secret-value --region "$REGION" --secret-id "$SECRET_ENV_Name" --query SecretString --output text > /home/ubuntu/app/.env; then
+        chown ubuntu:ubuntu /home/ubuntu/app/.env
+        chmod 600 /home/ubuntu/app/.env
+    else
+         echo "Failed to retrieve .env"
+    fi
+
+    # 5. Start Application
+    cd /home/ubuntu/app
+    # Only start if docker-compose.prod.yml exists (meaning clone was successful)
+    if [ -f "docker-compose.prod.yml" ]; then
+      docker compose -f docker-compose.prod.yml up -d
+      echo "Application started!"
+    else
+      echo "docker-compose.prod.yml not found. Is the repo cloned? check /var/log/user-data.log"
+    fi
+
+    # 5. Setup Database Backups
+    # Write S3 bucket name to config file
     echo "${aws_s3_bucket.backups.bucket}" > /home/ubuntu/.s3_bucket
 
     # Create backup script
@@ -82,19 +133,26 @@ BACKUP_FILE="/home/ubuntu/backups/daatan_$TIMESTAMP.sql.gz"
 S3_BUCKET=$(cat /home/ubuntu/.s3_bucket)
 
 # Dump database
-docker exec daatan-postgres pg_dump -U daatan daatan | gzip > "$BACKUP_FILE"
-
-# Upload to S3
-aws s3 cp "$BACKUP_FILE" "s3://$S3_BUCKET/daily/"
-
-# Keep only last 3 local backups
-ls -t /home/ubuntu/backups/*.sql.gz | tail -n +4 | xargs -r rm
-
-echo "Backup completed: $BACKUP_FILE"
+# Only run if container is running
+if docker ps | grep -q daatan-postgres; then
+  docker exec daatan-postgres pg_dump -U daatan daatan | gzip > "$BACKUP_FILE"
+  
+  # Upload to S3
+  aws s3 cp "$BACKUP_FILE" "s3://$S3_BUCKET/daily/"
+  
+  # Keep only last 3 local backups
+  ls -t /home/ubuntu/backups/*.sql.gz | tail -n +4 | xargs -r rm
+  
+  echo "Backup completed: $BACKUP_FILE"
+else
+  echo "Postgres container not running. Skipping backup."
+fi
 BACKUP
 
     chmod +x /home/ubuntu/backup-db.sh
     chown ubuntu:ubuntu /home/ubuntu/backup-db.sh
+    mkdir -p /home/ubuntu/backups
+    chown ubuntu:ubuntu /home/ubuntu/backups
 
     # Setup daily backup cron (3 AM)
     echo "0 3 * * * ubuntu /home/ubuntu/backup-db.sh >> /home/ubuntu/backups/backup.log 2>&1" > /etc/cron.d/daatan-backup
