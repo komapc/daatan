@@ -82,7 +82,7 @@ jobs:
             type=ref,event=pr
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=sha,prefix={{branch}}-
+            type=sha
             type=raw,value=staging-latest,enable={{is_default_branch}}
 
       # ECR Integration: Build and push Docker image
