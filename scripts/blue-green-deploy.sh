@@ -107,7 +107,7 @@ docker system df || true
 
 echo ""
 echo "🧹 Pre-build cleanup: pruning unused Docker data to free space..."
-docker image prune -af || true
+docker image prune -f || true
 docker builder prune -af || true
 docker volume prune -f || true
 
@@ -163,8 +163,8 @@ if [ "${SKIP_BUILD}" == "true" ]; then
         fi
     fi
     # Build the image without stopping the running container
-    docker compose -f docker-compose.prod.yml build $NO_CACHE_FLAG $BUILD_ARGS $SERVICE
-    echo "✅ New image built successfully"
+    # docker compose -f docker-compose.prod.yml build $NO_CACHE_FLAG $BUILD_ARGS $SERVICE
+    echo "⚠️ Skipping build on server (source not available). Using pulled image."
 fi
 
 # ─── Phase 3: Start new container alongside old one ─────────────────────────────
