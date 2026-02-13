@@ -2,7 +2,7 @@
 
 ## Current Approach
 
-**Status:** Using `.env` files on server (acceptable for MVP, needs improvement for scale)
+**Status:** Using `.env` files on server + **AWS Secrets Manager for Backup**
 
 ### What We Use
 
@@ -99,46 +99,34 @@ ls -la ~/app/.env
 
 ### Short-term (Next 3-6 months)
 
-**1. AWS Secrets Manager**
-- Store secrets in AWS Secrets Manager
-- Automatic rotation for database passwords
-- Audit trail of all access
-- Cost: ~$0.40/secret/month + $0.05 per 10,000 API calls
+### 1. AWS Secrets Manager (Active Backup)
+**Status:** Implemented (Sync Only)
+- Secrets are stored in AWS Secrets Manager for backup and recovery.
+- **Secret Names:** `daatan-env-staging`, `daatan-env-prod`.
+- **Sync Process:** manually run `aws secretsmanager put-secret-value` after updating `.env`.
 
-**Implementation:**
+**Usage:**
 ```bash
-# Store secret
-aws secretsmanager create-secret \
-  --name daatan/production/postgres-password \
-  --secret-string "your-password"
+# Backup current .env to AWS
+aws secretsmanager put-secret-value \
+  --secret-id daatan-env-staging \
+  --secret-string "file://.env"
 
-# Retrieve in application
+# Restore .env from AWS
 aws secretsmanager get-secret-value \
-  --secret-id daatan/production/postgres-password
+  --secret-id daatan-env-staging \
+  --query SecretString \
+  --output text > .env
 ```
 
-**2. Environment-specific Secrets**
-- Separate secrets for staging vs production
-- Different API keys per environment
-- Reduced blast radius if compromised
-
-### Long-term (6-12 months)
-
-**1. HashiCorp Vault**
-- Dynamic secrets (generated on-demand)
-- Automatic expiration
-- Fine-grained access control
-- Encryption as a service
-
-**2. AWS Systems Manager Parameter Store**
-- Free tier available
-- Integration with EC2
-- Versioning and change tracking
-
-**3. Kubernetes Secrets** (if migrating to K8s)
-- Native secret management
-- Automatic injection into pods
-- Integration with external secret stores
+### 2. Google Client Secret Rotation
+**When:** If `invalid_client` errors appear in logs or Google Cloud Console integrity is compromised.
+1.  **Generate New Secret:** Go to Google Cloud Console > Credentials > OAuth 2.0 Client IDs > Reset Secret.
+2.  **Update Config:**
+    *   Update `.env` on **Staging** (`i-0286f62b47117b85c`) and **Production** (`i-02105582701f77d29`).
+    *   Update local `.env`.
+    *   Sync to AWS Secrets Manager (see above).
+3.  **Restart Containers:** `docker restart daatan-app` (Prod) / `daatan-app-staging` (Staging).
 
 ---
 
