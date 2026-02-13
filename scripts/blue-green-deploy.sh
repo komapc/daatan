@@ -66,7 +66,15 @@ else
 fi
 
 export DEPLOY_ID=$(date +%s)
-GIT_COMMIT=$(git rev-parse HEAD)
+# GIT_COMMIT should be passed from CI/CD
+if [ -z "$GIT_COMMIT" ]; then
+    if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        GIT_COMMIT=$(git rev-parse HEAD)
+    else
+        echo "⚠️ GIT_COMMIT not set and not in a git repo. Using 'unknown'"
+        GIT_COMMIT="unknown"
+    fi
+fi
 export GIT_COMMIT
 BUILD_TIMESTAMP=$(date +%s)
 
