@@ -104,6 +104,7 @@ jobs:
     name: Deploy to Staging
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     concurrency:
       group: deploy-staging
       cancel-in-progress: false
@@ -121,6 +122,24 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-central-1
+
+      - name: Check Instance SSM Health
+        run: |
+          INSTANCE_ID=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=daatan-backend" "Name=tag:Environment,Values=staging" \
+            --query "Reservations[0].Instances[0].InstanceId" \
+            --output text)
+          
+          PING_STATUS=$(aws ssm describe-instance-information \
+            --filters "Key=InstanceIds,Values=$INSTANCE_ID" \
+            --query "InstanceInformationList[0].PingStatus" \
+            --output text)
+            
+          echo "Instance $INSTANCE_ID PingStatus: $PING_STATUS"
+          if [[ "$PING_STATUS" != "Online" ]]; then
+            echo "❌ Error: Instance is $PING_STATUS. SSM command will fail. Please check or reboot the instance."
+            exit 1
+          fi
 
       - name: Deploy to Staging (SSM)
         run: |
@@ -186,7 +205,8 @@ jobs:
             
           echo "✅ Command sent. ID: $COMMAND_ID"
           
-          echo "⏳ Waiting for command execution..."
+          echo '⏳ Waiting for command execution (Timeout: 10m)...'
+          START_TIME=$(date +%s)
           while true; do
             STATUS=$(aws ssm list-command-invocations --command-id "$COMMAND_ID" --details --query "CommandInvocations[0].Status" --output text)
             echo "Status: $STATUS"
@@ -198,7 +218,15 @@ jobs:
               aws ssm list-command-invocations --command-id "$COMMAND_ID" --details --query "CommandInvocations[0].CommandPlugins[0].Output" --output text
                exit 1
             fi
-            sleep 5
+
+            CURRENT_TIME=$(date +%s)
+            ELAPSED=$((CURRENT_TIME - START_TIME))
+            if [[ $ELAPSED -gt 600 ]]; then
+              echo "❌ Deployment timed out after 10 minutes!"
+              exit 1
+            fi
+
+            sleep 10
           done
 
       - name: Verify staging site (External)
@@ -211,6 +239,7 @@ jobs:
     name: Deploy to Production
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     concurrency:
       group: deploy-production
       cancel-in-progress: false
@@ -236,6 +265,24 @@ jobs:
             echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
           else
             echo "version=manual" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check Instance SSM Health
+        run: |
+          INSTANCE_ID=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=daatan-backend" "Name=tag:Environment,Values=prod" \
+            --query "Reservations[0].Instances[0].InstanceId" \
+            --output text)
+          
+          PING_STATUS=$(aws ssm describe-instance-information \
+            --filters "Key=InstanceIds,Values=$INSTANCE_ID" \
+            --query "InstanceInformationList[0].PingStatus" \
+            --output text)
+            
+          echo "Instance $INSTANCE_ID PingStatus: $PING_STATUS"
+          if [[ "$PING_STATUS" != "Online" ]]; then
+            echo "❌ Error: Instance is $PING_STATUS. SSM command will fail. Please check or reboot the instance."
+            exit 1
           fi
 
       - name: Deploy to Production (SSM)
@@ -310,7 +357,8 @@ jobs:
             
           echo "✅ Command sent. ID: $COMMAND_ID"
           
-          echo "⏳ Waiting for command execution..."
+          echo '⏳ Waiting for command execution (Timeout: 10m)...'
+          START_TIME=$(date +%s)
           while true; do
             STATUS=$(aws ssm list-command-invocations --command-id "$COMMAND_ID" --details --query "CommandInvocations[0].Status" --output text)
             echo "Status: $STATUS"
@@ -322,7 +370,15 @@ jobs:
               aws ssm list-command-invocations --command-id "$COMMAND_ID" --details --query "CommandInvocations[0].CommandPlugins[0].Output" --output text
                exit 1
             fi
-            sleep 5
+
+            CURRENT_TIME=$(date +%s)
+            ELAPSED=$((CURRENT_TIME - START_TIME))
+            if [[ $ELAPSED -gt 600 ]]; then
+              echo "❌ Deployment timed out after 10 minutes!"
+              exit 1
+            fi
+
+            sleep 10
           done
 
       - name: Verify production site
