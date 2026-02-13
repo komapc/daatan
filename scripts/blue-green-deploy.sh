@@ -109,7 +109,7 @@ echo ""
 echo "🧹 Pre-build cleanup: pruning unused Docker data to free space..."
 docker image prune -f || true
 docker builder prune -af || true
-docker volume prune -f || true
+# docker volume prune -f || true  <-- DISABLING TO PREVENT DATA LOSS
 
 echo ""
 echo "🧹 Pre-build cleanup: Docker disk usage after prune"
