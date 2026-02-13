@@ -171,15 +171,15 @@ jobs:
           ./scripts/blue-green-deploy.sh staging
           "
           
-          # JSON escape the script content
-          ESCAPED_SCRIPT=$(echo "$SDK_SCRIPT_CONTENT" | jq -sR .)
+          # Encode the entire shell script content to avoid JSON escaping issues
+          B64_SDK_SCRIPT=$(echo "$SDK_SCRIPT_CONTENT" | base64 -w 0)
           
           echo "🚀 Sending SSM Command..."
           COMMAND_ID=$(aws ssm send-command \
             --document-name "AWS-RunShellScript" \
             --targets "Key=instanceids,Values=$INSTANCE_ID" \
             --comment "Deploy Staging ${{ github.sha }}" \
-            --parameters commands="[$ESCAPED_SCRIPT]" \
+            --parameters commands="[\"echo $B64_SDK_SCRIPT | base64 -d | bash\"]" \
             --output text \
             --query "Command.CommandId")
             
@@ -294,15 +294,15 @@ jobs:
           ./scripts/blue-green-deploy.sh production
           "
           
-          # JSON escape the script content
-          ESCAPED_SCRIPT=$(echo "$SDK_SCRIPT_CONTENT" | jq -sR .)
+          # Encode the entire shell script content to avoid JSON escaping issues
+          B64_SDK_SCRIPT=$(echo "$SDK_SCRIPT_CONTENT" | base64 -w 0)
           
           echo "🚀 Sending SSM Command..."
           COMMAND_ID=$(aws ssm send-command \
             --document-name "AWS-RunShellScript" \
             --targets "Key=instanceids,Values=$INSTANCE_ID" \
             --comment "Deploy Production ${{ steps.version.outputs.version }}" \
-            --parameters commands="[$ESCAPED_SCRIPT]" \
+            --parameters commands="[\"echo $B64_SDK_SCRIPT | base64 -d | bash\"]" \
             --output text \
             --query "Command.CommandId")
             
