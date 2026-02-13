@@ -52,7 +52,15 @@ else
     exit 1
 fi
 
-cd ~/app
+# Ensure we are in the project directory
+if [ -d "$HOME/app" ]; then
+    cd "$HOME/app"
+elif [ -d "/home/ubuntu/app" ]; then
+    cd "/home/ubuntu/app"
+else
+    echo "❌ Could not find app directory in $HOME/app or /home/ubuntu/app"
+    exit 1
+fi
 
 # Source environment variables
 if [ -f .env ]; then
@@ -66,7 +74,15 @@ else
 fi
 
 export DEPLOY_ID=$(date +%s)
-GIT_COMMIT=$(git rev-parse HEAD)
+# GIT_COMMIT should be passed from CI/CD
+if [ -z "$GIT_COMMIT" ]; then
+    if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        GIT_COMMIT=$(git rev-parse HEAD)
+    else
+        echo "⚠️ GIT_COMMIT not set and not in a git repo. Using 'unknown'"
+        GIT_COMMIT="unknown"
+    fi
+fi
 export GIT_COMMIT
 BUILD_TIMESTAMP=$(date +%s)
 
@@ -115,8 +131,37 @@ BUILD_ARGS="$BUILD_ARGS --build-arg BUILD_TIMESTAMP=$BUILD_TIMESTAMP"
 # Build the image without stopping the running container
 if [ "${SKIP_BUILD}" == "true" ]; then
     echo "🔨 Phase 2: Skipping build (using pre-pulled image)..."
-    IMAGE_NAME="daatan-app:staging-latest"
-else
+
+    # Login and Pull if ECR info provided
+    if [ -n "$ECR_REGISTRY" ] && [ -n "$IMAGE_TAG" ]; then
+        echo "🔐 Logging in to ECR ($ECR_REGISTRY)..."
+        # Determine region from registry URL (e.g. 123.dkr.ecr.eu-central-1.amazonaws.com)
+        # 272007598366.dkr.ecr.eu-central-1.amazonaws.com
+        REGION=$(echo "$ECR_REGISTRY" | cut -d'.' -f4)
+        if [ -z "$REGION" ]; then REGION="eu-central-1"; fi # Fallback to Frankfurt as per docker-compose
+
+        aws ecr get-login-password --region "$REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY"
+
+        FULL_IMAGE="$ECR_REGISTRY/daatan-app:$IMAGE_TAG"
+        echo "⬇️  Pulling image $FULL_IMAGE..."
+        docker pull "$FULL_IMAGE"
+
+        echo "🏷️  Tagging image..."
+        if [ "$ENVIRONMENT" = "staging" ]; then
+             docker tag "$FULL_IMAGE" "daatan-app:staging-latest"
+             IMAGE_NAME="daatan-app:staging-latest"
+        else
+             docker tag "$FULL_IMAGE" "daatan-app:latest"
+             IMAGE_NAME="daatan-app:latest"
+        fi
+    else
+        echo "⚠️  ECR_REGISTRY or IMAGE_TAG not set, assuming image exists locally."
+        if [ "$ENVIRONMENT" = "staging" ]; then
+            IMAGE_NAME="daatan-app:staging-latest"
+        else
+            IMAGE_NAME="daatan-app:latest"
+        fi
+    fi
     # Build the image without stopping the running container
     docker compose -f docker-compose.prod.yml build $NO_CACHE_FLAG $BUILD_ARGS $SERVICE
     echo "✅ New image built successfully"
@@ -131,7 +176,11 @@ docker rm -f $CONTAINER_NEW 2>/dev/null || true
 
 # Get the image name that was just built (or pre-pulled)
 if [ "${SKIP_BUILD}" == "true" ]; then
-    IMAGE_NAME="daatan-app:staging-latest"
+    if [ "$ENVIRONMENT" = "staging" ]; then
+        IMAGE_NAME="daatan-app:staging-latest"
+    else
+        IMAGE_NAME="daatan-app:latest"
+    fi
 elif [ "$ENVIRONMENT" = "staging" ]; then
     IMAGE_NAME="daatan-app:staging-${DEPLOY_ID}"
 else

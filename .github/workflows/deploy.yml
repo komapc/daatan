@@ -115,7 +115,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Configure AWS credentials for Security Group modification
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -123,70 +122,87 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-central-1
 
-      # Authorize Runner IP for SSH access
-      - name: Authorize Security Group Ingress
+      - name: Deploy to Staging (SSM)
         run: |
-          IP=$(curl -s https://checkip.amazonaws.com)
-          echo "Runner IP: $IP"
-          aws ec2 authorize-security-group-ingress \
-            --group-id sg-0e6c80fd13e5efb9a \
-            --protocol tcp \
-            --port 22 \
-            --cidr $IP/32
-          echo "⏳ Waiting 10s for Security Group rule to propagate..."
-          sleep 10
+          # Get Instance ID
+          INSTANCE_ID=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=daatan-backend" "Name=tag:Environment,Values=staging" \
+            --query "Reservations[0].Instances[0].InstanceId" \
+            --output text)
+          echo "Found Staging Instance: $INSTANCE_ID"
 
-      - name: Deploy to Staging
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
-          timeout: 60s
-          command_timeout: 30m
-          script: |
-            set -e
-            echo "🚀 Starting STAGING deployment (blue-green) at $(date)"
+          # Encode scripts
+          BLUE_GREEN_SCRIPT=$(base64 -w 0 scripts/blue-green-deploy.sh)
+          VERIFY_SCRIPT=$(base64 -w 0 scripts/verify-deploy.sh)
+          COMPOSE_FILE=$(base64 -w 0 docker-compose.prod.yml)
+          
+          # Construct the shell script to run on EC2
+          SDK_SCRIPT_CONTENT="
+          set -e
+          export HOME=/home/ubuntu
+          export PATH=\$PATH:/usr/local/bin:/usr/bin
+          
+          echo '📂 Setting up deployment directories...'
+          mkdir -p ~/app/scripts
+          cd ~/app
+          
+          echo '📄 Writing docker-compose.prod.yml...'
+          echo \"$COMPOSE_FILE\" | base64 -d > docker-compose.prod.yml
+          
+          echo '📜 Writing blue-green-deploy.sh...'
+          echo \"$BLUE_GREEN_SCRIPT\" | base64 -d > scripts/blue-green-deploy.sh
+          
+          echo '🔍 Writing verify-deploy.sh...'
+          echo \"$VERIFY_SCRIPT\" | base64 -d > scripts/verify-deploy.sh
+          
+          chmod +x scripts/*.sh
+          
+          echo '🔐 Logging in to ECR (Region: eu-central-1)...'
+          aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin 272007598366.dkr.ecr.eu-central-1.amazonaws.com
+          
+          echo '⬇️ Pulling staging image...'
+          docker pull 272007598366.dkr.ecr.eu-central-1.amazonaws.com/daatan-app:staging-latest
+          
+          echo '🏷️ Tagging image...'
+          docker tag 272007598366.dkr.ecr.eu-central-1.amazonaws.com/daatan-app:staging-latest daatan-app:staging-latest
+          
+          echo '🚀 Executing blue-green deployment...'
+          export GIT_COMMIT=\"${{ github.sha }}\"
+          export SKIP_BUILD=true
+          ./scripts/blue-green-deploy.sh staging
+          "
+          
+          # Encode the entire shell script content to avoid JSON escaping issues
+          B64_SDK_SCRIPT=$(echo "$SDK_SCRIPT_CONTENT" | base64 -w 0)
+          
+          echo "🚀 Sending SSM Command..."
+          COMMAND_ID=$(aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --targets "Key=instanceids,Values=$INSTANCE_ID" \
+            --comment "Deploy Staging ${{ github.sha }}" \
+            --parameters commands="[\"echo $B64_SDK_SCRIPT | base64 -d | bash\"]" \
+            --output text \
+            --query "Command.CommandId")
             
-            cd /home/ubuntu/app
-            
-            # Pull latest code for deployment scripts
-            git fetch origin main
-            git reset --hard origin/main
-            
-            # Login to ECR
-            echo "🔐 Logging in to ECR..."
-            aws ecr get-login-password --region eu-central-1 | \
-              docker login --username AWS --password-stdin 272007598366.dkr.ecr.eu-central-1.amazonaws.com
-            
-            # Pull latest staging image from ECR
-            echo "⬇️  Pulling image from ECR..."
-            docker pull 272007598366.dkr.ecr.eu-central-1.amazonaws.com/daatan-app:staging-latest
-            
-            # Tag for local use
-            docker tag 272007598366.dkr.ecr.eu-central-1.amazonaws.com/daatan-app:staging-latest daatan-app:staging-latest
-            
-            # Run blue-green deployment
-            echo "🔄 Running blue-green deployment..."
-            chmod +x scripts/blue-green-deploy.sh
-            ./scripts/blue-green-deploy.sh staging
-            
-            echo "✅ Staging deployment completed at $(date)"
-
-      # Revoke Runner IP (Always run this, even if deploy fails)
-      - name: Revoke Security Group Ingress
-        if: always()
-        run: |
-          IP=$(curl -s https://checkip.amazonaws.com)
-          aws ec2 revoke-security-group-ingress \
-            --group-id sg-0e6c80fd13e5efb9a \
-            --protocol tcp \
-            --port 22 \
-            --cidr $IP/32
+          echo "✅ Command sent. ID: $COMMAND_ID"
+          
+          echo "⏳ Waiting for command execution..."
+          while true; do
+            STATUS=$(aws ssm list-command-invocations --command-id "$COMMAND_ID" --details --query "CommandInvocations[0].Status" --output text)
+            echo "Status: $STATUS"
+            if [[ "$STATUS" == "Success" ]]; then
+              echo "✅ Deployment successful!"
+              break
+            elif [[ "$STATUS" == "Failed" || "$STATUS" == "Cancelled" || "$STATUS" == "TimedOut" ]]; then
+              echo "❌ Deployment failed!"
+              aws ssm list-command-invocations --command-id "$COMMAND_ID" --details --query "CommandInvocations[0].CommandPlugins[0].Output" --output text
+               exit 1
+            fi
+            sleep 5
+          done
 
       - name: Verify staging site (External)
         run: |
-          # This runs from the GitHub runner, verifying public reachability
           sleep 5
           ./scripts/verify-deploy.sh "https://staging.daatan.com"
 
@@ -206,26 +222,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Configure AWS credentials for Security Group modification
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-central-1
-
-      # Authorize Runner IP for SSH access
-      - name: Authorize Security Group Ingress
-        run: |
-          IP=$(curl -s https://checkip.amazonaws.com)
-          echo "Runner IP: $IP"
-          aws ec2 authorize-security-group-ingress \
-            --group-id sg-0e6c80fd13e5efb9a \
-            --protocol tcp \
-            --port 22 \
-            --cidr $IP/32
-          echo "⏳ Waiting 10s for Security Group rule to propagate..."
-          sleep 10
 
       - name: Get version from tag
         id: version
@@ -236,64 +238,92 @@ jobs:
             echo "version=manual" >> $GITHUB_OUTPUT
           fi
 
-      - name: Deploy to Production
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
-          timeout: 60s
-          command_timeout: 30m
-          script: |
-            set -e
-            echo "🚀 Starting PRODUCTION deployment (${{ steps.version.outputs.version }}) at $(date)"
-            
-            cd /home/ubuntu/app
-            
-            # Pull latest code for deployment scripts
-            git fetch origin --tags
-            if [[ "${{ steps.version.outputs.version }}" != "manual" ]]; then
-              git checkout ${{ steps.version.outputs.version }}
-            else
-              git reset --hard origin/main
-            fi
-            
-            # Login to ECR
-            echo "🔐 Logging in to ECR..."
-            aws ecr get-login-password --region eu-central-1 | \
-              docker login --username AWS --password-stdin 272007598366.dkr.ecr.eu-central-1.amazonaws.com
-            
-            # Determine image tag
-            if [[ "${{ steps.version.outputs.version }}" != "manual" ]]; then
-              IMAGE_TAG="${{ steps.version.outputs.version }}"
-            else
-              IMAGE_TAG="staging-latest"
-            fi
-            
-            # Pull production image from ECR
-            echo "⬇️  Pulling image from ECR (tag: $IMAGE_TAG)..."
-            docker pull 272007598366.dkr.ecr.eu-central-1.amazonaws.com/daatan-app:$IMAGE_TAG
-            
-            # Tag for local use as 'latest' for production
-            docker tag 272007598366.dkr.ecr.eu-central-1.amazonaws.com/daatan-app:$IMAGE_TAG daatan-app:latest
-            
-            # Run blue-green deployment
-            echo "🔄 Running blue-green deployment..."
-            chmod +x scripts/blue-green-deploy.sh
-            ./scripts/blue-green-deploy.sh production
-            
-            echo "✅ Production deployment completed at $(date)"
-
-      # Revoke Runner IP (Always run this, even if deploy fails)
-      - name: Revoke Security Group Ingress
-        if: always()
+      - name: Deploy to Production (SSM)
         run: |
-          IP=$(curl -s https://checkip.amazonaws.com)
-          aws ec2 revoke-security-group-ingress \
-            --group-id sg-0e6c80fd13e5efb9a \
-            --protocol tcp \
-            --port 22 \
-            --cidr $IP/32
+          # Get Instance ID (Note: Tag Value is 'prod')
+          INSTANCE_ID=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=daatan-backend" "Name=tag:Environment,Values=prod" \
+            --query "Reservations[0].Instances[0].InstanceId" \
+            --output text)
+          echo "Found Production Instance: $INSTANCE_ID"
+
+          # Determine Image Tag
+          if [[ "${{ steps.version.outputs.version }}" != "manual" ]]; then
+            IMAGE_TAG="${{ steps.version.outputs.version }}"
+          else
+            IMAGE_TAG="staging-latest"
+          fi
+          echo "Deploying Image Tag: $IMAGE_TAG"
+
+          # Encode scripts
+          BLUE_GREEN_SCRIPT=$(base64 -w 0 scripts/blue-green-deploy.sh)
+          VERIFY_SCRIPT=$(base64 -w 0 scripts/verify-deploy.sh)
+          COMPOSE_FILE=$(base64 -w 0 docker-compose.prod.yml)
+          
+          # Construct the shell script to run on EC2
+          SDK_SCRIPT_CONTENT="
+          set -e
+          export HOME=/home/ubuntu
+          export PATH=\$PATH:/usr/local/bin:/usr/bin
+          
+          echo '📂 Setting up deployment directories...'
+          mkdir -p ~/app/scripts
+          cd ~/app
+          
+          echo '📄 Writing docker-compose.prod.yml...'
+          echo \"$COMPOSE_FILE\" | base64 -d > docker-compose.prod.yml
+          
+          echo '📜 Writing blue-green-deploy.sh...'
+          echo \"$BLUE_GREEN_SCRIPT\" | base64 -d > scripts/blue-green-deploy.sh
+          
+          echo '🔍 Writing verify-deploy.sh...'
+          echo \"$VERIFY_SCRIPT\" | base64 -d > scripts/verify-deploy.sh
+          
+          chmod +x scripts/*.sh
+          
+          echo '🔐 Logging in to ECR (Region: eu-central-1)...'
+          aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin 272007598366.dkr.ecr.eu-central-1.amazonaws.com
+          
+          echo \"⬇️ Pulling production image (tag: $IMAGE_TAG)...\"
+          docker pull 272007598366.dkr.ecr.eu-central-1.amazonaws.com/daatan-app:$IMAGE_TAG
+          
+          echo '🏷️ Tagging image as latest...'
+          docker tag 272007598366.dkr.ecr.eu-central-1.amazonaws.com/daatan-app:$IMAGE_TAG daatan-app:latest
+          
+          echo '🚀 Executing blue-green deployment...'
+          export GIT_COMMIT=\"${{ github.sha }}\"
+          export SKIP_BUILD=true
+          ./scripts/blue-green-deploy.sh production
+          "
+          
+          # Encode the entire shell script content to avoid JSON escaping issues
+          B64_SDK_SCRIPT=$(echo "$SDK_SCRIPT_CONTENT" | base64 -w 0)
+          
+          echo "🚀 Sending SSM Command..."
+          COMMAND_ID=$(aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --targets "Key=instanceids,Values=$INSTANCE_ID" \
+            --comment "Deploy Production ${{ steps.version.outputs.version }}" \
+            --parameters commands="[\"echo $B64_SDK_SCRIPT | base64 -d | bash\"]" \
+            --output text \
+            --query "Command.CommandId")
+            
+          echo "✅ Command sent. ID: $COMMAND_ID"
+          
+          echo "⏳ Waiting for command execution..."
+          while true; do
+            STATUS=$(aws ssm list-command-invocations --command-id "$COMMAND_ID" --details --query "CommandInvocations[0].Status" --output text)
+            echo "Status: $STATUS"
+            if [[ "$STATUS" == "Success" ]]; then
+              echo "✅ Deployment successful!"
+              break
+            elif [[ "$STATUS" == "Failed" || "$STATUS" == "Cancelled" || "$STATUS" == "TimedOut" ]]; then
+              echo "❌ Deployment failed!"
+              aws ssm list-command-invocations --command-id "$COMMAND_ID" --details --query "CommandInvocations[0].CommandPlugins[0].Output" --output text
+               exit 1
+            fi
+            sleep 5
+          done
 
       - name: Verify production site
         run: |
