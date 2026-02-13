@@ -1,0 +1,320 @@
+Deploy to Staging	Set up job	﻿2026-02-12T15:14:36.8643622Z Current runner version: '2.331.0'
+Deploy to Staging	Set up job	2026-02-12T15:14:36.8670335Z ##[group]Runner Image Provisioner
+Deploy to Staging	Set up job	2026-02-12T15:14:36.8671622Z Hosted Compute Agent
+Deploy to Staging	Set up job	2026-02-12T15:14:36.8672491Z Version: 20260123.484
+Deploy to Staging	Set up job	2026-02-12T15:14:36.8673487Z Commit: 6bd6555ca37d84114959e1c76d2c01448ff61c5d
+Deploy to Staging	Set up job	2026-02-12T15:14:36.8674546Z Build Date: 2026-01-23T19:41:17Z
+Deploy to Staging	Set up job	2026-02-12T15:14:36.8675552Z Worker ID: {e05d6811-2940-4496-8534-e71cb3aa7f6c}
+Deploy to Staging	Set up job	2026-02-12T15:14:36.8676608Z Azure Region: westus
+Deploy to Staging	Set up job	2026-02-12T15:14:36.8677785Z ##[endgroup]
+Deploy to Staging	Set up job	2026-02-12T15:14:36.8679638Z ##[group]Operating System
+Deploy to Staging	Set up job	2026-02-12T15:14:36.8680642Z Ubuntu
+Deploy to Staging	Set up job	2026-02-12T15:14:36.8681406Z 24.04.3
+Deploy to Staging	Set up job	2026-02-12T15:14:36.8682161Z LTS
+Deploy to Staging	Set up job	2026-02-12T15:14:36.8682867Z ##[endgroup]
+Deploy to Staging	Set up job	2026-02-12T15:14:36.8683729Z ##[group]Runner Image
+Deploy to Staging	Set up job	2026-02-12T15:14:36.8684589Z Image: ubuntu-24.04
+Deploy to Staging	Set up job	2026-02-12T15:14:36.8685381Z Version: 20260201.15.1
+Deploy to Staging	Set up job	2026-02-12T15:14:36.8686775Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260201.15/images/ubuntu/Ubuntu2404-Readme.md
+Deploy to Staging	Set up job	2026-02-12T15:14:36.8689054Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260201.15
+Deploy to Staging	Set up job	2026-02-12T15:14:36.8690372Z ##[endgroup]
+Deploy to Staging	Set up job	2026-02-12T15:14:36.8692000Z ##[group]GITHUB_TOKEN Permissions
+Deploy to Staging	Set up job	2026-02-12T15:14:36.8694124Z Contents: read
+Deploy to Staging	Set up job	2026-02-12T15:14:36.8695227Z Metadata: read
+Deploy to Staging	Set up job	2026-02-12T15:14:36.8696134Z Packages: read
+Deploy to Staging	Set up job	2026-02-12T15:14:36.8696997Z ##[endgroup]
+Deploy to Staging	Set up job	2026-02-12T15:14:36.8699794Z Secret source: Actions
+Deploy to Staging	Set up job	2026-02-12T15:14:36.8700826Z Prepare workflow directory
+Deploy to Staging	Set up job	2026-02-12T15:14:36.9037019Z Prepare all required actions
+Deploy to Staging	Set up job	2026-02-12T15:14:36.9075718Z Getting action download info
+Deploy to Staging	Set up job	2026-02-12T15:14:37.4163289Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+Deploy to Staging	Set up job	2026-02-12T15:14:37.5141271Z Download action repository 'aws-actions/configure-aws-credentials@v4' (SHA:7474bc4690e29a8392af63c5b98e7449536d5c3a)
+Deploy to Staging	Set up job	2026-02-12T15:14:38.4684110Z Download action repository 'appleboy/ssh-action@v1.0.3' (SHA:029f5b4aeeeb58fdfe1410a5d17f967dacf36262)
+Deploy to Staging	Set up job	2026-02-12T15:14:39.3543217Z Complete job name: Deploy to Staging
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	﻿2026-02-12T15:14:39.3995790Z ##[group]Build container for action use: '/home/runner/work/_actions/appleboy/ssh-action/v1.0.3/Dockerfile'.
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:39.4047554Z ##[command]/usr/bin/docker build -t c47f87:5f3db774c3314a0ca57c94c0e1588ea7 -f "/home/runner/work/_actions/appleboy/ssh-action/v1.0.3/Dockerfile" "/home/runner/work/_actions/appleboy/ssh-action/v1.0.3"
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:39.9779231Z #0 building with "default" instance using docker driver
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:39.9780048Z 
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:39.9780443Z #1 [internal] load build definition from Dockerfile
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:39.9781287Z #1 transferring dockerfile: 149B done
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:39.9781999Z #1 DONE 0.0s
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:39.9782357Z 
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:39.9782793Z #2 [internal] load metadata for ghcr.io/appleboy/drone-ssh:1.7.3
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:40.6979636Z #2 DONE 0.9s
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:40.8232972Z 
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:40.8234021Z #3 [internal] load .dockerignore
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:40.8234772Z #3 transferring context: 2B done
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:40.8235357Z #3 DONE 0.0s
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:40.8235597Z 
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:40.8235738Z #4 [internal] load build context
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:40.8236083Z #4 transferring context: 108B done
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:40.8236439Z #4 DONE 0.0s
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:40.8236602Z 
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:40.8237046Z #5 [1/2] FROM ghcr.io/appleboy/drone-ssh:1.7.3@sha256:179cbd253771007f2ebcaf7a3860afe059207351de1f3378efafac93bd310158
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:40.8238256Z #5 resolve ghcr.io/appleboy/drone-ssh:1.7.3@sha256:179cbd253771007f2ebcaf7a3860afe059207351de1f3378efafac93bd310158 done
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:40.8239125Z #5 sha256:c4781b8d012b16b6c7468dc9104fad0a63f2a8815b2af8b7176bb544253ea8c7 3.86kB / 3.86kB done
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:40.8239870Z #5 sha256:1207c741d8c9b028d98c4006013f9de959da3c55f85b91ed5e4583438a0112ca 0B / 3.38MB 0.1s
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:40.8240814Z #5 sha256:654aaee5654be60f81172539ecd74485cf8bbe2e9137bab0d429862c31c676f6 0B / 284.83kB 0.1s
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:40.8241557Z #5 sha256:7e20f48a19643465f486f59127b8f4e0f4114bedc8bd5260fb4f92d5fda95f1c 0B / 1.20kB 0.1s
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:40.8242670Z #5 sha256:179cbd253771007f2ebcaf7a3860afe059207351de1f3378efafac93bd310158 2.38kB / 2.38kB done
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:40.8243418Z #5 sha256:1a52f94820e830bc9734623deb03bbafa6a248fba19cdc2e5605c70d90d91441 1.24kB / 1.24kB done
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:40.9498243Z #5 sha256:7e20f48a19643465f486f59127b8f4e0f4114bedc8bd5260fb4f92d5fda95f1c 1.20kB / 1.20kB 0.1s done
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:40.9501513Z #5 sha256:066e5b821e26d8313055e0314c056e6c297847bcf963e5df10e7aa03107f2246 0B / 125B 0.2s
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:40.9502805Z #5 extracting sha256:1207c741d8c9b028d98c4006013f9de959da3c55f85b91ed5e4583438a0112ca
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:41.0624555Z #5 sha256:1207c741d8c9b028d98c4006013f9de959da3c55f85b91ed5e4583438a0112ca 3.38MB / 3.38MB 0.2s done
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:41.0626456Z #5 sha256:654aaee5654be60f81172539ecd74485cf8bbe2e9137bab0d429862c31c676f6 284.83kB / 284.83kB 0.2s done
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:41.0628227Z #5 sha256:066e5b821e26d8313055e0314c056e6c297847bcf963e5df10e7aa03107f2246 125B / 125B 0.2s done
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:41.0629721Z #5 extracting sha256:1207c741d8c9b028d98c4006013f9de959da3c55f85b91ed5e4583438a0112ca 0.1s done
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:41.0631102Z #5 sha256:47353a6f9201a145b687290e5ae0278ac269faf4bb61bee3e9246c37a8d74277 0B / 2.44MB 0.3s
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:41.0632387Z #5 extracting sha256:654aaee5654be60f81172539ecd74485cf8bbe2e9137bab0d429862c31c676f6
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:41.1732309Z #5 sha256:47353a6f9201a145b687290e5ae0278ac269faf4bb61bee3e9246c37a8d74277 2.44MB / 2.44MB 0.3s done
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:41.1733872Z #5 extracting sha256:654aaee5654be60f81172539ecd74485cf8bbe2e9137bab0d429862c31c676f6 0.0s done
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:41.1735327Z #5 extracting sha256:7e20f48a19643465f486f59127b8f4e0f4114bedc8bd5260fb4f92d5fda95f1c
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:41.2763534Z #5 extracting sha256:7e20f48a19643465f486f59127b8f4e0f4114bedc8bd5260fb4f92d5fda95f1c done
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:41.2764778Z #5 extracting sha256:066e5b821e26d8313055e0314c056e6c297847bcf963e5df10e7aa03107f2246 done
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:41.2765685Z #5 extracting sha256:47353a6f9201a145b687290e5ae0278ac269faf4bb61bee3e9246c37a8d74277 0.0s done
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:41.2766652Z #5 DONE 0.5s
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:41.2766881Z 
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:41.2767092Z #6 [2/2] COPY entrypoint.sh /bin/entrypoint.sh
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:41.2767915Z #6 DONE 0.0s
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:41.4287631Z 
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:41.4288383Z #7 exporting to image
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:41.4288935Z #7 exporting layers
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:42.0049805Z #7 exporting layers 0.7s done
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:42.0248344Z #7 writing image sha256:4440c67850a92b9b4dcddf2c66b2a4d1037217af5e91b7d6fc6de24fe6cf5d94 done
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:42.0250135Z #7 naming to docker.io/library/c47f87:5f3db774c3314a0ca57c94c0e1588ea7 done
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:42.0250952Z #7 DONE 0.7s
+Deploy to Staging	Build appleboy/ssh-action@v1.0.3	2026-02-12T15:14:42.0318690Z ##[endgroup]
+Deploy to Staging	Checkout repository	﻿2026-02-12T15:14:42.0668039Z ##[group]Run actions/checkout@v4
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.0668785Z with:
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.0669082Z   repository: komapc/daatan
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.0669616Z   token: ***
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.0669918Z   ssh-strict: true
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.0670191Z   ssh-user: git
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.0670466Z   persist-credentials: true
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.0670770Z   clean: true
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.0671058Z   sparse-checkout-cone-mode: true
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.0671398Z   fetch-depth: 1
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.0671665Z   fetch-tags: false
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.0671963Z   show-progress: true
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.0672243Z   lfs: false
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.0672498Z   submodules: false
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.0672808Z   set-safe-directory: true
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.0673343Z ##[endgroup]
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.1768348Z Syncing repository: komapc/daatan
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.1770181Z ##[group]Getting Git version info
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.1770943Z Working directory is '/home/runner/work/daatan/daatan'
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.1771652Z [command]/usr/bin/git version
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.1772074Z git version 2.52.0
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.1796474Z ##[endgroup]
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.1811546Z Temporarily overriding HOME='/home/runner/work/_temp/72bdeca9-d3d4-4174-af21-7d471efdb341' before making global git config changes
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.1812763Z Adding repository directory to the temporary git global config as a safe directory
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.1826502Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/daatan/daatan
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.1866723Z Deleting the contents of '/home/runner/work/daatan/daatan'
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.1870824Z ##[group]Initializing the repository
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.1875419Z [command]/usr/bin/git init /home/runner/work/daatan/daatan
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.1987787Z hint: Using 'master' as the name for the initial branch. This default branch name
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.1988975Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.1989778Z hint: to use in all of your new repositories, which will suppress this warning,
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.1990744Z hint: call:
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.1991210Z hint:
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.1991603Z hint: 	git config --global init.defaultBranch <name>
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.1992029Z hint:
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.1992750Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.1993895Z hint: 'development'. The just-created branch can be renamed via this command:
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.1994804Z hint:
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.1995329Z hint: 	git branch -m <name>
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.1995883Z hint:
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.1996675Z hint: Disable this message with "git config set advice.defaultBranchName false"
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.1998136Z Initialized empty Git repository in /home/runner/work/daatan/daatan/.git/
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.2005274Z [command]/usr/bin/git remote add origin https://github.com/komapc/daatan
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.2040689Z ##[endgroup]
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.2041613Z ##[group]Disabling automatic garbage collection
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.2045847Z [command]/usr/bin/git config --local gc.auto 0
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.2077029Z ##[endgroup]
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.2078139Z ##[group]Setting up auth
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.2085046Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.2115170Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.2453612Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.2485199Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.2705158Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.2736586Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.2969861Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.3005884Z ##[endgroup]
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.3006780Z ##[group]Fetching the repository
+Deploy to Staging	Checkout repository	2026-02-12T15:14:42.3014432Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +2b41b0c618588e6d876bed57c4e67a4e5b11c29c:refs/remotes/origin/main
+Deploy to Staging	Checkout repository	2026-02-12T15:14:44.4063427Z From https://github.com/komapc/daatan
+Deploy to Staging	Checkout repository	2026-02-12T15:14:44.4064123Z  * [new ref]         2b41b0c618588e6d876bed57c4e67a4e5b11c29c -> origin/main
+Deploy to Staging	Checkout repository	2026-02-12T15:14:44.4096187Z ##[endgroup]
+Deploy to Staging	Checkout repository	2026-02-12T15:14:44.4096828Z ##[group]Determining the checkout info
+Deploy to Staging	Checkout repository	2026-02-12T15:14:44.4098948Z ##[endgroup]
+Deploy to Staging	Checkout repository	2026-02-12T15:14:44.4103713Z [command]/usr/bin/git sparse-checkout disable
+Deploy to Staging	Checkout repository	2026-02-12T15:14:44.4184369Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+Deploy to Staging	Checkout repository	2026-02-12T15:14:44.4210117Z ##[group]Checking out the ref
+Deploy to Staging	Checkout repository	2026-02-12T15:14:44.4214494Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+Deploy to Staging	Checkout repository	2026-02-12T15:14:44.6594734Z Switched to a new branch 'main'
+Deploy to Staging	Checkout repository	2026-02-12T15:14:44.6595605Z branch 'main' set up to track 'origin/main'.
+Deploy to Staging	Checkout repository	2026-02-12T15:14:44.6614415Z ##[endgroup]
+Deploy to Staging	Checkout repository	2026-02-12T15:14:44.6653583Z [command]/usr/bin/git log -1 --format=%H
+Deploy to Staging	Checkout repository	2026-02-12T15:14:44.6675149Z 2b41b0c618588e6d876bed57c4e67a4e5b11c29c
+Deploy to Staging	Configure AWS credentials	﻿2026-02-12T15:14:44.6912825Z ##[group]Run aws-actions/configure-aws-credentials@v4
+Deploy to Staging	Configure AWS credentials	2026-02-12T15:14:44.6913261Z with:
+Deploy to Staging	Configure AWS credentials	2026-02-12T15:14:44.6913690Z   aws-access-key-id: ***
+Deploy to Staging	Configure AWS credentials	2026-02-12T15:14:44.6914180Z   aws-secret-access-key: ***
+Deploy to Staging	Configure AWS credentials	2026-02-12T15:14:44.6914500Z   aws-region: eu-central-1
+Deploy to Staging	Configure AWS credentials	2026-02-12T15:14:44.6914813Z   audience: sts.amazonaws.com
+Deploy to Staging	Configure AWS credentials	2026-02-12T15:14:44.6915132Z   output-env-credentials: true
+Deploy to Staging	Configure AWS credentials	2026-02-12T15:14:44.6915442Z ##[endgroup]
+Deploy to Staging	Configure AWS credentials	2026-02-12T15:14:45.5299226Z Proceeding with IAM user credentials
+Deploy to Staging	Authorize Security Group Ingress	﻿2026-02-12T15:14:45.5404495Z ##[group]Run IP=$(curl -s https://checkip.amazonaws.com)
+Deploy to Staging	Authorize Security Group Ingress	2026-02-12T15:14:45.5405088Z [36;1mIP=$(curl -s https://checkip.amazonaws.com)[0m
+Deploy to Staging	Authorize Security Group Ingress	2026-02-12T15:14:45.5405511Z [36;1mecho "Runner IP: $IP"[0m
+Deploy to Staging	Authorize Security Group Ingress	2026-02-12T15:14:45.5405900Z [36;1maws ec2 authorize-security-group-ingress \[0m
+Deploy to Staging	Authorize Security Group Ingress	2026-02-12T15:14:45.5406322Z [36;1m  --group-id sg-0e6c80fd13e5efb9a \[0m
+Deploy to Staging	Authorize Security Group Ingress	2026-02-12T15:14:45.5406702Z [36;1m  --protocol tcp \[0m
+Deploy to Staging	Authorize Security Group Ingress	2026-02-12T15:14:45.5407009Z [36;1m  --port 22 \[0m
+Deploy to Staging	Authorize Security Group Ingress	2026-02-12T15:14:45.5407583Z [36;1m  --cidr $IP/32[0m
+Deploy to Staging	Authorize Security Group Ingress	2026-02-12T15:14:45.5441367Z shell: /usr/bin/bash -e {0}
+Deploy to Staging	Authorize Security Group Ingress	2026-02-12T15:14:45.5441705Z env:
+Deploy to Staging	Authorize Security Group Ingress	2026-02-12T15:14:45.5441979Z   AWS_DEFAULT_REGION: eu-central-1
+Deploy to Staging	Authorize Security Group Ingress	2026-02-12T15:14:45.5442333Z   AWS_REGION: eu-central-1
+Deploy to Staging	Authorize Security Group Ingress	2026-02-12T15:14:45.5442764Z   AWS_ACCESS_KEY_ID: ***
+Deploy to Staging	Authorize Security Group Ingress	2026-02-12T15:14:45.5443174Z   AWS_SECRET_ACCESS_KEY: ***
+Deploy to Staging	Authorize Security Group Ingress	2026-02-12T15:14:45.5463730Z ##[endgroup]
+Deploy to Staging	Authorize Security Group Ingress	2026-02-12T15:14:45.7980785Z Runner IP: 52.159.244.166
+Deploy to Staging	Authorize Security Group Ingress	2026-02-12T15:14:50.8656384Z {
+Deploy to Staging	Authorize Security Group Ingress	2026-02-12T15:14:50.8656912Z     "Return": true,
+Deploy to Staging	Authorize Security Group Ingress	2026-02-12T15:14:50.8657744Z     "SecurityGroupRules": [
+Deploy to Staging	Authorize Security Group Ingress	2026-02-12T15:14:50.8658261Z         {
+Deploy to Staging	Authorize Security Group Ingress	2026-02-12T15:14:50.8658775Z             "SecurityGroupRuleId": "sgr-064a6ff2e36984822",
+Deploy to Staging	Authorize Security Group Ingress	2026-02-12T15:14:50.8659455Z             "GroupId": "sg-0e6c80fd13e5efb9a",
+Deploy to Staging	Authorize Security Group Ingress	2026-02-12T15:14:50.8659842Z             "GroupOwnerId": "272007598366",
+Deploy to Staging	Authorize Security Group Ingress	2026-02-12T15:14:50.8660204Z             "IsEgress": false,
+Deploy to Staging	Authorize Security Group Ingress	2026-02-12T15:14:50.8660537Z             "IpProtocol": "tcp",
+Deploy to Staging	Authorize Security Group Ingress	2026-02-12T15:14:50.8660872Z             "FromPort": 22,
+Deploy to Staging	Authorize Security Group Ingress	2026-02-12T15:14:50.8661180Z             "ToPort": 22,
+Deploy to Staging	Authorize Security Group Ingress	2026-02-12T15:14:50.8661502Z             "CidrIpv4": "52.159.244.166/32",
+Deploy to Staging	Authorize Security Group Ingress	2026-02-12T15:14:50.8662134Z             "SecurityGroupRuleArn": "arn:aws:ec2:eu-central-1:272007598366:security-group-rule/sgr-064a6ff2e36984822"
+Deploy to Staging	Authorize Security Group Ingress	2026-02-12T15:14:50.8662747Z         }
+Deploy to Staging	Authorize Security Group Ingress	2026-02-12T15:14:50.8663005Z     ]
+Deploy to Staging	Authorize Security Group Ingress	2026-02-12T15:14:50.8663252Z }
+Deploy to Staging	Deploy to Staging	﻿2026-02-12T15:14:50.9980064Z ##[group]Run appleboy/ssh-action@v1.0.3
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:50.9980465Z with:
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:50.9980845Z   host: ***
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:50.9981108Z   username: ubuntu
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:50.9988514Z   key: ***
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:50.9988785Z   timeout: 60s
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:50.9989077Z   command_timeout: 30m
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:50.9992226Z   script: set -e
+Deploy to Staging	Deploy to Staging	echo "🚀 Starting STAGING deployment (blue-green) at $(date)"
+Deploy to Staging	Deploy to Staging	
+Deploy to Staging	Deploy to Staging	cd /home/ubuntu/app
+Deploy to Staging	Deploy to Staging	
+Deploy to Staging	Deploy to Staging	# Pull latest code for deployment scripts
+Deploy to Staging	Deploy to Staging	git fetch origin main
+Deploy to Staging	Deploy to Staging	git reset --hard origin/main
+Deploy to Staging	Deploy to Staging	
+Deploy to Staging	Deploy to Staging	# Login to ECR
+Deploy to Staging	Deploy to Staging	echo "🔐 Logging in to ECR..."
+Deploy to Staging	Deploy to Staging	aws ecr get-login-password --region eu-central-1 | \
+Deploy to Staging	Deploy to Staging	  docker login --username AWS --password-stdin 272007598366.dkr.ecr.eu-central-1.amazonaws.com
+Deploy to Staging	Deploy to Staging	
+Deploy to Staging	Deploy to Staging	# Pull latest staging image from ECR
+Deploy to Staging	Deploy to Staging	echo "⬇️  Pulling image from ECR..."
+Deploy to Staging	Deploy to Staging	docker pull 272007598366.dkr.ecr.eu-central-1.amazonaws.com/daatan-app:staging-latest
+Deploy to Staging	Deploy to Staging	
+Deploy to Staging	Deploy to Staging	# Tag for local use
+Deploy to Staging	Deploy to Staging	docker tag 272007598366.dkr.ecr.eu-central-1.amazonaws.com/daatan-app:staging-latest daatan-app:staging-latest
+Deploy to Staging	Deploy to Staging	
+Deploy to Staging	Deploy to Staging	# Run blue-green deployment
+Deploy to Staging	Deploy to Staging	echo "🔄 Running blue-green deployment..."
+Deploy to Staging	Deploy to Staging	chmod +x scripts/blue-green-deploy.sh
+Deploy to Staging	Deploy to Staging	./scripts/blue-green-deploy.sh staging
+Deploy to Staging	Deploy to Staging	
+Deploy to Staging	Deploy to Staging	echo "✅ Staging deployment completed at $(date)"
+Deploy to Staging	Deploy to Staging	
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:50.9995452Z   port: 22
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:50.9995709Z   proxy_port: 22
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:50.9996213Z   proxy_timeout: 30s
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:50.9996485Z env:
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:50.9996746Z   AWS_DEFAULT_REGION: eu-central-1
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:50.9997080Z   AWS_REGION: eu-central-1
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:50.9997627Z   AWS_ACCESS_KEY_ID: ***
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:50.9998036Z   AWS_SECRET_ACCESS_KEY: ***
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:50.9998329Z ##[endgroup]
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:51.0114659Z ##[command]/usr/bin/docker run --name c47f875f3db774c3314a0ca57c94c0e1588ea7_0e607c --label c47f87 --workdir /github/workspace --rm -e "AWS_DEFAULT_REGION" -e "AWS_REGION" -e "AWS_ACCESS_KEY_ID" -e "AWS_SECRET_ACCESS_KEY" -e "INPUT_HOST" -e "INPUT_USERNAME" -e "INPUT_KEY" -e "INPUT_TIMEOUT" -e "INPUT_COMMAND_TIMEOUT" -e "INPUT_SCRIPT" -e "INPUT_PORT" -e "INPUT_PASSPHRASE" -e "INPUT_PASSWORD" -e "INPUT_SYNC" -e "INPUT_USE_INSECURE_CIPHER" -e "INPUT_CIPHER" -e "INPUT_KEY_PATH" -e "INPUT_FINGERPRINT" -e "INPUT_PROXY_HOST" -e "INPUT_PROXY_PORT" -e "INPUT_PROXY_USERNAME" -e "INPUT_PROXY_PASSWORD" -e "INPUT_PROXY_PASSPHRASE" -e "INPUT_PROXY_TIMEOUT" -e "INPUT_PROXY_KEY" -e "INPUT_PROXY_KEY_PATH" -e "INPUT_PROXY_FINGERPRINT" -e "INPUT_PROXY_CIPHER" -e "INPUT_PROXY_USE_INSECURE_CIPHER" -e "INPUT_SCRIPT_STOP" -e "INPUT_ENVS" -e "INPUT_ENVS_FORMAT" -e "INPUT_DEBUG" -e "INPUT_ALLENVS" -e "INPUT_REQUEST_PTY" -e "HOME" -e "GITHUB_JOB" -e "GITHUB_REF" -e "GITHUB_SHA" -e "GITHUB_REPOSITORY" -e "GITHUB_REPOSITORY_OWNER" -e "GITHUB_REPOSITORY_OWNER_ID" -e "GITHUB_RUN_ID" -e "GITHUB_RUN_NUMBER" -e "GITHUB_RETENTION_DAYS" -e "GITHUB_RUN_ATTEMPT" -e "GITHUB_ACTOR_ID" -e "GITHUB_ACTOR" -e "GITHUB_WORKFLOW" -e "GITHUB_HEAD_REF" -e "GITHUB_BASE_REF" -e "GITHUB_EVENT_NAME" -e "GITHUB_SERVER_URL" -e "GITHUB_API_URL" -e "GITHUB_GRAPHQL_URL" -e "GITHUB_REF_NAME" -e "GITHUB_REF_PROTECTED" -e "GITHUB_REF_TYPE" -e "GITHUB_WORKFLOW_REF" -e "GITHUB_WORKFLOW_SHA" -e "GITHUB_REPOSITORY_ID" -e "GITHUB_TRIGGERING_ACTOR" -e "GITHUB_WORKSPACE" -e "GITHUB_ACTION" -e "GITHUB_EVENT_PATH" -e "GITHUB_ACTION_REPOSITORY" -e "GITHUB_ACTION_REF" -e "GITHUB_PATH" -e "GITHUB_ENV" -e "GITHUB_STEP_SUMMARY" -e "GITHUB_STATE" -e "GITHUB_OUTPUT" -e "RUNNER_OS" -e "RUNNER_ARCH" -e "RUNNER_NAME" -e "RUNNER_ENVIRONMENT" -e "RUNNER_TOOL_CACHE" -e "RUNNER_TEMP" -e "RUNNER_WORKSPACE" -e "ACTIONS_RUNTIME_URL" -e "ACTIONS_RUNTIME_TOKEN" -e "ACTIONS_CACHE_URL" -e "ACTIONS_RESULTS_URL" -e "ACTIONS_ORCHESTRATION_ID" -e GITHUB_ACTIONS=true -e CI=true -v "/var/run/docker.sock":"/var/run/docker.sock" -v "/home/runner/work/_temp":"/github/runner_temp" -v "/home/runner/work/_temp/_github_home":"/github/home" -v "/home/runner/work/_temp/_github_workflow":"/github/workflow" -v "/home/runner/work/_temp/_runner_file_commands":"/github/file_commands" -v "/home/runner/work/daatan/daatan":"/github/workspace" c47f87:5f3db774c3314a0ca57c94c0e1588ea7
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:51.2574489Z ======CMD======
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:51.2575300Z set -e
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:51.2576071Z echo "🚀 Starting STAGING deployment (blue-green) at $(date)"
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:51.2576573Z 
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:51.2576741Z cd /home/ubuntu/app
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:51.2577000Z 
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:51.2577383Z # Pull latest code for deployment scripts
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:51.2577794Z git fetch origin main
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:51.2578122Z git reset --hard origin/main
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:51.2578335Z 
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:51.2578458Z # Login to ECR
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:51.2578862Z echo "🔐 Logging in to ECR..."
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:51.2579282Z aws ecr get-login-password --region eu-central-1 | \
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:51.2579904Z   docker login --username AWS --password-stdin 272007598366.dkr.ecr.eu-central-1.amazonaws.com
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:51.2580335Z 
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:51.2580487Z # Pull latest staging image from ECR
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:51.2580909Z echo "⬇️  Pulling image from ECR..."
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:51.2581444Z docker pull 272007598366.dkr.ecr.eu-central-1.amazonaws.com/daatan-app:staging-latest
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:51.2581860Z 
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:51.2581995Z # Tag for local use
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:51.2582553Z docker tag 272007598366.dkr.ecr.eu-central-1.amazonaws.com/daatan-app:staging-latest daatan-app:staging-latest
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:51.2583296Z 
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:51.2583443Z # Run blue-green deployment
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:51.2583856Z echo "🔄 Running blue-green deployment..."
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:51.2584251Z chmod +x scripts/blue-green-deploy.sh
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:51.2584644Z ./scripts/blue-green-deploy.sh staging
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:51.2584891Z 
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:51.2585100Z echo "✅ Staging deployment completed at $(date)"
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:51.2585370Z 
+Deploy to Staging	Deploy to Staging	2026-02-12T15:14:51.2585497Z ======END======
+Deploy to Staging	Deploy to Staging	2026-02-12T15:15:51.2619197Z 2026/02/12 15:15:51 dial tcp ***:22: i/o timeout
+Deploy to Staging	Revoke Security Group Ingress	﻿2026-02-12T15:15:51.3336761Z ##[group]Run IP=$(curl -s https://checkip.amazonaws.com)
+Deploy to Staging	Revoke Security Group Ingress	2026-02-12T15:15:51.3337763Z [36;1mIP=$(curl -s https://checkip.amazonaws.com)[0m
+Deploy to Staging	Revoke Security Group Ingress	2026-02-12T15:15:51.3338231Z [36;1maws ec2 revoke-security-group-ingress \[0m
+Deploy to Staging	Revoke Security Group Ingress	2026-02-12T15:15:51.3338644Z [36;1m  --group-id sg-0e6c80fd13e5efb9a \[0m
+Deploy to Staging	Revoke Security Group Ingress	2026-02-12T15:15:51.3339008Z [36;1m  --protocol tcp \[0m
+Deploy to Staging	Revoke Security Group Ingress	2026-02-12T15:15:51.3339323Z [36;1m  --port 22 \[0m
+Deploy to Staging	Revoke Security Group Ingress	2026-02-12T15:15:51.3339636Z [36;1m  --cidr $IP/32[0m
+Deploy to Staging	Revoke Security Group Ingress	2026-02-12T15:15:51.3371161Z shell: /usr/bin/bash -e {0}
+Deploy to Staging	Revoke Security Group Ingress	2026-02-12T15:15:51.3371488Z env:
+Deploy to Staging	Revoke Security Group Ingress	2026-02-12T15:15:51.3371774Z   AWS_DEFAULT_REGION: eu-central-1
+Deploy to Staging	Revoke Security Group Ingress	2026-02-12T15:15:51.3372119Z   AWS_REGION: eu-central-1
+Deploy to Staging	Revoke Security Group Ingress	2026-02-12T15:15:51.3372580Z   AWS_ACCESS_KEY_ID: ***
+Deploy to Staging	Revoke Security Group Ingress	2026-02-12T15:15:51.3372998Z   AWS_SECRET_ACCESS_KEY: ***
+Deploy to Staging	Revoke Security Group Ingress	2026-02-12T15:15:51.3373289Z ##[endgroup]
+Deploy to Staging	Revoke Security Group Ingress	2026-02-12T15:15:53.2158621Z {
+Deploy to Staging	Revoke Security Group Ingress	2026-02-12T15:15:53.2159150Z     "Return": true,
+Deploy to Staging	Revoke Security Group Ingress	2026-02-12T15:15:53.2159760Z     "RevokedSecurityGroupRules": [
+Deploy to Staging	Revoke Security Group Ingress	2026-02-12T15:15:53.2160218Z         {
+Deploy to Staging	Revoke Security Group Ingress	2026-02-12T15:15:53.2160842Z             "SecurityGroupRuleId": "sgr-064a6ff2e36984822",
+Deploy to Staging	Revoke Security Group Ingress	2026-02-12T15:15:53.2161565Z             "GroupId": "sg-0e6c80fd13e5efb9a",
+Deploy to Staging	Revoke Security Group Ingress	2026-02-12T15:15:53.2162160Z             "IsEgress": false,
+Deploy to Staging	Revoke Security Group Ingress	2026-02-12T15:15:53.2162681Z             "IpProtocol": "tcp",
+Deploy to Staging	Revoke Security Group Ingress	2026-02-12T15:15:53.2163221Z             "FromPort": 22,
+Deploy to Staging	Revoke Security Group Ingress	2026-02-12T15:15:53.2163611Z             "ToPort": 22,
+Deploy to Staging	Revoke Security Group Ingress	2026-02-12T15:15:53.2163932Z             "CidrIpv4": "52.159.244.166/32"
+Deploy to Staging	Revoke Security Group Ingress	2026-02-12T15:15:53.2164279Z         }
+Deploy to Staging	Revoke Security Group Ingress	2026-02-12T15:15:53.2164519Z     ]
+Deploy to Staging	Revoke Security Group Ingress	2026-02-12T15:15:53.2164752Z }
+Deploy to Staging	Post Configure AWS credentials	﻿2026-02-12T15:15:53.3531667Z Post job cleanup.
+Deploy to Staging	Post Checkout repository	﻿2026-02-12T15:15:53.4848628Z Post job cleanup.
+Deploy to Staging	Post Checkout repository	2026-02-12T15:15:53.5840879Z [command]/usr/bin/git version
+Deploy to Staging	Post Checkout repository	2026-02-12T15:15:53.5883127Z git version 2.52.0
+Deploy to Staging	Post Checkout repository	2026-02-12T15:15:53.5928838Z Temporarily overriding HOME='/home/runner/work/_temp/1c88604e-6e44-4f6c-bd9f-01e9526943ff' before making global git config changes
+Deploy to Staging	Post Checkout repository	2026-02-12T15:15:53.5930431Z Adding repository directory to the temporary git global config as a safe directory
+Deploy to Staging	Post Checkout repository	2026-02-12T15:15:53.5935639Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/daatan/daatan
+Deploy to Staging	Post Checkout repository	2026-02-12T15:15:53.5975868Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Deploy to Staging	Post Checkout repository	2026-02-12T15:15:53.6010702Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Deploy to Staging	Post Checkout repository	2026-02-12T15:15:53.6245590Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Deploy to Staging	Post Checkout repository	2026-02-12T15:15:53.6270666Z http.https://github.com/.extraheader
+Deploy to Staging	Post Checkout repository	2026-02-12T15:15:53.6284289Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+Deploy to Staging	Post Checkout repository	2026-02-12T15:15:53.6315899Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Deploy to Staging	Post Checkout repository	2026-02-12T15:15:53.6541311Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Deploy to Staging	Post Checkout repository	2026-02-12T15:15:53.6572584Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Deploy to Staging	Complete job	﻿2026-02-12T15:15:53.6911202Z Cleaning up orphan processes

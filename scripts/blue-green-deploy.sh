@@ -139,7 +139,11 @@ docker rm -f $CONTAINER_NEW 2>/dev/null || true
 
 # Get the image name that was just built (or pre-pulled)
 if [ "${SKIP_BUILD}" == "true" ]; then
-    IMAGE_NAME="daatan-app:staging-latest"
+    if [ "$ENVIRONMENT" = "staging" ]; then
+        IMAGE_NAME="daatan-app:staging-latest"
+    else
+        IMAGE_NAME="daatan-app:latest"
+    fi
 elif [ "$ENVIRONMENT" = "staging" ]; then
     IMAGE_NAME="daatan-app:staging-${DEPLOY_ID}"
 else
