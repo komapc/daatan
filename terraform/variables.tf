@@ -30,5 +30,5 @@ variable "allowed_ssh_cidr" {
 variable "ec2_instance_type" {
   description = "EC2 instance type"
   type        = string
-  default     = "t3.nano"
+  default     = "t3.small"
 }
