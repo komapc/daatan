@@ -262,7 +262,8 @@ jobs:
         id: version
         run: |
           if [[ "${{ github.ref }}" == refs/tags/* ]]; then
-            echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+            VERSION=${GITHUB_REF#refs/tags/}
+            echo "version=${VERSION#v}" >> $GITHUB_OUTPUT
           else
             echo "version=manual" >> $GITHUB_OUTPUT
           fi
