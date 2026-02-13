@@ -12,14 +12,14 @@ const isStaging = process.env.NEXT_PUBLIC_ENV === 'staging'
 if ((!googleClientId || !googleClientSecret) && typeof window === 'undefined') {
   console.error(
     '[Auth] Google OAuth misconfigured: GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set. ' +
-      'For staging, also ensure https://staging.daatan.com/api/auth/callback/google is in your Google OAuth client\'s Authorized redirect URIs.'
+    'For staging, also ensure https://staging.daatan.com/api/auth/callback/google is in your Google OAuth client\'s Authorized redirect URIs.'
   )
 }
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as Adapter,
   secret: process.env.NEXTAUTH_SECRET,
-  debug: isStaging,
+  debug: isStaging || process.env.NEXTAUTH_DEBUG === 'true',
   providers: [
     GoogleProvider({
       clientId: googleClientId,
@@ -48,7 +48,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user && token.sub) {
         // Assign the user ID from the token
         session.user.id = token.sub
-        
+
         // Fetch latest user stats from database to keep session in sync
         try {
           const user = await prisma.user.findUnique({
@@ -63,7 +63,7 @@ export const authOptions: NextAuthOptions = {
               isModerator: true,
             }
           })
-          
+
           if (user) {
             session.user.cuAvailable = user.cuAvailable
             session.user.cuLocked = user.cuLocked
