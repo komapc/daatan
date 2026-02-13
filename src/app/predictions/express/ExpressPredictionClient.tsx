@@ -376,7 +376,7 @@ export default function ExpressPredictionClient({ userId }: ExpressPredictionCli
                 />
               ) : (
                 <p className="text-gray-900">
-                  {new Date(generated.resolveByDatetime).toLocaleDateString(undefined, { dateStyle: 'long', timeStyle: 'short' })}
+                  {new Date(generated.resolveByDatetime).toLocaleString(undefined, { dateStyle: 'long', timeStyle: 'short' })}
                 </p>
               )}
             </div>
