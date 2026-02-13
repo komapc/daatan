@@ -20,6 +20,27 @@ if [ -z "$URL" ]; then
     exit 1
 fi
 
+# Check for login errors in recent logs
+echo "🔍 Checking logs for authentication errors..."
+CONTAINER_NAME="daatan-app-staging"
+if [[ "$URL" == *"daatan.com"* && "$URL" != *"staging"* ]]; then
+    CONTAINER_NAME="daatan-app"
+fi
+
+# Check last 50 lines for specific error codes
+if docker logs "$CONTAINER_NAME" --tail 50 2>&1 | grep -q "OAUTH_CALLBACK_ERROR"; then
+    echo "⚠️  WARNING: Detected OAuth callback errors in logs!"
+    echo "   Possible cause: Invalid Google Client Secret or Redirect URI mismatch."
+    docker logs "$CONTAINER_NAME" --tail 10 2>&1 | grep "OAUTH_CALLBACK_ERROR"
+    # We don't fail the deployment for this (app is running), but we warn loudly
+fi
+if docker logs "$CONTAINER_NAME" --tail 50 2>&1 | grep -q "invalid_client"; then
+    echo "⚠️  WARNING: Detected 'invalid_client' errors in logs!"
+    echo "   Possible cause: Incorrect Google Client ID or Client Secret."
+    docker logs "$CONTAINER_NAME" --tail 10 2>&1 | grep "invalid_client"
+    # We don't fail the deployment for this (app is running), but we warn loudly
+fi
+
 echo -e "${BLUE}🔍 Verifying deployment at $URL${NC}"
 
 # Check Health and Version
