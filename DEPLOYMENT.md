@@ -112,8 +112,8 @@ Before pushing to staging:
 git push origin main
 
 # Deploy to production (create version tag)
-git tag v0.1.17
-git push origin v0.1.17
+git tag v1.1.1
+git push origin v1.1.1
 ```
 
 **What happens:**
@@ -251,7 +251,7 @@ curl https://staging.daatan.com/api/health
 # Response format:
 {
   "status": "ok",
-  "version": "0.1.16",
+  "version": "1.1.1",
   "timestamp": "2026-01-25T14:04:18.46..."
 }
 ```
