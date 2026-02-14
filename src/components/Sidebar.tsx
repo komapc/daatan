@@ -14,13 +14,13 @@ import {
   Trophy,
   User,
   Settings,
-  TrendingUp,
   Menu,
   X,
   LogOut,
   LogIn,
   History,
   Shield,
+  Info,
 } from 'lucide-react'
 
 type NavItem = {
@@ -31,13 +31,13 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { href: '/', label: 'Feed', icon: Home },
-  { href: '/forecasts', label: 'Forecasts', icon: TrendingUp },
   { href: '/create', label: 'Create', icon: PlusCircle },
   { href: '/notifications', label: 'Notifications', icon: Bell },
   { href: '/leaderboard', label: 'Leaderboard', icon: Trophy },
   { href: '/retroanalysis', label: 'Retroanalysis', icon: History },
   { href: '/profile', label: 'Profile', icon: User },
   { href: '/settings', label: 'Settings', icon: Settings },
+  { href: '/about', label: 'About', icon: Info },
 ]
 
 const Sidebar = () => {
