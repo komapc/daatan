@@ -101,7 +101,7 @@
 - [ ] **Code Quality: Stub `fetchArticleContent()` in `webSearch.ts`** — returns empty string with console.warn. Either implement or remove.
 - [ ] **Code Quality: Client error handling uses `alert()`** — `CommentForm.tsx` uses `alert()` for errors. Replace with proper error state UI across components.
 - [ ] **Security: Missing env var validation at startup** — GEMINI_API_KEY, SERPER_API_KEY checked at request time, not at boot. Add startup validation.
-- [ ] **Security: Remove `@types/pg` from devDependencies** — unused, Prisma handles DB connections.
+- [x] **Security: Remove `@types/pg` from devDependencies** — ~~unused, Prisma handles DB connections.~~ ✅ Removed
 
 - [ ] **Testing: E2E tests** (Playwright/Cypress)
 - [x] **Testing: Commitment and resolution flow tests** — ~~critical business logic with zero coverage~~ ✅ Added comprehensive tests (9 commitment tests + 6 resolution tests)
