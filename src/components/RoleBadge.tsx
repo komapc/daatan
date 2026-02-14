@@ -1,5 +1,3 @@
-import { Shield, ShieldCheck } from 'lucide-react'
-
 type Role = 'USER' | 'RESOLVER' | 'ADMIN' | null | undefined
 
 interface RoleBadgeProps {
@@ -10,24 +8,25 @@ interface RoleBadgeProps {
 export const RoleBadge = ({ role, size = 'sm' }: RoleBadgeProps) => {
   if (role !== 'ADMIN' && role !== 'RESOLVER') return null
 
-  const baseClasses =
-    'inline-flex items-center gap-1 rounded-full font-medium tracking-wider uppercase'
   const sizeClasses =
-    size === 'sm' ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-0.5 text-xs'
+    size === 'sm'
+      ? 'w-4 h-4 text-[9px]'
+      : 'w-5 h-5 text-[11px]'
 
-  if (role === 'ADMIN') {
-    return (
-      <span className={`${baseClasses} ${sizeClasses} bg-red-100 text-red-700`}>
-        <Shield className="w-3 h-3" />
-        Admin
-      </span>
-    )
-  }
+  const label = role === 'ADMIN' ? 'A' : 'R'
+  const title = role === 'ADMIN' ? 'Admin' : 'Resolver'
+  const colorClasses =
+    role === 'ADMIN'
+      ? 'bg-red-100 text-red-700 border-red-200'
+      : 'bg-blue-100 text-blue-700 border-blue-200'
 
   return (
-    <span className={`${baseClasses} ${sizeClasses} bg-blue-100 text-blue-700`}>
-      <ShieldCheck className="w-3 h-3" />
-      Resolver
+    <span
+      className={`inline-flex items-center justify-center rounded-full font-bold border ${sizeClasses} ${colorClasses}`}
+      title={title}
+      aria-label={title}
+    >
+      {label}
     </span>
   )
 }

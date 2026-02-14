@@ -55,6 +55,8 @@ export const authOptions: NextAuthOptions = {
           const user = await prisma.user.findUnique({
             where: { id: token.sub },
             select: {
+              name: true,
+              image: true,
               cuAvailable: true,
               cuLocked: true,
               rs: true,
@@ -64,6 +66,9 @@ export const authOptions: NextAuthOptions = {
           })
 
           if (user) {
+            // Always use DB name/image so profile edits are reflected in session
+            if (user.name) session.user.name = user.name
+            if (user.image) session.user.image = user.image
             session.user.cuAvailable = user.cuAvailable
             session.user.cuLocked = user.cuLocked
             session.user.username = user.username

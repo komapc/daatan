@@ -11,26 +11,36 @@ describe('RoleBadge', () => {
     expect(undefinedContainer).toBeEmptyDOMElement()
   })
 
-  it('renders Admin badge for ADMIN role', () => {
+  it('renders compact "A" badge for ADMIN role', () => {
     render(<RoleBadge role="ADMIN" />)
 
-    expect(screen.getByText('Admin')).toBeInTheDocument()
+    const badge = screen.getByText('A')
+    expect(badge).toBeInTheDocument()
+    expect(badge).toHaveAttribute('title', 'Admin')
+    expect(badge).toHaveAttribute('aria-label', 'Admin')
+    expect(badge.className).toContain('text-red-700')
   })
 
-  it('renders Resolver badge for RESOLVER role', () => {
+  it('renders compact "R" badge for RESOLVER role', () => {
     render(<RoleBadge role="RESOLVER" />)
 
-    expect(screen.getByText('Resolver')).toBeInTheDocument()
+    const badge = screen.getByText('R')
+    expect(badge).toBeInTheDocument()
+    expect(badge).toHaveAttribute('title', 'Resolver')
+    expect(badge).toHaveAttribute('aria-label', 'Resolver')
+    expect(badge.className).toContain('text-blue-700')
   })
 
   it('applies size variants', () => {
     const { rerender } = render(<RoleBadge role="ADMIN" size="sm" />)
-    const small = screen.getByText('Admin')
-    expect(small.className).toContain('text-[10px]')
+    const small = screen.getByText('A')
+    expect(small.className).toContain('w-4')
+    expect(small.className).toContain('text-[9px]')
 
     rerender(<RoleBadge role="ADMIN" size="md" />)
-    const medium = screen.getByText('Admin')
-    expect(medium.className).toContain('text-xs')
+    const medium = screen.getByText('A')
+    expect(medium.className).toContain('w-5')
+    expect(medium.className).toContain('text-[11px]')
   })
 })
 

@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
@@ -23,7 +24,14 @@ export default async function CreatePage() {
         </div>
       </div>
 
-      <CreateForecastClient userId={session.user.id} />
+      <Suspense fallback={
+        <div className="max-w-4xl mx-auto animate-pulse">
+          <div className="h-10 bg-gray-100 rounded-lg w-48 mx-auto mb-6" />
+          <div className="h-64 bg-gray-50 rounded-xl" />
+        </div>
+      }>
+        <CreateForecastClient userId={session.user.id} />
+      </Suspense>
     </div>
   )
 }
