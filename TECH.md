@@ -1,7 +1,7 @@
 # DAATAN Technical Documentation
 
 > Technical architecture, infrastructure, deployment, and operational guide.
-> Last updated: January 2026
+> Last updated: February 2026
 
 ---
 
@@ -164,7 +164,7 @@ aws_subnet.public_a           # Public subnet
 
 ### GitHub Actions Workflows
 
-#### 1. Deploy Workflow (`deploy.yml`)
+#### Deploy Workflow (`deploy.yml`)
 
 **Triggers:**
 - Push to `main` → Deploy to Staging
@@ -201,20 +201,6 @@ aws_subnet.public_a           # Public subnet
   - Checks out specific tag
   - Deploys to production container
   - More conservative cleanup
-
-#### 2. Version Bump Workflow (`version-bump.yml`)
-
-**Trigger:** PR merged to `main`
-
-**Logic:**
-- `BREAKING:` or `major:` prefix → Major bump (X.0.0)
-- `feat:` or `feature:` prefix → Minor bump (0.X.0)
-- Other → Patch bump (0.0.X)
-
-**Actions:**
-1. Update `src/lib/version.ts`
-2. Commit with `[skip ci]`
-3. Create and push git tag
 
 ### Required Secrets
 

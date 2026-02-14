@@ -1,29 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { NextResponse } from 'next/server'
+import { withAuth } from '@/lib/api-middleware'
 import { apiError, handleRouteError } from '@/lib/api-error'
+import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-const getPrisma = async () => {
-  const { prisma } = await import('@/lib/prisma')
-  return prisma
-}
-
-type RouteParams = {
-  params: { id: string }
-}
-
-// POST /api/predictions/[id]/publish - Publish a prediction (DRAFT → ACTIVE)
-export async function POST(request: NextRequest, { params }: RouteParams) {
+// POST /api/forecasts/[id]/publish - Publish a forecast (DRAFT → ACTIVE)
+export const POST = withAuth(async (_request, user, { params }) => {
   try {
-    const prisma = await getPrisma()
-    const session = await getServerSession(authOptions)
-    
-    if (!session?.user?.id) {
-      return apiError('Unauthorized', 401)
-    }
-
     const prediction = await prisma.prediction.findUnique({
       where: { id: params.id },
       include: {
@@ -36,7 +20,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Only author can publish
-    if (prediction.authorId !== session.user.id) {
+    if (prediction.authorId !== user.id) {
       return apiError('Forbidden', 403)
     }
 
@@ -87,5 +71,4 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     return handleRouteError(error, 'Failed to publish prediction')
   }
-}
-
+})

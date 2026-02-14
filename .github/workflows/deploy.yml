@@ -41,12 +41,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build application
-        env:
-          DATABASE_URL: "postgresql://dummy:dummy@localhost:5432/dummy"
-          NEXTAUTH_SECRET: "dummy-secret-for-build"
-          NEXTAUTH_URL: "http://localhost:3000"
-        run: npm run build
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Run linter
+        run: npm run lint
 
       - name: Run unit tests
         env:
@@ -54,39 +53,45 @@ jobs:
           NEXTAUTH_SECRET: "dummy-secret-for-build"
         run: npm test
 
+      - name: Build application
+        env:
+          DATABASE_URL: "postgresql://dummy:dummy@localhost:5432/dummy"
+          NEXTAUTH_SECRET: "dummy-secret-for-build"
+          NEXTAUTH_URL: "http://localhost:3000"
+        run: npm run build
 
-      - name: Run linter
-        run: npm run lint || echo "No lint script configured"
+      - name: Security audit
+        run: npm audit --audit-level=critical || echo "⚠️ Audit found vulnerabilities — review before production deploy"
 
-      # ECR Integration: Configure AWS credentials
+      # ECR Integration: Build and push Docker image (skip on PRs to save ECR storage)
       - name: Configure AWS credentials
+        if: github.event_name != 'pull_request'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-central-1
 
-      # ECR Integration: Login to Amazon ECR
       - name: Login to Amazon ECR
+        if: github.event_name != 'pull_request'
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      # ECR Integration: Extract metadata for Docker tags
       - name: Extract metadata
+        if: github.event_name != 'pull_request'
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ steps.login-ecr.outputs.registry }}/daatan-app
           tags: |
             type=ref,event=branch
-            type=ref,event=pr
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=sha
             type=raw,value=staging-latest,enable={{is_default_branch}}
 
-      # ECR Integration: Build and push Docker image
       - name: Build and push to ECR
+        if: github.event_name != 'pull_request'
         uses: docker/build-push-action@v5
         with:
           context: .

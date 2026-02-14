@@ -3,13 +3,9 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { updatePredictionSchema } from '@/lib/validations/prediction'
 import { apiError, handleRouteError } from '@/lib/api-error'
+import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
-
-const getPrisma = async () => {
-  const { prisma } = await import('@/lib/prisma')
-  return prisma
-}
 
 type RouteParams = {
   params: { id: string }
@@ -18,8 +14,6 @@ type RouteParams = {
 // GET /api/predictions/[id] - Get a single prediction (supports ID or slug)
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const prisma = await getPrisma()
-    
     // Try to find by ID first, then by slug
     const prediction = await prisma.prediction.findFirst({
       where: {
@@ -98,7 +92,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 // PATCH /api/predictions/[id] - Update a prediction (draft only)
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
-    const prisma = await getPrisma()
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {
@@ -168,7 +161,6 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 // DELETE /api/predictions/[id] - Delete a prediction (draft only)
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    const prisma = await getPrisma()
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {

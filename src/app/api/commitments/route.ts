@@ -3,19 +3,14 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { listCommitmentsQuerySchema } from '@/lib/validations/prediction'
 import { apiError, handleRouteError } from '@/lib/api-error'
-import { Prisma } from '@prisma/client'
+import { Prisma, PredictionStatus } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
-
-const getPrisma = async () => {
-  const { prisma } = await import('@/lib/prisma')
-  return prisma
-}
 
 // GET /api/commitments - List commitments for authenticated user
 export async function GET(request: NextRequest) {
   try {
-    const prisma = await getPrisma()
     const session = await getServerSession(authOptions)
 
     if (!session?.user?.id) {
@@ -35,7 +30,7 @@ export async function GET(request: NextRequest) {
       ...(predictionId && { predictionId }),
       ...(status && {
         prediction: {
-          status: status as any, // Cast because status enum might not match exactly if Prisma types lag
+          status: status as PredictionStatus,
         },
       }),
     }

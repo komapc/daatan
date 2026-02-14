@@ -1,5 +1,5 @@
 #!/bin/bash
-# Pre-commit hook: fast checks only (lint + version bump check)
+# Pre-commit hook: fast checks only (lint-staged + version bump check)
 # Full build + tests run on pre-push
 
 set -e
@@ -9,11 +9,8 @@ echo "🔍 Running pre-commit checks..."
 # Check version bump for feature/fix branches
 ./scripts/check-version-bump.sh || exit 1
 
-# Lint check (fast)
-echo "🔍 Running linter..."
-if ! npm run lint; then
-  echo "❌ Lint failed. Please fix lint errors before committing."
-  exit 1
-fi
+# Lint only staged files (fast)
+echo "🔍 Running lint-staged..."
+npx lint-staged
 
 echo "✅ Pre-commit checks passed!"

@@ -9,9 +9,6 @@ declare module 'next-auth' {
       image?: string | null
       username?: string | null
       role: 'USER' | 'RESOLVER' | 'ADMIN'
-      isAdmin?: boolean
-      isModerator?: boolean
-      brierScore?: number
       rs?: number
       cuAvailable?: number
       cuLocked?: number
@@ -22,9 +19,6 @@ declare module 'next-auth' {
     id: string
     username?: string | null
     role: 'USER' | 'RESOLVER' | 'ADMIN'
-    isAdmin?: boolean
-    isModerator?: boolean
-    brierScore?: number
     rs?: number
     cuAvailable?: number
     cuLocked?: number

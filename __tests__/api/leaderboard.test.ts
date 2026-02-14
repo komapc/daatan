@@ -6,19 +6,21 @@ import { NextRequest } from 'next/server'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 
 // Mock Prisma
-const prismaMock = {
-  user: {
-    findMany: vi.fn(),
-  },
-}
-
 vi.mock('@/lib/prisma', () => ({
-  prisma: prismaMock,
+  prisma: {
+    user: {
+      findMany: vi.fn(),
+    },
+  },
 }))
 
 describe('Leaderboard API', () => {
-  beforeEach(() => {
+  let prisma: { user: { findMany: ReturnType<typeof vi.fn> } }
+
+  beforeEach(async () => {
     vi.clearAllMocks()
+    const mod = await import('@/lib/prisma')
+    prisma = mod.prisma as unknown as typeof prisma
   })
 
   it('returns a list of top users', async () => {
@@ -27,13 +29,13 @@ describe('Leaderboard API', () => {
       { id: '2', username: 'user2', rs: 90 },
     ]
     
-    prismaMock.user.findMany.mockResolvedValue(mockUsers)
+    vi.mocked(prisma.user.findMany).mockResolvedValue(mockUsers as never)
 
     const request = new NextRequest('http://localhost/api/top-reputation?limit=10')
     const response = await GET(request)
     const data = await response.json()
 
-    expect(prismaMock.user.findMany).toHaveBeenCalledWith({
+    expect(prisma.user.findMany).toHaveBeenCalledWith({
       where: { isPublic: true },
       select: expect.any(Object),
       orderBy: { rs: 'desc' },
@@ -46,7 +48,7 @@ describe('Leaderboard API', () => {
   })
 
   it('handles database errors gracefully', async () => {
-    prismaMock.user.findMany.mockRejectedValue(new Error('DB Error'))
+    vi.mocked(prisma.user.findMany).mockRejectedValue(new Error('DB Error'))
 
     const request = new NextRequest('http://localhost/api/top-reputation')
     const response = await GET(request)

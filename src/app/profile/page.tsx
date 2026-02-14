@@ -14,7 +14,7 @@ import {
   Globe,
   Twitter,
 } from 'lucide-react'
-import ForecastCard from '@/components/forecasts/ForecastCard'
+import ForecastCard, { type Prediction } from '@/components/forecasts/ForecastCard'
 import Link from 'next/link'
 import { RoleBadge } from '@/components/RoleBadge'
 
@@ -219,7 +219,7 @@ export default async function ProfilePage() {
               ) : (
                 commitments.map((commitment) => (
                   <div key={commitment.id} className="relative group">
-                    <ForecastCard prediction={commitment.prediction as any} />
+                    <ForecastCard prediction={commitment.prediction as Prediction} />
                     <div className="absolute top-4 right-12 flex items-center gap-2 px-3 py-1 bg-blue-600 text-white text-[10px] font-black uppercase tracking-wider rounded-full shadow-md transform translate-x-4 -translate-y-2">
                       <Wallet className="w-3 h-3" />
                       Staked {commitment.cuCommitted} CU
@@ -245,7 +245,7 @@ export default async function ProfilePage() {
                 </div>
               ) : (
                 myPredictions.map((prediction) => (
-                  <ForecastCard key={prediction.id} prediction={prediction as any} />
+                  <ForecastCard key={prediction.id} prediction={prediction as Prediction} />
                 ))
               )}
             </div>

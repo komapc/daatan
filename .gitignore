@@ -30,6 +30,7 @@ out/
 # Build
 dist/
 build/
+*.tsbuildinfo
 
 # Logs
 *.log
@@ -41,3 +42,4 @@ coverage/
 # Misc
 *.local
 
+*.tsbuildinfo
