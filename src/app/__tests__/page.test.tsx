@@ -6,8 +6,8 @@ import { vi, describe, it, expect, beforeEach } from 'vitest'
 const mockFetch = vi.fn()
 global.fetch = mockFetch
 
-// Mock PredictionCard to simplify testing
-vi.mock('@/components/predictions/PredictionCard', () => ({
+// Mock ForecastCard to simplify testing
+vi.mock('@/components/forecasts/ForecastCard', () => ({
   default: () => <div data-testid="prediction-card">Card</div>
 }))
 
@@ -19,8 +19,8 @@ describe('FeedPage', () => {
 
   it('renders loading state initially', () => {
     mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({ predictions: [] }),
+      ok: true,
+      json: async () => ({ predictions: [] }),
     } as Response)
     render(<FeedClient />)
     expect(screen.getByText('Loading your feed...')).toBeInTheDocument()
@@ -49,9 +49,9 @@ describe('FeedPage', () => {
     render(<FeedClient />)
 
     await waitFor(() => {
-        expect(screen.queryByText('Loading your feed...')).not.toBeInTheDocument()
+      expect(screen.queryByText('Loading your feed...')).not.toBeInTheDocument()
     })
-    
-    expect(screen.getByText('No active predictions')).toBeInTheDocument()
+
+    expect(screen.getByText('No active forecasts')).toBeInTheDocument()
   })
 })

@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { updateForecastSchema } from '@/lib/validations/forecast'
+import { updatePredictionSchema } from '@/lib/validations/prediction'
 import { apiError, handleRouteError } from '@/lib/api-error'
 
-// Force dynamic rendering
 export const dynamic = 'force-dynamic'
 
-// Lazy import Prisma
 const getPrisma = async () => {
   const { prisma } = await import('@/lib/prisma')
   return prisma
@@ -17,31 +15,35 @@ type RouteParams = {
   params: { id: string }
 }
 
-// GET /api/forecasts/[id] - Get a single forecast
+// GET /api/predictions/[id] - Get a single prediction (supports ID or slug)
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const prisma = await getPrisma()
-    const forecast = await prisma.forecast.findUnique({
-      where: { id: params.id },
+    
+    // Try to find by ID first, then by slug
+    const prediction = await prisma.prediction.findFirst({
+      where: {
+        OR: [
+          { id: params.id },
+          { slug: params.id },
+        ],
+      },
       include: {
-        creator: {
+        author: {
           select: {
             id: true,
             name: true,
             username: true,
             image: true,
-            brierScore: true,
+            rs: true,
+            role: true,
           },
         },
+        newsAnchor: true,
         options: {
           orderBy: { displayOrder: 'asc' },
-          include: {
-            _count: {
-              select: { votes: true },
-            },
-          },
         },
-        votes: {
+        commitments: {
           include: {
             user: {
               select: {
@@ -49,6 +51,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
                 name: true,
                 username: true,
                 image: true,
+                rs: true,
               },
             },
             option: {
@@ -60,23 +63,39 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           },
           orderBy: { createdAt: 'desc' },
         },
+        resolvedBy: {
+          select: {
+            id: true,
+            name: true,
+            username: true,
+          },
+        },
         _count: {
-          select: { votes: true },
+          select: { commitments: true },
         },
       },
     })
 
-    if (!forecast) {
-      return apiError('Forecast not found', 404)
+    if (!prediction) {
+      return apiError('Prediction not found', 404)
     }
 
-    return NextResponse.json(forecast)
+    // Calculate total CU committed
+    const totalCuCommitted = prediction.commitments.reduce(
+      (sum, c) => sum + c.cuCommitted,
+      0
+    )
+
+    return NextResponse.json({
+      ...prediction,
+      totalCuCommitted,
+    })
   } catch (error) {
-    return handleRouteError(error, 'Failed to fetch forecast')
+    return handleRouteError(error, 'Failed to fetch prediction')
   }
 }
 
-// PATCH /api/forecasts/[id] - Update a forecast
+// PATCH /api/predictions/[id] - Update a prediction (draft only)
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
     const prisma = await getPrisma()
@@ -86,46 +105,46 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       return apiError('Unauthorized', 401)
     }
 
-    const forecast = await prisma.forecast.findUnique({
+    const prediction = await prisma.prediction.findUnique({
       where: { id: params.id },
-      select: { creatorId: true, status: true },
+      select: { authorId: true, status: true },
     })
 
-    if (!forecast) {
-      return apiError('Forecast not found', 404)
+    if (!prediction) {
+      return apiError('Prediction not found', 404)
     }
 
-    // Only creator or admin can update
-    if (forecast.creatorId !== session.user.id && !session.user.isAdmin) {
+    // Only author or admin can update
+    if (prediction.authorId !== session.user.id && session.user.role !== 'ADMIN') {
       return apiError('Forbidden', 403)
     }
 
-    // Can't update resolved or cancelled forecasts
-    if (forecast.status === 'RESOLVED' || forecast.status === 'CANCELLED') {
-      return apiError('Cannot update resolved or cancelled forecasts', 400)
+    // Can only update drafts (unless admin)
+    if (prediction.status !== 'DRAFT' && session.user.role !== 'ADMIN') {
+      return apiError('Cannot update published predictions', 400)
     }
 
     const body = await request.json()
-    const data = updateForecastSchema.parse(body)
+    const data = updatePredictionSchema.parse(body)
+
+    // Validate resolve-by if provided
+    if (data.resolveByDatetime && new Date(data.resolveByDatetime) <= new Date()) {
+      return apiError('Resolution date must be in the future', 400)
+    }
 
     const updateData: Record<string, unknown> = {}
-    
-    if (data.title) updateData.title = data.title
-    if (data.text !== undefined) updateData.text = data.text
-    if (data.sourceArticles !== undefined) {
-      updateData.sourceArticles = data.sourceArticles ?? undefined
-    }
-    if (data.dueDate) updateData.dueDate = new Date(data.dueDate)
-    if (data.status) updateData.status = data.status
+    if (data.claimText) updateData.claimText = data.claimText
+    if (data.detailsText !== undefined) updateData.detailsText = data.detailsText
+    if (data.domain !== undefined) updateData.domain = data.domain
+    if (data.outcomePayload) updateData.outcomePayload = data.outcomePayload
+    if (data.resolutionRules !== undefined) updateData.resolutionRules = data.resolutionRules
+    if (data.resolveByDatetime) updateData.resolveByDatetime = new Date(data.resolveByDatetime)
 
-    const updated = await prisma.forecast.update({
+    const updated = await prisma.prediction.update({
       where: { id: params.id },
       data: updateData,
       include: {
-        options: {
-          orderBy: { displayOrder: 'asc' },
-        },
-        creator: {
+        author: {
           select: {
             id: true,
             name: true,
@@ -133,16 +152,20 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
             image: true,
           },
         },
+        newsAnchor: true,
+        options: {
+          orderBy: { displayOrder: 'asc' },
+        },
       },
     })
 
     return NextResponse.json(updated)
   } catch (error) {
-    return handleRouteError(error, 'Failed to update forecast')
+    return handleRouteError(error, 'Failed to update prediction')
   }
 }
 
-// DELETE /api/forecasts/[id] - Delete a forecast
+// DELETE /api/predictions/[id] - Delete a prediction (draft only)
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const prisma = await getPrisma()
@@ -152,31 +175,30 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return apiError('Unauthorized', 401)
     }
 
-    const forecast = await prisma.forecast.findUnique({
+    const prediction = await prisma.prediction.findUnique({
       where: { id: params.id },
-      select: { creatorId: true, status: true },
+      select: { authorId: true, status: true },
     })
 
-    if (!forecast) {
-      return apiError('Forecast not found', 404)
+    if (!prediction) {
+      return apiError('Prediction not found', 404)
     }
 
-    // Only creator or admin can delete
-    if (forecast.creatorId !== session.user.id && !session.user.isAdmin) {
+    if (prediction.authorId !== session.user.id && session.user.role !== 'ADMIN') {
       return apiError('Forbidden', 403)
     }
 
-    // Can only delete drafts (cancel active ones instead)
-    if (forecast.status !== 'DRAFT') {
-      return apiError('Can only delete draft forecasts. Use cancel for active forecasts.', 400)
+    if (prediction.status !== 'DRAFT' && session.user.role !== 'ADMIN') {
+      return apiError('Can only delete draft predictions', 400)
     }
 
-    await prisma.forecast.delete({
+    await prisma.prediction.delete({
       where: { id: params.id },
     })
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    return handleRouteError(error, 'Failed to delete forecast')
+    return handleRouteError(error, 'Failed to delete prediction')
   }
 }
+

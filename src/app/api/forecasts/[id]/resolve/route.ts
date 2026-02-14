@@ -1,174 +1,142 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
+import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
-import { resolveForecastSchema } from '@/lib/validations/forecast'
+import { prisma } from '@/lib/prisma'
+import { resolvePredictionSchema } from '@/lib/validations/prediction'
 import { apiError, handleRouteError } from '@/lib/api-error'
 
-// Force dynamic rendering
-export const dynamic = 'force-dynamic'
-
-// Lazy import Prisma
-const getPrisma = async () => {
-  const { prisma } = await import('@/lib/prisma')
-  return prisma
-}
-
-type RouteParams = {
-  params: { id: string }
-}
-
-// Calculate Brier score for a vote
-const calculateBrierScore = (confidence: number, isCorrect: boolean): number => {
-  const forecast = confidence / 100
-  const outcome = isCorrect ? 1 : 0
-  return Math.pow(forecast - outcome, 2)
-}
-
-// POST /api/forecasts/[id]/resolve - Resolve a forecast (admin only)
-export async function POST(request: NextRequest, { params }: RouteParams) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    const prisma = await getPrisma()
     const session = await getServerSession(authOptions)
-    
+
     if (!session?.user?.id) {
       return apiError('Unauthorized', 401)
     }
 
-    // Admin or resolver
-    if (session.user.role !== 'ADMIN' && session.user.role !== 'RESOLVER') {
-      return apiError('Only admins or resolvers can resolve forecasts', 403)
-    }
-
-    const forecast = await prisma.forecast.findUnique({
-      where: { id: params.id },
-      include: {
-        options: true,
-        votes: true,
-      },
+    // Check if user is resolver or admin
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { role: true },
     })
 
-    if (!forecast) {
-      return apiError('Forecast not found', 404)
-    }
-
-    // Can only resolve active or pending_resolution forecasts
-    if (forecast.status !== 'ACTIVE' && forecast.status !== 'PENDING_RESOLUTION') {
-      return apiError('Can only resolve active or pending forecasts', 400)
+    if (user?.role !== 'RESOLVER' && user?.role !== 'ADMIN') {
+      return apiError('Only resolvers can resolve predictions', 403)
     }
 
     const body = await request.json()
-    const data = resolveForecastSchema.parse(body)
+    const { outcome, evidenceLinks, resolutionNote } = resolvePredictionSchema.parse(body)
 
-    // Validate correct option belongs to this forecast
-    const correctOption = forecast.options.find((opt: { id: string }) => opt.id === data.correctOptionId)
-    if (!correctOption) {
-      return apiError('Invalid option for this forecast', 400)
-    }
-
-    // Start transaction
-    await prisma.$transaction(async (tx) => {
-      // 1. Mark forecast as resolved
-      await tx.forecast.update({
-        where: { id: params.id },
-        data: {
-          status: 'RESOLVED',
-          resolvedAt: new Date(),
-          resolvedById: session.user.id,
-          resolutionNote: data.resolutionNote,
-        },
-      })
-
-      // 2. Mark options as correct/incorrect
-      await tx.forecastOption.updateMany({
-        where: {
-          forecastId: params.id,
-          id: data.correctOptionId,
-        },
-        data: { isCorrect: true },
-      })
-
-      await tx.forecastOption.updateMany({
-        where: {
-          forecastId: params.id,
-          id: { not: data.correctOptionId },
-        },
-        data: { isCorrect: false },
-      })
-
-      // 3. Calculate Brier scores for all votes
-      for (const vote of forecast.votes) {
-        const isCorrect = vote.optionId === data.correctOptionId
-        const brierScore = calculateBrierScore(vote.confidence, isCorrect)
-
-        await tx.vote.update({
-          where: { id: vote.id },
-          data: { brierScore },
-        })
-      }
-
-      // 4. Update user Brier scores
-      const voterIds = [...new Set(forecast.votes.map((v: { userId: string }) => v.userId))]
-      
-      for (const voterId of voterIds) {
-        const userVotes = await tx.vote.findMany({
-          where: {
-            userId: voterId,
-            brierScore: { not: null },
-          },
-          select: { brierScore: true },
-        })
-
-        if (userVotes.length > 0) {
-          const avgBrier = userVotes.reduce((sum, v) => sum + (v.brierScore ?? 0), 0) / userVotes.length
-          
-          await tx.user.update({
-            where: { id: voterId },
-            data: { brierScore: avgBrier },
-          })
-        }
-      }
-    })
-
-    // Fetch the updated forecast
-    const updatedForecast = await prisma.forecast.findUnique({
+    // Get prediction with commitments
+    const prediction = await prisma.prediction.findUnique({
       where: { id: params.id },
       include: {
-        options: {
-          orderBy: { displayOrder: 'asc' },
-        },
-        votes: {
+        commitments: {
           include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                username: true,
-                image: true,
-                brierScore: true,
-              },
-            },
-            option: {
-              select: {
-                id: true,
-                text: true,
-                isCorrect: true,
-              },
-            },
-          },
-        },
-        creator: {
-          select: {
-            id: true,
-            name: true,
-            username: true,
-            image: true,
+            user: true,
           },
         },
       },
     })
 
-    return NextResponse.json(updatedForecast)
+    if (!prediction) {
+      return apiError('Prediction not found', 404)
+    }
+
+    if (prediction.status !== 'ACTIVE' && prediction.status !== 'PENDING') {
+      return apiError('Prediction cannot be resolved', 400)
+    }
+
+    // Determine new status based on outcome
+    let newStatus: 'RESOLVED_CORRECT' | 'RESOLVED_WRONG' | 'VOID' | 'UNRESOLVABLE'
+    if (outcome === 'correct') newStatus = 'RESOLVED_CORRECT'
+    else if (outcome === 'wrong') newStatus = 'RESOLVED_WRONG'
+    else if (outcome === 'void') newStatus = 'VOID'
+    else newStatus = 'UNRESOLVABLE'
+
+    // Use transaction to update prediction and process commitments
+    const result = await prisma.$transaction(async (tx) => {
+      // Update prediction
+      const updatedPrediction = await tx.prediction.update({
+        where: { id: params.id },
+        data: {
+          status: newStatus,
+          resolvedAt: new Date(),
+          resolvedById: session.user.id,
+          resolutionOutcome: outcome,
+          evidenceLinks: evidenceLinks ? evidenceLinks : undefined,
+          resolutionNote,
+        },
+      })
+
+      // Process each commitment
+      for (const commitment of prediction.commitments) {
+        let cuReturned = 0
+        let rsChange = 0
+
+        if (outcome === 'void' || outcome === 'unresolvable') {
+          // Refund CU, no RS change
+          cuReturned = commitment.cuCommitted
+        } else {
+          // Determine if user was correct
+          const wasCorrect =
+            (outcome === 'correct' && commitment.binaryChoice === true) ||
+            (outcome === 'wrong' && commitment.binaryChoice === false)
+
+          if (wasCorrect) {
+            // Correct prediction: return CU + bonus, increase RS
+            cuReturned = Math.floor(commitment.cuCommitted * 1.5) // 50% bonus
+            rsChange = commitment.cuCommitted * 0.1 // 10% of committed CU as RS gain
+          } else {
+            // Wrong prediction: lose CU, decrease RS
+            cuReturned = 0
+            rsChange = -commitment.cuCommitted * 0.05 // 5% of committed CU as RS loss
+          }
+        }
+
+        // Update commitment
+        await tx.commitment.update({
+          where: { id: commitment.id },
+          data: {
+            cuReturned,
+            rsChange,
+          },
+        })
+
+        // Update user balances
+        const newCuAvailable = commitment.user.cuAvailable + cuReturned
+        const newCuLocked = commitment.user.cuLocked - commitment.cuCommitted
+        const newRs = Math.max(0, commitment.user.rs + rsChange) // RS can't go below 0
+
+        await tx.user.update({
+          where: { id: commitment.userId },
+          data: {
+            cuAvailable: newCuAvailable,
+            cuLocked: newCuLocked,
+            rs: newRs,
+          },
+        })
+
+        // Create CU transaction record
+        await tx.cuTransaction.create({
+          data: {
+            userId: commitment.userId,
+            type: outcome === 'void' || outcome === 'unresolvable' ? 'REFUND' : 'COMMITMENT_UNLOCK',
+            amount: cuReturned,
+            referenceId: commitment.id,
+            note: `Prediction resolved: ${outcome}`,
+            balanceAfter: newCuAvailable,
+          },
+        })
+      }
+
+      return updatedPrediction
+    })
+
+    return NextResponse.json(result)
   } catch (error) {
-    return handleRouteError(error, 'Failed to resolve forecast')
+    return handleRouteError(error, 'Failed to resolve prediction')
   }
 }

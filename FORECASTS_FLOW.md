@@ -8,7 +8,7 @@
 ## Overview
 
 ```
-[News Anchor] → [Prediction Draft] → [Define Outcome] → [Commit CU] → [Active] → [Resolution]
+[News Anchor] → [Forecast Draft] → [Define Outcome] → [Commit CU] → [Active] → [Resolution]
 ```
 
 ---
@@ -28,7 +28,7 @@ Pick a specific news story/event to attach the forecast to.
 
 ---
 
-## Step 2: Write Prediction (Draft)
+## Step 2: Write Forecast (Draft)
 
 ### User Action
 - Enter a short, testable forecast statement (`claim_text`)

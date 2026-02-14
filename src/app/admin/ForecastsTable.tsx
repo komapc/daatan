@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { Loader2, Search } from 'lucide-react'
-import PredictionCard from '@/components/predictions/PredictionCard'
+import ForecastCard from '@/components/forecasts/ForecastCard'
 
 export default function ForecastsTable() {
   const [predictions, setPredictions] = useState<any[]>([])
@@ -13,7 +13,7 @@ export default function ForecastsTable() {
   const fetchPredictions = useCallback(async () => {
     setIsLoading(true)
     try {
-      const res = await fetch(`/api/admin/predictions?page=${page}&limit=20&search=${encodeURIComponent(search)}`)
+      const res = await fetch(`/api/admin/forecasts?page=${page}&limit=20&search=${encodeURIComponent(search)}`)
       if (res.ok) {
         const data = await res.json()
         setPredictions(data.predictions)
@@ -61,7 +61,7 @@ export default function ForecastsTable() {
         <>
           <div className="space-y-4">
             {predictions.map((p) => (
-              <PredictionCard key={p.id} prediction={p} showModerationControls={true} />
+              <ForecastCard key={p.id} prediction={p} showModerationControls={true} />
             ))}
           </div>
 

@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { PlusCircle } from 'lucide-react'
-import CreatePredictionClient from './CreatePredictionClient'
+import CreateForecastClient from './CreateForecastClient'
 
 export default async function CreatePage() {
   const session = await getServerSession(authOptions)
@@ -16,14 +16,14 @@ export default async function CreatePage() {
       <div className="flex items-center gap-3 mb-6 lg:mb-8 max-w-4xl mx-auto">
         <PlusCircle className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Create Prediction</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Create Forecast</h1>
           <p className="text-sm text-gray-600 mt-1">
             Use Express for quick AI-assisted creation, or Manual for full control
           </p>
         </div>
       </div>
-      
-      <CreatePredictionClient userId={session.user.id} />
+
+      <CreateForecastClient userId={session.user.id} />
     </div>
   )
 }
