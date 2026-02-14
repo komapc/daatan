@@ -2,16 +2,32 @@
 
 import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
+import { VERSION } from '@/lib/version'
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>
 }
 
+const DISMISS_KEY = 'pwa-install-dismissed-version'
+
 const PwaInstaller = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [isInstalled, setIsInstalled] = useState(false)
   const [isDismissed, setIsDismissed] = useState(false)
+
+  // On mount, check if user already dismissed for this version
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      const dismissedVersion = localStorage.getItem(DISMISS_KEY)
+      if (dismissedVersion === VERSION) {
+        setIsDismissed(true)
+      }
+    } catch {
+      // localStorage unavailable — leave as not dismissed
+    }
+  }, [])
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -69,6 +85,11 @@ const PwaInstaller = () => {
 
   const handleDismiss = () => {
     setIsDismissed(true)
+    try {
+      localStorage.setItem(DISMISS_KEY, VERSION)
+    } catch {
+      // localStorage unavailable — dismiss for this session only
+    }
   }
 
   if (isInstalled || !deferredPrompt || isDismissed) {

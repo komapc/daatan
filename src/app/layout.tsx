@@ -33,10 +33,10 @@ export default function RootLayout({
       <body className="bg-white" suppressHydrationWarning>
         <SessionWrapper>
           <StagingBanner />
-          <div className="flex min-h-screen">
+          <div className="flex min-h-screen overflow-x-hidden">
             <Sidebar />
             {/* Main content with responsive margin */}
-            <main className="flex-1 lg:ml-64 mt-16 lg:mt-0">
+            <main className="flex-1 min-w-0 lg:ml-64 mt-16 lg:mt-0 overflow-x-hidden">
               {children}
             </main>
           </div>

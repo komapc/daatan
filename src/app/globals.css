@@ -7,11 +7,13 @@
 html {
   touch-action: manipulation;
   -ms-touch-action: manipulation;
+  overflow-x: hidden;
 }
 
 body {
   font-family: 'Inter', system-ui, sans-serif;
   touch-action: manipulation;
   -webkit-text-size-adjust: 100%;
+  overflow-x: hidden;
 }
 

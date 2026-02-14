@@ -231,22 +231,20 @@ const Sidebar = () => {
                   size={32}
                 />
                 <div className="flex-1 overflow-hidden">
-                  <p className="font-medium truncate text-sm">{session.user.name || 'User'}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="font-medium truncate text-sm">{session.user.name || 'User'}</p>
+                    {session.user.role === 'ADMIN' && (
+                      <span className="inline-flex items-center justify-center w-4 h-4 text-[9px] font-bold text-red-700 bg-red-100 border border-red-200 rounded-full shrink-0" title="Admin" aria-label="Admin">A</span>
+                    )}
+                    {session.user.role === 'RESOLVER' && (
+                      <span className="inline-flex items-center justify-center w-4 h-4 text-[9px] font-bold text-blue-700 bg-blue-100 border border-blue-200 rounded-full shrink-0" title="Resolver" aria-label="Resolver">R</span>
+                    )}
+                  </div>
                   <p className="text-xs text-gray-400 truncate mb-1">{session.user.email}</p>
                   <div className="flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full w-fit">
                     <span className="w-3 h-3 rounded-full border border-amber-600 flex items-center justify-center text-[8px] font-bold">C</span>
                     {session.user.cuAvailable ?? 0} CU
                   </div>
-                  {(session.user.role === 'ADMIN' || session.user.role === 'RESOLVER') && (
-                    <div className="flex items-center gap-1 mt-0.5">
-                      {session.user.role === 'ADMIN' && (
-                        <span className="text-[10px] font-medium text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full">Admin</span>
-                      )}
-                      {session.user.role === 'RESOLVER' && (
-                        <span className="text-[10px] font-medium text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">Resolver</span>
-                      )}
-                    </div>
-                  )}
                 </div>
               </Link>
               <button

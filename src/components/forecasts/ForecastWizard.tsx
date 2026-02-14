@@ -208,39 +208,39 @@ export const ForecastWizard = ({ isExpressFlow = false }: ForecastWizardProps) =
     <div className="max-w-3xl mx-auto">
       {/* Progress Steps */}
       <nav className="mb-8">
-        <ol className="flex items-center">
+        <ol className="flex items-center justify-between">
           {STEPS.filter(step => !isExpressFlow || step.id !== 1).map((step, index, filteredSteps) => {
             const Icon = step.icon
             const isActive = currentStep === step.id
             const isCompleted = currentStep > step.id
 
             return (
-              <li key={step.id} className="flex items-center flex-1">
+              <li key={step.id} className="flex items-center min-w-0 flex-1">
                 <button
                   onClick={() => step.id < currentStep && setCurrentStep(step.id)}
                   disabled={step.id > currentStep}
                   className={`
-                    flex items-center gap-3 p-3 rounded-lg transition-colors w-full
+                    flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg transition-colors w-full min-w-0
                     ${isActive ? 'bg-blue-50 text-blue-600' : ''}
                     ${isCompleted ? 'text-green-600 cursor-pointer hover:bg-green-50' : ''}
                     ${!isActive && !isCompleted ? 'text-gray-400 cursor-not-allowed' : ''}
                   `}
                 >
                   <div className={`
-                    w-10 h-10 rounded-full flex items-center justify-center
+                    w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0
                     ${isActive ? 'bg-blue-600 text-white' : ''}
                     ${isCompleted ? 'bg-green-500 text-white' : ''}
                     ${!isActive && !isCompleted ? 'bg-gray-200' : ''}
                   `}>
-                    {isCompleted ? <Check className="w-5 h-5" /> : <Icon className="w-5 h-5" />}
+                    {isCompleted ? <Check className="w-4 h-4 sm:w-5 sm:h-5" /> : <Icon className="w-4 h-4 sm:w-5 sm:h-5" />}
                   </div>
-                  <div className="hidden sm:block text-left">
-                    <div className="font-medium text-sm">{step.title}</div>
-                    <div className="text-xs text-gray-500">{step.description}</div>
+                  <div className="hidden sm:block text-left min-w-0">
+                    <div className="font-medium text-sm truncate">{step.title}</div>
+                    <div className="text-xs text-gray-500 truncate">{step.description}</div>
                   </div>
                 </button>
                 {index < filteredSteps.length - 1 && (
-                  <ChevronRight className="w-5 h-5 text-gray-300 mx-2 flex-shrink-0" />
+                  <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-300 mx-1 sm:mx-2 shrink-0" />
                 )}
               </li>
             )
@@ -261,12 +261,12 @@ export const ForecastWizard = ({ isExpressFlow = false }: ForecastWizardProps) =
       </div>
 
       {/* Navigation Buttons */}
-      <div className="flex justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <button
           onClick={handleBack}
           disabled={currentStep === (isExpressFlow ? 2 : 1)}
           className={`
-            flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors
+            flex items-center gap-2 px-4 sm:px-6 py-3 rounded-lg font-medium transition-colors
             ${currentStep === (isExpressFlow ? 2 : 1)
               ? 'text-gray-300 cursor-not-allowed'
               : 'text-gray-600 hover:bg-gray-100'
@@ -277,27 +277,28 @@ export const ForecastWizard = ({ isExpressFlow = false }: ForecastWizardProps) =
           Back
         </button>
 
-        <div className="flex gap-3">
+        <div className="flex gap-2 sm:gap-3">
           {currentStep === 4 ? (
             <>
               <button
                 onClick={() => handleSubmit(true)}
                 disabled={isSubmitting}
-                className="px-6 py-3 rounded-lg border-2 border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+                className="px-4 sm:px-6 py-3 rounded-lg border-2 border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 text-sm sm:text-base"
               >
-                {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Save as Draft'}
+                {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Save Draft'}
               </button>
               <button
                 onClick={() => handleSubmit(false)}
                 disabled={isSubmitting || !canProceed()}
-                className="flex items-center gap-2 px-6 py-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-4 sm:px-6 py-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
               >
                 {isSubmitting ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
                   <>
                     <Rocket className="w-5 h-5" />
-                    Publish Prediction
+                    <span className="hidden sm:inline">Publish Prediction</span>
+                    <span className="sm:hidden">Publish</span>
                   </>
                 )}
               </button>
@@ -306,7 +307,7 @@ export const ForecastWizard = ({ isExpressFlow = false }: ForecastWizardProps) =
             <button
               onClick={handleNext}
               disabled={!canProceed()}
-              className="flex items-center gap-2 px-6 py-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-4 sm:px-6 py-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Next
               <ChevronRight className="w-5 h-5" />

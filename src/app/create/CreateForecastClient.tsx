@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Zap, Edit3 } from 'lucide-react'
 import ExpressForecastClient from '@/app/forecasts/express/ExpressForecastClient'
 import { ForecastWizard } from '@/components/forecasts/ForecastWizard'
@@ -10,7 +11,18 @@ interface CreateForecastClientProps {
 }
 
 export default function CreateForecastClient({ userId }: CreateForecastClientProps) {
+  const searchParams = useSearchParams()
+  const fromExpress = searchParams.get('from') === 'express'
   const [mode, setMode] = useState<'express' | 'manual'>('express')
+
+  // When redirected from express generation, go straight to the wizard
+  if (fromExpress) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <ForecastWizard isExpressFlow={true} />
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-4xl mx-auto">
