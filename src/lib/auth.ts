@@ -60,8 +60,6 @@ export const authOptions: NextAuthOptions = {
               rs: true,
               username: true,
               role: true,
-              isAdmin: true,
-              isModerator: true,
             }
           })
 
@@ -71,8 +69,6 @@ export const authOptions: NextAuthOptions = {
             session.user.username = user.username
             session.user.rs = user.rs
             session.user.role = user.role
-            session.user.isAdmin = user.isAdmin
-            session.user.isModerator = user.isModerator
           }
         } catch (error) {
           console.error('Error fetching user stats for session:', error)

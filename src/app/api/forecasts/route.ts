@@ -3,18 +3,13 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { createPredictionSchema, listPredictionsQuerySchema } from '@/lib/validations/prediction'
 import { apiError, handleRouteError } from '@/lib/api-error'
+import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
-
-const getPrisma = async () => {
-  const { prisma } = await import('@/lib/prisma')
-  return prisma
-}
 
 // GET /api/predictions - List predictions
 export async function GET(request: NextRequest) {
   try {
-    const prisma = await getPrisma()
     const { searchParams } = new URL(request.url)
     
     const query = listPredictionsQuerySchema.parse({
@@ -133,7 +128,6 @@ export async function GET(request: NextRequest) {
 // POST /api/predictions - Create a new prediction (draft)
 export async function POST(request: NextRequest) {
   try {
-    const prisma = await getPrisma()
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {

@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { handleRouteError } from '@/lib/api-error'
-
-const getPrisma = async () => {
-  const { prisma } = await import('@/lib/prisma')
-  return prisma
-}
+import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,7 +11,6 @@ const querySchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const prisma = await getPrisma()
     const { searchParams } = new URL(request.url)
     
     const { limit } = querySchema.parse({

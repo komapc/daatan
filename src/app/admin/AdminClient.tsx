@@ -30,8 +30,6 @@ type AdminUser = {
   username: string | null
   image: string | null
   role: 'USER' | 'RESOLVER' | 'ADMIN'
-  isAdmin: boolean
-  isModerator: boolean
   rs: number
   cuAvailable: number
   cuLocked: number
@@ -491,7 +489,7 @@ function UsersTab() {
       if (res.ok) {
         const updated = await res.json()
         setUsers((prev) =>
-          prev.map((u) => u.id === userId ? { ...u, role: updated.role, isAdmin: updated.isAdmin, isModerator: updated.isModerator } : u)
+          prev.map((u) => u.id === userId ? { ...u, role: updated.role } : u)
         )
       }
     } catch {
@@ -588,7 +586,7 @@ function UsersTab() {
                       <td className="px-4 py-3 text-center">
                         <select
                           value={u.role}
-                          onChange={(e) => updateRole(u.id, e.target.value as any)}
+                          onChange={(e) => updateRole(u.id, e.target.value as AdminUser['role'])}
                           disabled={updatingId === u.id}
                           className="text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                         >

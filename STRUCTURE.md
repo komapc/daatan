@@ -1,7 +1,7 @@
 # DAATAN Project Structure
 
 > Comprehensive overview of the codebase organization and architecture.
-> Last updated: January 2026
+> Last updated: February 2026
 
 ---
 
@@ -11,8 +11,7 @@
 daatan/
 ├── .github/                    # GitHub configuration
 │   └── workflows/              # CI/CD pipelines
-│       ├── deploy.yml          # Main deployment workflow
-│       └── version-bump.yml    # Automatic version bumping
+│       └── deploy.yml          # Main deployment workflow
 ├── .husky/                     # Git hooks
 │   ├── pre-commit              # Build + test verification
 │   └── pre-push                # Auth change detection
@@ -40,10 +39,10 @@ src/
 │   │   ├── auth/               # NextAuth.js endpoints
 │   │   ├── comments/            # Comment CRUD + reactions
 │   │   ├── commitments/         # User commitment listing
-│   │   ├── forecasts/          # Legacy forecast CRUD
+│   │   ├── forecasts/          # Forecast CRUD (new system)
 │   │   ├── health/             # Health check endpoint
+│   │   ├── legacy-forecasts/   # Legacy forecast system (deprecated)
 │   │   ├── news-anchors/       # News anchor management
-│   │   ├── predictions/        # New prediction system
 │   │   ├── profile/            # User profile update
 │   │   ├── top-reputation/     # Leaderboard endpoint
 │   │   └── version/            # Version endpoint
@@ -54,10 +53,10 @@ src/
 │   │   └── error/              # Auth error page
 │   │       ├── page.tsx        # Server Component wrapper
 │   │       └── AuthErrorClient.tsx # Client Component with UI
-│   ├── create/                 # Prediction creation
+│   ├── create/                 # Forecast creation
 │   ├── leaderboard/            # User rankings
 │   ├── notifications/          # User notifications
-│   ├── predictions/            # Prediction views
+│   ├── forecasts/              # Forecast views
 │   ├── profile/                # User profile
 │   ├── retroanalysis/          # Retroanalysis page
 │   ├── settings/               # User settings
@@ -68,7 +67,7 @@ src/
 │   └── page.tsx                # Homepage
 ├── components/                 # React components
 │   ├── comments/               # Comment thread components
-│   ├── predictions/            # Prediction-related components
+│   ├── forecasts/              # Forecast-related components
 │   ├── profile/                # Profile edit form
 │   ├── ClientOnly.tsx          # Client-side rendering wrapper
 │   ├── ForecastForm.tsx        # Legacy forecast form
@@ -162,14 +161,16 @@ terraform/
 | `README.md` | Project overview and quick start |
 | `DAATAN_CORE.md` | Source of Truth - vision and principles |
 | `GLOSSARY.md` | Terminology definitions |
-| `FORECASTS_FLOW.md` | Prediction system implementation flow |
+| `FORECASTS_FLOW.md` | Forecast system implementation flow |
 | `TODO.md` | Development tasks and guidelines |
 | `DEPLOYMENT.md` | Complete deployment guide |
 | `DEPLOYMENT_CHECKLIST.md` | Deployment verification checklist |
-| `DEPLOYMENT_SUMMARY.md` | Infrastructure status summary |
 | `INFRASTRUCTURE.md` | AWS infrastructure details |
 | `VERSIONING.md` | Semantic versioning rules |
-| `PRODUCT_NAMING.md` | Product naming conventions |
+| `MEMORY.md` | Session memory and context |
+| `POST_MORTEM.md` | Incident post-mortems |
+| `SECRETS.md` | Secrets management guide |
+| `TESTING.md` | Testing strategy and guidelines |
 | `STRUCTURE.md` | This file - project structure |
 | `PRODUCT.md` | Product documentation |
 | `TECH.md` | Technical documentation |
@@ -178,7 +179,7 @@ terraform/
 
 ## Database Schema Overview
 
-### Core Models (New Prediction System)
+### Core Models (Prediction System)
 
 ```
 User ─────────────────┬─────────────────────────────────────┐
@@ -265,7 +266,7 @@ DEPLOY_ID=<timestamp>
 
 ### Version Bumping
 
-Automatic on PR merge to `main`:
+Manual via `./scripts/release.sh`. Convention for commit prefixes:
 - `feat:` prefix → Minor bump (0.X.0)
 - `BREAKING:` prefix → Major bump (X.0.0)
 - Other → Patch bump (0.0.X)

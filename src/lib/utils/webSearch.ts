@@ -79,34 +79,3 @@ function extractDomain(url: string): string {
     return 'Unknown'
   }
 }
-
-export async function fetchArticleContent(url: string): Promise<string> {
-  try {
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; DaatanBot/1.0; +http://daatan.ai)'
-      }
-    })
-
-    if (!response.ok) {
-      console.warn(`Failed to fetch article: ${response.status}`)
-      return ''
-    }
-
-    const html = await response.text()
-
-    // valid simple strategies to extract text:
-    // 1. remove scripts and styles
-    const noScripts = html.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gim, "")
-      .replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gim, "")
-
-    // 2. remove tags
-    const text = noScripts.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
-
-    // Limit to ~5000 chars to avoid token limits
-    return text.substring(0, 5000)
-  } catch (error) {
-    console.warn('Error fetching article content:', error)
-    return ''
-  }
-}

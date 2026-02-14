@@ -42,3 +42,4 @@ coverage/
 # Misc
 *.local
 
+*.tsbuildinfo

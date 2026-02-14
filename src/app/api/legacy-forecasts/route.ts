@@ -3,20 +3,14 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { createForecastSchema, listForecastsQuerySchema } from '@/lib/validations/forecast'
 import { apiError, handleRouteError } from '@/lib/api-error'
+import { prisma } from '@/lib/prisma'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
 
-// Lazy import Prisma to avoid build-time connection
-const getPrisma = async () => {
-  const { prisma } = await import('@/lib/prisma')
-  return prisma
-}
-
 // GET /api/forecasts - List forecasts
 export async function GET(request: NextRequest) {
   try {
-    const prisma = await getPrisma()
     const { searchParams } = new URL(request.url)
     
     const query = listForecastsQuerySchema.parse({
@@ -78,7 +72,6 @@ export async function GET(request: NextRequest) {
 // POST /api/forecasts - Create a new forecast
 export async function POST(request: NextRequest) {
   try {
-    const prisma = await getPrisma()
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {

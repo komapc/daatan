@@ -1,7 +1,7 @@
 # USER.md - About Your Human
 
-- **Name:** janwuf
-- **What to call them:** janwuf
+- **Name:** Mark
+- **What to call them:** Mark
 - **Pronouns:** *(optional)*
 - **Timezone:** Israel
 - **Notes:** 

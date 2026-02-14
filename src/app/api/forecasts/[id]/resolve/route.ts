@@ -27,12 +27,13 @@ export async function POST(
     }
 
     const body = await request.json()
-    const { outcome, evidenceLinks, resolutionNote } = resolvePredictionSchema.parse(body)
+    const { outcome, evidenceLinks, resolutionNote, correctOptionId } = resolvePredictionSchema.parse(body)
 
-    // Get prediction with commitments
+    // Get prediction with commitments and options
     const prediction = await prisma.prediction.findUnique({
       where: { id: params.id },
       include: {
+        options: true,
         commitments: {
           include: {
             user: true,
@@ -47,6 +48,18 @@ export async function POST(
 
     if (prediction.status !== 'ACTIVE' && prediction.status !== 'PENDING') {
       return apiError('Prediction cannot be resolved', 400)
+    }
+
+    // Validate correctOptionId for MULTIPLE_CHOICE predictions
+    const isMultipleChoice = prediction.outcomeType === 'MULTIPLE_CHOICE'
+    if (isMultipleChoice && (outcome === 'correct' || outcome === 'wrong')) {
+      if (!correctOptionId) {
+        return apiError('correctOptionId is required for multiple choice predictions', 400)
+      }
+      const optionExists = prediction.options.some((o) => o.id === correctOptionId)
+      if (!optionExists) {
+        return apiError('correctOptionId does not match any option for this prediction', 400)
+      }
     }
 
     // Determine new status based on outcome
@@ -71,6 +84,16 @@ export async function POST(
         },
       })
 
+      // Mark correct option for MULTIPLE_CHOICE predictions
+      if (isMultipleChoice && correctOptionId && (outcome === 'correct' || outcome === 'wrong')) {
+        for (const option of prediction.options) {
+          await tx.predictionOption.update({
+            where: { id: option.id },
+            data: { isCorrect: option.id === correctOptionId },
+          })
+        }
+      }
+
       // Process each commitment
       for (const commitment of prediction.commitments) {
         let cuReturned = 0
@@ -80,10 +103,17 @@ export async function POST(
           // Refund CU, no RS change
           cuReturned = commitment.cuCommitted
         } else {
-          // Determine if user was correct
-          const wasCorrect =
-            (outcome === 'correct' && commitment.binaryChoice === true) ||
-            (outcome === 'wrong' && commitment.binaryChoice === false)
+          // Determine if user was correct based on prediction type
+          let wasCorrect = false
+          if (isMultipleChoice) {
+            // MC: user was correct if they picked the winning option
+            wasCorrect = commitment.optionId === correctOptionId
+          } else {
+            // Binary: user was correct if their choice matches the outcome
+            wasCorrect =
+              (outcome === 'correct' && commitment.binaryChoice === true) ||
+              (outcome === 'wrong' && commitment.binaryChoice === false)
+          }
 
           if (wasCorrect) {
             // Correct prediction: return CU + bonus, increase RS
