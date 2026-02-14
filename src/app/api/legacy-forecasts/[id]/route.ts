@@ -3,15 +3,10 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { updateForecastSchema } from '@/lib/validations/forecast'
 import { apiError, handleRouteError } from '@/lib/api-error'
+import { prisma } from '@/lib/prisma'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
-
-// Lazy import Prisma
-const getPrisma = async () => {
-  const { prisma } = await import('@/lib/prisma')
-  return prisma
-}
 
 type RouteParams = {
   params: { id: string }
@@ -20,7 +15,6 @@ type RouteParams = {
 // GET /api/forecasts/[id] - Get a single forecast
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const prisma = await getPrisma()
     const forecast = await prisma.forecast.findUnique({
       where: { id: params.id },
       include: {
@@ -79,7 +73,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 // PATCH /api/forecasts/[id] - Update a forecast
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
-    const prisma = await getPrisma()
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {
@@ -96,7 +89,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     // Only creator or admin can update
-    if (forecast.creatorId !== session.user.id && !session.user.isAdmin) {
+    if (forecast.creatorId !== session.user.id && session.user.role !== 'ADMIN') {
       return apiError('Forbidden', 403)
     }
 
@@ -145,7 +138,6 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 // DELETE /api/forecasts/[id] - Delete a forecast
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    const prisma = await getPrisma()
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {
@@ -162,7 +154,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     // Only creator or admin can delete
-    if (forecast.creatorId !== session.user.id && !session.user.isAdmin) {
+    if (forecast.creatorId !== session.user.id && session.user.role !== 'ADMIN') {
       return apiError('Forbidden', 403)
     }
 

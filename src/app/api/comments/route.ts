@@ -3,18 +3,13 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { createCommentSchema, listCommentsQuerySchema } from '@/lib/validations/comment'
 import { apiError, handleRouteError } from '@/lib/api-error'
+import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
-
-const getPrisma = async () => {
-  const { prisma } = await import('@/lib/prisma')
-  return prisma
-}
 
 // GET /api/comments - List comments
 export async function GET(request: NextRequest) {
   try {
-    const prisma = await getPrisma()
     const { searchParams } = new URL(request.url)
     
     const query = listCommentsQuerySchema.parse({
@@ -91,7 +86,6 @@ export async function GET(request: NextRequest) {
 // POST /api/comments - Create a new comment
 export async function POST(request: NextRequest) {
   try {
-    const prisma = await getPrisma()
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {

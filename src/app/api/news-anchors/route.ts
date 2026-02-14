@@ -4,13 +4,9 @@ import { authOptions } from '@/lib/auth'
 import { createNewsAnchorSchema } from '@/lib/validations/prediction'
 import { createHash } from 'crypto'
 import { apiError, handleRouteError } from '@/lib/api-error'
+import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
-
-const getPrisma = async () => {
-  const { prisma } = await import('@/lib/prisma')
-  return prisma
-}
 
 // Generate URL hash for deduplication
 const hashUrl = (url: string): string => {
@@ -22,7 +18,6 @@ const hashUrl = (url: string): string => {
 // GET /api/news-anchors - Search/list news anchors
 export async function GET(request: NextRequest) {
   try {
-    const prisma = await getPrisma()
     const { searchParams } = new URL(request.url)
     
     const url = searchParams.get('url')
@@ -68,7 +63,6 @@ export async function GET(request: NextRequest) {
 // POST /api/news-anchors - Create or get existing news anchor
 export async function POST(request: NextRequest) {
   try {
-    const prisma = await getPrisma()
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {

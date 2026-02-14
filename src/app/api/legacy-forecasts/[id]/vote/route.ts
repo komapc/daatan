@@ -3,15 +3,10 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { createVoteSchema } from '@/lib/validations/forecast'
 import { apiError, handleRouteError } from '@/lib/api-error'
+import { prisma } from '@/lib/prisma'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
-
-// Lazy import Prisma
-const getPrisma = async () => {
-  const { prisma } = await import('@/lib/prisma')
-  return prisma
-}
 
 type RouteParams = {
   params: { id: string }
@@ -20,7 +15,6 @@ type RouteParams = {
 // POST /api/forecasts/[id]/vote - Vote on a forecast
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
-    const prisma = await getPrisma()
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {
@@ -102,7 +96,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 // DELETE /api/forecasts/[id]/vote - Remove vote
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    const prisma = await getPrisma()
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {

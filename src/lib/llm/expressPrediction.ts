@@ -1,7 +1,7 @@
 import { SchemaType, type Schema } from '@google/generative-ai'
 import { getExpressPredictionPrompt } from './prompts'
 import { llmService } from './index'
-import { searchArticles, fetchArticleContent } from '../utils/webSearch'
+import { searchArticles, type SearchResult } from '../utils/webSearch'
 import crypto from 'crypto'
 
 export const expressPredictionSchema: Schema = {
@@ -58,61 +58,37 @@ export interface ExpressPredictionResult {
   }>
 }
 
+/** Shape of the JSON object returned by the LLM (matches expressPredictionSchema). */
+interface ParsedPrediction {
+  claimText: string
+  resolveByDatetime: string
+  detailsText: string
+  tags: string[]
+  resolutionRules: string
+  domain?: string
+}
+
 export async function generateExpressPrediction(
   userInput: string,
   onProgress?: (stage: string, data?: Record<string, unknown>) => void
 ): Promise<ExpressPredictionResult> {
-  let searchResults: any[] = []
-  let articlesText = ''
+  // Step 1: Search for relevant articles
+  onProgress?.('searching', { message: 'Searching for relevant articles...' })
 
-  // Step 1: Check if input is a URL
-  const urlRegex = /^(https?:\/\/[^\s]+)$/i
-  const isUrl = urlRegex.test(userInput.trim())
+  const searchResults: SearchResult[] = await searchArticles(userInput, 5)
 
-  if (isUrl) {
-    onProgress?.('searching', { message: 'Fetching article content...' })
-    const url = userInput.trim()
-    const content = await fetchArticleContent(url) // Implement fetchArticleContent in webSearch!
+  if (searchResults.length === 0) {
+    throw new Error('NO_ARTICLES_FOUND')
+  }
 
-    if (!content) {
-      throw new Error('FAILED_TO_FETCH_URL')
-    }
+  onProgress?.('found_articles', {
+    count: searchResults.length,
+    message: `Found ${searchResults.length} relevant sources`
+  })
 
-    searchResults = [{
-      title: 'User Provided URL', // We'll try to extract title later or let LLM infer
-      url: url,
-      snippet: content.substring(0, 500),
-      source: new URL(url).hostname,
-      publishedDate: new Date().toISOString()
-    }]
-
-    articlesText = `
-[Provided Article]
-URL: ${url}
-Content: ${content.substring(0, 8000)}
-`
-    onProgress?.('found_articles', {
-      count: 1,
-      message: 'Article content loaded'
-    })
-  } else {
-    // Step 1: Search for relevant articles
-    onProgress?.('searching', { message: 'Searching for relevant articles...' })
-
-    searchResults = await searchArticles(userInput, 5)
-
-    if (searchResults.length === 0) {
-      throw new Error('NO_ARTICLES_FOUND')
-    }
-
-    onProgress?.('found_articles', {
-      count: searchResults.length,
-      message: `Found ${searchResults.length} relevant sources`
-    })
-
-    // Step 2: Prepare articles for LLM
-    articlesText = searchResults
-      .map((article, i) => `
+  // Step 2: Prepare articles for LLM
+  const articlesText = searchResults
+    .map((article, i) => `
 [Article ${i + 1}]
 Title: ${article.title}
 Source: ${article.source || 'Unknown'}
@@ -120,8 +96,7 @@ Published: ${article.publishedDate || 'Unknown'}
 Snippet: ${article.snippet}
 URL: ${article.url}
 `)
-      .join('\n')
-  }
+    .join('\n')
 
   onProgress?.('analyzing', { message: 'Analyzing context and forming prediction...' })
 
@@ -130,14 +105,14 @@ URL: ${article.url}
   const endOfYear = `${currentYear}-12-31T23:59:59Z`
 
   const prompt = getExpressPredictionPrompt({
-    userInput: isUrl ? "Create a prediction based on this article" : userInput, // Adjust prompt for URL mode
+    userInput,
     articlesText,
     endOfYear,
     currentYear,
     currentDate: new Date().toISOString().split('T')[0],
   })
 
-  let prediction: any
+  let prediction: ParsedPrediction
   try {
     const result = await llmService.generateContent({
       prompt,
@@ -169,13 +144,9 @@ URL: ${article.url}
 
   onProgress?.('finalizing', { message: 'Finalizing prediction...' })
 
-  // If we fetched content directly, we might not have the title perfectly.
-  // The LLM context summary might be useful? Or just use what we have.
-  // Ideally fetchArticleContent returns { title, content } but I implemented it as string only.
-  // We'll stick with "User Provided URL" or hostname if logic above sets it.
-
   return {
     ...prediction,
+    domain: prediction.domain ?? 'General',
     newsAnchor: {
       url: bestArticle.url,
       urlHash: crypto.createHash('sha256').update(bestArticle.url).digest('hex'),

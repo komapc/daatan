@@ -1,0 +1,41 @@
+---
+description: DAATAN project conventions and safety rules
+globs:
+alwaysApply: true
+---
+
+# DAATAN Project Rules
+
+## Project Context
+DAATAN is a Next.js 14 App Router web app with Prisma ORM, NextAuth, Zod validation, and Vitest testing.
+Deployed via Docker. Uses Tailwind CSS, React Hook Form, and Lucide icons.
+
+## Git Safety
+- **NEVER** push directly to `main` or `staging` — always create a feature/fix branch
+- **ALWAYS** create a PR for review, then **STOP** — never use `gh pr merge`
+- Branch naming: `feat/`, `fix/`, `chore/`, `docs/` (kebab-case)
+- Conventional commits: `feat:`, `fix:`, `chore:`, etc.
+- Before PRs: run `npm test`, `npm run build`, `npm run lint` — zero failures required
+- Use `GIT_PAGER=cat` and `--no-pager` to prevent interactive hangs
+
+## Coding Standards
+- Functional components with hooks; prefer Server Components
+- App Router patterns only (not Pages Router)
+- Client components must have `"use client"` directive
+- Auth pages with `useSearchParams`: split into Server Component + Client Component
+- Zod schemas in `src/lib/validations/` for all API request validation
+- Consistent API error responses via `src/lib/api-error.ts`
+- Prisma for all DB operations; use transactions for multi-step ops
+
+## Key Files
+- **Schema**: `prisma/schema.prisma`
+- **Auth config**: `src/lib/auth.ts`
+- **Validations**: `src/lib/validations/`
+- **Tests**: `__tests__/` (Vitest), Playwright for e2e
+
+## Gotchas
+- `export const dynamic = 'force-dynamic'` is **ignored** in Client Components — only works in Server Components
+- `useSearchParams()` requires a `<Suspense>` boundary (Next.js 14+)
+- Add `transpilePackages: ['next-auth']` in `next.config.js` for Docker builds
+- Never run interactive commands; use SSH alias `daatan` for server access
+- Deployment task isn't done until code is pushed — don't stop at "tests pass"

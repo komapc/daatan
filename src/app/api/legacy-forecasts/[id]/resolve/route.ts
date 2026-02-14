@@ -3,15 +3,10 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { resolveForecastSchema } from '@/lib/validations/forecast'
 import { apiError, handleRouteError } from '@/lib/api-error'
+import { prisma } from '@/lib/prisma'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
-
-// Lazy import Prisma
-const getPrisma = async () => {
-  const { prisma } = await import('@/lib/prisma')
-  return prisma
-}
 
 type RouteParams = {
   params: { id: string }
@@ -27,7 +22,6 @@ const calculateBrierScore = (confidence: number, isCorrect: boolean): number => 
 // POST /api/forecasts/[id]/resolve - Resolve a forecast (admin only)
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
-    const prisma = await getPrisma()
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {

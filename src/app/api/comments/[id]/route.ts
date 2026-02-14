@@ -3,13 +3,9 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { updateCommentSchema } from '@/lib/validations/comment'
 import { apiError, handleRouteError } from '@/lib/api-error'
+import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
-
-const getPrisma = async () => {
-  const { prisma } = await import('@/lib/prisma')
-  return prisma
-}
 
 // PATCH /api/comments/[id] - Update comment
 export async function PATCH(
@@ -17,7 +13,6 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const prisma = await getPrisma()
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {
@@ -75,7 +70,6 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const prisma = await getPrisma()
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {
@@ -93,7 +87,7 @@ export async function DELETE(
     // Only author, admin, or moderator can delete
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { role: true, isAdmin: true, isModerator: true },
+      select: { role: true },
     })
 
     const canDelete = 

@@ -29,12 +29,7 @@ export const PATCH = withRole(['ADMIN'], async (req, { params }) => {
   
   const user = await prisma.user.update({
     where: { id },
-    data: { 
-      role,
-      // Sync legacy flags
-      isAdmin: role === 'ADMIN',
-      isModerator: role === 'RESOLVER' || role === 'ADMIN',
-    }
+    data: { role }
   })
   
   return NextResponse.json(user)

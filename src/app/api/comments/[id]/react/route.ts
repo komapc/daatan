@@ -3,13 +3,9 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { addReactionSchema } from '@/lib/validations/comment'
 import { apiError, handleRouteError } from '@/lib/api-error'
+import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
-
-const getPrisma = async () => {
-  const { prisma } = await import('@/lib/prisma')
-  return prisma
-}
 
 // POST /api/comments/[id]/react - Add or update reaction
 export async function POST(
@@ -17,7 +13,6 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const prisma = await getPrisma()
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {
@@ -74,7 +69,6 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const prisma = await getPrisma()
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {
