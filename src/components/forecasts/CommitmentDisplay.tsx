@@ -74,7 +74,7 @@ export default function CommitmentDisplay({
     setIsRemoving(true)
     setError(null)
     try {
-      const response = await fetch(`/api/predictions/${prediction.id}/commit`, {
+      const response = await fetch(`/api/forecasts/${prediction.id}/commit`, {
         method: 'DELETE',
       })
 

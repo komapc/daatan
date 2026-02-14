@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
-import { POST as resolvePrediction } from '@/app/api/predictions/[id]/resolve/route'
+import { POST as resolvePrediction } from '@/app/api/forecasts/[id]/resolve/route'
 
 vi.mock('next-auth/next', () => ({
   getServerSession: vi.fn(),

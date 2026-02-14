@@ -17,7 +17,7 @@ describe('ResolutionForm', () => {
     expect(screen.getByText('Wrong')).toBeInTheDocument()
     expect(screen.getByText('Void')).toBeInTheDocument()
     expect(screen.getByText('Unresolvable')).toBeInTheDocument()
-    const submitButtons = screen.getAllByRole('button', { name: /Resolve Prediction/i })
+    const submitButtons = screen.getAllByRole('button', { name: /Resolve Forecast/i })
     expect(submitButtons.length).toBeGreaterThan(0)
   })
 
@@ -27,11 +27,11 @@ describe('ResolutionForm', () => {
     render(<ResolutionForm predictionId="pred-1" onResolved={vi.fn()} />)
 
     fireEvent.click(screen.getByText('Correct'))
-    const submitButton = screen.getAllByRole('button', { name: /Resolve Prediction/i })[0]
+    const submitButton = screen.getAllByRole('button', { name: /Resolve Forecast/i })[0]
     fireEvent.click(submitButton)
 
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith('/api/predictions/pred-1/resolve', {
+      expect(mockFetch).toHaveBeenCalledWith('/api/forecasts/pred-1/resolve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -49,7 +49,7 @@ describe('ResolutionForm', () => {
 
     render(<ResolutionForm predictionId="pred-1" onResolved={onResolved} />)
 
-    const submitButton = screen.getAllByRole('button', { name: /Resolve Prediction/i })[0]
+    const submitButton = screen.getAllByRole('button', { name: /Resolve Forecast/i })[0]
     fireEvent.click(submitButton)
 
     await waitFor(() => {
@@ -63,7 +63,7 @@ describe('ResolutionForm', () => {
     render(<ResolutionForm predictionId="pred-1" />)
 
     fireEvent.click(screen.getByText('Wrong'))
-    const submitButton = screen.getAllByRole('button', { name: /Resolve Prediction/i })[0]
+    const submitButton = screen.getAllByRole('button', { name: /Resolve Forecast/i })[0]
     fireEvent.click(submitButton)
 
     await waitFor(() => {
@@ -81,7 +81,7 @@ describe('ResolutionForm', () => {
 
     render(<ResolutionForm predictionId="pred-1" />)
 
-    const submitButton = screen.getAllByRole('button', { name: /Resolve Prediction/i })[0]
+    const submitButton = screen.getAllByRole('button', { name: /Resolve Forecast/i })[0]
     fireEvent.click(submitButton)
 
     await waitFor(() => {
@@ -98,7 +98,7 @@ describe('ResolutionForm', () => {
     fireEvent.change(evidenceTextarea, {
       target: { value: 'https://example.com/1\nhttps://example.com/2' },
     })
-    const submitButton = screen.getAllByRole('button', { name: /Resolve Prediction/i })[0]
+    const submitButton = screen.getAllByRole('button', { name: /Resolve Forecast/i })[0]
     fireEvent.click(submitButton)
 
     await waitFor(() => {

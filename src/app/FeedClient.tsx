@@ -42,10 +42,11 @@ export default function FeedClient() {
         })
         if (response.ok) {
           const data = await response.json()
-          setPredictions(data.predictions || [])
+          const preds = data.predictions || []
+          setPredictions(preds)
 
           const uniqueDomains = Array.from(
-            new Set(data.predictions.map((p: Prediction) => p.domain).filter(Boolean))
+            new Set(preds.map((p: Prediction) => p.domain).filter(Boolean))
           ) as string[]
           setDomains(uniqueDomains.sort())
         } else {
@@ -86,7 +87,7 @@ export default function FeedClient() {
           className="flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl font-semibold shadow-sm hover:bg-blue-700 transition-all active:scale-95"
         >
           <Plus className="w-5 h-5" />
-          <span>New Prediction</span>
+          <span>New Forecast</span>
         </Link>
       </div>
 
@@ -97,8 +98,8 @@ export default function FeedClient() {
           <button
             onClick={() => setFilter('ACTIVE')}
             className={`px-4 py-2 rounded-lg font-medium transition-all ${filter === 'ACTIVE'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              ? 'bg-blue-600 text-white shadow-sm'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
           >
             Open
@@ -106,8 +107,8 @@ export default function FeedClient() {
           <button
             onClick={() => setFilter('CLOSING_SOON')}
             className={`px-4 py-2 rounded-lg font-medium transition-all ${filter === 'CLOSING_SOON'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              ? 'bg-blue-600 text-white shadow-sm'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
           >
             Closing Soon
@@ -115,8 +116,8 @@ export default function FeedClient() {
           <button
             onClick={() => setFilter('PENDING')}
             className={`px-4 py-2 rounded-lg font-medium transition-all ${filter === 'PENDING'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              ? 'bg-blue-600 text-white shadow-sm'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
           >
             Awaiting Resolution
@@ -124,8 +125,8 @@ export default function FeedClient() {
           <button
             onClick={() => setFilter('RESOLVED')}
             className={`px-4 py-2 rounded-lg font-medium transition-all ${filter === 'RESOLVED'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              ? 'bg-blue-600 text-white shadow-sm'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
           >
             Resolved
@@ -133,8 +134,8 @@ export default function FeedClient() {
           <button
             onClick={() => setFilter('ALL')}
             className={`px-4 py-2 rounded-lg font-medium transition-all ${filter === 'ALL'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              ? 'bg-blue-600 text-white shadow-sm'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
           >
             All
@@ -179,20 +180,20 @@ export default function FeedClient() {
           <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
             <TrendingUp className="w-10 h-10 text-blue-500" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-3">No active predictions</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-3">No active forecasts</h2>
           <p className="text-gray-500 mb-8 max-w-md mx-auto text-lg">
-            There are no active predictions at the moment. Check back soon!
+            There are no active forecasts at the moment. Check back soon!
           </p>
         </div>
       ) : (
         <div className="space-y-6">
           <div className="flex items-center justify-between px-2">
             <h2 className="text-lg font-bold text-gray-800 uppercase tracking-wider">
-              {filter === 'ACTIVE' && 'Open Predictions'}
+              {filter === 'ACTIVE' && 'Open Forecasts'}
               {filter === 'CLOSING_SOON' && 'Closing Soon'}
               {filter === 'PENDING' && 'Awaiting Resolution'}
-              {filter === 'RESOLVED' && 'Resolved Predictions'}
-              {filter === 'ALL' && 'All Predictions'}
+              {filter === 'RESOLVED' && 'Resolved Forecasts'}
+              {filter === 'ALL' && 'All Forecasts'}
             </h2>
             <span className="text-sm text-gray-500">{predictions.length} results</span>
           </div>

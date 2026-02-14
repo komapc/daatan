@@ -13,7 +13,7 @@ vi.mock('next/navigation', () => ({
   }),
 }))
 
-vi.mock('@/components/predictions/ResolutionForm', () => ({
+vi.mock('@/components/forecasts/ResolutionForm', () => ({
   ResolutionForm: ({ predictionId }: { predictionId: string }) => (
     <div data-testid="resolution-form">Resolve prediction {predictionId}</div>
   ),

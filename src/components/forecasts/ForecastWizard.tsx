@@ -128,7 +128,7 @@ export const ForecastWizard = ({ isExpressFlow = false }: ForecastWizardProps) =
       }
 
       // Create prediction
-      const response = await fetch('/api/predictions', {
+      const response = await fetch('/api/forecasts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
