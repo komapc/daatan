@@ -23,7 +23,7 @@ describe('ForecastWizard', () => {
     expect(screen.getByText('News Anchor')).toBeInTheDocument()
   })
 
-  it('loads express prediction data from localStorage on mount', async () => {
+  it('loads express forecast data from localStorage on mount', async () => {
     const expressData = {
       claimText: 'Bitcoin will reach $100k',
       resolveByDatetime: '2026-12-31T23:59:59Z',

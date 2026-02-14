@@ -53,8 +53,8 @@ describe('ForecastCard moderation controls', () => {
 
     render(<ForecastCard prediction={basePrediction} />)
 
-    expect(screen.queryByTitle(/Edit Prediction/i)).toBeNull()
-    expect(screen.queryByTitle(/Delete Prediction/i)).toBeNull()
+    expect(screen.queryByTitle(/Edit Forecast/i)).toBeNull()
+    expect(screen.queryByTitle(/Delete Forecast/i)).toBeNull()
   })
 
   it('does not show Edit/Delete for resolvers but shows Resolve for active predictions', () => {
@@ -68,8 +68,8 @@ describe('ForecastCard moderation controls', () => {
 
     render(<ForecastCard prediction={basePrediction} showModerationControls />)
 
-    expect(screen.queryByTitle(/Edit Prediction/i)).toBeNull()
-    expect(screen.queryByTitle(/Delete Prediction/i)).toBeNull()
+    expect(screen.queryByTitle(/Edit Forecast/i)).toBeNull()
+    expect(screen.queryByTitle(/Delete Forecast/i)).toBeNull()
     expect(screen.getByTitle(/Resolve forecast/i)).toBeInTheDocument()
   })
 
@@ -100,8 +100,8 @@ describe('ForecastCard moderation controls', () => {
     render(<ForecastCard prediction={basePrediction} showModerationControls />)
 
     expect(screen.getByTitle(/Resolve forecast/i)).toBeInTheDocument()
-    expect(screen.getByTitle(/Edit Prediction/i)).toBeInTheDocument()
-    expect(screen.getByTitle(/Delete Prediction/i)).toBeInTheDocument()
+    expect(screen.getByTitle(/Edit Forecast/i)).toBeInTheDocument()
+    expect(screen.getByTitle(/Delete Forecast/i)).toBeInTheDocument()
   })
 })
 

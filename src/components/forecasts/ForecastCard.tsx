@@ -74,20 +74,20 @@ export default function ForecastCard({
   const handleDelete = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    if (!confirm('Are you sure you want to delete this prediction? This action cannot be undone.')) return
+    if (!confirm('Are you sure you want to delete this forecast? This action cannot be undone.')) return
 
     try {
-      const response = await fetch(`/api/admin/predictions/${prediction.id}`, {
+      const response = await fetch(`/api/admin/forecasts/${prediction.id}`, {
         method: 'DELETE',
       })
       if (response.ok) {
         router.refresh()
       } else {
-        alert('Failed to delete prediction')
+        alert('Failed to delete forecast')
       }
     } catch (error) {
-      console.error('Error deleting prediction:', error)
-      alert('Error deleting prediction')
+      console.error('Error deleting forecast:', error)
+      alert('Error deleting forecast')
     }
   }
 
@@ -290,8 +290,8 @@ export default function ForecastCard({
                   <button
                     onClick={handleEdit}
                     className="p-1 rounded-full text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                    title="Edit Prediction"
-                    aria-label="Edit prediction"
+                    title="Edit Forecast"
+                    aria-label="Edit forecast"
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
@@ -299,8 +299,8 @@ export default function ForecastCard({
                 <button
                   onClick={handleDelete}
                   className="p-1 rounded-full text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                  title="Delete Prediction"
-                  aria-label="Delete prediction"
+                  title="Delete Forecast"
+                  aria-label="Delete forecast"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
