@@ -1,5 +1,5 @@
 #!/bin/bash
-# Pre-push hook: full build + test verification
+# Pre-push hook: full typecheck + build + test verification
 
 set -e
 
@@ -10,14 +10,21 @@ export DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
 export NEXTAUTH_SECRET="dummy-secret-for-build"
 export NEXTAUTH_URL="http://localhost:3000"
 
-# 1. Build verification
+# 1. Type check (fast, clear errors)
+echo "🔎 Running type check..."
+if ! npm run typecheck; then
+  echo "❌ Type check failed. Please fix type errors before pushing."
+  exit 1
+fi
+
+# 2. Build verification
 echo "📦 Building application..."
 if ! npm run build; then
   echo "❌ Build failed. Please fix build errors before pushing."
   exit 1
 fi
 
-# 2. Test execution
+# 3. Test execution
 echo "🧪 Running tests..."
 if ! npm test; then
   echo "❌ Tests failed. Please fix failing tests before pushing."

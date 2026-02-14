@@ -7,10 +7,16 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
     "postinstall": "prisma generate",
     "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "next lint --fix --file"
+    ]
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -44,6 +50,7 @@
     "fast-check": "^4.5.3",
     "husky": "^9.1.7",
     "jsdom": "^28.0.0",
+    "lint-staged": "^16.2.7",
     "postcss": "^8.5.2",
     "prisma": "^5.22.0",
     "tailwindcss": "^3.4.19",
