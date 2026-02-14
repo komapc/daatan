@@ -2,7 +2,7 @@
 
 ## Up Next
 
-### 🔴 High Priority
+### P0 - Critical
 
 - [ ] **DB: Sunset legacy Forecast/Vote/ForecastOption models** — dual system adds complexity, Comment has polymorphic relations to both. Migrate old data to new system, drop old tables. Blocks future velocity.
 
@@ -10,13 +10,19 @@
 
 - [ ] **DB: Remove deprecated schema fields** — `User.isAdmin`, `User.isModerator`, `User.brierScore` have `@default` values and are no longer read/written by application code (migrated to `role` enum). Create Prisma migration to drop columns. `Vote.brierScore` stays (legacy system).
 
-### 🟠 Medium Priority
+### P1 - High Priority
 
 - [ ] **Commitments: Elaborate commitment/join forecast system** — define how users commit to forecasts, change commitments, what happens on resolution. Multiple open design questions.
 
 - [ ] **Forecasts: Tags/domains system** — evolve single `domain` string to many-to-many tags. LLM auto-assigns during creation, user can edit. Existing domain values become initial tag set. Feed filtering by tags.
 
 - [ ] **Forecasts: "Updated Context" feature** — "Analyze Context" button on forecast detail page. Re-searches latest articles, updates context. Forecast claim text never changes, only context evolves.
+
+- [ ] **Code Quality: Adopt `withAuth` wrapper across remaining routes** — wrapper created in `api-middleware.ts`, demonstrated on `publish` and `commit` routes. Incrementally adopt on remaining ~18 protected routes.
+
+- [ ] **Code Quality: Replace `console.error` with structured logging** (e.g., pino) — 37 unstructured console.* calls across src/
+
+### P2 - Medium Priority
 
 - [ ] **Notifications system** (unified)
   - [ ] In-app notifications page (`/notifications`)
@@ -37,10 +43,6 @@
 - [ ] **i18n: UI translations** — translate all static UI strings (buttons, labels, navigation). Start with Hebrew.
 - [ ] **i18n: Auto-translate user content** — automatic translation of forecasts, comments.
 
-- [ ] **Code Quality: Adopt `withAuth` wrapper across remaining routes** — wrapper created in `api-middleware.ts`, demonstrated on `publish` and `commit` routes. Incrementally adopt on remaining ~18 protected routes.
-
-- [ ] **Code Quality: Replace `console.error` with structured logging** (e.g., pino) — 37 unstructured console.* calls across src/
-
 - [ ] **CI/CD: Split `verify-deploy.sh`** — runs `docker logs` from GitHub Actions runner but containers don't exist there. Split into CI-safe health check and server-only log inspection.
 - [ ] **CI/CD: Add production approval gate** — `environment: production` protection rule in GitHub with required reviewers.
 - [ ] **CI/CD: Reconcile Dockerfile ARGs** — `NEXT_PUBLIC_APP_VERSION` passed but never declared; `GIT_COMMIT` declared but never passed.
@@ -48,7 +50,7 @@
 - [ ] **CI/CD: Create `version-bump.yml` workflow** — or remove stale references from docs.
 - [ ] **CI/CD: Centralize ECR registry** — hardcoded in 4+ places (workflow, compose files, rollback script).
 
-### 🟡 Low Priority
+### P3 - Low Priority
 
 - [ ] **Express Forecast: Polish** — add save-as-draft, regenerate button, inline field editing on review screen
 - [ ] **Express Forecast: Edit options** — add ability to edit/refine generated options before finalizing prediction
@@ -82,7 +84,7 @@
 
 - [ ] **Docs: Update PRODUCT.md roadmap** — Phase 1 items still show in-progress from January 2026
 
-### 🔵 Verify / Check Later
+### Verify / Check Later
 - [ ] **SEO: Slugs** — migration exists, verify URLs actually use slugs in production
 - [ ] **SEO: Server-render home feed** — currently client-side fetch, no SSR
 
