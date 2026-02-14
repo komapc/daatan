@@ -5,34 +5,31 @@
 
 ## Up Next
 
-### 🔴 High Priority
+### P0 - Critical
 
-- [x] **Security: Clean dead env vars from `.env`** — ~~`GOOGLE_SEARCH_API_KEY` and `GOOGLE_SEARCH_ENGINE_ID` are in `.env` but unused in code (project uses Serper now). Remove to reduce attack surface.~~ ✅ Removed
+- [ ] **Bug: MULTIPLE_CHOICE resolution is broken** — In `src/app/api/forecasts/[id]/resolve/route.ts` (lines 84-86), resolution logic only checks `commitment.binaryChoice` which is `null` for MC predictions. All MC commitments are scored as wrong. `correctOptionId` from validation schema is accepted but never used. `PredictionOption.isCorrect` is never updated. Fix: use `correctOptionId` to determine which option won, compare against `commitment.optionId`, and update `PredictionOption.isCorrect`.
 
-- [ ] **Admin & Roles System** (ASAP)
-  - [x] Add `role` enum to User model (USER, RESOLVER, ADMIN), seed initial admins
-  - [x] Role-based API middleware (admin-only, resolver-only route protection)
-  - [x] Custom `/admin` page — forecasts management (list, search, edit, soft-delete)
-  - [x] Admin: Comments management (list, search, delete)
-  - [x] Admin: Users management (list, assign/revoke roles)
-  - [x] Resolver capabilities: resolve forecasts + delete comments (inline UI + admin panel)
-  - [x] UI indicators: admin/resolver badges on profiles, inline moderation controls
+- [ ] **DB: Sunset legacy Forecast/Vote/ForecastOption models** — Dual system adds complexity, Comment has polymorphic relations to both. Legacy routes moved to `src/app/api/legacy-forecasts/` but old models still live in schema. Migrate remaining data to new system, drop old tables.
 
-- [x] **Infra: Fix zero-downtime deploys** — ~~staging is down several minutes after merging PRs. Investigate deploy workflow + blue-green script, likely old container stopped before new one is healthy or DB restart during deploy~~ ✅ Fixed — blue-green script now uses Docker network alias swapping instead of stop→rename. Old container serves traffic until new container is health-checked, migrations pass, and network alias is swapped atomically.
+### P1 - High Priority
 
+- [ ] **Security: Rate limiting** — Anti-flood on write endpoints, cost protection on LLM routes (express generate, AI extract). Nginx-level preferred.
 
+- [ ] **Commitments: Elaborate commitment/join forecast system** — Define how users commit to forecasts, change commitments, what happens on resolution. Multiple open design questions.
 
-- [ ] **Naming: Rename "Prediction" → "Forecast" everywhere** — DB models, API routes, file paths, components, types, UI text. Consolidate with legacy Forecast model sunset. Needs spec + careful migration plan for production data.
+- [ ] **Forecasts: Tags/domains system** — Evolve single `domain` string to many-to-many tags. LLM auto-assigns during creation, user can edit. Existing domain values become initial tag set. Feed filtering by tags.
 
-### 🟠 Medium Priority
+- [ ] **Code Quality: Extract auth boilerplate into shared wrapper** — Every protected API route repeats `getServerSession(authOptions)` + null check + role check (~10 lines). Create a `withAuth(handler, { role?: ... })` wrapper. Affects 20+ routes.
 
-- [ ] **Security: Rotate exposed API keys** — `.env` file contains real API keys (Gemini, Serper, Google Search). Verified `.env` is gitignored and not in repo history — keys are safe for now. Rotate when moving to Secrets Manager.
+- [ ] **Code Quality: Standardize Prisma imports** — 14 API routes use unnecessary `getPrisma()` dynamic import wrapper. Standardize to direct singleton import (`import { prisma } from '@/lib/prisma'`). Routes: forecasts, legacy-forecasts, top-reputation, news-anchors, comments, commitments.
 
-- [ ] **Commitments: Elaborate commitment/join forecast system** — define how users commit to forecasts, change commitments, what happens on resolution. Multiple open design questions.
+- [ ] **Code Quality: Refactor 380-line commit route** — `src/app/api/forecasts/[id]/commit/route.ts` is the largest API route. Extract business logic (CU validation, commitment creation, transaction recording) into a service layer.
 
-- [ ] **Forecasts: Tags/domains system** — evolve single `domain` string to many-to-many tags. LLM auto-assigns during creation, user can edit. Existing domain values become initial tag set. Feed filtering by tags.
+### P2 - Medium Priority
 
 - [ ] **Forecasts: "Updated Context" feature** — "Analyze Context" button on forecast detail page. Re-searches latest articles, updates context. Forecast claim text never changes, only context evolves.
+
+- [ ] **UX: Merge Feed and Forecasts screens** — Unify `/` and `/forecasts` into single feed at `/`, redirect `/forecasts` there.
 
 - [ ] **Notifications system** (unified)
   - [ ] In-app notifications page (`/notifications`)
@@ -43,48 +40,64 @@
   - [ ] Triggers: commitment resolutions, comments on your forecasts, new commitments
   - [ ] Comment `@mentions`: when a comment includes `@username`, notify that user via their configured notification channels
 
-- [ ] **UX: Merge Feed and Forecasts screens** — unify `/` and `/predictions` into single feed at `/`, redirect `/predictions` there
-
 - [ ] **Commitments: History page** with stats and performance metrics
 - [ ] **Commitments: Real-time activity feed** showing recent commitments across forecasts
 - [ ] **Commitments: Leaderboard** (accuracy, total correct, RS gained, most CU committed)
 
-- [ ] **i18n: Language picker + store preference** — add language selector in UI, store user preference in DB. Infrastructure setup with next-intl.
-- [ ] **i18n: UI translations** — translate all static UI strings (buttons, labels, navigation). Start with Hebrew.
-- [ ] **i18n: Auto-translate user content** — automatic translation of forecasts, comments. Hard questions: what if translation loses meaning? Show original + translation? Flag uncertain translations?
+- [ ] **i18n: Language picker + store preference** — Add language selector in UI, store user preference in DB. Infrastructure setup with next-intl.
+- [ ] **i18n: UI translations** — Translate all static UI strings (buttons, labels, navigation). Start with Hebrew.
+- [ ] **i18n: Auto-translate user content** — Automatic translation of forecasts, comments. Hard questions: what if translation loses meaning? Show original + translation? Flag uncertain translations?
 
-- [ ] **DB: Sunset legacy Forecast/Vote/ForecastOption models** — dual system adds complexity, Comment has polymorphic relations to both. Migrate old data to new system, drop old tables.
+- [ ] **Code Quality: Replace `as any` in non-test code** — `src/app/profile/page.tsx` (ForecastCard props), `src/app/admin/AdminClient.tsx` (role update), `src/app/api/commitments/route.ts` (status enum). Fix with proper types.
 
-- [x] **Security: Inconsistent authorization on resolve endpoints** — ~~`forecasts/[id]/resolve` checks `isAdmin` only, while `predictions/[id]/resolve` checks `isModerator || isAdmin`. Standardize both to `isModerator || isAdmin`.~~ ✅ Fixed
+- [ ] **Code Quality: Replace `console.error` with structured logging** (e.g., pino) — 37 `console.log/warn/error` calls across `src/` in non-test code. No request IDs, no log levels, no structure.
 
-- [x] **Code Quality: Fix `@ts-ignore` in `src/lib/auth.ts`** — ~~PrismaAdapter type mismatch. Fix the type properly instead of suppressing.~~ ✅ Cast as `Adapter` from next-auth/adapters
+- [ ] **DB: Remove deprecated schema fields** — `User.isAdmin`, `User.isModerator`, `User.brierScore`, `Prediction.domain` are marked deprecated but still referenced in `src/lib/auth.ts`, `src/app/api/legacy-forecasts/`, `src/app/api/comments/[id]/route.ts`, `src/app/api/admin/users/[id]/route.ts`, `src/types/next-auth.d.ts`. Migrate all references to `role` enum before removing fields.
 
-- [x] **Code Quality: Replace `any` types** — ~~found in `commitments/route.ts` (where clause), `ai/extract/route.ts` (error catch), `express/generate/route.ts` (onProgress callback), `expressPrediction.ts`. Use proper types.~~ ✅ Replaced with `Prisma.CommitmentWhereInput`, `Record<string, unknown>`, and `unknown`
+- [ ] **Security: Missing env var validation at startup** — GEMINI_API_KEY, SERPER_API_KEY checked at request time, not at boot. Add startup validation.
 
-- [x] **Code Quality: Standardize error responses** — ~~some routes return `{ error }`, others `{ error, details }`. Create a shared error response helper.~~ ✅ Fixed — created `src/lib/api-error.ts` with `apiError()` and `handleRouteError()`. All 20 API routes now use consistent shape: `{ error: string, details?: Array<{path, message}> }`.
+- [ ] **Security: Content-Security-Policy header** in nginx config
 
-- [x] **DB: Add `deletedAt` index on Comment model** — ~~soft-delete queries filter on `deletedAt: null` but there's no index for it. Add `@@index([deletedAt])`.~~ ✅ Fixed
+### P3 - Low Priority
 
-- [x] **API: Add validation on `top-reputation` route** — ~~`limit` query param has no validation (could be negative or huge). Add Zod schema with `min(1).max(100)`.~~ ✅ Fixed
-
-- [x] **API: Comment delete should also allow `isModerator`** — ~~currently only author or `isAdmin` can delete. Moderators should be able to delete too, consistent with resolve permissions.~~ ✅ Fixed
-
-- [x] **CI/CD: Production deploy stops app+nginx before rebuild** — ~~`deploy-production` job runs `docker compose down app nginx` before building, causing downtime. Should use blue-green like staging does.~~ ✅ Fixed — now uses `blue-green-deploy.sh production` same as staging.
-
-- [x] **CI/CD: Migration failure silently ignored** — ~~production deploy has `|| echo "⚠️ Migration failed..."` which swallows real migration errors. Should fail the deploy on migration errors. (Note: blue-green script has same issue in Phase 5)~~ ✅ Fixed — migrations now run BEFORE the traffic swap (Phase 5). If migration fails, the new container is cleaned up and old container keeps serving. Deploy exits with error code.
-
-### 🟡 Low Priority
-
-- [ ] **Express Forecast: Polish** — add save-as-draft, regenerate button, inline field editing on review screen
-- [ ] **Express Forecast: Edit options** — add ability to edit/refine generated options before finalizing prediction
-- [ ] **Manual Forecast: Visual improvements** — enhance UI/UX of manual prediction creation flow
+- [ ] **Express Forecast: Polish** — Add save-as-draft, regenerate button, inline field editing on review screen
+- [ ] **Express Forecast: Edit options** — Add ability to edit/refine generated options before finalizing
+- [ ] **Manual Forecast: Visual improvements** — Enhance UI/UX of manual forecast creation flow
 - [ ] **Express Forecast: Multiple choice support** (e.g., "who will win elections")
 - [ ] **Express Forecast: Numeric threshold support** (e.g., "Bitcoin price by end of year")
 - [ ] **Express Forecast: Advanced types** (order, date-based, conditional)
 - [ ] **Express create forecast**: Legacy forecast system with LLM assistance
 
-- [ ] **Security: Rate limiting** — anti-flood on write endpoints, cost protection on LLM routes (express generate, AI extract). Nginx-level preferred.
-- [ ] **Security: Content-Security-Policy header** in nginx config
+- [ ] **Profile: Custom avatar upload** (S3 storage, DB schema, UI flow) — Spec ready
+
+- [ ] **Code Quality: Stub `fetchArticleContent()` in `webSearch.ts`** — Returns empty string with console.warn. Either implement or remove.
+- [ ] **Code Quality: Client error handling uses `alert()`** — `CommentForm.tsx` uses `alert()` for errors. Replace with proper error state UI across components.
+
+- [ ] **Testing: E2E tests** — Playwright config added in v1.1.1 with example spec. Expand to cover critical flows.
+
+- [ ] **Localization: Hebrew translations** (after i18n infrastructure is ready)
+
+- [ ] **About Window** — Add an "About" modal/page with app info, version, and credits.
+
+- [ ] **Accessibility: Remove `userScalable: false`** from layout viewport — Prevents zoom on mobile, accessibility concern.
+
+### CI/CD Improvements
+
+- [x] **CI/CD: Add lint-staged for pre-commit** — ~~Replaced full `npm run lint` with lint-staged (only lint changed files). Faster pre-commit feedback.~~ Done
+- [x] **CI/CD: Add `typecheck` script and CI step** — ~~Added `tsc --noEmit` as `npm run typecheck`. Runs in pre-push hook and CI pipeline before build. Catches type errors faster with clearer output.~~ Done
+- [x] **CI/CD: Add security audit to CI** — ~~`npm audit --audit-level=critical` runs after install. Warns on vulnerabilities before production deploy.~~ Done
+- [x] **CI/CD: Skip Docker build/push on PRs** — ~~ECR build/push steps now gated with `if: github.event_name != 'pull_request'`. Saves ECR storage and CI time.~~ Done
+- [x] **CI/CD: Reorder CI steps for faster failure** — ~~Moved typecheck and lint before build. Type errors and lint failures now fail in ~10s instead of waiting for full build.~~ Done
+- [x] **CI/CD: Fix Playwright config** — ~~Removed Carbonyl terminal browser dependency. Uses standard Chromium for E2E tests. Changed webServer from `npm run dev` to `npm run start` for production-like testing.~~ Done
+- [ ] **CI/CD: Add Playwright E2E smoke tests to CI** — Config is ready. Needs postgres service in CI workflow and Playwright browser install step. Would catch SSR crashes and missing pages.
+- [ ] **CI/CD: Docker build smoke test in CI** — After building Docker image, start it with docker-compose and hit `/api/health`. Would have prevented both Jan 2026 post-mortem incidents.
+- [ ] **CI/CD: Split `verify-deploy.sh`** — Currently runs `docker logs` from GitHub Actions runner where no containers exist. Split into CI-safe health-check-only script and server-only log inspection script.
+- [ ] **CI/CD: Add production approval gate** — No `environment: production` protection rule in GitHub. Add required reviewers for production deploys.
+- [ ] **CI/CD: Reconcile Dockerfile ARGs with workflow** — `NEXT_PUBLIC_APP_VERSION` passed from workflow but never declared in Dockerfile. `GIT_COMMIT` declared in Dockerfile but not passed from workflow. Fix both.
+- [ ] **CI/CD: Add version input for manual production deploys** — Manual dispatch currently uses `staging-latest` image tag with no version override. Risk of deploying unintended staging code.
+- [ ] **CI/CD: `version-bump.yml` workflow** — Referenced in STRUCTURE.md and TECH.md but does not exist. Either create the workflow or remove stale references.
+- [ ] **CI/CD: Centralize ECR registry reference** — `272007598366.dkr.ecr.eu-central-1.amazonaws.com` hardcoded in workflow, compose files, and rollback script. Extract to single variable.
+- [ ] **CI/CD: Fix network fallback in `blue-green-deploy.sh`** — Uses hardcoded `app_default` instead of deriving from Docker Compose project name.
 
 - [ ] **Infra: Optimize CI/CD Deployment Pipeline**
   - [ ] Add 10-minute timeouts to SSM polling loops in `deploy.yml` to prevent hangs
@@ -92,32 +105,32 @@
   - [ ] Decouple Staging/Production deployments where safe
   - [ ] Implement build-caching for Next.js to speed up ECR image creation
 
-- [ ] **Profile: Custom avatar upload** (S3 storage, DB schema, UI flow) — Spec ready
+### Documentation Cleanup
 
-- [x] **Code Quality: Eliminate all compile-time/runtime/linter warnings** — ~~Fixed ESLint warnings in admin tables (CommentsTable, ForecastsTable, UsersTable) by wrapping fetch functions in useCallback.~~ ✅ Fixed
-- [ ] **Code Quality: Replace `console.error` with structured logging** (e.g., pino)
-- [ ] **Code Quality: Inconsistent Prisma import pattern** — `comments/route.ts` and `comments/[id]/route.ts` use dynamic import wrapper (`getPrisma`), all other routes import singleton directly. Standardize to direct import.
-- [x] **Code Quality: Move profile validation schema to `src/lib/validations/`** — ~~`updateProfileSchema` is defined inline in `profile/update/route.ts` instead of centralized like other domains.~~ ✅ Moved to `src/lib/validations/profile.ts`
-- [ ] **Code Quality: Stub `fetchArticleContent()` in `webSearch.ts`** — returns empty string with console.warn. Either implement or remove.
-- [ ] **Code Quality: Client error handling uses `alert()`** — `CommentForm.tsx` uses `alert()` for errors. Replace with proper error state UI across components.
-- [ ] **Security: Missing env var validation at startup** — GEMINI_API_KEY, SERPER_API_KEY checked at request time, not at boot. Add startup validation.
-- [x] **Security: Remove `@types/pg` from devDependencies** — ~~unused, Prisma handles DB connections.~~ ✅ Removed
+- [ ] **Docs: Update STRUCTURE.md and TECH.md for post-rename paths** — Still reference `src/app/api/predictions/`, `src/components/predictions/`, `version-bump.yml`, and `DEPLOYMENT_SUMMARY.md`. Update to match current codebase.
+- [ ] **Docs: Remove duplicate Ollama docs** — `docs/OLLAMA_SETUP.md` and `docs/ollama-setup.md` are two files with the same topic. Merge into one.
+- [ ] **Docs: Consolidate overlapping documentation** — `TECH.md`, `DEPLOYMENT.md`, `INFRASTRUCTURE.md`, `STRUCTURE.md`, and `DEPLOYMENT_CHECKLIST.md` have significant content overlap (architecture diagrams, deployment commands, env vars). Consider consolidating.
+- [ ] **Docs: Update PRODUCT.md roadmap** — Phase 1 items still show in-progress from January 2026. Update to reflect current state.
+- [ ] **Docs: Remove `PRODUCT_NAMING.md` or archive** — References "ScoopBet" as proposed name, decision made. Low value as root-level doc.
 
-- [ ] **Testing: E2E tests** (Playwright/Cypress)
-- [x] **Testing: Commitment and resolution flow tests** — ~~critical business logic with zero coverage~~ ✅ Added comprehensive tests (9 commitment tests + 6 resolution tests)
+### Agent Config Cleanup
 
-- [ ] **Localization: Hebrew translations** (after i18n infrastructure is ready)
+- [ ] **Agents: Create `.cursor/rules/`** — Cursor IDE has no project-specific rules. DAATAN domain conventions, safety rails, and coding standards are not surfaced to Cursor agents. Extract from `.agent/RULES.md`.
+- [ ] **Agents: Deduplicate rules across systems** — "Never push to main", Next.js gotchas, git pager workaround, and decision-making style are each duplicated 3-5 times across `.agent/RULES.md`, `.agent/config.json`, `.kiro/steering/*.md`, and `agents/corvus/SOUL.md`. Consolidate into single source of truth.
+- [ ] **Agents: Fix user identity** — `agents/corvus/USER.md` says "janwuf" but all other configs reference "Mark" / "komap" / "komapcc". Reconcile.
+- [ ] **Agents: Sync MCP configs** — `.agent/config.json` and `.kiro/settings/mcp.json` define the same MCP servers. Update one, forget the other. Consolidate.
 
-- [x] **Code Quality: Remove unused `pg` dependency** — ~~Prisma handles DB connections, `pg` package in `package.json` may not be needed directly. Verify and remove if unused.~~ ✅ Verified unused, removed
-- [x] **Docs: `DEPLOYMENT_SUMMARY.md` is stale** — ~~references version 0.1.16 and "14/14 tests". Either keep it updated or remove it (it's a snapshot, not a living doc).~~ ✅ Removed
-- [ ] **Docs: Remove `PRODUCT_NAMING.md` or archive** — references "ScoopBet" as proposed name, decision still pending. Low value as a root-level doc.
-- [x] **Dockerfile: Clean up debug `RUN echo` statements** — ~~build stage has multiple `echo` and `ls -R` commands for debugging. Remove once builds are stable.~~ ✅ Removed debug echo/ls statements and stale BUILD_TIMESTAMP arg
+### Upgrades (evaluate when ready)
 
-- [ ] **About Window** — Add an "About" modal/page with app info, version, and credits.
+- [ ] **Upgrade: Next.js 14 → 15 + React 19** — Current version has a known security vulnerability. Next.js 15 brings stable Turbopack, improved caching, Server Actions. Migration effort: moderate (caching behavior changes, async params). Prerequisite for adopting Server Actions pattern.
+- [ ] **Upgrade: NextAuth 4 → Auth.js v5** — v4 is in maintenance mode. v5 has simpler API, native RBAC patterns, better middleware. Would simplify custom role middleware. Do after Next.js 15 upgrade.
+- [ ] **Evaluate: AWS Amplify Hosting or App Runner** — Current EC2 + Docker + Nginx + Certbot + blue-green scripts is significant ops burden for solo dev. AWS Amplify has native Next.js SSR support with git-push deploys. App Runner works with existing ECR. Either would eliminate most deployment scripts and Terraform.
+- [ ] **Evaluate: Server Actions for mutations** — With Next.js 15, Server Actions could replace many `/api/` routes (create forecast, commit, resolve). Type-safe end-to-end, no fetch boilerplate, no `getPrisma()` wrapper issue. Evaluate after Next.js 15 upgrade.
 
-### 🔵 Verify / Check Later
-- [ ] **SEO: Slugs** — migration exists, verify URLs actually use slugs in production
-- [ ] **SEO: Server-render home feed** — currently client-side fetch, no SSR. Lowest priority.
+### Verify / Check Later
+
+- [ ] **SEO: Slugs** — Migration exists, verify URLs actually use slugs in production
+- [ ] **SEO: Server-render home feed** — Currently client-side fetch, no SSR. Lowest priority.
 
 ---
 *Agents: Work through "Up Next" items in priority order. Move to "In Progress" when starting. Notify komap via Telegram when ready for review.*
