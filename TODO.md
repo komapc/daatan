@@ -20,7 +20,7 @@
 
 - [x] **Infra: Fix zero-downtime deploys** — ~~staging is down several minutes after merging PRs. Investigate deploy workflow + blue-green script, likely old container stopped before new one is healthy or DB restart during deploy~~ ✅ Fixed — blue-green script now uses Docker network alias swapping instead of stop→rename. Old container serves traffic until new container is health-checked, migrations pass, and network alias is swapped atomically.
 
-- [ ] **Architecture: Refactor to classical SPA** with 2026 best practices — Spec ready at `.kiro/specs/spa-refactor/`
+
 
 - [ ] **Naming: Rename "Prediction" → "Forecast" everywhere** — DB models, API routes, file paths, components, types, UI text. Consolidate with legacy Forecast model sunset. Needs spec + careful migration plan for production data.
 
@@ -86,9 +86,11 @@
 - [ ] **Security: Rate limiting** — anti-flood on write endpoints, cost protection on LLM routes (express generate, AI extract). Nginx-level preferred.
 - [ ] **Security: Content-Security-Policy header** in nginx config
 
-- [ ] **Infra: Check EC2 memory usage** — t3.nano (0.5GB) runs Nginx + 2 Next.js + PostgreSQL. Check if actually hitting limits before upgrading.
-- [ ] **Infra: SSL certificate renewal monitoring** — certbot runs in loop but no alert if renewal fails
-- [ ] **Infra: DB migration rollback strategy** — rollback.sh handles code but not schema changes
+- [ ] **Infra: Optimize CI/CD Deployment Pipeline**
+  - [ ] Add 10-minute timeouts to SSM polling loops in `deploy.yml` to prevent hangs
+  - [ ] Add pre-deployment SSM health checks to fail fast if agent is down
+  - [ ] Decouple Staging/Production deployments where safe
+  - [ ] Implement build-caching for Next.js to speed up ECR image creation
 
 - [ ] **Profile: Custom avatar upload** (S3 storage, DB schema, UI flow) — Spec ready
 
@@ -110,6 +112,8 @@
 - [x] **Docs: `DEPLOYMENT_SUMMARY.md` is stale** — ~~references version 0.1.16 and "14/14 tests". Either keep it updated or remove it (it's a snapshot, not a living doc).~~ ✅ Removed
 - [ ] **Docs: Remove `PRODUCT_NAMING.md` or archive** — references "ScoopBet" as proposed name, decision still pending. Low value as a root-level doc.
 - [x] **Dockerfile: Clean up debug `RUN echo` statements** — ~~build stage has multiple `echo` and `ls -R` commands for debugging. Remove once builds are stable.~~ ✅ Removed debug echo/ls statements and stale BUILD_TIMESTAMP arg
+
+- [ ] **About Window** — Add an "About" modal/page with app info, version, and credits.
 
 ### 🔵 Verify / Check Later
 - [ ] **SEO: Slugs** — migration exists, verify URLs actually use slugs in production

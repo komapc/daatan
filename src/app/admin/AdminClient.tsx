@@ -125,11 +125,10 @@ export default function AdminClient() {
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === tab.key
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.key
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
             >
               <Icon className="w-4 h-4" />
               {tab.label}
@@ -276,7 +275,7 @@ function ForecastsTab() {
                       </td>
                       <td className="px-4 py-3 text-center">
                         <Link
-                          href={`/predictions/${p.id}`}
+                          href={`/forecasts/${p.id}`}
                           className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs font-medium"
                         >
                           <ExternalLink className="w-3 h-3" />
@@ -382,7 +381,7 @@ function CommentsTab() {
           <div className="space-y-3">
             {comments.map((c) => {
               const target = c.prediction
-                ? { label: c.prediction.claimText, href: `/predictions/${c.prediction.id}` }
+                ? { label: c.prediction.claimText, href: `/forecasts/${c.prediction.id}` }
                 : c.forecast
                   ? { label: c.forecast.title, href: '#' }
                   : null

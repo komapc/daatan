@@ -31,7 +31,7 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { href: '/', label: 'Feed', icon: Home },
-  { href: '/predictions', label: 'Forecasts', icon: TrendingUp },
+  { href: '/forecasts', label: 'Forecasts', icon: TrendingUp },
   { href: '/create', label: 'Create', icon: PlusCircle },
   { href: '/notifications', label: 'Notifications', icon: Bell },
   { href: '/leaderboard', label: 'Leaderboard', icon: Trophy },
@@ -44,7 +44,7 @@ const Sidebar = () => {
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [hasMounted, setHasMounted] = useState(false)
-  
+
   // Safely call useSession and provide defaults to avoid build-time crashes
   const sessionData = useSession()
   const session = sessionData?.data || null
@@ -86,17 +86,17 @@ const Sidebar = () => {
   // Filter nav items based on auth status (only after mount to avoid hydration mismatch)
   const filteredNavItems = hasMounted
     ? navItems.filter((item) => {
-        const authRequiredRoutes = ['/create', '/notifications', '/profile']
-        if (authRequiredRoutes.includes(item.href)) {
-          return status === 'authenticated'
-        }
-        return true
-      })
+      const authRequiredRoutes = ['/create', '/notifications', '/profile']
+      if (authRequiredRoutes.includes(item.href)) {
+        return status === 'authenticated'
+      }
+      return true
+    })
     : navItems.filter((item) => {
-        // During SSR/pre-mount, show all non-auth routes
-        const authRequiredRoutes = ['/create', '/notifications', '/profile']
-        return !authRequiredRoutes.includes(item.href)
-      })
+      // During SSR/pre-mount, show all non-auth routes
+      const authRequiredRoutes = ['/create', '/notifications', '/profile']
+      return !authRequiredRoutes.includes(item.href)
+    })
 
   // Add admin link for admin/moderator users
   if (hasMounted && status === 'authenticated' && (session?.user?.role === 'ADMIN' || session?.user?.role === 'RESOLVER')) {
@@ -119,8 +119,8 @@ const Sidebar = () => {
         <div className="flex items-center gap-2">
           {hasMounted && status === 'authenticated' && session?.user && (
             <Link href="/profile" onClick={handleCloseMenu}>
-              <Avatar 
-                src={session.user.image} 
+              <Avatar
+                src={session.user.image}
                 name={session.user.name}
                 size={32}
               />
@@ -193,8 +193,8 @@ const Sidebar = () => {
                     onClick={item.label === 'Sign In' ? handleSignIn : handleCloseMenu}
                     className={`
                       flex items-center gap-3 px-4 py-3 rounded-lg transition-colors
-                      ${isActive 
-                        ? 'bg-blue-50 text-blue-600' 
+                      ${isActive
+                        ? 'bg-blue-50 text-blue-600'
                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                       }
                     `}
@@ -225,8 +225,8 @@ const Sidebar = () => {
                 onClick={handleCloseMenu}
                 className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
               >
-                <Avatar 
-                  src={session.user.image} 
+                <Avatar
+                  src={session.user.image}
                   name={session.user.name}
                   size={32}
                 />

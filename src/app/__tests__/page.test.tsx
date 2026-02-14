@@ -6,8 +6,8 @@ import { vi, describe, it, expect, beforeEach } from 'vitest'
 const mockFetch = vi.fn()
 global.fetch = mockFetch
 
-// Mock PredictionCard to simplify testing
-vi.mock('@/components/predictions/PredictionCard', () => ({
+// Mock ForecastCard to simplify testing
+vi.mock('@/components/forecasts/ForecastCard', () => ({
   default: () => <div data-testid="prediction-card">Card</div>
 }))
 

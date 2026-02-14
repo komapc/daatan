@@ -14,7 +14,7 @@
 
 ## What Is DAaTAn?
 
-DAaTAn is a reputation-based product that enables testing understanding and predictions on news, politics, and current affairs — **without money**, with long-term accuracy measurement.
+DAaTAn is a reputation-based product that enables testing understanding and forecasts on news, politics, and current affairs — **without money**, with long-term accuracy measurement.
 
 **The product doesn't measure profit — it measures understanding.**
 
