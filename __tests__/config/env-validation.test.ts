@@ -15,7 +15,7 @@ import {
 const validEnv = {
   GOOGLE_CLIENT_ID: '123456789-abcdef.apps.googleusercontent.com',
   GOOGLE_CLIENT_SECRET: 'test-fake-client-secret-value-long-enough',
-  NEXTAUTH_SECRET: 'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6',
+  NEXTAUTH_SECRET: '0000000000000000000000000000000000000000',
   NEXTAUTH_URL: 'https://daatan.com',
 }
 
@@ -113,7 +113,7 @@ describe('googleOAuthEnvSchema', () => {
     it('accepts openssl rand -hex 32 output', () => {
       const result = googleOAuthEnvSchema.safeParse({
         ...validEnv,
-        NEXTAUTH_SECRET: 'e9fade903fd1c4737ec0e19c70b8429c3dfa8286a89d3ea2fa346269eeb7aa61',
+        NEXTAUTH_SECRET: '0'.repeat(64),
       })
       expect(result.success).toBe(true)
     })
@@ -121,7 +121,7 @@ describe('googleOAuthEnvSchema', () => {
     it('accepts openssl rand -base64 32 output', () => {
       const result = googleOAuthEnvSchema.safeParse({
         ...validEnv,
-        NEXTAUTH_SECRET: 'K7gNU3sdo+OL0wNhqoVWhr3g6s1xYv72ol/pe/Unols=',
+        NEXTAUTH_SECRET: 'A'.repeat(32) + '==',
       })
       expect(result.success).toBe(true)
     })
@@ -247,7 +247,7 @@ describe('validateOAuthEnv', () => {
     const result = validateOAuthEnv({
       GOOGLE_CLIENT_ID: '  123456789-abcdef.apps.googleusercontent.com  ',
       GOOGLE_CLIENT_SECRET: '  test-fake-client-secret-value-long-enough  ',
-      NEXTAUTH_SECRET: '  a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6  ',
+      NEXTAUTH_SECRET: '  0000000000000000000000000000000000000000  ',
       NEXTAUTH_URL: '  https://daatan.com  ',
     })
     expect(result.valid).toBe(true)
@@ -295,7 +295,7 @@ describe('getOAuthDiagnostics', () => {
     const diagString = JSON.stringify(diag)
     // Should not contain the full secret
     expect(diagString).not.toContain('test-fake-client-secret-value-long-enough')
-    expect(diagString).not.toContain('a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6')
+    expect(diagString).not.toContain('0000000000000000000000000000000000000000')
   })
 
   it('reports missing values', () => {
