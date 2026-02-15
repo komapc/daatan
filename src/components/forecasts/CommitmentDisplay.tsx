@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { createClientLogger } from '@/lib/client-logger'
+import { Pencil, Trash2, Loader2 } from 'lucide-react'
 
 const log = createClientLogger('CommitmentDisplay')
 
@@ -45,26 +46,26 @@ export default function CommitmentDisplay({
   const isActive = prediction.status === 'ACTIVE'
   const isResolved = commitment.cuReturned !== null && commitment.cuReturned !== undefined
 
-  // Format outcome text
   const getOutcomeText = () => {
-    if (commitment.option) {
-      return commitment.option.text
-    }
+    if (commitment.option) return commitment.option.text
     if (commitment.binaryChoice !== undefined) {
       return commitment.binaryChoice ? 'Will Happen' : "Won't Happen"
     }
     return 'Unknown'
   }
 
-  // Format timestamp
+  const getOutcomeColor = () => {
+    if (commitment.binaryChoice === true) return 'text-green-700 bg-green-50 border-green-200'
+    if (commitment.binaryChoice === false) return 'text-red-700 bg-red-50 border-red-200'
+    return 'text-blue-700 bg-blue-50 border-blue-200'
+  }
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
-    return date.toLocaleString('en-US', {
+    return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
     })
   }
 
@@ -98,21 +99,34 @@ export default function CommitmentDisplay({
   }
 
   return (
-    <div className="rounded-lg border border-gray-300 bg-white p-4 shadow-sm">
-      <div className="space-y-3">
-        {/* Header */}
-        <div className="flex items-start justify-between">
+    <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+      {/* Accent bar */}
+      <div className="h-1 bg-gradient-to-r from-blue-500 to-indigo-500" />
+
+      <div className="p-5">
+        {/* Top row: CU amount + actions */}
+        <div className="flex items-start justify-between gap-4">
           <div>
-            <h3 className="text-sm font-medium text-gray-500">Your Commitment</h3>
-            <p className="mt-1 text-2xl font-bold text-gray-900">{commitment.cuCommitted} CU</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+              Your Commitment
+            </p>
+            <div className="mt-1 flex items-baseline gap-2">
+              <span className="text-3xl font-extrabold text-gray-900">
+                {commitment.cuCommitted}
+              </span>
+              <span className="text-sm font-semibold text-gray-400">CU</span>
+            </div>
           </div>
+
           {isActive && (
-            <div className="flex gap-2">
+            <div className="flex items-center gap-1">
               {onEdit && (
                 <button
                   onClick={onEdit}
-                  className="rounded-md bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700 hover:bg-blue-100"
+                  className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+                  aria-label="Edit commitment"
                 >
+                  <Pencil className="w-3.5 h-3.5" />
                   Edit
                 </button>
               )}
@@ -120,11 +134,18 @@ export default function CommitmentDisplay({
                 <button
                   onClick={handleRemove}
                   disabled={isRemoving}
-                  className={`rounded-md px-3 py-1 text-sm font-medium ${showConfirm
-                    ? 'bg-red-600 text-white hover:bg-red-700'
-                    : 'bg-red-50 text-red-700 hover:bg-red-100'
-                    } disabled:opacity-50`}
+                  className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${
+                    showConfirm
+                      ? 'bg-red-600 text-white hover:bg-red-700'
+                      : 'text-red-600 hover:bg-red-50'
+                  }`}
+                  aria-label={showConfirm ? 'Confirm removal' : 'Remove commitment'}
                 >
+                  {isRemoving ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-3.5 h-3.5" />
+                  )}
                   {isRemoving ? 'Removing...' : showConfirm ? 'Confirm?' : 'Remove'}
                 </button>
               )}
@@ -132,47 +153,48 @@ export default function CommitmentDisplay({
           )}
         </div>
 
-        {/* Error Message */}
+        {/* Error */}
         {error && (
-          <div className="rounded-md bg-red-50 p-2 text-sm text-red-600">
+          <div className="mt-3 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-600">
             {error}
           </div>
         )}
 
-        {/* Outcome */}
-        <div>
-          <p className="text-sm text-gray-500">Predicted Outcome</p>
-          <p className="mt-1 font-medium text-gray-900">{getOutcomeText()}</p>
-        </div>
-
-        {/* Timestamp */}
-        <div>
-          <p className="text-xs text-gray-400">Committed {formatDate(commitment.createdAt)}</p>
+        {/* Details row */}
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <span
+            className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${getOutcomeColor()}`}
+          >
+            {getOutcomeText()}
+          </span>
+          <span className="text-xs text-gray-400">
+            Committed {formatDate(commitment.createdAt)}
+          </span>
         </div>
 
         {/* Resolution Results */}
         {isResolved && (
-          <div className="border-t border-gray-200 pt-3">
-            <h4 className="mb-2 text-sm font-medium text-gray-700">Resolution Results</h4>
-            <div className="grid grid-cols-2 gap-3">
-              {/* CU Returned */}
+          <div className="mt-4 rounded-lg bg-gray-50 border border-gray-100 p-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-400 mb-3">
+              Resolution Results
+            </p>
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-xs text-gray-500">CU Returned</p>
-                <p className="mt-1 text-lg font-semibold text-gray-900">
+                <p className="mt-0.5 text-xl font-bold text-gray-900">
                   {commitment.cuReturned ?? 0}
                 </p>
               </div>
-
-              {/* RS Change */}
               <div>
                 <p className="text-xs text-gray-500">RS Change</p>
                 <p
-                  className={`mt-1 text-lg font-semibold ${(commitment.rsChange ?? 0) > 0
-                    ? 'text-green-600'
-                    : (commitment.rsChange ?? 0) < 0
-                      ? 'text-red-600'
-                      : 'text-gray-600'
-                    }`}
+                  className={`mt-0.5 text-xl font-bold ${
+                    (commitment.rsChange ?? 0) > 0
+                      ? 'text-green-600'
+                      : (commitment.rsChange ?? 0) < 0
+                        ? 'text-red-600'
+                        : 'text-gray-600'
+                  }`}
                 >
                   {(commitment.rsChange ?? 0) > 0 ? '+' : ''}
                   {commitment.rsChange?.toFixed(1) ?? '0.0'}
@@ -182,11 +204,11 @@ export default function CommitmentDisplay({
           </div>
         )}
 
-        {/* Cancel confirmation */}
+        {/* Cancel confirmation hint */}
         {showConfirm && (
           <button
             onClick={() => setShowConfirm(false)}
-            className="w-full text-center text-sm text-gray-500 hover:text-gray-700"
+            className="mt-2 w-full text-center text-xs text-gray-400 hover:text-gray-600 transition-colors"
           >
             Cancel
           </button>
