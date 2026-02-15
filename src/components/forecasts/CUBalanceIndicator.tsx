@@ -12,68 +12,75 @@ export default function CUBalanceIndicator({
   const totalCU = cuAvailable + cuLocked
   const availablePercentage = totalCU > 0 ? (cuAvailable / totalCU) * 100 : 0
 
+  // SVG ring config
+  const radius = 34
+  const stroke = 6
+  const circumference = 2 * Math.PI * radius
+  const offset = circumference - (availablePercentage / 100) * circumference
+
   // Color coding based on available CU
-  const getColorClasses = () => {
-    if (cuAvailable > 50) {
-      return {
-        text: 'text-green-600',
-        bg: 'bg-green-100',
-        border: 'border-green-300',
-        progress: 'bg-green-500',
-      }
-    } else if (cuAvailable >= 10) {
-      return {
-        text: 'text-yellow-600',
-        bg: 'bg-yellow-100',
-        border: 'border-yellow-300',
-        progress: 'bg-yellow-500',
-      }
-    } else {
-      return {
-        text: 'text-red-600',
-        bg: 'bg-red-100',
-        border: 'border-red-300',
-        progress: 'bg-red-500',
-      }
-    }
+  const getAccent = () => {
+    if (cuAvailable > 50) return { ring: '#22c55e', text: 'text-green-600', bg: 'bg-green-50' }
+    if (cuAvailable >= 10) return { ring: '#eab308', text: 'text-yellow-600', bg: 'bg-yellow-50' }
+    return { ring: '#ef4444', text: 'text-red-600', bg: 'bg-red-50' }
   }
 
-  const colors = getColorClasses()
+  const accent = getAccent()
 
   return (
-    <div className={`rounded-lg border ${colors.border} ${colors.bg} p-4`}>
-      <div className="space-y-2">
-        {/* Available CU - Prominent */}
-        <div>
-          <div className="flex items-baseline justify-between">
-            <span className="text-sm font-medium text-gray-700">Available CU</span>
-            <span className={`text-2xl font-bold ${colors.text}`}>{cuAvailable}</span>
+    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+      <div className="flex items-center gap-5">
+        {/* Ring gauge */}
+        <div className="relative shrink-0" style={{ width: 80, height: 80 }}>
+          <svg width="80" height="80" className="-rotate-90">
+            <circle
+              cx="40"
+              cy="40"
+              r={radius}
+              fill="none"
+              stroke="#e5e7eb"
+              strokeWidth={stroke}
+            />
+            <circle
+              cx="40"
+              cy="40"
+              r={radius}
+              fill="none"
+              stroke={accent.ring}
+              strokeWidth={stroke}
+              strokeLinecap="round"
+              strokeDasharray={circumference}
+              strokeDashoffset={offset}
+              className="transition-all duration-500"
+            />
+          </svg>
+          <span
+            className={`absolute inset-0 flex items-center justify-center text-lg font-bold ${accent.text}`}
+          >
+            {cuAvailable}
+          </span>
+        </div>
+
+        {/* Labels */}
+        <div className="flex-1 min-w-0 space-y-2">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-400">Available CU</p>
+            <p className={`text-2xl font-extrabold leading-tight ${accent.text}`}>{cuAvailable}</p>
           </div>
-        </div>
 
-        {/* Progress bar */}
-        <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
-          <div
-            className={`h-full ${colors.progress} transition-all duration-300`}
-            style={{ width: `${availablePercentage}%` }}
-          />
-        </div>
-
-        {/* Locked CU - Secondary */}
-        <div className="flex items-baseline justify-between text-sm">
-          <span className="text-gray-600">Locked</span>
-          <span className="font-medium text-gray-700">{cuLocked}</span>
-        </div>
-
-        {/* Total CU - Optional */}
-        {showDetails && (
-          <div className="border-t border-gray-300 pt-2">
-            <div className="flex items-baseline justify-between text-sm">
-              <span className="font-medium text-gray-700">Total CU</span>
-              <span className="font-bold text-gray-900">{totalCU}</span>
+          <div className="flex items-center gap-3 text-sm text-gray-500">
+            <div className="flex items-center gap-1.5">
+              <span className="inline-block w-2 h-2 rounded-full bg-gray-300" />
+              <span>Locked <span className="font-semibold text-gray-700">{cuLocked}</span></span>
             </div>
+            {showDetails && (
+              <div className="flex items-center gap-1.5">
+                <span className="inline-block w-2 h-2 rounded-full bg-gray-500" />
+                <span>Total <span className="font-semibold text-gray-700">{totalCU}</span></span>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   )

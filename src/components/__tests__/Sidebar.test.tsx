@@ -29,6 +29,44 @@ describe('Sidebar Component', () => {
     expect(screen.getByText('Test User')).toBeInTheDocument()
   })
 
+  it('displays username instead of name when username is available', () => {
+    vi.mocked(useSession).mockReturnValue({
+      data: {
+        user: {
+          name: 'Admin User',
+          username: 'admin_nick',
+          email: 'admin@example.com',
+          image: null,
+          role: 'ADMIN',
+        },
+        expires: 'any',
+      },
+      status: 'authenticated',
+    } as any)
+
+    render(<Sidebar />)
+    expect(screen.getByText('admin_nick')).toBeInTheDocument()
+    expect(screen.queryByText('Admin User')).not.toBeInTheDocument()
+  })
+
+  it('falls back to name when username is null', () => {
+    vi.mocked(useSession).mockReturnValue({
+      data: {
+        user: {
+          name: 'Fallback Name',
+          username: null,
+          email: 'user@example.com',
+          image: null,
+        },
+        expires: 'any',
+      },
+      status: 'authenticated',
+    } as any)
+
+    render(<Sidebar />)
+    expect(screen.getByText('Fallback Name')).toBeInTheDocument()
+  })
+
   it('handles null session data gracefully (Build-time scenario)', () => {
     // This mocks the scenario that crashed the build: useSession returning undefined
     vi.mocked(useSession).mockReturnValue(undefined as any)

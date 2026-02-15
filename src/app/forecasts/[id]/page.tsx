@@ -295,9 +295,9 @@ export default function PredictionDetailPage() {
       {/* Info Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         {/* Author */}
-        <div className="p-4 border border-gray-200 rounded-lg">
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-            <User className="w-4 h-4" />
+        <div className="p-4 border border-gray-200 rounded-xl bg-white shadow-sm">
+          <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-gray-400 mb-2">
+            <User className="w-3.5 h-3.5" />
             Author
           </div>
           <div className="flex items-center gap-2">
@@ -312,7 +312,7 @@ export default function PredictionDetailPage() {
             )}
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-medium">{prediction.author.name}</span>
+                <span className="font-semibold text-gray-900">{prediction.author.name}</span>
                 {prediction.author.role && (
                   <RoleBadge role={prediction.author.role} size="sm" />
                 )}
@@ -323,24 +323,24 @@ export default function PredictionDetailPage() {
         </div>
 
         {/* Deadline */}
-        <div className="p-4 border border-gray-200 rounded-lg">
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-            <Calendar className="w-4 h-4" />
+        <div className="p-4 border border-gray-200 rounded-xl bg-white shadow-sm">
+          <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-gray-400 mb-2">
+            <Calendar className="w-3.5 h-3.5" />
             Resolution Deadline
           </div>
-          <div className="font-medium">
+          <div className="font-semibold text-gray-900">
             {formatDate(prediction.resolveByDatetime)}
           </div>
         </div>
 
         {/* Commitments */}
-        <div className="p-4 border border-gray-200 rounded-lg">
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-            <Users className="w-4 h-4" />
+        <div className="p-4 border border-gray-200 rounded-xl bg-white shadow-sm">
+          <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-gray-400 mb-2">
+            <Users className="w-3.5 h-3.5" />
             Commitments
           </div>
-          <div className="font-medium">
-            {prediction._count.commitments} users • {prediction.totalCuCommitted} CU
+          <div className="font-semibold text-gray-900">
+            {prediction._count.commitments} users &middot; {prediction.totalCuCommitted} CU
           </div>
         </div>
       </div>
@@ -379,7 +379,7 @@ export default function PredictionDetailPage() {
             ) : (
               <button
                 onClick={() => setShowCommitmentForm(true)}
-                className="w-full py-3 px-4 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                className="w-full py-3.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-sm hover:shadow-md"
               >
                 Make Your Commitment
               </button>
@@ -390,11 +390,11 @@ export default function PredictionDetailPage() {
 
       {/* Sign in prompt for non-authenticated users */}
       {!session?.user && prediction.status === 'ACTIVE' && (
-        <div className="mb-8 p-4 bg-gray-50 border border-gray-200 rounded-lg text-center">
+        <div className="mb-8 p-5 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl text-center">
           <p className="text-gray-600 mb-3">Want to commit to this prediction?</p>
           <Link
             href="/auth/signin"
-            className="inline-block py-2 px-4 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+            className="inline-block py-2.5 px-5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-sm hover:shadow-md"
           >
             Sign In to Commit
           </Link>
@@ -408,44 +408,89 @@ export default function PredictionDetailPage() {
           Outcome
         </h2>
 
-        {prediction.outcomeType === 'BINARY' && (
-          <div className="grid grid-cols-2 gap-4">
-            <div className="p-4 border-2 border-green-200 bg-green-50 rounded-lg text-center">
-              <div className="text-lg font-semibold text-green-700">Will Happen</div>
-              <div className="text-sm text-green-600">
-                {prediction.commitments.filter(c => c.binaryChoice === true).length} commitments
-              </div>
-            </div>
-            <div className="p-4 border-2 border-red-200 bg-red-50 rounded-lg text-center">
-              <div className="text-lg font-semibold text-red-700">Won&apos;t Happen</div>
-              <div className="text-sm text-red-600">
-                {prediction.commitments.filter(c => c.binaryChoice === false).length} commitments
-              </div>
-            </div>
-          </div>
-        )}
+        {prediction.outcomeType === 'BINARY' && (() => {
+          const yesCount = prediction.commitments.filter(c => c.binaryChoice === true).length
+          const noCount = prediction.commitments.filter(c => c.binaryChoice === false).length
+          const total = yesCount + noCount
+          const yesPct = total > 0 ? Math.round((yesCount / total) * 100) : 50
+          const noPct = total > 0 ? 100 - yesPct : 50
 
-        {prediction.outcomeType === 'MULTIPLE_CHOICE' && prediction.options.length > 0 && (
-          <div className="space-y-2">
-            {prediction.options.map((option) => {
-              const commitCount = prediction.commitments.filter(c => c.option?.id === option.id).length
-              return (
-                <div
-                  key={option.id}
-                  className={`p-3 border rounded-lg flex justify-between items-center ${option.isCorrect ? 'border-green-500 bg-green-50' : 'border-gray-200'
-                    }`}
-                >
-                  <span className={option.isCorrect ? 'font-medium text-green-700' : ''}>
-                    {option.text}
-                  </span>
-                  <span className="text-sm text-gray-500">
-                    {commitCount} commitment{commitCount !== 1 ? 's' : ''}
-                  </span>
+          return (
+            <div className="space-y-3">
+              {/* Distribution bar */}
+              {total > 0 && (
+                <div className="rounded-full h-3 overflow-hidden flex bg-gray-100">
+                  <div
+                    className="bg-green-500 transition-all duration-500"
+                    style={{ width: `${yesPct}%` }}
+                  />
+                  <div
+                    className="bg-red-400 transition-all duration-500"
+                    style={{ width: `${noPct}%` }}
+                  />
                 </div>
-              )
-            })}
-          </div>
-        )}
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="relative rounded-xl border border-gray-200 bg-white p-4 text-center overflow-hidden group hover:border-green-300 transition-colors">
+                  <div className="absolute inset-x-0 bottom-0 h-1 bg-green-500" />
+                  <p className="text-lg font-bold text-green-600">Will Happen</p>
+                  <p className="mt-1 text-sm text-gray-500">
+                    <span className="font-semibold text-gray-700">{yesCount}</span> commitment{yesCount !== 1 ? 's' : ''}
+                    {total > 0 && <span className="ml-1 text-green-600 font-medium">({yesPct}%)</span>}
+                  </p>
+                </div>
+                <div className="relative rounded-xl border border-gray-200 bg-white p-4 text-center overflow-hidden group hover:border-red-300 transition-colors">
+                  <div className="absolute inset-x-0 bottom-0 h-1 bg-red-400" />
+                  <p className="text-lg font-bold text-red-500">Won&apos;t Happen</p>
+                  <p className="mt-1 text-sm text-gray-500">
+                    <span className="font-semibold text-gray-700">{noCount}</span> commitment{noCount !== 1 ? 's' : ''}
+                    {total > 0 && <span className="ml-1 text-red-500 font-medium">({noPct}%)</span>}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )
+        })()}
+
+        {prediction.outcomeType === 'MULTIPLE_CHOICE' && prediction.options.length > 0 && (() => {
+          const totalCommits = prediction.commitments.length
+          return (
+            <div className="space-y-2">
+              {prediction.options.map((option) => {
+                const commitCount = prediction.commitments.filter(c => c.option?.id === option.id).length
+                const pct = totalCommits > 0 ? Math.round((commitCount / totalCommits) * 100) : 0
+                return (
+                  <div
+                    key={option.id}
+                    className={`relative rounded-xl border bg-white p-4 overflow-hidden transition-colors ${
+                      option.isCorrect
+                        ? 'border-green-400 ring-1 ring-green-200'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    {/* Background fill */}
+                    <div
+                      className={`absolute inset-y-0 left-0 transition-all duration-500 ${
+                        option.isCorrect ? 'bg-green-50' : 'bg-gray-50'
+                      }`}
+                      style={{ width: `${pct}%` }}
+                    />
+                    <div className="relative flex justify-between items-center">
+                      <span className={`font-medium ${option.isCorrect ? 'text-green-700' : 'text-gray-800'}`}>
+                        {option.text}
+                      </span>
+                      <span className="text-sm text-gray-500 tabular-nums">
+                        {commitCount} commitment{commitCount !== 1 ? 's' : ''}
+                        {totalCommits > 0 && <span className="ml-1 font-medium">({pct}%)</span>}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )
+        })()}
       </div>
 
       {/* Resolution Info (if resolved) */}

@@ -104,15 +104,18 @@ URL: ${article.url}
   onProgress?.('analyzing', { message: 'Analyzing context and forming prediction...' })
 
   // Step 3: Generate prediction with LLM
-  const currentYear = new Date().getFullYear()
+  const now = new Date()
+  const currentYear = now.getFullYear()
   const endOfYear = `${currentYear}-12-31T23:59:59Z`
+  const endOfYearHuman = `December 31, ${currentYear}`
 
   const prompt = getExpressPredictionPrompt({
     userInput,
     articlesText,
     endOfYear,
+    endOfYearHuman,
     currentYear,
-    currentDate: new Date().toISOString().split('T')[0],
+    currentDate: now.toISOString().split('T')[0],
   })
 
   let prediction: ParsedPrediction
@@ -123,6 +126,9 @@ URL: ${article.url}
       temperature: 0.2, // Slightly creative but structured
     })
     prediction = JSON.parse(result.text)
+
+    // Post-process: replace any ISO timestamps that leaked into claimText
+    prediction.claimText = humanizeISODates(prediction.claimText)
   } catch (error) {
     log.error({ err: error }, 'Failed to generate express prediction')
     throw error
@@ -160,4 +166,26 @@ URL: ${article.url}
     },
     additionalLinks
   }
+}
+
+/**
+ * Replace ISO 8601 timestamps (e.g. "2026-12-31T23:59:59Z") in a string
+ * with a human-readable format like "December 31, 2026".
+ * Uses the date portion of the ISO string directly to avoid timezone shifts.
+ */
+export function humanizeISODates(text: string): string {
+  const MONTHS = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ]
+
+  // Matches ISO 8601 date-time strings like 2026-12-31T23:59:59Z or 2026-12-31T23:59:59.000Z
+  return text.replace(
+    /(\d{4})-(\d{2})-(\d{2})T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z/g,
+    (_match, year: string, month: string, day: string) => {
+      const monthIndex = parseInt(month, 10) - 1
+      if (monthIndex < 0 || monthIndex > 11) return _match
+      return `${MONTHS[monthIndex]} ${parseInt(day, 10)}, ${year}`
+    }
+  )
 }

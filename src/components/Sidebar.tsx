@@ -236,7 +236,7 @@ const Sidebar = () => {
                 />
                 <div className="flex-1 overflow-hidden">
                   <div className="flex items-center gap-1.5">
-                    <p className="font-medium truncate text-sm">{session.user.name || 'User'}</p>
+                    <p className="font-medium truncate text-sm">{session.user.username || session.user.name || 'User'}</p>
                     {session.user.role === 'ADMIN' && (
                       <span className="inline-flex items-center justify-center w-4 h-4 text-[9px] font-bold text-red-700 bg-red-100 border border-red-200 rounded-full shrink-0" title="Admin" aria-label="Admin">A</span>
                     )}
