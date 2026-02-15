@@ -1,6 +1,6 @@
 {
   "name": "daatan",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -26,6 +26,7 @@
     "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^5.2.2",
     "@prisma/client": "^5.22.0",
+    "@swc/helpers": "^0.5.18",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.564.0",
     "next": "14.2.21",
