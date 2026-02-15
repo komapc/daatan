@@ -53,14 +53,16 @@ jobs:
       - name: Run unit tests
         env:
           DATABASE_URL: "postgresql://dummy:dummy@localhost:5432/dummy"
-          NEXTAUTH_SECRET: "dummy-secret-for-build"
+          NEXTAUTH_SECRET: "dummy-secret-for-build-long-enough-32-chars-!!"
+          SKIP_ENV_VALIDATION: 1
         run: npm test
 
       - name: Build application
         env:
           DATABASE_URL: "postgresql://dummy:dummy@localhost:5432/dummy"
-          NEXTAUTH_SECRET: "dummy-secret-for-build"
+          NEXTAUTH_SECRET: "dummy-secret-for-build-long-enough-32-chars-!!"
           NEXTAUTH_URL: "http://localhost:3000"
+          SKIP_ENV_VALIDATION: 1
         run: npm run build
 
       - name: Security audit

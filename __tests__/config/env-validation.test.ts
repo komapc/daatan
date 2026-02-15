@@ -15,7 +15,7 @@ import {
 const validEnv = {
   GOOGLE_CLIENT_ID: '123456789-abcdef.apps.googleusercontent.com',
   GOOGLE_CLIENT_SECRET: 'test-fake-client-secret-value-long-enough',
-  NEXTAUTH_SECRET: '0000000000000000000000000000000000000000',
+  NEXTAUTH_SECRET: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa!!',
   NEXTAUTH_URL: 'https://daatan.com',
 }
 
@@ -247,7 +247,7 @@ describe('validateOAuthEnv', () => {
     const result = validateOAuthEnv({
       GOOGLE_CLIENT_ID: '  123456789-abcdef.apps.googleusercontent.com  ',
       GOOGLE_CLIENT_SECRET: '  test-fake-client-secret-value-long-enough  ',
-      NEXTAUTH_SECRET: '  0000000000000000000000000000000000000000  ',
+      NEXTAUTH_SECRET: '  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa!!  ',
       NEXTAUTH_URL: '  https://daatan.com  ',
     })
     expect(result.valid).toBe(true)
@@ -295,7 +295,7 @@ describe('getOAuthDiagnostics', () => {
     const diagString = JSON.stringify(diag)
     // Should not contain the full secret
     expect(diagString).not.toContain('test-fake-client-secret-value-long-enough')
-    expect(diagString).not.toContain('0000000000000000000000000000000000000000')
+    expect(diagString).not.toContain('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa!!')
   })
 
   it('reports missing values', () => {
