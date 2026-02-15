@@ -22,6 +22,8 @@
 
 - [x] **Code Quality: Replace `console.error` with structured logging** (pino) — installed pino, created `src/lib/logger.ts` (server) and `src/lib/client-logger.ts` (browser). Replaced all 35 console.* calls.
 
+- [ ] **Analytics: Google Analytics 4** — component and infra ready (`src/components/GoogleAnalytics.tsx`, `docker-compose.prod.yml`). Disabled until GA properties are created. To activate: create two GA4 properties (production + staging) at analytics.google.com, add `GA_MEASUREMENT_ID_PROD` / `GA_MEASUREMENT_ID_STAGING` to server `.env`, restart containers, sync to Secrets Manager.
+
 ### P2 - Medium Priority
 
 - [ ] **Notifications system** (unified) — **PREP DONE**: Prisma schema (Notification, NotificationPreference models), service layer (`src/lib/services/notification.ts`), API routes (`/api/notifications`). Remaining:

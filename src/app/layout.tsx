@@ -6,6 +6,7 @@ import { StagingBanner } from '@/components/StagingBanner'
 import Sidebar from '@/components/Sidebar'
 import SessionWrapper from '@/components/SessionWrapper'
 import PwaInstaller from '@/components/PwaInstaller'
+import GoogleAnalytics from '@/components/GoogleAnalytics'
 import { isRtl } from '@/i18n/config'
 import type { Locale } from '@/i18n/config'
 
@@ -34,10 +35,12 @@ export default async function RootLayout({
 }) {
   const locale = await getLocale() as Locale
   const messages = await getMessages()
+  const gaMeasurementId = process.env.GA_MEASUREMENT_ID ?? ''
 
   return (
     <html lang={locale} dir={isRtl(locale) ? 'rtl' : 'ltr'} suppressHydrationWarning>
       <body className="bg-white" suppressHydrationWarning>
+        <GoogleAnalytics measurementId={gaMeasurementId} />
         <NextIntlClientProvider messages={messages}>
           <SessionWrapper>
             <StagingBanner />
