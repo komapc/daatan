@@ -287,7 +287,6 @@ describe('Comments API', () => {
 
       vi.mocked(prisma.user.findUnique).mockResolvedValue({
         id: 'user1',
-        isAdmin: false,
       } as any)
 
       vi.mocked(prisma.comment.update).mockResolvedValue({} as any)

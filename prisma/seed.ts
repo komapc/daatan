@@ -13,13 +13,11 @@ async function main() {
   for (const email of adminEmails) {
     const user = await prisma.user.upsert({
       where: { email },
-      update: { role: 'ADMIN', isAdmin: true, isModerator: true },
+      update: { role: 'ADMIN' },
       create: {
         email,
         name: 'Admin User',
         role: 'ADMIN',
-        isAdmin: true,
-        isModerator: true,
         username: email.split('@')[0], // Fallback username
       },
     })

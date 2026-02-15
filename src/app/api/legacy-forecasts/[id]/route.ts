@@ -24,7 +24,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             name: true,
             username: true,
             image: true,
-            brierScore: true,
           },
         },
         options: {
