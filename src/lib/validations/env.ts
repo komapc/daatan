@@ -29,18 +29,34 @@ const googleClientSecretSchema = z
   )
 
 /**
+ * Words that indicate a placeholder/development secret rather than a real one.
+ * Checked case-insensitively against the full NEXTAUTH_SECRET value.
+ */
+const PLACEHOLDER_PATTERNS = [
+  'change', 'replace', 'update', 'fixme', 'todo',
+  'placeholder', 'example', 'sample', 'default',
+  'development', 'your-secret', 'changeme',
+  'dummy', 'test-secret', 'fake',
+]
+
+/**
  * NEXTAUTH_SECRET must be a strong random string (at least 32 chars recommended).
+ * Rejects known placeholder values AND values containing common placeholder words.
  */
 const nextAuthSecretSchema = z
   .string()
   .min(1, 'NEXTAUTH_SECRET is required')
   .refine(
-    (val) => !['your-secret-key-here', 'dummy-secret-for-build', 'changeme', 'test-secret'].includes(val),
-    'NEXTAUTH_SECRET contains a placeholder value — generate a real one with: openssl rand -base64 32'
+    (val) => !PLACEHOLDER_PATTERNS.some((p) => val.toLowerCase().includes(p)),
+    'NEXTAUTH_SECRET looks like a placeholder (contains words like "development", "change", "dummy") — generate a real one with: openssl rand -hex 32'
   )
   .refine(
-    (val) => val.length >= 16,
-    'NEXTAUTH_SECRET is too short — use at least 32 characters (openssl rand -base64 32)'
+    (val) => val.length >= 32,
+    'NEXTAUTH_SECRET is too short — use at least 32 characters (openssl rand -hex 32)'
+  )
+  .refine(
+    (val) => /[^a-zA-Z\s-]/.test(val),
+    'NEXTAUTH_SECRET looks like plain text, not a cryptographic secret — generate with: openssl rand -hex 32'
   )
 
 /**
