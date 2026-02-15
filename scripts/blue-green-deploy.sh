@@ -290,13 +290,16 @@ echo ""
 echo "🔍 Phase 7: Verifying deployment externally..."
 echo "   (waiting for nginx DNS cache to expire...)"
 sleep 3
-if ./scripts/verify-deploy.sh "$HEALTH_URL"; then
-    echo "✅ Deployment verified"
+if ./scripts/verify-health.sh "$HEALTH_URL"; then
+    echo "✅ Health check passed"
 else
-    echo "❌ External verification failed"
+    echo "❌ External health check failed"
     docker logs $CONTAINER --tail 50
     exit 1
 fi
+
+# Docker log inspection (non-fatal warnings only)
+./scripts/verify-logs.sh "$ENVIRONMENT"
 
 # ─── Phase 8: Verify auth ──────────────────────────────────────────────────────
 echo ""

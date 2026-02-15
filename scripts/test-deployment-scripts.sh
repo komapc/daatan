@@ -94,12 +94,18 @@ else
     test_fail "Missing commands: ${MISSING_CMDS[*]}"
 fi
 
-# Test 6: Check if verify-deploy.sh exists
-test_start "Verify script exists"
-if [ -f "$SCRIPT_DIR/verify-deploy.sh" ]; then
-    test_pass "verify-deploy.sh found"
+# Test 6: Check if verify scripts exist
+test_start "Verify scripts exist"
+VERIFY_MISSING=()
+for script in verify-health.sh verify-logs.sh verify-deploy.sh; do
+    if [ ! -f "$SCRIPT_DIR/$script" ]; then
+        VERIFY_MISSING+=("$script")
+    fi
+done
+if [ ${#VERIFY_MISSING[@]} -eq 0 ]; then
+    test_pass "verify-health.sh, verify-logs.sh, verify-deploy.sh found"
 else
-    test_fail "verify-deploy.sh not found"
+    test_fail "Missing: ${VERIFY_MISSING[*]}"
 fi
 
 # Test 7: Check docker-compose file

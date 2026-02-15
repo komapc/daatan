@@ -157,7 +157,9 @@ jobs:
 
           # Encode scripts
           BLUE_GREEN_SCRIPT=$(base64 -w 0 scripts/blue-green-deploy.sh)
-          VERIFY_SCRIPT=$(base64 -w 0 scripts/verify-deploy.sh)
+          VERIFY_HEALTH_SCRIPT=$(base64 -w 0 scripts/verify-health.sh)
+          VERIFY_LOGS_SCRIPT=$(base64 -w 0 scripts/verify-logs.sh)
+          VERIFY_DEPLOY_SCRIPT=$(base64 -w 0 scripts/verify-deploy.sh)
           COMPOSE_FILE=$(base64 -w 0 docker-compose.prod.yml)
           
           # Construct the shell script to run on EC2
@@ -176,8 +178,10 @@ jobs:
           echo '📜 Writing blue-green-deploy.sh...'
           echo \"$BLUE_GREEN_SCRIPT\" | base64 -d > scripts/blue-green-deploy.sh
           
-          echo '🔍 Writing verify-deploy.sh...'
-          echo \"$VERIFY_SCRIPT\" | base64 -d > scripts/verify-deploy.sh
+          echo '🔍 Writing verify scripts...'
+          echo \"$VERIFY_HEALTH_SCRIPT\" | base64 -d > scripts/verify-health.sh
+          echo \"$VERIFY_LOGS_SCRIPT\" | base64 -d > scripts/verify-logs.sh
+          echo \"$VERIFY_DEPLOY_SCRIPT\" | base64 -d > scripts/verify-deploy.sh
           
           chmod +x scripts/*.sh
           
@@ -237,7 +241,7 @@ jobs:
       - name: Verify staging site (External)
         run: |
           sleep 5
-          ./scripts/verify-deploy.sh "https://staging.daatan.com"
+          ./scripts/verify-health.sh "https://staging.daatan.com"
 
   # Deploy to PRODUCTION (on tag push only)
   deploy-production:
@@ -310,7 +314,9 @@ jobs:
 
           # Encode scripts
           BLUE_GREEN_SCRIPT=$(base64 -w 0 scripts/blue-green-deploy.sh)
-          VERIFY_SCRIPT=$(base64 -w 0 scripts/verify-deploy.sh)
+          VERIFY_HEALTH_SCRIPT=$(base64 -w 0 scripts/verify-health.sh)
+          VERIFY_LOGS_SCRIPT=$(base64 -w 0 scripts/verify-logs.sh)
+          VERIFY_DEPLOY_SCRIPT=$(base64 -w 0 scripts/verify-deploy.sh)
           COMPOSE_FILE=$(base64 -w 0 docker-compose.prod.yml)
           
           # Construct the shell script to run on EC2
@@ -329,8 +335,10 @@ jobs:
           echo '📜 Writing blue-green-deploy.sh...'
           echo \"$BLUE_GREEN_SCRIPT\" | base64 -d > scripts/blue-green-deploy.sh
           
-          echo '🔍 Writing verify-deploy.sh...'
-          echo \"$VERIFY_SCRIPT\" | base64 -d > scripts/verify-deploy.sh
+          echo '🔍 Writing verify scripts...'
+          echo \"$VERIFY_HEALTH_SCRIPT\" | base64 -d > scripts/verify-health.sh
+          echo \"$VERIFY_LOGS_SCRIPT\" | base64 -d > scripts/verify-logs.sh
+          echo \"$VERIFY_DEPLOY_SCRIPT\" | base64 -d > scripts/verify-deploy.sh
           
           chmod +x scripts/*.sh
           
@@ -390,4 +398,4 @@ jobs:
       - name: Verify production site
         run: |
           sleep 5
-          ./scripts/verify-deploy.sh "https://daatan.com"
+          ./scripts/verify-health.sh "https://daatan.com"
