@@ -52,7 +52,7 @@ describe('Logger utilities', () => {
 
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-      log.error('Something went wrong', { detail: 'test' })
+      log.error({ detail: 'test' }, 'Something went wrong')
 
       expect(consoleSpy).toHaveBeenCalled()
       consoleSpy.mockRestore()
