@@ -76,6 +76,72 @@ describe('/api/forecasts', () => {
             expect(data.predictions).toHaveLength(2)
             expect(data.predictions[0].claimText).toBe('Forecast 1')
         })
+
+        it('passes tag filter to prisma where clause', async () => {
+            const { prisma } = await import('@/lib/prisma')
+
+            vi.mocked(prisma.prediction.findMany).mockResolvedValue([])
+            vi.mocked(prisma.prediction.count).mockResolvedValue(0)
+
+            const request = new NextRequest(
+                'http://localhost/api/forecasts?tags=AI,Crypto'
+            )
+            const response = await GET(request)
+            const data = await response.json()
+
+            expect(response.status).toBe(200)
+            expect(data.predictions).toHaveLength(0)
+
+            // Verify Prisma was called with tags filter
+            const findManyCall = vi.mocked(prisma.prediction.findMany).mock.calls[0][0] as any
+            expect(findManyCall.where.tags).toEqual({
+                some: {
+                    name: { in: ['AI', 'Crypto'] },
+                },
+            })
+        })
+
+        it('returns forecasts without tag filter when no tags param', async () => {
+            const { prisma } = await import('@/lib/prisma')
+
+            vi.mocked(prisma.prediction.findMany).mockResolvedValue([])
+            vi.mocked(prisma.prediction.count).mockResolvedValue(0)
+
+            const request = new NextRequest('http://localhost/api/forecasts?status=ACTIVE')
+            await GET(request)
+
+            const findManyCall = vi.mocked(prisma.prediction.findMany).mock.calls[0][0] as any
+            expect(findManyCall.where.tags).toBeUndefined()
+        })
+
+        it('includes tags in response payload', async () => {
+            const { prisma } = await import('@/lib/prisma')
+
+            const mockForecasts = [
+                {
+                    id: '1',
+                    claimText: 'AI will surpass humans',
+                    status: 'ACTIVE',
+                    author: { id: 'u1', username: 'user1' },
+                    tags: [{ name: 'AI' }, { name: 'Technology' }],
+                    _count: { commitments: 0 },
+                    commitments: [],
+                },
+            ]
+
+            vi.mocked(prisma.prediction.findMany).mockResolvedValue(mockForecasts as any)
+            vi.mocked(prisma.prediction.count).mockResolvedValue(1)
+
+            const request = new NextRequest('http://localhost/api/forecasts')
+            const response = await GET(request)
+            const data = await response.json()
+
+            expect(response.status).toBe(200)
+            expect(data.predictions[0].tags).toEqual([
+                { name: 'AI' },
+                { name: 'Technology' },
+            ])
+        })
     })
 
     describe('POST', () => {

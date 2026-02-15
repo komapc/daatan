@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Home, Loader2, TrendingUp, Plus, Filter } from 'lucide-react'
+import { Home, Loader2, TrendingUp, Plus, Filter, Tag, X } from 'lucide-react'
 import ForecastCard, { Prediction } from '@/components/forecasts/ForecastCard'
 import { createClientLogger } from '@/lib/client-logger'
 
@@ -10,13 +11,65 @@ const log = createClientLogger('FeedClient')
 
 type FilterStatus = 'ACTIVE' | 'PENDING' | 'RESOLVED' | 'CLOSING_SOON' | 'ALL'
 
+const VALID_STATUSES: FilterStatus[] = ['ACTIVE', 'PENDING', 'RESOLVED', 'CLOSING_SOON', 'ALL']
+
+const STANDARD_TAGS = [
+  "Politics", "Geopolitics", "Economy", "Technology", "AI", "Crypto", "Sports",
+  "Entertainment", "Science", "Climate", "Health", "Business", "Conflict",
+  "Elections", "US Politics", "Europe", "Middle East", "Asia", "Energy", "Space"
+]
+
 export default function FeedClient() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+
+  // Initialize state from URL search params
+  const initialStatus = searchParams.get('status') as FilterStatus | null
+  const initialDomain = searchParams.get('domain') || ''
+  const initialTags = searchParams.get('tags')?.split(',').filter(Boolean) || []
+
   const [predictions, setPredictions] = useState<Prediction[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
-  const [filter, setFilter] = useState<FilterStatus>('ACTIVE')
+  const [filter, setFilter] = useState<FilterStatus>(
+    initialStatus && VALID_STATUSES.includes(initialStatus) ? initialStatus : 'ACTIVE'
+  )
   const [domains, setDomains] = useState<string[]>([])
-  const [selectedDomain, setSelectedDomain] = useState<string>('')
+  const [selectedDomain, setSelectedDomain] = useState<string>(initialDomain)
+  const [selectedTags, setSelectedTags] = useState<string[]>(initialTags)
+
+  // Sync state to URL search params
+  const syncToUrl = useCallback((status: FilterStatus, domain: string, tags: string[]) => {
+    const params = new URLSearchParams()
+    if (status !== 'ACTIVE') params.set('status', status)
+    if (domain) params.set('domain', domain)
+    if (tags.length > 0) params.set('tags', tags.join(','))
+    const qs = params.toString()
+    router.replace(qs ? `?${qs}` : '/', { scroll: false })
+  }, [router])
+
+  const handleSetFilter = (newFilter: FilterStatus) => {
+    setFilter(newFilter)
+    syncToUrl(newFilter, selectedDomain, selectedTags)
+  }
+
+  const handleSetDomain = (newDomain: string) => {
+    setSelectedDomain(newDomain)
+    syncToUrl(filter, newDomain, selectedTags)
+  }
+
+  const handleToggleTag = (tag: string) => {
+    const newTags = selectedTags.includes(tag)
+      ? selectedTags.filter(t => t !== tag)
+      : [...selectedTags, tag]
+    setSelectedTags(newTags)
+    syncToUrl(filter, selectedDomain, newTags)
+  }
+
+  const handleClearTags = () => {
+    setSelectedTags([])
+    syncToUrl(filter, selectedDomain, [])
+  }
 
   useEffect(() => {
     const fetchFeed = async () => {
@@ -37,6 +90,10 @@ export default function FeedClient() {
 
         if (selectedDomain) {
           url += `&domain=${encodeURIComponent(selectedDomain)}`
+        }
+
+        if (selectedTags.length > 0) {
+          url += `&tags=${encodeURIComponent(selectedTags.join(','))}`
         }
 
         const response = await fetch(url, {
@@ -70,7 +127,7 @@ export default function FeedClient() {
     }
 
     fetchFeed()
-  }, [filter, selectedDomain])
+  }, [filter, selectedDomain, selectedTags])
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -99,7 +156,7 @@ export default function FeedClient() {
         <div className="flex items-center gap-2 flex-wrap">
           <Filter className="w-5 h-5 text-gray-400" />
           <button
-            onClick={() => setFilter('ACTIVE')}
+            onClick={() => handleSetFilter('ACTIVE')}
             className={`px-4 py-2 rounded-lg font-medium transition-all ${filter === 'ACTIVE'
               ? 'bg-blue-600 text-white shadow-sm'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -108,7 +165,7 @@ export default function FeedClient() {
             Open
           </button>
           <button
-            onClick={() => setFilter('CLOSING_SOON')}
+            onClick={() => handleSetFilter('CLOSING_SOON')}
             className={`px-4 py-2 rounded-lg font-medium transition-all ${filter === 'CLOSING_SOON'
               ? 'bg-blue-600 text-white shadow-sm'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -117,7 +174,7 @@ export default function FeedClient() {
             Closing Soon
           </button>
           <button
-            onClick={() => setFilter('PENDING')}
+            onClick={() => handleSetFilter('PENDING')}
             className={`px-4 py-2 rounded-lg font-medium transition-all ${filter === 'PENDING'
               ? 'bg-blue-600 text-white shadow-sm'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -126,7 +183,7 @@ export default function FeedClient() {
             Awaiting Resolution
           </button>
           <button
-            onClick={() => setFilter('RESOLVED')}
+            onClick={() => handleSetFilter('RESOLVED')}
             className={`px-4 py-2 rounded-lg font-medium transition-all ${filter === 'RESOLVED'
               ? 'bg-blue-600 text-white shadow-sm'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -135,7 +192,7 @@ export default function FeedClient() {
             Resolved
           </button>
           <button
-            onClick={() => setFilter('ALL')}
+            onClick={() => handleSetFilter('ALL')}
             className={`px-4 py-2 rounded-lg font-medium transition-all ${filter === 'ALL'
               ? 'bg-blue-600 text-white shadow-sm'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -153,7 +210,7 @@ export default function FeedClient() {
             <select
               id="domain-filter"
               value={selectedDomain}
-              onChange={(e) => setSelectedDomain(e.target.value)}
+              onChange={(e) => handleSetDomain(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">All Categories</option>
@@ -165,6 +222,43 @@ export default function FeedClient() {
             </select>
           </div>
         )}
+
+        {/* Tag Multi-Select Filter */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Tag className="w-4 h-4 text-gray-400" />
+            <span className="text-sm font-medium text-gray-700">Tags:</span>
+            {selectedTags.length > 0 && (
+              <button
+                onClick={handleClearTags}
+                className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-500 transition-colors ml-1"
+                aria-label="Clear all selected tags"
+              >
+                <X className="w-3 h-3" />
+                Clear
+              </button>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {STANDARD_TAGS.map((tag) => {
+              const isSelected = selectedTags.includes(tag)
+              return (
+                <button
+                  key={tag}
+                  onClick={() => handleToggleTag(tag)}
+                  aria-pressed={isSelected}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-150 ${
+                    isSelected
+                      ? 'bg-blue-600 text-white shadow-sm ring-1 ring-blue-600'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800'
+                  }`}
+                >
+                  {tag}
+                </button>
+              )
+            })}
+          </div>
+        </div>
       </div>
 
       {/* Feed Content */}
