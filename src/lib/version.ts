@@ -3,4 +3,4 @@
 // agree on the version, preventing hydration mismatches.
 // APP_VERSION (runtime env) is only used by the /api/health endpoint for
 // server-side reporting — it must NOT be used in any rendered component.
-export const VERSION = process.env.NEXT_PUBLIC_APP_VERSION || 'unknown' // 1.3.3
+export const VERSION = process.env.NEXT_PUBLIC_APP_VERSION || 'unknown' // 1.3.4
