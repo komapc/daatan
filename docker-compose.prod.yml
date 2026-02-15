@@ -47,6 +47,7 @@ services:
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - SERPER_API_KEY=${SERPER_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GA_MEASUREMENT_ID=${GA_MEASUREMENT_ID_PROD}
       - APP_VERSION=${APP_VERSION:-0.1.19}
     depends_on:
       postgres:
@@ -88,6 +89,7 @@ services:
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - SERPER_API_KEY=${SERPER_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GA_MEASUREMENT_ID=${GA_MEASUREMENT_ID_STAGING}
       - APP_VERSION=${APP_VERSION:-0.1.19}
     depends_on:
       postgres-staging:

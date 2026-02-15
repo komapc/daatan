@@ -7,7 +7,6 @@
 ### What We Use
 
 | Secret | Location | Purpose |
-| Secret | Location | Purpose |
 |--------|----------|---------|
 | `POSTGRES_PASSWORD` | Server `.env` | Database authentication |
 | `NEXTAUTH_SECRET` | Server `.env` | NextAuth.js session encryption |
@@ -15,6 +14,8 @@
 | `GOOGLE_CLIENT_SECRET` | Server `.env` | Google OAuth |
 | `GEMINI_API_KEY` | Server `.env` | LLM API access |
 | `SERPER_API_KEY` | Server `.env` | Serper.dev API for Express Forecast web search |
+| `GA_MEASUREMENT_ID_PROD` | Server `.env` | Google Analytics 4 — production (daatan.com) |
+| `GA_MEASUREMENT_ID_STAGING` | Server `.env` | Google Analytics 4 — staging (staging.daatan.com) |
 
 ### Current Setup
 
@@ -245,4 +246,4 @@ A:
 
 ---
 
-Last updated: February 5, 2026
+Last updated: February 15, 2026
