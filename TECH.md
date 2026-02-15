@@ -216,7 +216,9 @@ src/
 |--------|---------|-------|
 | `blue-green-deploy.sh` | Zero-downtime deployment | `./scripts/blue-green-deploy.sh [production\|staging]` |
 | `rollback.sh` | Quick rollback to previous commit | `./scripts/rollback.sh [production\|staging]` |
-| `verify-deploy.sh` | Verify deployment health + version | `./scripts/verify-deploy.sh <url>` |
+| `verify-health.sh` | HTTP health check (CI-safe) | `./scripts/verify-health.sh <url>` |
+| `verify-logs.sh` | Docker log inspection (server-only) | `./scripts/verify-logs.sh <staging\|production>` |
+| `verify-deploy.sh` | Wrapper: health check + log inspection | `./scripts/verify-deploy.sh <url> [environment]` |
 | `verify-local.sh` | Comprehensive local verification | `./scripts/verify-local.sh` |
 | `verify-nginx-config.sh` | Validate nginx configuration | `./scripts/verify-nginx-config.sh` |
 | `release.sh` | Interactive version tagging | `./scripts/release.sh` |
