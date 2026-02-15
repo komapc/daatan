@@ -1,6 +1,9 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { Loader2, Search, Trash2 } from 'lucide-react'
+import { createClientLogger } from '@/lib/client-logger'
+
+const log = createClientLogger('CommentsTable')
 
 export default function CommentsTable() {
   const [comments, setComments] = useState<any[]>([])
@@ -40,7 +43,7 @@ export default function CommentsTable() {
         alert('Failed to delete comment')
       }
     } catch (err) {
-      console.error(err)
+      log.error({ err }, 'Error loading comments')
       alert('Error deleting comment')
     }
   }

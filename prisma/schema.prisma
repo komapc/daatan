@@ -70,6 +70,10 @@ model User {
   comments        Comment[]
   commentReactions CommentReaction[]
 
+  // Notifications
+  notifications          Notification[]
+  notificationPreferences NotificationPreference[]
+
   @@map("users")
 }
 
@@ -531,4 +535,72 @@ model CommentReaction {
   @@index([commentId])
   @@index([userId])
   @@map("comment_reactions")
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+enum NotificationType {
+  COMMITMENT_RESOLVED    // Your committed prediction was resolved
+  COMMENT_ON_FORECAST    // Someone commented on your forecast
+  REPLY_TO_COMMENT       // Someone replied to your comment
+  NEW_COMMITMENT         // Someone committed to your forecast
+  MENTION                // You were @mentioned in a comment
+  SYSTEM                 // System-wide announcement
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  BROWSER_PUSH
+  TELEGRAM
+}
+
+model Notification {
+  id String @id @default(cuid())
+
+  // Recipient
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Content
+  type    NotificationType
+  title   String  @db.VarChar(200)
+  message String  @db.Text
+  link    String? @db.VarChar(500) // Deep link into the app (e.g., /forecasts/abc)
+
+  // Source references (for deduplication and grouping)
+  predictionId String? // Related prediction
+  commentId    String? // Related comment
+  actorId      String? // User who triggered the notification
+
+  // State
+  read      Boolean  @default(false)
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Which notification type
+  type NotificationType
+
+  // Which channels are enabled for this type
+  inApp       Boolean @default(true)
+  email       Boolean @default(false)
+  browserPush Boolean @default(false)
+  telegram    Boolean @default(false)
+
+  @@unique([userId, type])
+  @@map("notification_preferences")
 }

@@ -74,4 +74,34 @@ describe('ForecastWizard', () => {
     // Should not throw
     expect(() => render(<ForecastWizard isExpressFlow={true} />)).not.toThrow()
   })
+
+  it('converts ISO datetime to YYYY-MM-DD for the date input in express flow', async () => {
+    const expressData = {
+      claimText: 'Test prediction claim text',
+      resolveByDatetime: '2026-12-31T23:59:59.000Z',
+      detailsText: 'Some details',
+      domain: 'tech',
+      tags: ['AI'],
+      resolutionRules: 'Check official sources',
+      newsAnchor: {
+        url: 'https://example.com',
+        title: 'Article',
+        snippet: 'Snippet',
+      },
+    }
+
+    localStorage.setItem('expressPredictionData', JSON.stringify(expressData))
+
+    render(<ForecastWizard isExpressFlow={true} />)
+
+    // Navigate to step 3 (Outcome) where the date input is
+    const nextButton = screen.getByRole('button', { name: /next/i })
+    nextButton.click()
+
+    await waitFor(() => {
+      const dateInput = screen.getByLabelText(/Resolution Deadline/i) as HTMLInputElement
+      // Should be YYYY-MM-DD, not the full ISO string
+      expect(dateInput.value).toBe('2026-12-31')
+    })
+  })
 })

@@ -1,20 +1,17 @@
 import { NextResponse } from 'next/server'
-import { withRole } from '@/lib/api-middleware'
+import { withAuth } from '@/lib/api-middleware'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/lib/auth'
 
 const updateUserSchema = z.object({
   role: z.enum(['USER', 'RESOLVER', 'ADMIN']),
 })
 
-export const PATCH = withRole(['ADMIN'], async (req, { params }) => {
+export const PATCH = withAuth(async (req, user, { params }) => {
   const { id } = params
-  const session = await getServerSession(authOptions)
 
   // Prevent self-demotion
-  if (session?.user?.id === id) {
+  if (user.id === id) {
     return NextResponse.json({ error: 'Cannot modify your own roles' }, { status: 400 })
   }
 
@@ -27,10 +24,10 @@ export const PATCH = withRole(['ADMIN'], async (req, { params }) => {
   
   const { role } = result.data
   
-  const user = await prisma.user.update({
+  const updatedUser = await prisma.user.update({
     where: { id },
     data: { role }
   })
   
-  return NextResponse.json(user)
-})
+  return NextResponse.json(updatedUser)
+}, { roles: ['ADMIN'] })

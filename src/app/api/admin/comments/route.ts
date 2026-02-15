@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
-import { withRole } from '@/lib/api-middleware'
+import { withAuth } from '@/lib/api-middleware'
 import { prisma } from '@/lib/prisma'
 
-export const GET = withRole(['ADMIN', 'RESOLVER'], async (req) => {
+export const GET = withAuth(async (req) => {
   const { searchParams } = new URL(req.url)
   const page = parseInt(searchParams.get('page') || '1')
   const limit = parseInt(searchParams.get('limit') || '20')
@@ -31,4 +31,4 @@ export const GET = withRole(['ADMIN', 'RESOLVER'], async (req) => {
   ])
 
   return NextResponse.json({ comments, total, pages: Math.ceil(total / limit) })
-})
+}, { roles: ['ADMIN', 'RESOLVER'] })

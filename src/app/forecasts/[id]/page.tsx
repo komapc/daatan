@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { createClientLogger } from '@/lib/client-logger'
 import {
   Newspaper,
   User,
@@ -25,6 +26,8 @@ import CommitmentForm from '@/components/forecasts/CommitmentForm'
 import CommitmentDisplay from '@/components/forecasts/CommitmentDisplay'
 import CUBalanceIndicator from '@/components/forecasts/CUBalanceIndicator'
 import { RoleBadge } from '@/components/RoleBadge'
+
+const log = createClientLogger('ForecastDetail')
 
 type Prediction = {
   id: string
@@ -150,7 +153,7 @@ export default function PredictionDetailPage() {
           setPrediction(data)
         }
       } catch (err) {
-        console.error('Failed to refetch prediction:', err)
+        log.error({ err }, 'Failed to refetch prediction')
       }
     }
     fetchPrediction()
@@ -169,7 +172,7 @@ export default function PredictionDetailPage() {
         alert('Failed to delete prediction')
       }
     } catch (error) {
-      console.error('Error deleting prediction:', error)
+      log.error({ err: error }, 'Error deleting prediction')
       alert('Error deleting prediction')
     }
   }

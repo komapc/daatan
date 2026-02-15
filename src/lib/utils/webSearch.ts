@@ -1,5 +1,9 @@
 // Web search utility for finding relevant articles using Serper.dev API
 
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('web-search')
+
 export interface SearchResult {
   title: string
   url: string
@@ -25,7 +29,7 @@ export async function searchArticles(query: string, limit: number = 5): Promise<
   const apiKey = process.env.SERPER_API_KEY
 
   if (!apiKey) {
-    console.error('Serper API not configured')
+    log.error('Serper API not configured')
     throw new Error('Search API not configured')
   }
 
@@ -66,7 +70,7 @@ export async function searchArticles(query: string, limit: number = 5): Promise<
       publishedDate: item.date || undefined
     }))
   } catch (error) {
-    console.error('Search error:', error)
+    log.error({ err: error }, 'Search error')
     throw error
   }
 }

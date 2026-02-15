@@ -3,6 +3,9 @@ import type { Adapter } from 'next-auth/adapters'
 import GoogleProvider from 'next-auth/providers/google'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from '@/lib/prisma'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('auth')
 
 const googleClientId = process.env.GOOGLE_CLIENT_ID?.trim() ?? ''
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim() ?? ''
@@ -10,8 +13,8 @@ const isStaging = process.env.NEXT_PUBLIC_ENV === 'staging'
 
 // Fail fast with clear error if OAuth credentials are missing
 if ((!googleClientId || !googleClientSecret) && typeof window === 'undefined') {
-  console.error(
-    '[Auth] Google OAuth misconfigured: GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set. ' +
+  log.error(
+    'Google OAuth misconfigured: GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set. ' +
     'For staging, also ensure https://staging.daatan.com/api/auth/callback/google is in your Google OAuth client\'s Authorized redirect URIs.'
   )
 }
@@ -33,13 +36,13 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async signIn({ user, account }) {
       if (isStaging) {
-        console.log('[Auth] signIn callback', { userId: user?.id, email: user?.email, provider: account?.provider })
+        log.debug({ userId: user?.id, email: user?.email, provider: account?.provider }, 'signIn callback')
       }
       return true
     },
     async redirect({ url, baseUrl }) {
       if (isStaging) {
-        console.log('[Auth] redirect callback', { url, baseUrl })
+        log.debug({ url, baseUrl }, 'redirect callback')
       }
       if (url.startsWith('/')) return `${baseUrl}${url}`
       if (new URL(url).origin === baseUrl) return url
@@ -76,7 +79,7 @@ export const authOptions: NextAuthOptions = {
             session.user.role = user.role
           }
         } catch (error) {
-          console.error('Error fetching user stats for session:', error)
+          log.error({ err: error }, 'Error fetching user stats for session')
         }
       }
       return session
@@ -103,7 +106,7 @@ export const authOptions: NextAuthOptions = {
           },
         })
       } catch (error) {
-        console.error('Failed to create initial grant transaction:', error)
+        log.error({ err: error }, 'Failed to create initial grant transaction')
       }
     },
   },

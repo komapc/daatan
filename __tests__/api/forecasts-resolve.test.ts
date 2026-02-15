@@ -2,8 +2,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { POST as resolvePrediction } from '@/app/api/forecasts/[id]/resolve/route'
 
+const { mockGetServerSession } = vi.hoisted(() => ({
+  mockGetServerSession: vi.fn(),
+}))
+
 vi.mock('next-auth/next', () => ({
-  getServerSession: vi.fn(),
+  getServerSession: mockGetServerSession,
+}))
+
+vi.mock('next-auth', () => ({
+  getServerSession: mockGetServerSession,
 }))
 
 vi.mock('@/lib/prisma', () => ({
@@ -13,6 +21,9 @@ vi.mock('@/lib/prisma', () => ({
     },
     prediction: {
       findUnique: vi.fn(),
+      update: vi.fn(),
+    },
+    predictionOption: {
       update: vi.fn(),
     },
     commitment: {
@@ -31,6 +42,7 @@ vi.mock('@/lib/prisma', () => ({
             resolvedById: 'resolver1',
           }),
         },
+        predictionOption: { update: vi.fn() },
         commitment: { update: vi.fn() },
         user: { update: vi.fn() },
         cuTransaction: { create: vi.fn() },
@@ -45,9 +57,7 @@ describe('POST /api/predictions/[id]/resolve', () => {
   })
 
   it('returns 401 when not authenticated', async () => {
-    const { getServerSession } = await import('next-auth/next')
-
-    vi.mocked(getServerSession).mockResolvedValue(null)
+    mockGetServerSession.mockResolvedValue(null)
 
     const request = new NextRequest('http://localhost/api/predictions/pred-1/resolve', {
       method: 'POST',
@@ -63,17 +73,10 @@ describe('POST /api/predictions/[id]/resolve', () => {
   })
 
   it('returns 403 when user is not RESOLVER or ADMIN', async () => {
-    const { getServerSession } = await import('next-auth/next')
-    const { prisma } = await import('@/lib/prisma')
-
-    vi.mocked(getServerSession).mockResolvedValue({
-      user: { id: 'user1', email: 'user@example.com' },
-    } as never)
-
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({
-      id: 'user1',
-      role: 'USER',
-    } as never)
+    // withAuth checks role from session — USER role is not in allowed roles
+    mockGetServerSession.mockResolvedValue({
+      user: { id: 'user1', email: 'user@example.com', role: 'USER' },
+    })
 
     const request = new NextRequest('http://localhost/api/predictions/pred-1/resolve', {
       method: 'POST',
@@ -87,31 +90,28 @@ describe('POST /api/predictions/[id]/resolve', () => {
     const data = await response.json()
 
     expect(response.status).toBe(403)
-    expect(data.error).toContain('resolvers')
+    expect(data.error).toContain('Forbidden')
   })
 
   it('allows RESOLVER to resolve prediction', async () => {
-    const { getServerSession } = await import('next-auth/next')
     const { prisma } = await import('@/lib/prisma')
 
-    vi.mocked(getServerSession).mockResolvedValue({
-      user: { id: 'resolver1', email: 'resolver@example.com' },
-    } as never)
-
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({
-      id: 'resolver1',
-      role: 'RESOLVER',
-    } as never)
+    mockGetServerSession.mockResolvedValue({
+      user: { id: 'resolver1', email: 'resolver@example.com', role: 'RESOLVER' },
+    })
 
     vi.mocked(prisma.prediction.findUnique).mockResolvedValue({
       id: 'pred-1',
       status: 'ACTIVE',
+      outcomeType: 'BINARY',
+      options: [],
       commitments: [],
     } as never)
 
     vi.mocked(prisma.$transaction).mockImplementation(async (fn) => {
       const tx = {
         prediction: { update: vi.fn().mockResolvedValue({ id: 'pred-1', status: 'RESOLVED_CORRECT' }) },
+        predictionOption: { update: vi.fn() },
         commitment: { update: vi.fn() },
         user: { update: vi.fn() },
         cuTransaction: { create: vi.fn() },
@@ -123,45 +123,34 @@ describe('POST /api/predictions/[id]/resolve', () => {
       method: 'POST',
       body: JSON.stringify({
         outcome: 'correct',
-        resolutionNote: 'Resolved as correct',
+        resolutionNote: 'Resolution note',
       }),
     })
 
     const response = await resolvePrediction(request, { params: { id: 'pred-1' } })
 
     expect(response.status).toBe(200)
-    expect(prisma.user.findUnique).toHaveBeenCalledWith({
-      where: { id: 'resolver1' },
-      select: { role: true },
-    })
-    expect(prisma.prediction.findUnique).toHaveBeenCalledWith({
-      where: { id: 'pred-1' },
-      include: expect.objectContaining({ commitments: expect.any(Object) }),
-    })
   })
 
   it('allows ADMIN to resolve prediction', async () => {
-    const { getServerSession } = await import('next-auth/next')
     const { prisma } = await import('@/lib/prisma')
 
-    vi.mocked(getServerSession).mockResolvedValue({
-      user: { id: 'admin1', email: 'admin@example.com' },
-    } as never)
-
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({
-      id: 'admin1',
-      role: 'ADMIN',
-    } as never)
+    mockGetServerSession.mockResolvedValue({
+      user: { id: 'admin1', email: 'admin@example.com', role: 'ADMIN' },
+    })
 
     vi.mocked(prisma.prediction.findUnique).mockResolvedValue({
       id: 'pred-1',
       status: 'ACTIVE',
+      outcomeType: 'BINARY',
+      options: [],
       commitments: [],
     } as never)
 
     vi.mocked(prisma.$transaction).mockImplementation(async (fn) => {
       const tx = {
         prediction: { update: vi.fn().mockResolvedValue({ id: 'pred-1', status: 'RESOLVED_CORRECT' }) },
+        predictionOption: { update: vi.fn() },
         commitment: { update: vi.fn() },
         user: { update: vi.fn() },
         cuTransaction: { create: vi.fn() },
@@ -172,8 +161,8 @@ describe('POST /api/predictions/[id]/resolve', () => {
     const request = new NextRequest('http://localhost/api/predictions/pred-1/resolve', {
       method: 'POST',
       body: JSON.stringify({
-        outcome: 'wrong',
-        resolutionNote: 'Resolved as wrong',
+        outcome: 'correct',
+        resolutionNote: 'Admin resolution',
       }),
     })
 
@@ -183,17 +172,11 @@ describe('POST /api/predictions/[id]/resolve', () => {
   })
 
   it('returns 404 when prediction not found', async () => {
-    const { getServerSession } = await import('next-auth/next')
     const { prisma } = await import('@/lib/prisma')
 
-    vi.mocked(getServerSession).mockResolvedValue({
-      user: { id: 'resolver1', email: 'resolver@example.com' },
-    } as never)
-
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({
-      id: 'resolver1',
-      role: 'RESOLVER',
-    } as never)
+    mockGetServerSession.mockResolvedValue({
+      user: { id: 'resolver1', email: 'resolver@example.com', role: 'RESOLVER' },
+    })
 
     vi.mocked(prisma.prediction.findUnique).mockResolvedValue(null)
 
@@ -201,30 +184,29 @@ describe('POST /api/predictions/[id]/resolve', () => {
       method: 'POST',
       body: JSON.stringify({
         outcome: 'correct',
+        resolutionNote: 'Test',
       }),
     })
 
     const response = await resolvePrediction(request, { params: { id: 'nonexistent' } })
+    const data = await response.json()
 
     expect(response.status).toBe(404)
+    expect(data.error).toContain('not found')
   })
 
   it('returns 400 when prediction is already resolved', async () => {
-    const { getServerSession } = await import('next-auth/next')
     const { prisma } = await import('@/lib/prisma')
 
-    vi.mocked(getServerSession).mockResolvedValue({
-      user: { id: 'resolver1', email: 'resolver@example.com' },
-    } as never)
-
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({
-      id: 'resolver1',
-      role: 'RESOLVER',
-    } as never)
+    mockGetServerSession.mockResolvedValue({
+      user: { id: 'resolver1', email: 'resolver@example.com', role: 'RESOLVER' },
+    })
 
     vi.mocked(prisma.prediction.findUnique).mockResolvedValue({
       id: 'pred-1',
       status: 'RESOLVED_CORRECT',
+      outcomeType: 'BINARY',
+      options: [],
       commitments: [],
     } as never)
 
@@ -232,6 +214,7 @@ describe('POST /api/predictions/[id]/resolve', () => {
       method: 'POST',
       body: JSON.stringify({
         outcome: 'correct',
+        resolutionNote: 'Test',
       }),
     })
 

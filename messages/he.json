@@ -1,0 +1,103 @@
+{
+  "common": {
+    "loading": "טוען...",
+    "error": "אירעה שגיאה",
+    "save": "שמור",
+    "cancel": "ביטול",
+    "delete": "מחק",
+    "edit": "ערוך",
+    "close": "סגור",
+    "back": "חזור",
+    "next": "הבא",
+    "submit": "שלח",
+    "search": "חיפוש",
+    "signIn": "התחבר",
+    "signOut": "התנתק",
+    "noResults": "לא נמצאו תוצאות"
+  },
+  "nav": {
+    "feed": "פיד",
+    "create": "יצירה",
+    "notifications": "התראות",
+    "commitments": "ההתחייבויות שלי",
+    "activity": "פעילות",
+    "leaderboard": "טבלת דירוג",
+    "retroanalysis": "ניתוח לאחור",
+    "profile": "פרופיל",
+    "settings": "הגדרות",
+    "about": "אודות",
+    "admin": "ניהול"
+  },
+  "feed": {
+    "title": "פיד",
+    "filters": {
+      "open": "פתוח",
+      "closingSoon": "נסגר בקרוב",
+      "awaitingResolution": "ממתין להכרעה",
+      "resolved": "הוכרע",
+      "all": "הכל"
+    },
+    "empty": "אין תחזיות עדיין",
+    "loading": "טוען את הפיד שלך..."
+  },
+  "forecast": {
+    "create": "תחזית חדשה",
+    "draft": "טיוטה",
+    "active": "פעיל",
+    "pending": "ממתין",
+    "resolved": "הוכרע",
+    "void": "בוטל",
+    "willHappen": "יקרה",
+    "wontHappen": "לא יקרה",
+    "commitCU": "התחייב CU",
+    "resolveBy": "הכרעה עד"
+  },
+  "commitment": {
+    "title": "היסטוריית התחייבויות",
+    "accuracy": "דיוק",
+    "total": "סה\"כ",
+    "pending": "ממתינים",
+    "netCu": "CU נטו",
+    "rsChange": "שינוי RS",
+    "correct": "נכון",
+    "wrong": "שגוי",
+    "refunded": "הוחזר",
+    "committed": "הותחייב",
+    "noCommitments": "אין התחייבויות עדיין",
+    "browseFeed": "גלוש בפיד כדי למצוא תחזיות להתחייב עליהן"
+  },
+  "leaderboard": {
+    "title": "טבלת דירוג",
+    "subtitle": "המנבאים המובילים מדורגים לפי ביצועים. הוכח את הדיוק שלך וטפס בדירוג.",
+    "sortBy": {
+      "reputation": "מוניטין",
+      "accuracy": "דיוק",
+      "mostCorrect": "הכי נכונים",
+      "cuCommitted": "הכי הרבה CU"
+    },
+    "calculating": "מחשב דירוגים..."
+  },
+  "activity": {
+    "title": "פיד פעילות",
+    "subtitle": "התחייבויות אחרונות בכל התחזיות",
+    "committed": "התחייב",
+    "cuOn": "CU על",
+    "noActivity": "אין פעילות עדיין"
+  },
+  "notifications": {
+    "title": "התראות",
+    "empty": "אין התראות עדיין",
+    "markAllRead": "סמן הכל כנקרא"
+  },
+  "settings": {
+    "title": "הגדרות",
+    "language": "שפה",
+    "languageDescription": "בחר את שפת התצוגה המועדפת עליך",
+    "notifications": "התראות",
+    "saved": "ההגדרות נשמרו"
+  },
+  "profile": {
+    "title": "פרופיל",
+    "editProfile": "ערוך פרופיל"
+  }
+}

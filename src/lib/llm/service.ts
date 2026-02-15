@@ -1,4 +1,7 @@
 import { LLMProvider, LLMRequest, LLMResponse } from './types'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('llm-service')
 
 export class ResilientLLMService {
   private providers: LLMProvider[]
@@ -12,11 +15,11 @@ export class ResilientLLMService {
 
     for (const provider of this.providers) {
       try {
-        console.log(`Attempting generation with provider: ${provider.name}`)
+        log.info({ provider: provider.name }, 'Attempting generation')
         const response = await provider.generateContent(request)
         return response
       } catch (error) {
-        console.error(`Provider ${provider.name} failed:`, error)
+        log.error({ err: error, provider: provider.name }, 'Provider failed')
         lastError = error as Error
         continue // Try next provider
       }

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { createClientLogger } from '@/lib/client-logger'
 import {
   Calendar,
   Users,
@@ -86,7 +87,7 @@ export default function ForecastCard({
         alert('Failed to delete forecast')
       }
     } catch (error) {
-      console.error('Error deleting forecast:', error)
+      createClientLogger('ForecastCard').error({ err: error }, 'Error deleting forecast')
       alert('Error deleting forecast')
     }
   }

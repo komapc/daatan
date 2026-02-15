@@ -79,13 +79,20 @@ export const ForecastWizard = ({ isExpressFlow = false }: ForecastWizardProps) =
       const data = JSON.parse(stored)
       localStorage.removeItem('expressPredictionData')
 
+      // Convert ISO datetime (e.g. "2026-06-15T12:00:00.000Z") to YYYY-MM-DD
+      // because <input type="date"> requires that format
+      let resolveDate = data.resolveByDatetime || ''
+      if (resolveDate && resolveDate.includes('T')) {
+        resolveDate = resolveDate.split('T')[0]
+      }
+
       setFormData({
         claimText: data.claimText || '',
         detailsText: data.detailsText || '',
         tags: data.tags || [],
         domain: data.domain || '',
         outcomeType: 'BINARY',
-        resolveByDatetime: data.resolveByDatetime || '',
+        resolveByDatetime: resolveDate,
         resolutionRules: data.resolutionRules || '',
         newsAnchorUrl: data.newsAnchor?.url || '',
         newsAnchorTitle: data.newsAnchor?.title || '',

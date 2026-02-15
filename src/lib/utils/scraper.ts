@@ -1,3 +1,7 @@
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('scraper')
+
 export async function fetchUrlContent(url: string): Promise<string> {
   try {
     const response = await fetch(url, {
@@ -26,7 +30,7 @@ export async function fetchUrlContent(url: string): Promise<string> {
     // Limit text length to avoid token limits (e.g., first 10k characters)
     return text.substring(0, 10000)
   } catch (error) {
-    console.error('Scraper error:', error)
+    log.error({ err: error, url }, 'Scraper error')
     throw error
   }
 }

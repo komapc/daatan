@@ -3,6 +3,9 @@ import { getExpressPredictionPrompt } from './prompts'
 import { llmService } from './index'
 import { searchArticles, type SearchResult } from '../utils/webSearch'
 import crypto from 'crypto'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('express-prediction')
 
 export const expressPredictionSchema: Schema = {
   description: "Structured prediction generated from user's casual input",
@@ -121,7 +124,7 @@ URL: ${article.url}
     })
     prediction = JSON.parse(result.text)
   } catch (error) {
-    console.error('Failed to generate express prediction:', error)
+    log.error({ err: error }, 'Failed to generate express prediction')
     throw error
   }
 

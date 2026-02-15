@@ -3,8 +3,16 @@ import { NextRequest } from 'next/server'
 import { GET, POST } from '../route'
 import { getServerSession } from 'next-auth'
 
+const { mockGetServerSession } = vi.hoisted(() => ({
+    mockGetServerSession: vi.fn(),
+}))
+
 vi.mock('next-auth', () => ({
-    getServerSession: vi.fn(),
+    getServerSession: mockGetServerSession,
+}))
+
+vi.mock('next-auth/next', () => ({
+    getServerSession: mockGetServerSession,
 }))
 
 vi.mock('@/lib/prisma', () => ({
@@ -105,7 +113,7 @@ describe('/api/forecasts', () => {
                 body: JSON.stringify(body),
             })
 
-            const response = await POST(request)
+            const response = await POST(request, { params: {} } as any)
             const data = await response.json()
 
             expect(response.status).toBe(201)
@@ -125,7 +133,7 @@ describe('/api/forecasts', () => {
                 body: JSON.stringify(body),
             })
 
-            const response = await POST(request)
+            const response = await POST(request, { params: {} } as any)
             expect(response.status).toBe(401)
         })
     })

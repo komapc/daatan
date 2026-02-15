@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { createNewsAnchorSchema } from '@/lib/validations/prediction'
 import { createHash } from 'crypto'
 import { apiError, handleRouteError } from '@/lib/api-error'
+import { withAuth } from '@/lib/api-middleware'
 import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
@@ -15,7 +14,7 @@ const hashUrl = (url: string): string => {
   return createHash('sha256').update(normalized).digest('hex')
 }
 
-// GET /api/news-anchors - Search/list news anchors
+// GET /api/news-anchors - Search/list news anchors (public)
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -61,62 +60,51 @@ export async function GET(request: NextRequest) {
 }
 
 // POST /api/news-anchors - Create or get existing news anchor
-export async function POST(request: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session?.user?.id) {
-      return apiError('Unauthorized', 401)
-    }
+export const POST = withAuth(async (request) => {
+  const body = await request.json()
+  const data = createNewsAnchorSchema.parse(body)
 
-    const body = await request.json()
-    const data = createNewsAnchorSchema.parse(body)
+  const urlHash = hashUrl(data.url)
 
-    const urlHash = hashUrl(data.url)
-
-    // Check if anchor already exists (deduplication)
-    const existing = await prisma.newsAnchor.findUnique({
-      where: { urlHash },
-      include: {
-        _count: {
-          select: { predictions: true },
-        },
+  // Check if anchor already exists (deduplication)
+  const existing = await prisma.newsAnchor.findUnique({
+    where: { urlHash },
+    include: {
+      _count: {
+        select: { predictions: true },
       },
-    })
+    },
+  })
 
-    if (existing) {
-      // Return existing anchor
-      return NextResponse.json({
-        ...existing,
-        isExisting: true,
-      })
-    }
-
-    // Create new anchor
-    const anchor = await prisma.newsAnchor.create({
-      data: {
-        url: data.url,
-        urlHash,
-        title: data.title,
-        source: data.source,
-        publishedAt: data.publishedAt ? new Date(data.publishedAt) : null,
-        snippet: data.snippet,
-        imageUrl: data.imageUrl,
-        domain: data.domain,
-      },
-      include: {
-        _count: {
-          select: { predictions: true },
-        },
-      },
-    })
-
+  if (existing) {
+    // Return existing anchor
     return NextResponse.json({
-      ...anchor,
-      isExisting: false,
-    }, { status: 201 })
-  } catch (error) {
-    return handleRouteError(error, 'Failed to create news anchor')
+      ...existing,
+      isExisting: true,
+    })
   }
-}
 
+  // Create new anchor
+  const anchor = await prisma.newsAnchor.create({
+    data: {
+      url: data.url,
+      urlHash,
+      title: data.title,
+      source: data.source,
+      publishedAt: data.publishedAt ? new Date(data.publishedAt) : null,
+      snippet: data.snippet,
+      imageUrl: data.imageUrl,
+      domain: data.domain,
+    },
+    include: {
+      _count: {
+        select: { predictions: true },
+      },
+    },
+  })
+
+  return NextResponse.json({
+    ...anchor,
+    isExisting: false,
+  }, { status: 201 })
+})

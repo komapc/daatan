@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { createCommentSchema, listCommentsQuerySchema } from '@/lib/validations/comment'
 import { apiError, handleRouteError } from '@/lib/api-error'
+import { withAuth } from '@/lib/api-middleware'
 import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-// GET /api/comments - List comments
+// GET /api/comments - List comments (public)
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -84,74 +83,64 @@ export async function GET(request: NextRequest) {
 }
 
 // POST /api/comments - Create a new comment
-export async function POST(request: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session?.user?.id) {
-      return apiError('Unauthorized', 401)
-    }
+export const POST = withAuth(async (request, user) => {
+  const body = await request.json()
+  const data = createCommentSchema.parse(body)
 
-    const body = await request.json()
-    const data = createCommentSchema.parse(body)
-
-    // Verify the target exists
-    if (data.predictionId) {
-      const prediction = await prisma.prediction.findUnique({
-        where: { id: data.predictionId },
-      })
-      if (!prediction) {
-        return apiError('Prediction not found', 404)
-      }
-    }
-
-    if (data.forecastId) {
-      const forecast = await prisma.forecast.findUnique({
-        where: { id: data.forecastId },
-      })
-      if (!forecast) {
-        return apiError('Forecast not found', 404)
-      }
-    }
-
-    // Verify parent comment exists if specified
-    if (data.parentId) {
-      const parentComment = await prisma.comment.findUnique({
-        where: { id: data.parentId },
-      })
-      if (!parentComment || parentComment.deletedAt) {
-        return apiError('Parent comment not found', 404)
-      }
-    }
-
-    const comment = await prisma.comment.create({
-      data: {
-        authorId: session.user.id,
-        text: data.text,
-        predictionId: data.predictionId,
-        forecastId: data.forecastId,
-        parentId: data.parentId,
-      },
-      include: {
-        author: {
-          select: {
-            id: true,
-            name: true,
-            username: true,
-            image: true,
-            rs: true,
-            role: true,
-          },
-        },
-        reactions: true,
-        _count: {
-          select: { replies: true },
-        },
-      },
+  // Verify the target exists
+  if (data.predictionId) {
+    const prediction = await prisma.prediction.findUnique({
+      where: { id: data.predictionId },
     })
-
-    return NextResponse.json(comment, { status: 201 })
-  } catch (error) {
-    return handleRouteError(error, 'Failed to create comment')
+    if (!prediction) {
+      return apiError('Prediction not found', 404)
+    }
   }
-}
+
+  if (data.forecastId) {
+    const forecast = await prisma.forecast.findUnique({
+      where: { id: data.forecastId },
+    })
+    if (!forecast) {
+      return apiError('Forecast not found', 404)
+    }
+  }
+
+  // Verify parent comment exists if specified
+  if (data.parentId) {
+    const parentComment = await prisma.comment.findUnique({
+      where: { id: data.parentId },
+    })
+    if (!parentComment || parentComment.deletedAt) {
+      return apiError('Parent comment not found', 404)
+    }
+  }
+
+  const comment = await prisma.comment.create({
+    data: {
+      authorId: user.id,
+      text: data.text,
+      predictionId: data.predictionId,
+      forecastId: data.forecastId,
+      parentId: data.parentId,
+    },
+    include: {
+      author: {
+        select: {
+          id: true,
+          name: true,
+          username: true,
+          image: true,
+          rs: true,
+          role: true,
+        },
+      },
+      reactions: true,
+      _count: {
+        select: { replies: true },
+      },
+    },
+  })
+
+  return NextResponse.json(comment, { status: 201 })
+})

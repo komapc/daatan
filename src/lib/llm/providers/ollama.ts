@@ -1,4 +1,7 @@
 import { LLMProvider, LLMRequest, LLMResponse, LLMConfig } from '../types'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('llm-ollama')
 
 export class OllamaProvider implements LLMProvider {
   name = 'Ollama'
@@ -43,7 +46,7 @@ export class OllamaProvider implements LLMProvider {
         }
       }
     } catch (error) {
-      console.error('Ollama generation failed:', error)
+      log.error({ err: error }, 'Ollama generation failed')
       throw error
     }
   }

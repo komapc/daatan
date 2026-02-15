@@ -1,6 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import { createClientLogger } from '@/lib/client-logger'
+
+const log = createClientLogger('CommitmentDisplay')
 
 interface Commitment {
   id: string
@@ -86,7 +89,7 @@ export default function CommitmentDisplay({
         onRemove()
       }
     } catch (error) {
-      console.error('Error removing commitment:', error)
+      log.error({ err: error }, 'Error removing commitment')
       setError('Failed to remove commitment. Please try again.')
     } finally {
       setIsRemoving(false)

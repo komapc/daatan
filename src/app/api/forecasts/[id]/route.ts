@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { updatePredictionSchema } from '@/lib/validations/prediction'
 import { apiError, handleRouteError } from '@/lib/api-error'
+import { withAuth } from '@/lib/api-middleware'
 import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
@@ -90,107 +89,86 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 }
 
 // PATCH /api/predictions/[id] - Update a prediction (draft only)
-export async function PATCH(request: NextRequest, { params }: RouteParams) {
-  try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session?.user?.id) {
-      return apiError('Unauthorized', 401)
-    }
+export const PATCH = withAuth(async (request, user, { params }) => {
+  const prediction = await prisma.prediction.findUnique({
+    where: { id: params.id },
+    select: { authorId: true, status: true },
+  })
 
-    const prediction = await prisma.prediction.findUnique({
-      where: { id: params.id },
-      select: { authorId: true, status: true },
-    })
+  if (!prediction) {
+    return apiError('Prediction not found', 404)
+  }
 
-    if (!prediction) {
-      return apiError('Prediction not found', 404)
-    }
+  // Only author or admin can update
+  if (prediction.authorId !== user.id && user.role !== 'ADMIN') {
+    return apiError('Forbidden', 403)
+  }
 
-    // Only author or admin can update
-    if (prediction.authorId !== session.user.id && session.user.role !== 'ADMIN') {
-      return apiError('Forbidden', 403)
-    }
+  // Can only update drafts (unless admin)
+  if (prediction.status !== 'DRAFT' && user.role !== 'ADMIN') {
+    return apiError('Cannot update published predictions', 400)
+  }
 
-    // Can only update drafts (unless admin)
-    if (prediction.status !== 'DRAFT' && session.user.role !== 'ADMIN') {
-      return apiError('Cannot update published predictions', 400)
-    }
+  const body = await request.json()
+  const data = updatePredictionSchema.parse(body)
 
-    const body = await request.json()
-    const data = updatePredictionSchema.parse(body)
+  // Validate resolve-by if provided
+  if (data.resolveByDatetime && new Date(data.resolveByDatetime) <= new Date()) {
+    return apiError('Resolution date must be in the future', 400)
+  }
 
-    // Validate resolve-by if provided
-    if (data.resolveByDatetime && new Date(data.resolveByDatetime) <= new Date()) {
-      return apiError('Resolution date must be in the future', 400)
-    }
+  const updateData: Record<string, unknown> = {}
+  if (data.claimText) updateData.claimText = data.claimText
+  if (data.detailsText !== undefined) updateData.detailsText = data.detailsText
+  if (data.domain !== undefined) updateData.domain = data.domain
+  if (data.outcomePayload) updateData.outcomePayload = data.outcomePayload
+  if (data.resolutionRules !== undefined) updateData.resolutionRules = data.resolutionRules
+  if (data.resolveByDatetime) updateData.resolveByDatetime = new Date(data.resolveByDatetime)
 
-    const updateData: Record<string, unknown> = {}
-    if (data.claimText) updateData.claimText = data.claimText
-    if (data.detailsText !== undefined) updateData.detailsText = data.detailsText
-    if (data.domain !== undefined) updateData.domain = data.domain
-    if (data.outcomePayload) updateData.outcomePayload = data.outcomePayload
-    if (data.resolutionRules !== undefined) updateData.resolutionRules = data.resolutionRules
-    if (data.resolveByDatetime) updateData.resolveByDatetime = new Date(data.resolveByDatetime)
-
-    const updated = await prisma.prediction.update({
-      where: { id: params.id },
-      data: updateData,
-      include: {
-        author: {
-          select: {
-            id: true,
-            name: true,
-            username: true,
-            image: true,
-          },
-        },
-        newsAnchor: true,
-        options: {
-          orderBy: { displayOrder: 'asc' },
+  const updated = await prisma.prediction.update({
+    where: { id: params.id },
+    data: updateData,
+    include: {
+      author: {
+        select: {
+          id: true,
+          name: true,
+          username: true,
+          image: true,
         },
       },
-    })
+      newsAnchor: true,
+      options: {
+        orderBy: { displayOrder: 'asc' },
+      },
+    },
+  })
 
-    return NextResponse.json(updated)
-  } catch (error) {
-    return handleRouteError(error, 'Failed to update prediction')
-  }
-}
+  return NextResponse.json(updated)
+})
 
 // DELETE /api/predictions/[id] - Delete a prediction (draft only)
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
-  try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session?.user?.id) {
-      return apiError('Unauthorized', 401)
-    }
+export const DELETE = withAuth(async (_request, user, { params }) => {
+  const prediction = await prisma.prediction.findUnique({
+    where: { id: params.id },
+    select: { authorId: true, status: true },
+  })
 
-    const prediction = await prisma.prediction.findUnique({
-      where: { id: params.id },
-      select: { authorId: true, status: true },
-    })
-
-    if (!prediction) {
-      return apiError('Prediction not found', 404)
-    }
-
-    if (prediction.authorId !== session.user.id && session.user.role !== 'ADMIN') {
-      return apiError('Forbidden', 403)
-    }
-
-    if (prediction.status !== 'DRAFT' && session.user.role !== 'ADMIN') {
-      return apiError('Can only delete draft predictions', 400)
-    }
-
-    await prisma.prediction.delete({
-      where: { id: params.id },
-    })
-
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    return handleRouteError(error, 'Failed to delete prediction')
+  if (!prediction) {
+    return apiError('Prediction not found', 404)
   }
-}
 
+  if (prediction.authorId !== user.id && user.role !== 'ADMIN') {
+    return apiError('Forbidden', 403)
+  }
+
+  if (prediction.status !== 'DRAFT' && user.role !== 'ADMIN') {
+    return apiError('Can only delete draft predictions', 400)
+  }
+
+  await prisma.prediction.delete({
+    where: { id: params.id },
+  })
+
+  return NextResponse.json({ success: true })
+})
