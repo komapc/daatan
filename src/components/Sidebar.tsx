@@ -21,6 +21,8 @@ import {
   History,
   Shield,
   Info,
+  Activity,
+  BarChart3,
 } from 'lucide-react'
 
 type NavItem = {
@@ -33,6 +35,8 @@ const navItems: NavItem[] = [
   { href: '/', label: 'Feed', icon: Home },
   { href: '/create', label: 'Create', icon: PlusCircle },
   { href: '/notifications', label: 'Notifications', icon: Bell },
+  { href: '/commitments', label: 'My Commitments', icon: BarChart3 },
+  { href: '/activity', label: 'Activity', icon: Activity },
   { href: '/leaderboard', label: 'Leaderboard', icon: Trophy },
   { href: '/retroanalysis', label: 'Retroanalysis', icon: History },
   { href: '/profile', label: 'Profile', icon: User },
@@ -86,7 +90,7 @@ const Sidebar = () => {
   // Filter nav items based on auth status (only after mount to avoid hydration mismatch)
   const filteredNavItems = hasMounted
     ? navItems.filter((item) => {
-      const authRequiredRoutes = ['/create', '/notifications', '/profile']
+      const authRequiredRoutes = ['/create', '/notifications', '/profile', '/commitments']
       if (authRequiredRoutes.includes(item.href)) {
         return status === 'authenticated'
       }
@@ -94,7 +98,7 @@ const Sidebar = () => {
     })
     : navItems.filter((item) => {
       // During SSR/pre-mount, show all non-auth routes
-      const authRequiredRoutes = ['/create', '/notifications', '/profile']
+      const authRequiredRoutes = ['/create', '/notifications', '/profile', '/commitments']
       return !authRequiredRoutes.includes(item.href)
     })
 

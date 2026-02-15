@@ -3,6 +3,9 @@
 import { useState } from 'react'
 import { Link as LinkIcon, Search, X, ExternalLink, Loader2, Wand2 } from 'lucide-react'
 import type { PredictionFormData } from '../ForecastWizard'
+import { createClientLogger } from '@/lib/client-logger'
+
+const log = createClientLogger('StepNewsAnchor')
 
 type Props = {
   formData: PredictionFormData
@@ -51,7 +54,7 @@ export const StepNewsAnchor = ({ formData, updateFormData }: Props) => {
         })
       }
     } catch (error) {
-      console.error('Error creating news anchor:', error)
+        log.error({ err: error }, 'Error creating news anchor')
     } finally {
       setIsSearching(false)
     }
@@ -99,7 +102,7 @@ export const StepNewsAnchor = ({ formData, updateFormData }: Props) => {
         })
       }
     } catch (error) {
-      console.error('Magic extract error:', error)
+        log.error({ err: error }, 'Magic extract error')
     } finally {
       setIsExtracting(false)
     }
@@ -118,7 +121,7 @@ export const StepNewsAnchor = ({ formData, updateFormData }: Props) => {
         setSearchResults(data.anchors)
       }
     } catch (error) {
-      console.error('Error searching news anchors:', error)
+        log.error({ err: error }, 'Error searching news anchors')
     }
   }
 

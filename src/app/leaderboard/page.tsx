@@ -2,7 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
-import { Trophy, Loader2, Medal, TrendingUp, Wallet } from 'lucide-react'
+import { Trophy, Loader2, Medal, TrendingUp, Wallet, Target, BarChart3 } from 'lucide-react'
+import { createClientLogger } from '@/lib/client-logger'
+
+const log = createClientLogger('Leaderboard')
+
+type SortBy = 'rs' | 'accuracy' | 'totalCorrect' | 'cuCommitted'
 
 type LeaderboardUser = {
   id: string
@@ -11,30 +16,45 @@ type LeaderboardUser = {
   image: string | null
   rs: number
   cuAvailable: number
-  _count: {
-    predictions: number
-    commitments: number
-  }
+  totalCommitments: number
+  totalPredictions: number
+  totalCorrect: number
+  totalResolved: number
+  accuracy: number | null
+  totalCuCommitted: number
+  totalRsGained: number
 }
+
+const SORT_OPTIONS: { value: SortBy; label: string; icon: typeof TrendingUp }[] = [
+  { value: 'rs', label: 'Reputation', icon: TrendingUp },
+  { value: 'accuracy', label: 'Accuracy', icon: Target },
+  { value: 'totalCorrect', label: 'Most Correct', icon: BarChart3 },
+  { value: 'cuCommitted', label: 'Most CU Committed', icon: Wallet },
+]
 
 export default function LeaderboardPage() {
   const [users, setUsers] = useState<LeaderboardUser[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [sortBy, setSortBy] = useState<SortBy>('rs')
 
   useEffect(() => {
     const fetchLeaderboard = async () => {
+      setIsLoading(true)
       try {
-        const response = await fetch('/api/top-reputation?limit=50')
-        if (!response.ok) throw new Error('Failed to fetch leaderboard')
+        const response = await fetch(`/api/leaderboard?limit=50&sortBy=${sortBy}`)
+        if (response.ok) {
+          const data = await response.json()
+          setUsers(data.leaderboard)
+        }
       } catch (error) {
-        console.error('Error fetching leaderboard:', error)
+        log.error({ err: error }, 'Error fetching leaderboard')
       } finally {
         setIsLoading(false)
       }
     }
 
     fetchLeaderboard()
-  }, [])
+  }, [sortBy])
 
   const getRankIcon = (index: number) => {
     switch (index) {
@@ -49,18 +69,59 @@ export default function LeaderboardPage() {
     }
   }
 
+  const getHighlightValue = (user: LeaderboardUser) => {
+    switch (sortBy) {
+      case 'accuracy':
+        return user.accuracy !== null ? `${user.accuracy}%` : '—'
+      case 'totalCorrect':
+        return `${user.totalCorrect}`
+      case 'cuCommitted':
+        return `${user.totalCuCommitted}`
+      default:
+        return user.rs.toFixed(1)
+    }
+  }
+
+  const getHighlightLabel = () => {
+    switch (sortBy) {
+      case 'accuracy': return 'Accuracy'
+      case 'totalCorrect': return 'Correct'
+      case 'cuCommitted': return 'CU Committed'
+      default: return 'Reputation'
+    }
+  }
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col items-center text-center mb-12">
+      <div className="flex flex-col items-center text-center mb-8">
         <div className="p-4 bg-yellow-50 rounded-2xl mb-4">
           <Trophy className="w-10 h-10 sm:w-12 sm:h-12 text-yellow-500" />
         </div>
         <h1 className="text-3xl sm:text-4xl font-black text-gray-900 mb-2 tracking-tight">Leaderboard</h1>
-        <p className="text-gray-500 max-w-md">Top predictors ranked by Reputation Score (RS). Prove your accuracy and climb the ranks.</p>
+        <p className="text-gray-500 max-w-md">Top predictors ranked by performance. Prove your accuracy and climb the ranks.</p>
       </div>
 
-      {/* Leaderboard Table/List */}
+      {/* Sort Tabs */}
+      <div className="flex items-center justify-center gap-2 mb-8 flex-wrap">
+        {SORT_OPTIONS.map(({ value, label, icon: Icon }) => (
+          <button
+            key={value}
+            onClick={() => setSortBy(value)}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              sortBy === value
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+            aria-label={`Sort by ${label}`}
+          >
+            <Icon className="w-4 h-4" />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Leaderboard Table */}
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-20">
           <Loader2 className="w-10 h-10 text-blue-500 animate-spin mb-4" />
@@ -76,22 +137,24 @@ export default function LeaderboardPage() {
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
-                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider w-20">Rank</th>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Predictor</th>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Predictions</th>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">CU</th>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">RS</th>
+                  <th className="px-4 sm:px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider w-16">Rank</th>
+                  <th className="px-4 sm:px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Predictor</th>
+                  <th className="px-4 sm:px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center hidden sm:table-cell">Accuracy</th>
+                  <th className="px-4 sm:px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center hidden sm:table-cell">Correct</th>
+                  <th className="px-4 sm:px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">
+                    {getHighlightLabel()}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {users.map((user, index) => (
                   <tr key={user.id} className={`hover:bg-blue-50/30 transition-colors ${index < 3 ? 'bg-yellow-50/10' : ''}`}>
-                    <td className="px-6 py-4">
+                    <td className="px-4 sm:px-6 py-4">
                       <div className="flex justify-center">
                         {getRankIcon(index)}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 sm:px-6 py-4">
                       <div className="flex items-center gap-3">
                         {user.image ? (
                           <Image src={user.image} alt="" width={40} height={40} className="rounded-full border border-gray-200" />
@@ -105,34 +168,31 @@ export default function LeaderboardPage() {
                             {user.name || user.username || 'Anonymous'}
                           </p>
                           <p className="text-xs text-gray-500 truncate">
-                            {user.username ? `@${user.username}` : 'Private Profile'}
+                            {user.username ? `@${user.username}` : `${user.totalCommitments} commitments`}
                           </p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-center">
+                    <td className="px-4 sm:px-6 py-4 text-center hidden sm:table-cell">
                       <div className="flex flex-col items-center">
-                        <span className="font-bold text-gray-700">{user._count.commitments}</span>
-                        <span className="text-[10px] text-gray-400 uppercase font-medium">Stakes</span>
+                        <span className="font-bold text-gray-700">
+                          {user.accuracy !== null ? `${user.accuracy}%` : '—'}
+                        </span>
+                        <span className="text-[10px] text-gray-400">
+                          {user.totalResolved > 0 ? `${user.totalResolved} resolved` : 'N/A'}
+                        </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex flex-col items-end">
-                        <div className="flex items-center gap-1 text-blue-600 font-bold">
-                          <Wallet className="w-3.5 h-3.5" />
-                          <span>{user.cuAvailable}</span>
-                        </div>
-                        <span className="text-[10px] text-gray-400 uppercase font-medium">Available</span>
+                    <td className="px-4 sm:px-6 py-4 text-center hidden sm:table-cell">
+                      <div className="flex flex-col items-center">
+                        <span className="font-bold text-green-600">{user.totalCorrect}</span>
+                        <span className="text-[10px] text-gray-400">of {user.totalResolved}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex flex-col items-end">
-                        <div className="flex items-center gap-1 text-gray-900 font-black text-lg">
-                          <TrendingUp className="w-4 h-4 text-green-500" />
-                          <span>{user.rs.toFixed(1)}</span>
-                        </div>
-                        <span className="text-[10px] text-gray-400 uppercase font-medium tracking-tight">Reputation</span>
-                      </div>
+                    <td className="px-4 sm:px-6 py-4 text-right">
+                      <span className="font-black text-lg text-gray-900">
+                        {getHighlightValue(user)}
+                      </span>
                     </td>
                   </tr>
                 ))}
@@ -142,7 +202,7 @@ export default function LeaderboardPage() {
         </div>
       )}
 
-      {/* Legend / Info */}
+      {/* Legend */}
       <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
           <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">

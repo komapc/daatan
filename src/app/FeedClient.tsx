@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Home, Loader2, TrendingUp, Plus, Filter } from 'lucide-react'
 import ForecastCard, { Prediction } from '@/components/forecasts/ForecastCard'
+import { createClientLogger } from '@/lib/client-logger'
+
+const log = createClientLogger('FeedClient')
 
 type FilterStatus = 'ACTIVE' | 'PENDING' | 'RESOLVED' | 'CLOSING_SOON' | 'ALL'
 
@@ -58,7 +61,7 @@ export default function FeedClient() {
           setPredictions([])
         }
       } catch (error) {
-        console.error('Error fetching feed:', error)
+        log.error({ err: error }, 'Error fetching feed')
         setFetchError(error instanceof Error ? error.message : 'Failed to load predictions')
         setPredictions([])
       } finally {

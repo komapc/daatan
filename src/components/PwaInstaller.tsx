@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 import { VERSION } from '@/lib/version'
+import { createClientLogger } from '@/lib/client-logger'
+
+const log = createClientLogger('PwaInstaller')
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>
@@ -63,7 +66,7 @@ const PwaInstaller = () => {
         await navigator.serviceWorker.register('/sw.js')
       } catch (error) {
         // eslint-disable-next-line no-console
-        console.error('Service worker registration failed', error)
+        log.error({ err: error }, 'Service worker registration failed')
       }
     }
 

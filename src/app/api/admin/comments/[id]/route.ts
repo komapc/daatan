@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
-import { withRole } from '@/lib/api-middleware'
+import { withAuth } from '@/lib/api-middleware'
 import { prisma } from '@/lib/prisma'
 
-export const DELETE = withRole(['ADMIN', 'RESOLVER'], async (req, { params }) => {
+export const DELETE = withAuth(async (_req, _user, { params }) => {
   const { id } = params
   
   // Soft delete
@@ -12,4 +12,4 @@ export const DELETE = withRole(['ADMIN', 'RESOLVER'], async (req, { params }) =>
   })
   
   return NextResponse.json({ success: true })
-})
+}, { roles: ['ADMIN', 'RESOLVER'] })

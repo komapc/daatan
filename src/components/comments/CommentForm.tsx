@@ -3,6 +3,9 @@
 import { useState } from 'react'
 import { Send } from 'lucide-react'
 import type { Comment } from './CommentThread'
+import { createClientLogger } from '@/lib/client-logger'
+
+const log = createClientLogger('CommentForm')
 
 interface CommentFormProps {
   predictionId?: string
@@ -52,7 +55,7 @@ export default function CommentForm({
         alert(error.error || 'Failed to post comment')
       }
     } catch (error) {
-      console.error('Error posting comment:', error)
+        log.error({ err: error }, 'Error posting comment')
       alert('Failed to post comment')
     } finally {
       setIsSubmitting(false)

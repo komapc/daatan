@@ -1,0 +1,103 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "submit": "Submit",
+    "search": "Search",
+    "signIn": "Sign In",
+    "signOut": "Sign Out",
+    "noResults": "No results found"
+  },
+  "nav": {
+    "feed": "Feed",
+    "create": "Create",
+    "notifications": "Notifications",
+    "commitments": "My Commitments",
+    "activity": "Activity",
+    "leaderboard": "Leaderboard",
+    "retroanalysis": "Retroanalysis",
+    "profile": "Profile",
+    "settings": "Settings",
+    "about": "About",
+    "admin": "Admin"
+  },
+  "feed": {
+    "title": "Feed",
+    "filters": {
+      "open": "Open",
+      "closingSoon": "Closing Soon",
+      "awaitingResolution": "Awaiting Resolution",
+      "resolved": "Resolved",
+      "all": "All"
+    },
+    "empty": "No predictions yet",
+    "loading": "Loading your feed..."
+  },
+  "forecast": {
+    "create": "New Prediction",
+    "draft": "Draft",
+    "active": "Active",
+    "pending": "Pending",
+    "resolved": "Resolved",
+    "void": "Void",
+    "willHappen": "Will happen",
+    "wontHappen": "Won't happen",
+    "commitCU": "Commit CU",
+    "resolveBy": "Resolve by"
+  },
+  "commitment": {
+    "title": "Commitment History",
+    "accuracy": "Accuracy",
+    "total": "Total",
+    "pending": "pending",
+    "netCu": "Net CU",
+    "rsChange": "RS Change",
+    "correct": "Correct",
+    "wrong": "Wrong",
+    "refunded": "Refunded",
+    "committed": "committed",
+    "noCommitments": "No commitments yet",
+    "browseFeed": "Browse the feed to find forecasts to commit to"
+  },
+  "leaderboard": {
+    "title": "Leaderboard",
+    "subtitle": "Top predictors ranked by performance. Prove your accuracy and climb the ranks.",
+    "sortBy": {
+      "reputation": "Reputation",
+      "accuracy": "Accuracy",
+      "mostCorrect": "Most Correct",
+      "cuCommitted": "Most CU Committed"
+    },
+    "calculating": "Calculating rankings..."
+  },
+  "activity": {
+    "title": "Activity Feed",
+    "subtitle": "Recent commitments across all forecasts",
+    "committed": "committed",
+    "cuOn": "CU on",
+    "noActivity": "No activity yet"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "No notifications yet",
+    "markAllRead": "Mark all as read"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "languageDescription": "Choose your preferred display language",
+    "notifications": "Notifications",
+    "saved": "Settings saved"
+  },
+  "profile": {
+    "title": "Profile",
+    "editProfile": "Edit Profile"
+  }
+}

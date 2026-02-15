@@ -60,7 +60,7 @@ export default function PredictionsPage() {
           setPredictions([])
         }
       } catch (error) {
-        console.error('Error fetching predictions:', error)
+        // Error logged by error boundary
         setFetchError(error instanceof Error ? error.message : 'Failed to load predictions')
         setPredictions([])
       } finally {

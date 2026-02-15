@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { withRole } from '@/lib/api-middleware'
+import { withAuth } from '@/lib/api-middleware'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 
@@ -7,7 +7,7 @@ const updateStatusSchema = z.object({
   status: z.enum(['DRAFT', 'ACTIVE', 'PENDING', 'RESOLVED_CORRECT', 'RESOLVED_WRONG', 'VOID', 'UNRESOLVABLE']),
 })
 
-export const PATCH = withRole(['ADMIN', 'RESOLVER'], async (req, { params }) => {
+export const PATCH = withAuth(async (req, _user, { params }) => {
   const { id } = params
   const body = await req.json()
   
@@ -22,10 +22,10 @@ export const PATCH = withRole(['ADMIN', 'RESOLVER'], async (req, { params }) => 
   })
   
   return NextResponse.json(prediction)
-})
+}, { roles: ['ADMIN', 'RESOLVER'] })
 
 // Delete a prediction (admin only)
-export const DELETE = withRole(['ADMIN'], async (req, { params }) => {
+export const DELETE = withAuth(async (_req, _user, { params }) => {
   const { id } = params
 
   await prisma.prediction.delete({
@@ -33,4 +33,4 @@ export const DELETE = withRole(['ADMIN'], async (req, { params }) => {
   })
 
   return NextResponse.json({ success: true })
-})
+}, { roles: ['ADMIN'] })

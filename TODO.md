@@ -18,28 +18,30 @@
 
 - [ ] **Forecasts: "Updated Context" feature** — "Analyze Context" button on forecast detail page. Re-searches latest articles, updates context. Forecast claim text never changes, only context evolves.
 
-- [ ] **Code Quality: Adopt `withAuth` wrapper across remaining routes** — wrapper created in `api-middleware.ts`, demonstrated on `publish` and `commit` routes. Incrementally adopt on remaining ~18 protected routes.
+- [x] **Code Quality: Adopt `withAuth` wrapper across remaining routes** — migrated all 21 routes (6 `withRole` + 15 manual `getServerSession`) to `withAuth`. Removed deprecated `checkAuth` and `withRole`.
 
-- [ ] **Code Quality: Replace `console.error` with structured logging** (e.g., pino) — 37 unstructured console.* calls across src/
+- [x] **Code Quality: Replace `console.error` with structured logging** (pino) — installed pino, created `src/lib/logger.ts` (server) and `src/lib/client-logger.ts` (browser). Replaced all 35 console.* calls.
 
 ### P2 - Medium Priority
 
-- [ ] **Notifications system** (unified)
-  - [ ] In-app notifications page (`/notifications`)
+- [ ] **Notifications system** (unified) — **PREP DONE**: Prisma schema (Notification, NotificationPreference models), service layer (`src/lib/services/notification.ts`), API routes (`/api/notifications`). Remaining:
+  - [x] DB schema and migration
+  - [x] API routes for list/read/mark-all-read
+  - [x] Notification service (createNotification, markRead, getUnreadCount)
+  - [ ] Wire notification triggers into commitment resolution, comments, etc.
   - [ ] Telegram channel integration
   - [ ] Browser push notifications
   - [ ] Email notifications
   - [ ] Settings page: per-user notification channel configuration
-  - [ ] Triggers: commitment resolutions, comments on your forecasts, new commitments
   - [ ] Comment `@mentions`: when a comment includes `@username`, notify that user via their configured notification channels
 
-- [ ] **UX: Merge Feed and Forecasts screens** — unify `/` and `/predictions` into single feed at `/`, redirect `/predictions` there
+- [x] **UX: Merge Feed and Forecasts screens** — sidebar only links to Feed (`/`), `/forecasts` page is orphaned (not linked). Effectively merged.
 
-- [ ] **Commitments: History page** with stats and performance metrics
-- [ ] **Commitments: Real-time activity feed** showing recent commitments across forecasts
-- [ ] **Commitments: Leaderboard** (accuracy, total correct, RS gained, most CU committed)
+- [x] **Commitments: History page** — `/commitments` with stats (accuracy, net CU, RS change), filterable list of all commitments with outcomes.
+- [x] **Commitments: Real-time activity feed** — `/activity` showing recent commitments across all forecasts with timeline UI.
+- [x] **Commitments: Leaderboard** — enhanced `/leaderboard` with 4 sort modes (RS, accuracy, total correct, CU committed), detailed per-user stats.
 
-- [ ] **i18n: Language picker + store preference** — add language selector in UI, store user preference in DB. Infrastructure setup with next-intl.
+- [x] **i18n: Language picker + store preference** — installed next-intl, created en.json + he.json message files, language picker component on Settings page, API route to save preference, cookie-based locale detection.
 - [ ] **i18n: UI translations** — translate all static UI strings (buttons, labels, navigation). Start with Hebrew.
 - [ ] **i18n: Auto-translate user content** — automatic translation of forecasts, comments.
 

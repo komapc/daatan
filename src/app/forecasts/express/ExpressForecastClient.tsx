@@ -3,6 +3,9 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Sparkles, Search, FileText, Loader2, AlertCircle, Edit2, RotateCcw, ArrowLeft, X, Plus } from 'lucide-react'
+import { createClientLogger } from '@/lib/client-logger'
+
+const log = createClientLogger('ExpressForecast')
 
 interface ExpressForecastClientProps {
   userId: string
@@ -126,7 +129,7 @@ export default function ExpressForecastClient({ userId }: ExpressForecastClientP
               setStep('error')
             }
           } catch (e) {
-            console.error('Failed to parse stream data:', e)
+            log.error({ err: e }, 'Failed to parse stream data')
           }
         }
       }

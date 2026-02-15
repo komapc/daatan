@@ -8,6 +8,9 @@ import { ThumbsUp, Lightbulb, ThumbsDown, Reply, Trash2, Edit2, MessageSquare } 
 import CommentForm from './CommentForm'
 import type { Comment } from './CommentThread'
 import { RoleBadge } from '@/components/RoleBadge'
+import { createClientLogger } from '@/lib/client-logger'
+
+const log = createClientLogger('CommentItem')
 
 function SimpleAvatar({ user, size = 'sm' }: { user: { name: string | null; image: string | null }; size?: 'sm' | 'md' }) {
   const sizeClass = size === 'sm' ? 'w-8 h-8 text-sm' : 'w-10 h-10 text-base'
@@ -88,7 +91,7 @@ export default function CommentItem({
         }
       }
     } catch (error) {
-      console.error('Error reacting:', error)
+        log.error({ err: error }, 'Error reacting')
     }
   }
 
@@ -103,7 +106,7 @@ export default function CommentItem({
         onDeleted(comment.id)
       }
     } catch (error) {
-      console.error('Error deleting comment:', error)
+        log.error({ err: error }, 'Error deleting comment')
     }
   }
 
@@ -119,7 +122,7 @@ export default function CommentItem({
         comment.text = editText
       }
     } catch (error) {
-      console.error('Error updating comment:', error)
+        log.error({ err: error }, 'Error updating comment')
     }
   }
 
@@ -142,7 +145,7 @@ export default function CommentItem({
         setShowReplies(true)
       }
     } catch (error) {
-      console.error('Error loading replies:', error)
+        log.error({ err: error }, 'Error loading replies')
     } finally {
       setIsLoadingReplies(false)
     }

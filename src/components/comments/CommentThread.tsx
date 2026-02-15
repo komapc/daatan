@@ -5,6 +5,9 @@ import { useSession } from 'next-auth/react'
 import { MessageSquare, Loader2 } from 'lucide-react'
 import CommentItem from './CommentItem'
 import CommentForm from './CommentForm'
+import { createClientLogger } from '@/lib/client-logger'
+
+const log = createClientLogger('CommentThread')
 
 export interface Comment {
   id: string
@@ -57,7 +60,7 @@ export default function CommentThread({ predictionId, forecastId }: CommentThrea
           setComments(data.comments || [])
         }
       } catch (error) {
-        console.error('Error fetching comments:', error)
+        log.error({ err: error }, 'Error fetching comments')
       } finally {
         setIsLoading(false)
       }

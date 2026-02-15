@@ -1,20 +1,20 @@
 'use client'
 
-import { Settings, Globe } from 'lucide-react'
+import { Settings } from 'lucide-react'
 import { redirect } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { useState } from 'react'
+import { useLocale } from 'next-intl'
+import { LanguagePicker } from '@/components/LanguagePicker'
 
 export default function SettingsPage() {
-  const { data: session, status } = useSession({
+  const { status } = useSession({
     required: true,
     onUnauthenticated() {
       redirect('/auth/signin?callbackUrl=/settings')
     },
   })
 
-  // Mock state for language preference
-  const [language, setLanguage] = useState<'en' | 'he'>('en')
+  const locale = useLocale()
 
   if (status === 'loading') {
     return <div className="p-8 text-center">Loading...</div>
@@ -34,50 +34,7 @@ export default function SettingsPage() {
         </div>
 
         <div className="p-6 space-y-6">
-          {/* Language Setting */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                <Globe className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="font-medium text-gray-900">Language</p>
-                <p className="text-sm text-gray-500">Choose your preferred language for the interface.</p>
-              </div>
-            </div>
-            
-            <div className="flex bg-gray-100 p-1 rounded-lg">
-              <button
-                onClick={() => setLanguage('en')}
-                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                  language === 'en'
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-900'
-                }`}
-              >
-                English
-              </button>
-              <button
-                onClick={() => setLanguage('he')}
-                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                  language === 'he'
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-900'
-                }`}
-              >
-                עברית
-              </button>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-gray-50 px-6 py-4 border-t border-gray-100 flex justify-end">
-          <button 
-            className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-            onClick={() => alert('Settings saved (simulation)')}
-          >
-            Save Changes
-          </button>
+          <LanguagePicker currentLocale={locale} />
         </div>
       </div>
     </div>

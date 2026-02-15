@@ -2,6 +2,9 @@ import { GeminiProvider } from './providers/gemini'
 import { OllamaProvider } from './providers/ollama'
 import { ResilientLLMService } from './service'
 import type { LLMProvider } from './types'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('llm')
 
 // Configuration
 const geminiApiKey = process.env.GEMINI_API_KEY || ''
@@ -21,9 +24,8 @@ if (geminiApiKey) {
     }),
   )
 } else {
-  // eslint-disable-next-line no-console
-  console.warn(
-    '[LLM] GEMINI_API_KEY is not set; Gemini provider will be disabled. ' +
+  log.warn(
+    'GEMINI_API_KEY is not set; Gemini provider will be disabled. ' +
       'Only fallback providers (e.g. Ollama) will be used.',
   )
 }

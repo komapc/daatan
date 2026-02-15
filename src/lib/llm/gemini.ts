@@ -1,6 +1,9 @@
 import { SchemaType, type Schema } from '@google/generative-ai'
 import { getExtractPredictionPrompt } from './prompts'
 import { llmService } from './index'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('llm-gemini')
 
 
 export const predictionSchema: Schema = {
@@ -46,7 +49,7 @@ export async function extractPrediction(text: string) {
     
     return JSON.parse(result.text)
   } catch (error) {
-    console.error('Failed to extract prediction:', error)
+    log.error({ err: error }, 'Failed to extract prediction')
     throw error
   }
 }

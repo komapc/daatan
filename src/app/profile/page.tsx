@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { createLogger } from '@/lib/logger'
 import Image from 'next/image'
 import {
   User as UserIcon,
@@ -254,7 +255,7 @@ export default async function ProfilePage() {
       </div>
     )
   } catch (error) {
-    console.error('Profile page error:', error)
+    createLogger('profile').error({ err: error }, 'Profile page error')
     return (
       <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
         <div className="bg-red-50 border border-red-200 rounded-3xl p-8 text-center">

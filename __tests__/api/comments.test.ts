@@ -4,9 +4,17 @@ import { GET as getComments, POST as createComment } from '@/app/api/comments/ro
 import { PATCH as updateComment, DELETE as deleteComment } from '@/app/api/comments/[id]/route'
 import { POST as addReaction, DELETE as removeReaction } from '@/app/api/comments/[id]/react/route'
 
-// Mock next-auth
+// Mock next-auth (both import paths used by withAuth and direct imports)
+const { mockGetServerSession } = vi.hoisted(() => ({
+  mockGetServerSession: vi.fn(),
+}))
+
 vi.mock('next-auth', () => ({
-  getServerSession: vi.fn(),
+  getServerSession: mockGetServerSession,
+}))
+
+vi.mock('next-auth/next', () => ({
+  getServerSession: mockGetServerSession,
 }))
 
 // Mock prisma
@@ -139,7 +147,7 @@ describe('Comments API', () => {
         }),
       })
 
-      const response = await createComment(request)
+      const response = await createComment(request, { params: {} } as any)
       const data = await response.json()
 
       expect(response.status).toBe(201)
@@ -159,7 +167,7 @@ describe('Comments API', () => {
         }),
       })
 
-      const response = await createComment(request)
+      const response = await createComment(request, { params: {} } as any)
 
       expect(response.status).toBe(401)
     })
@@ -179,7 +187,7 @@ describe('Comments API', () => {
         }),
       })
 
-      const response = await createComment(request)
+      const response = await createComment(request, { params: {} } as any)
 
       expect(response.status).toBe(400)
     })
@@ -308,19 +316,13 @@ describe('Comments API', () => {
       const { prisma } = await import('@/lib/prisma')
 
       vi.mocked(getServerSession).mockResolvedValue({
-        user: { id: 'admin1', email: 'admin@example.com' },
+        user: { id: 'admin1', email: 'admin@example.com', role: 'ADMIN' },
       } as any)
 
       vi.mocked(prisma.comment.findUnique).mockResolvedValue({
         id: 'comment1',
         authorId: 'user2', // Different user
         deletedAt: null,
-      } as any)
-
-      vi.mocked(prisma.user.findUnique).mockResolvedValue({
-        id: 'admin1',
-        role: 'ADMIN',
-        isAdmin: true, // Admin user
       } as any)
 
       vi.mocked(prisma.comment.update).mockResolvedValue({} as any)
@@ -339,20 +341,13 @@ describe('Comments API', () => {
       const { prisma } = await import('@/lib/prisma')
 
       vi.mocked(getServerSession).mockResolvedValue({
-        user: { id: 'resolver1', email: 'resolver@example.com' },
+        user: { id: 'resolver1', email: 'resolver@example.com', role: 'RESOLVER' },
       } as any)
 
       vi.mocked(prisma.comment.findUnique).mockResolvedValue({
         id: 'comment1',
         authorId: 'user2', // Different user - resolver can still delete
         deletedAt: null,
-      } as any)
-
-      vi.mocked(prisma.user.findUnique).mockResolvedValue({
-        id: 'resolver1',
-        role: 'RESOLVER',
-        isAdmin: false,
-        isModerator: true,
       } as any)
 
       vi.mocked(prisma.comment.update).mockResolvedValue({} as any)

@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('api-error')
 
 /**
  * Standard API error response shape:
@@ -47,7 +50,7 @@ export function handleRouteError(
     )
   }
 
-  console.error(fallbackMessage, error)
+  log.error({ err: error }, fallbackMessage)
 
   // Include error details in staging for easier debugging
   const isStaging = process.env.NEXT_PUBLIC_ENV === 'staging'
