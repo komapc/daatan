@@ -63,7 +63,7 @@
 - [ ] **Express Forecast: Numeric threshold support** (e.g., "Bitcoin price by end of year")
 - [ ] **Express Forecast: Advanced types** (order, date-based, conditional)
 
-- [ ] **Security: Content-Security-Policy header** in nginx config
+- [x] **Security: Content-Security-Policy header** in nginx config — added CSP (Report-Only on staging/prod for safe rollout, enforcing on local dev), plus Referrer-Policy and Permissions-Policy. All 3 nginx configs updated. Config validation tests in `__tests__/config/nginx-security-headers.test.ts`. To enforce: change `Content-Security-Policy-Report-Only` → `Content-Security-Policy` in `nginx-ssl.conf` and `nginx-staging-ssl.conf` after reviewing browser console for violations.
 - [ ] **Security: Missing env var validation at startup** — GEMINI_API_KEY, SERPER_API_KEY checked at request time, not at boot.
 
 - [ ] **Infra: Optimize CI/CD Deployment Pipeline**

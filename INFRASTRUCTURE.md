@@ -93,7 +93,59 @@ chmod +x deploy.sh
 
 ---
 
-## 5. SSL Certificate Management
+## 5. Security Headers
+
+Nginx adds security headers to all HTTPS responses. Headers are defined in the `server` block of each nginx config.
+
+### Current Headers
+
+| Header | Value | Purpose |
+| ------ | ----- | ------- |
+| `X-Frame-Options` | `SAMEORIGIN` | Prevents clickjacking |
+| `X-Content-Type-Options` | `nosniff` | Blocks MIME-type sniffing |
+| `X-XSS-Protection` | `1; mode=block` | Legacy XSS filter |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` | Enforces HTTPS (SSL configs only) |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | Controls referrer leakage |
+| `Permissions-Policy` | `camera=(), microphone=(), geolocation=()` | Disables unused browser APIs |
+| `Content-Security-Policy` | See below | Controls allowed resource origins |
+
+### Content-Security-Policy
+
+The CSP restricts which origins can serve scripts, styles, fonts, images, and connections.
+
+**Current directives:**
+
+| Directive | Value | Why |
+| --------- | ----- | --- |
+| `default-src` | `'self'` | Baseline — same-origin only |
+| `script-src` | `'self' https://www.googletagmanager.com 'unsafe-inline'` | App bundles + GA + inline GA init |
+| `style-src` | `'self' https://fonts.googleapis.com 'unsafe-inline'` | Tailwind + Google Fonts + Next.js inline |
+| `font-src` | `'self' https://fonts.gstatic.com` | Google Fonts woff2 files |
+| `img-src` | `'self' https://lh3.googleusercontent.com data:` | App images + Google OAuth avatars |
+| `connect-src` | `'self' https://www.google-analytics.com https://*.google-analytics.com` | GA event beacons |
+| `frame-ancestors` | `'none'` | Blocks embedding (stricter than X-Frame-Options) |
+| `object-src` | `'none'` | Blocks Flash/Java plugins |
+| `base-uri` | `'self'` | Prevents `<base>` tag hijacking |
+| `form-action` | `'self'` | Forms can only submit to same origin |
+| `worker-src` | `'self'` | PWA service workers |
+| `upgrade-insecure-requests` | (present in SSL configs only) | Upgrades HTTP sub-requests to HTTPS |
+
+**Rollout strategy:**
+- Staging/production use `Content-Security-Policy-Report-Only` — violations are logged in the browser console but not blocked.
+- Local dev (`nginx.conf`) uses enforcing `Content-Security-Policy` for early detection.
+- **To enforce in production:** change `Content-Security-Policy-Report-Only` to `Content-Security-Policy` in `nginx-ssl.conf` and `nginx-staging-ssl.conf` after verifying no violations in browser console.
+
+**Adding a new external resource:**
+1. Identify the directive (e.g., `script-src` for JS, `img-src` for images)
+2. Add the origin to the CSP in all 3 nginx configs (`nginx-ssl.conf`, `nginx-staging-ssl.conf`, `nginx.conf`)
+3. Update the test expectations in `__tests__/config/nginx-security-headers.test.ts`
+4. Deploy and verify no violations in browser console
+
+**Future improvement:** Replace `'unsafe-inline'` in `script-src` with nonce-based CSP via Next.js middleware for stronger XSS protection.
+
+---
+
+## 6. SSL Certificate Management
 
 Certificates are automatically renewed by Certbot. To manually renew:
 
@@ -108,7 +160,7 @@ docker compose -f ~/app/docker-compose.prod.yml restart nginx
 
 ---
 
-## 6. Configuration Files
+## 7. Configuration Files
 
 | File | Purpose |
 | ---- | ------- |
@@ -120,7 +172,7 @@ docker compose -f ~/app/docker-compose.prod.yml restart nginx
 
 ---
 
-## 7. Terraform
+## 8. Terraform
 
 Terraform manages the AWS infrastructure:
 
@@ -142,7 +194,7 @@ terraform apply
 
 ---
 
-## 8. Monitoring
+## 9. Monitoring
 
 ### Health Check
 
@@ -166,7 +218,7 @@ ssh -i ~/.ssh/daatan-key.pem ubuntu@52.59.160.186 "docker logs daatan-nginx --ta
 
 ---
 
-## 9. Costs (Estimated Monthly)
+## 10. Costs (Estimated Monthly)
 
 | Service | Cost |
 | ------- | ---- |
