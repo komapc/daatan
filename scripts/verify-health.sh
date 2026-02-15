@@ -55,5 +55,37 @@ if [ -n "$DEPLOYED_COMMIT" ]; then
     echo -e "  Commit:  ${GREEN}${DEPLOYED_COMMIT:0:8}${NC}"
 fi
 
+# Check OAuth providers endpoint
+echo -n "Checking OAuth Providers... "
+AUTH_PROVIDERS=$(curl -s "$URL/api/auth/providers?cb=$CACHE_BUSTER")
+if echo "$AUTH_PROVIDERS" | grep -q '"google"'; then
+    echo -e "${GREEN}OK${NC} (Google provider registered)"
+else
+    echo -e "${RED}FAILED${NC}"
+    echo -e "  Google provider not found in /api/auth/providers"
+    echo -e "  Response: $AUTH_PROVIDERS"
+    exit 1
+fi
+
+# Check OAuth config validation endpoint
+echo -n "Checking OAuth Config... "
+AUTH_HEALTH_RESPONSE=$(curl -s -w "\n%{http_code}" "$URL/api/health/auth?cb=$CACHE_BUSTER")
+AUTH_HEALTH_BODY=$(echo "$AUTH_HEALTH_RESPONSE" | head -n -1)
+AUTH_HEALTH_CODE=$(echo "$AUTH_HEALTH_RESPONSE" | tail -1)
+
+if [ "$AUTH_HEALTH_CODE" = "200" ]; then
+    echo -e "${GREEN}OK${NC} (credentials format valid)"
+else
+    echo -e "${RED}FAILED${NC} (HTTP $AUTH_HEALTH_CODE)"
+    echo -e "  OAuth config validation failed — credentials may be misconfigured"
+    # Extract errors from JSON response
+    AUTH_ERRORS=$(echo "$AUTH_HEALTH_BODY" | grep -oP '"errors"\s*:\s*\[[^\]]*\]' || echo "")
+    if [ -n "$AUTH_ERRORS" ]; then
+        echo -e "  $AUTH_ERRORS"
+    fi
+    echo -e "  Full response: $AUTH_HEALTH_BODY"
+    exit 1
+fi
+
 echo -e "${GREEN}✅ Health check passed!${NC}"
 exit 0
