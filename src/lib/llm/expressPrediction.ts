@@ -36,8 +36,17 @@ export const expressPredictionSchema: Schema = {
       type: SchemaType.STRING,
       description: "Category (DEPRECATED - just use 'General')",
     },
+    outcomeType: {
+      type: SchemaType.STRING,
+      description: "BINARY for yes/no predictions, MULTIPLE_CHOICE when multiple distinct outcomes are possible (e.g. 'who will win', 'which team')",
+    },
+    options: {
+      type: SchemaType.ARRAY,
+      items: { type: SchemaType.STRING },
+      description: "For MULTIPLE_CHOICE only: 2-10 distinct outcome options. Empty array for BINARY.",
+    },
   },
-  required: ["claimText", "resolveByDatetime", "detailsText", "tags", "resolutionRules"],
+  required: ["claimText", "resolveByDatetime", "detailsText", "tags", "resolutionRules", "outcomeType", "options"],
 }
 
 export interface ExpressPredictionResult {
@@ -47,6 +56,8 @@ export interface ExpressPredictionResult {
   domain: string // Keep for backward compat
   tags: string[]
   resolutionRules: string
+  outcomeType: 'BINARY' | 'MULTIPLE_CHOICE'
+  options: string[] // Non-empty for MULTIPLE_CHOICE
   newsAnchor: {
     url: string
     urlHash: string
@@ -69,6 +80,8 @@ interface ParsedPrediction {
   tags: string[]
   resolutionRules: string
   domain?: string
+  outcomeType: 'BINARY' | 'MULTIPLE_CHOICE'
+  options: string[]
 }
 
 export async function generateExpressPrediction(
@@ -134,11 +147,31 @@ URL: ${article.url}
     throw error
   }
 
+  // Normalize outcomeType — fall back to BINARY for unrecognized values
+  const validOutcomeTypes = ['BINARY', 'MULTIPLE_CHOICE'] as const
+  if (!validOutcomeTypes.includes(prediction.outcomeType as typeof validOutcomeTypes[number])) {
+    prediction.outcomeType = 'BINARY'
+    prediction.options = []
+  }
+
+  // Ensure MULTIPLE_CHOICE has at least 2 options, otherwise fall back to BINARY
+  if (prediction.outcomeType === 'MULTIPLE_CHOICE') {
+    prediction.options = (prediction.options || []).filter(o => o.trim())
+    if (prediction.options.length < 2) {
+      prediction.outcomeType = 'BINARY'
+      prediction.options = []
+    }
+  } else {
+    prediction.options = []
+  }
+
   onProgress?.('prediction_formed', {
     message: 'Prediction formed',
     preview: {
       claim: prediction.claimText,
-      resolveBy: prediction.resolveByDatetime
+      resolveBy: prediction.resolveByDatetime,
+      outcomeType: prediction.outcomeType,
+      options: prediction.options,
     }
   })
 
