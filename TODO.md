@@ -50,7 +50,7 @@
 
 - [ ] **CI/CD: Create `version-bump.yml` workflow** — no workflow exists, but `.husky/pre-commit` references `./scripts/check-version-bump.sh`. Either create the workflow and script, or remove the stale husky reference.
 
-- [ ] **CI/CD: Centralize ECR registry** — registry URL `272007598366.dkr.ecr.eu-central-1.amazonaws.com` hardcoded in 4 files: `deploy.yml` (6 occurrences), `docker-compose.prod.yml` (2 occurrences), `scripts/blue-green-deploy.sh` (1, commented out). Extract to a single GitHub Actions variable or env var and reference everywhere.
+- [x] **CI/CD: Centralize ECR registry** — registry URL `272007598366.dkr.ecr.eu-central-1.amazonaws.com` hardcoded in 4 files: `deploy.yml` (6 occurrences), `docker-compose.prod.yml` (2 occurrences), `scripts/blue-green-deploy.sh` (1, commented out). Extract to a single GitHub Actions variable or env var and reference everywhere.
 
 ### P3 - Low Priority
 

@@ -1,5 +1,8 @@
 name: CI/CD Pipeline
 
+env:
+  ECR_REGISTRY: 272007598366.dkr.ecr.eu-central-1.amazonaws.com
+
 on:
   push:
     branches:
@@ -186,13 +189,13 @@ jobs:
           chmod +x scripts/*.sh
           
           echo '🔐 Logging in to ECR (Region: eu-central-1)...'
-          aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin 272007598366.dkr.ecr.eu-central-1.amazonaws.com
+          aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin $ECR_REGISTRY
           
           echo '⬇️ Pulling staging image...'
-          docker pull 272007598366.dkr.ecr.eu-central-1.amazonaws.com/daatan-app:staging-latest
+          docker pull $ECR_REGISTRY/daatan-app:staging-latest
           
           echo '🏷️ Tagging image...'
-          docker tag 272007598366.dkr.ecr.eu-central-1.amazonaws.com/daatan-app:staging-latest daatan-app:staging-latest
+          docker tag $ECR_REGISTRY/daatan-app:staging-latest daatan-app:staging-latest
           
           echo '🚀 Executing blue-green deployment...'
           export GIT_COMMIT=\"${{ github.sha }}\"
@@ -343,13 +346,13 @@ jobs:
           chmod +x scripts/*.sh
           
           echo '🔐 Logging in to ECR (Region: eu-central-1)...'
-          aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin 272007598366.dkr.ecr.eu-central-1.amazonaws.com
+          aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin $ECR_REGISTRY
           
           echo \"⬇️ Pulling production image (tag: $IMAGE_TAG)...\"
-          docker pull 272007598366.dkr.ecr.eu-central-1.amazonaws.com/daatan-app:$IMAGE_TAG
+          docker pull $ECR_REGISTRY/daatan-app:$IMAGE_TAG
           
           echo '🏷️ Tagging image as latest...'
-          docker tag 272007598366.dkr.ecr.eu-central-1.amazonaws.com/daatan-app:$IMAGE_TAG daatan-app:latest
+          docker tag $ECR_REGISTRY/daatan-app:$IMAGE_TAG daatan-app:latest
           
           echo '🚀 Executing blue-green deployment...'
           export GIT_COMMIT=\"${{ github.sha }}\"
