@@ -39,11 +39,8 @@ model User {
   
   // Roles
   role                 UserRole @default(USER)
-  isAdmin              Boolean @default(false) // Deprecated: use role instead
-  isModerator          Boolean @default(false) // Deprecated: use role instead
 
   // Scoring & Currency
-  brierScore  Float @default(0) // Legacy: Prediction accuracy score
   rs          Float @default(100) // Reputation Score (starts at 100)
   cuAvailable Int   @default(100) // Confidence Units available to commit
   cuLocked    Int   @default(0) // Confidence Units locked in active predictions

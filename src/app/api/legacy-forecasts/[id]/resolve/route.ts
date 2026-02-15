@@ -100,27 +100,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         })
       }
 
-      // 4. Update user Brier scores
-      const voterIds = [...new Set(forecast.votes.map((v: { userId: string }) => v.userId))]
-      
-      for (const voterId of voterIds) {
-        const userVotes = await tx.vote.findMany({
-          where: {
-            userId: voterId,
-            brierScore: { not: null },
-          },
-          select: { brierScore: true },
-        })
-
-        if (userVotes.length > 0) {
-          const avgBrier = userVotes.reduce((sum, v) => sum + (v.brierScore ?? 0), 0) / userVotes.length
-          
-          await tx.user.update({
-            where: { id: voterId },
-            data: { brierScore: avgBrier },
-          })
-        }
-      }
     })
 
     // Fetch the updated forecast
@@ -138,7 +117,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
                 name: true,
                 username: true,
                 image: true,
-                brierScore: true,
               },
             },
             option: {

@@ -8,7 +8,7 @@
 
 - [ ] **Security: Rate limiting** — no rate limiting on any API route. LLM routes (express generate, AI extract) are particularly expensive. Implement at Nginx level.
 
-- [ ] **DB: Remove deprecated schema fields** — `User.isAdmin`, `User.isModerator`, `User.brierScore` have `@default` values and are no longer read/written by application code (migrated to `role` enum). Create Prisma migration to drop columns. `Vote.brierScore` stays (legacy system).
+- [x] **DB: Remove deprecated schema fields** — dropped `User.isAdmin`, `User.isModerator`, `User.brierScore` columns. Removed all code references (seed, tests, legacy-forecast routes). `Vote.brierScore` kept (legacy system). Migration: `20260215120000_remove_deprecated_user_fields`.
 
 ### P1 - High Priority
 
