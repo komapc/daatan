@@ -1,6 +1,6 @@
 # DAATAN Technical Documentation
 
-> Technical architecture, infrastructure, deployment, and operational guide.
+> Technical architecture, infrastructure, project structure, and development guide.
 > Last updated: February 2026
 
 ---
@@ -9,9 +9,9 @@
 
 1. [Technology Stack](#technology-stack)
 2. [Architecture Overview](#architecture-overview)
-3. [Infrastructure](#infrastructure)
-4. [CI/CD Pipeline](#cicd-pipeline)
-5. [Deployment Strategies](#deployment-strategies)
+3. [Project Structure](#project-structure)
+4. [Infrastructure](#infrastructure)
+5. [CI/CD Pipeline](#cicd-pipeline)
 6. [Database](#database)
 7. [Authentication](#authentication)
 8. [Security](#security)
@@ -40,7 +40,7 @@
 | CI/CD | GitHub Actions | - |
 | AI Integration | Google Gemini API | - |
 
-**LLM prompts** (forecast/prediction creation) are defined in `src/lib/llm/prompts/`: `expressPrediction.ts` (Express flow) and `extractPrediction.ts` (extract from text). See [STRUCTURE.md](./STRUCTURE.md) for the full `lib/llm` layout.
+**LLM prompts** (forecast/prediction creation) are defined in `src/lib/llm/prompts/`: `expressPrediction.ts` (Express flow) and `extractPrediction.ts` (extract from text).
 
 ---
 
@@ -56,8 +56,8 @@
                             ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                    AWS Route 53 (DNS)                           │
-│  daatan.com → 52.59.160.186                                     │
-│  staging.daatan.com → 52.59.160.186                             │
+│  daatan.com → EC2 Elastic IP                                    │
+│  staging.daatan.com → EC2 Elastic IP                            │
 └───────────────────────────┬─────────────────────────────────────┘
                             │
                             ▼
@@ -104,11 +104,185 @@
 ### Request Flow
 
 1. User requests `https://daatan.com`
-2. Route 53 resolves to EC2 Elastic IP (52.59.160.186)
+2. Route 53 resolves to EC2 Elastic IP
 3. Nginx terminates SSL and routes to appropriate container
 4. Next.js app processes request
 5. Prisma queries PostgreSQL if needed
 6. Response flows back through the chain
+
+### Docker Containers
+
+| Container | Image | Port | Purpose |
+|-----------|-------|------|---------|
+| `daatan-nginx` | `nginx:alpine` | 80, 443 | Reverse proxy, SSL termination |
+| `daatan-app` | `daatan-app:latest` | 3000 (internal) | Production Next.js app |
+| `daatan-app-staging` | `daatan-app:staging-*` | 3000 (internal) | Staging Next.js app |
+| `daatan-postgres` | `postgres:16-alpine` | 5432 (internal) | PostgreSQL database |
+| `daatan-certbot` | `certbot/certbot` | - | SSL certificate renewal |
+
+### Volumes
+
+| Volume | Mount Point | Purpose |
+|--------|-------------|---------|
+| postgres_data | /var/lib/postgresql/data | Database persistence |
+| ./certbot/conf | /etc/letsencrypt | SSL certificates |
+| ./certbot/www | /var/www/certbot | ACME challenge files |
+
+---
+
+## Project Structure
+
+### Directory Overview
+
+```
+daatan/
+├── .github/                    # GitHub configuration
+│   └── workflows/              # CI/CD pipelines
+│       └── deploy.yml          # Main deployment workflow
+├── .husky/                     # Git hooks
+│   ├── pre-commit              # Build + test verification
+│   └── pre-push                # Auth change detection
+├── certbot/                    # SSL certificate storage
+│   ├── conf/                   # Let's Encrypt certificates
+│   └── www/                    # ACME challenge files
+├── prisma/                     # Database schema
+│   └── schema.prisma           # Prisma ORM schema
+├── public/                     # Static assets
+├── scripts/                    # Operational scripts
+├── src/                        # Application source code
+├── terraform/                  # Infrastructure as Code
+└── __tests__/                  # Test files
+```
+
+### Source Code (`src/`)
+
+```
+src/
+├── app/                        # Next.js App Router
+│   ├── api/                    # API routes
+│   │   ├── auth/               # NextAuth.js endpoints
+│   │   ├── comments/           # Comment CRUD + reactions
+│   │   ├── commitments/        # User commitment listing
+│   │   ├── forecasts/          # Forecast CRUD (new system)
+│   │   ├── health/             # Health check endpoint
+│   │   ├── legacy-forecasts/   # Legacy forecast system (deprecated)
+│   │   ├── news-anchors/       # News anchor management
+│   │   ├── notifications/      # Notification endpoints
+│   │   ├── profile/            # User profile update
+│   │   ├── top-reputation/     # Leaderboard endpoint
+│   │   └── version/            # Version endpoint
+│   ├── auth/                   # Auth pages
+│   │   ├── signin/             # Sign in page
+│   │   │   ├── page.tsx        # Server Component wrapper
+│   │   │   └── SignInClient.tsx # Client Component with UI
+│   │   └── error/              # Auth error page
+│   │       ├── page.tsx        # Server Component wrapper
+│   │       └── AuthErrorClient.tsx # Client Component with UI
+│   ├── create/                 # Forecast creation
+│   ├── leaderboard/            # User rankings
+│   ├── notifications/          # User notifications
+│   ├── forecasts/              # Forecast views
+│   ├── profile/                # User profile
+│   ├── settings/               # User settings
+│   ├── globals.css             # Global styles
+│   ├── layout.tsx              # Root layout
+│   └── page.tsx                # Homepage
+├── components/                 # React components
+│   ├── comments/               # Comment thread components
+│   ├── forecasts/              # Forecast-related components
+│   ├── profile/                # Profile edit form
+│   ├── Sidebar.tsx             # Navigation sidebar
+│   └── SessionWrapper.tsx      # Auth session provider
+├── lib/                        # Shared utilities
+│   ├── llm/                    # LLM integration (Gemini)
+│   │   ├── prompts/            # LLM prompt templates
+│   │   │   ├── expressPrediction.ts  # Express forecast creation
+│   │   │   └── extractPrediction.ts  # Extract prediction from text
+│   │   ├── expressPrediction.ts
+│   │   └── gemini.ts
+│   ├── services/               # Business logic services
+│   ├── utils/                  # Utility functions
+│   ├── validations/            # Zod schemas
+│   ├── auth.ts                 # NextAuth configuration
+│   ├── prisma.ts               # Prisma client singleton
+│   └── logger.ts               # Pino structured logging
+└── types/                      # TypeScript definitions
+    └── next-auth.d.ts          # NextAuth type extensions
+```
+
+### Scripts Directory
+
+| Script | Purpose | Usage |
+|--------|---------|-------|
+| `blue-green-deploy.sh` | Zero-downtime deployment | `./scripts/blue-green-deploy.sh [production\|staging]` |
+| `rollback.sh` | Quick rollback to previous commit | `./scripts/rollback.sh [production\|staging]` |
+| `verify-deploy.sh` | Verify deployment health + version | `./scripts/verify-deploy.sh <url>` |
+| `verify-local.sh` | Comprehensive local verification | `./scripts/verify-local.sh` |
+| `verify-nginx-config.sh` | Validate nginx configuration | `./scripts/verify-nginx-config.sh` |
+| `release.sh` | Interactive version tagging | `./scripts/release.sh` |
+| `status.sh` | Full health/version check | `./scripts/status.sh` |
+| `check.sh` | Quick up/down check | `./scripts/check.sh` |
+
+### Terraform Structure
+
+```
+terraform/
+├── main.tf                     # Provider configuration
+├── ec2.tf                      # EC2 instance + user data
+├── vpc.tf                      # VPC, subnets, routing
+├── security_groups.tf          # Firewall rules
+├── route53.tf                  # DNS records
+├── s3.tf                       # Backup bucket + IAM
+├── iam_ssm.tf                  # SSM access
+├── variables.tf                # Input variables
+├── outputs.tf                  # Output values
+├── terraform.tfvars            # Variable values (gitignored)
+└── terraform.tfvars.example    # Example variables
+```
+
+### Configuration Files
+
+| File | Purpose |
+|------|---------|
+| `package.json` | Node.js dependencies and scripts |
+| `tsconfig.json` | TypeScript configuration |
+| `next.config.js` | Next.js configuration |
+| `tailwind.config.js` | Tailwind CSS configuration |
+| `vitest.config.ts` | Vitest test configuration |
+| `Dockerfile` | Multi-stage Docker build |
+| `docker-compose.yml` | Local development stack |
+| `docker-compose.prod.yml` | Production Docker stack |
+| `nginx-ssl.conf` | Production nginx with SSL |
+| `nginx-staging-ssl.conf` | Staging nginx with SSL |
+| `nginx.conf` | Local development nginx |
+| `.env.example` | Environment variable template |
+
+### Documentation
+
+| File | Purpose |
+|------|---------|
+| `README.md` | Project overview and quick start |
+| `DAATAN_CORE.md` | Source of Truth — vision and principles |
+| `GLOSSARY.md` | Terminology definitions |
+| `FORECASTS_FLOW.md` | Forecast system implementation flow |
+| `TODO.md` | Development tasks and guidelines |
+| `TECH.md` | Technical architecture (this file) |
+| `DEPLOYMENT.md` | Deployment procedures and operations |
+| `SECRETS.md` | Secrets management guide |
+| `VERSIONING.md` | Semantic versioning rules |
+| `PRODUCT.md` | Product documentation |
+| `MEMORY.md` | Session memory and context |
+| `TESTING.md` | Testing strategy and guidelines |
+
+### Testing Structure
+
+```
+__tests__/                      # Integration tests
+src/
+├── app/__tests__/              # API route tests
+├── components/__tests__/       # Component tests
+└── test/setup.ts               # Vitest configuration
+```
 
 ---
 
@@ -119,11 +293,38 @@
 | Resource | Type | Details |
 |----------|------|---------|
 | EC2 Instance | t3.small | Ubuntu 24.04, 2GB RAM |
-| Elastic IP | Static | 52.59.160.186 |
+| Elastic IP | Static | Assigned to EC2 |
 | Route 53 | Hosted Zone | daatan.com |
 | S3 Bucket | Backup Storage | 30-day retention |
 | Security Group | Firewall | SSH (restricted), HTTP, HTTPS |
 | IAM Role | EC2 Profile | S3 backup access |
+
+### Live Deployment
+
+**Production URL:** https://daatan.com
+**Staging URL:** https://staging.daatan.com
+
+| Component | Value |
+|-----------|-------|
+| Region | `eu-central-1` (Frankfurt) |
+| SSL Certificate | Valid until April 17, 2026 |
+
+### Network & DNS
+
+| Component | Provider/Service | Purpose |
+|-----------|------------------|---------|
+| Domain Registrar | Namecheap | Owns `daatan.com` |
+| DNS Management | Route 53 | Hosted zone |
+| Nameservers | AWS | 4 NS records delegated from Namecheap |
+
+### Security Group Rules
+
+| Port | Protocol | Source | Purpose |
+|------|----------|--------|---------|
+| 22 | TCP | Restricted CIDR | SSH access |
+| 80 | TCP | 0.0.0.0/0 | HTTP (redirects to HTTPS) |
+| 443 | TCP | 0.0.0.0/0 | HTTPS |
+| ICMP | - | 0.0.0.0/0 | Ping (debugging) |
 
 ### Terraform Resources
 
@@ -140,14 +341,7 @@ aws_vpc.main                  # VPC
 aws_subnet.public_a           # Public subnet
 ```
 
-### Security Group Rules
-
-| Port | Protocol | Source | Purpose |
-|------|----------|--------|---------|
-| 22 | TCP | Restricted CIDR | SSH access |
-| 80 | TCP | 0.0.0.0/0 | HTTP (redirects to HTTPS) |
-| 443 | TCP | 0.0.0.0/0 | HTTPS |
-| ICMP | - | 0.0.0.0/0 | Ping (debugging) |
+**Note:** Instance type changes are ignored in lifecycle to prevent accidental recreation.
 
 ### Estimated Monthly Costs
 
@@ -194,13 +388,11 @@ aws_subnet.public_a           # Public subnet
 - Build Docker image (no cache)
 - Start containers
 - Verify health check
-- Verify authentication
 
 **Deploy Stage (Production):**
-- Same as staging but:
-  - Checks out specific tag
-  - Deploys to production container
-  - More conservative cleanup
+- Same as staging but checks out specific tag
+- Deploys to production container
+- More conservative cleanup
 
 ### Required Secrets
 
@@ -216,72 +408,6 @@ aws_subnet.public_a           # Public subnet
 
 ---
 
-## Deployment Strategies
-
-### 1. Standard Deployment (Automatic)
-
-**Best for:** Regular feature deployments
-
-```bash
-# Staging (automatic on push)
-git push origin main
-
-# Production (automatic on tag)
-git tag v0.1.17
-git push origin v0.1.17
-```
-
-**Characteristics:**
-- ~5-10 minute deployment time
-- ~30 second downtime during container restart
-- Automatic health verification
-
-### 2. Blue-Green Deployment (Zero Downtime)
-
-**Best for:** Critical updates requiring zero downtime
-
-```bash
-ssh -i ~/.ssh/daatan-key.pem ubuntu@52.59.160.186 \
-  "cd ~/app && ./scripts/blue-green-deploy.sh production"
-```
-
-**How it works:**
-1. Build new version in inactive container
-2. Health check new container
-3. Switch nginx traffic
-4. Remove old container
-5. Automatic rollback on failure
-
-**Characteristics:**
-- ~3-5 minute deployment time
-- Zero downtime
-- Instant rollback capability
-
-### 3. Manual Deployment (Direct SSH)
-
-**Best for:** Emergency fixes, CI/CD unavailable
-
-```bash
-ssh -i ~/.ssh/daatan-key.pem ubuntu@52.59.160.186
-cd ~/app
-git pull origin main
-docker compose -f docker-compose.prod.yml up -d --build
-./scripts/verify-deploy.sh https://daatan.com
-```
-
-### 4. Rollback
-
-**When:** Current deployment is broken
-
-```bash
-ssh -i ~/.ssh/daatan-key.pem ubuntu@52.59.160.186 \
-  "cd ~/app && ./scripts/rollback.sh production"
-```
-
-**Time to rollback:** ~2-3 minutes
-
----
-
 ## Database
 
 ### Schema Overview
@@ -291,7 +417,6 @@ ssh -i ~/.ssh/daatan-key.pem ubuntu@52.59.160.186 \
 │                         User                                    │
 │  - id, email, name, image                                       │
 │  - rs (Reputation Score), cuAvailable, cuLocked                 │
-│  - isAdmin, isModerator                                         │
 └─────────────────────────────────────────────────────────────────┘
          │                    │                    │
          │ creates            │ commits            │ resolves
@@ -319,9 +444,20 @@ ssh -i ~/.ssh/daatan-key.pem ubuntu@52.59.160.186 \
 |-------|---------|------------|
 | User | User accounts | rs, cuAvailable, cuLocked |
 | Prediction | Forecast statements | claimText, outcomeType, status |
+| PredictionOption | Options for multiple choice | text, predictionId |
 | Commitment | CU stakes | cuCommitted, rsSnapshot |
 | NewsAnchor | News context | url, title, source |
 | CuTransaction | CU ledger | type, amount, balanceAfter |
+| Notification | User notifications | type, message, read |
+| Tag | Prediction categories | name, slug |
+
+### Legacy Models (Deprecated)
+
+| Model | Purpose |
+|-------|---------|
+| `Forecast` | Old prediction system |
+| `ForecastOption` | Old prediction options |
+| `Vote` | Old voting system |
 
 ### Database Operations
 
@@ -362,7 +498,6 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   session: { strategy: "jwt" },
-  // ...
 };
 ```
 
@@ -384,7 +519,6 @@ src/app/auth/
 - `export const dynamic = 'force-dynamic'` only works in Server Components
 - `useSearchParams()` requires `'use client'` directive
 - Combining both in one file causes the dynamic export to be ignored
-- Docker builds may skip pages that aren't properly marked as dynamic
 
 ### OAuth Flow
 
@@ -412,14 +546,53 @@ src/app/auth/
 - **Renewal:** Automatic via Certbot (every 12 hours check)
 - **Expiry:** April 17, 2026
 
+To manually renew:
+```bash
+docker run --rm \
+  -v ~/app/certbot/www:/var/www/certbot \
+  -v ~/app/certbot/conf:/etc/letsencrypt \
+  certbot/certbot renew
+docker compose -f ~/app/docker-compose.prod.yml restart nginx
+```
+
 ### Security Headers (Nginx)
 
-```nginx
-add_header X-Frame-Options "SAMEORIGIN" always;
-add_header X-Content-Type-Options "nosniff" always;
-add_header X-XSS-Protection "1; mode=block" always;
-add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-```
+| Header | Value | Purpose |
+|--------|-------|---------|
+| `X-Frame-Options` | `SAMEORIGIN` | Prevents clickjacking |
+| `X-Content-Type-Options` | `nosniff` | Blocks MIME-type sniffing |
+| `X-XSS-Protection` | `1; mode=block` | Legacy XSS filter |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` | Enforces HTTPS |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | Controls referrer leakage |
+| `Permissions-Policy` | `camera=(), microphone=(), geolocation=()` | Disables unused browser APIs |
+| `Content-Security-Policy` | See below | Controls allowed resource origins |
+
+### Content-Security-Policy
+
+| Directive | Value | Why |
+|-----------|-------|-----|
+| `default-src` | `'self'` | Baseline — same-origin only |
+| `script-src` | `'self' https://www.googletagmanager.com 'unsafe-inline'` | App bundles + GA + inline GA init |
+| `style-src` | `'self' https://fonts.googleapis.com 'unsafe-inline'` | Tailwind + Google Fonts + Next.js inline |
+| `font-src` | `'self' https://fonts.gstatic.com` | Google Fonts woff2 files |
+| `img-src` | `'self' https://lh3.googleusercontent.com data:` | App images + Google OAuth avatars |
+| `connect-src` | `'self' https://www.google-analytics.com https://*.google-analytics.com` | GA event beacons |
+| `frame-ancestors` | `'none'` | Blocks embedding |
+| `object-src` | `'none'` | Blocks Flash/Java plugins |
+| `base-uri` | `'self'` | Prevents `<base>` tag hijacking |
+| `form-action` | `'self'` | Forms submit to same origin only |
+| `worker-src` | `'self'` | PWA service workers |
+
+**Rollout strategy:**
+- Staging/production use `Content-Security-Policy-Report-Only` — violations are logged but not blocked
+- Local dev uses enforcing `Content-Security-Policy` for early detection
+- **To enforce in production:** change `Content-Security-Policy-Report-Only` to `Content-Security-Policy` in `nginx-ssl.conf` and `nginx-staging-ssl.conf`
+
+**Adding a new external resource:**
+1. Identify the directive (e.g., `script-src` for JS, `img-src` for images)
+2. Add the origin to the CSP in all 3 nginx configs
+3. Update test expectations in `__tests__/config/nginx-security-headers.test.ts`
+4. Deploy and verify no violations in browser console
 
 ### Network Security
 
@@ -434,6 +607,7 @@ add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" alway
 - GitHub Secrets for CI/CD
 - `.env` file gitignored
 - No secrets in Docker images
+- See [SECRETS.md](./SECRETS.md) for details
 
 ---
 
@@ -489,19 +663,26 @@ docker exec daatan-postgres psql -U daatan -d daatan \
 ### Local Setup
 
 ```bash
-# Clone repository
 git clone https://github.com/komapc/daatan.git
 cd daatan
-
-# Install dependencies
 npm install
-
-# Setup environment
 cp .env.example .env
 # Edit .env with your values
-
-# Start development server
 npm run dev
+```
+
+### Environment Variables
+
+Required in `.env`:
+
+```bash
+DATABASE_URL=postgresql://user:password@host:5432/database
+NEXTAUTH_SECRET=<secure-random-string>
+NEXTAUTH_URL=http://localhost:3000
+GOOGLE_CLIENT_ID=<google-oauth-client-id>
+GOOGLE_CLIENT_SECRET=<google-oauth-client-secret>
+POSTGRES_PASSWORD=<secure-password>
+GEMINI_API_KEY=<gemini-api-key>
 ```
 
 ### Git Hooks (Husky)
@@ -515,44 +696,38 @@ npm run dev
 - Detect auth-related changes
 - Prompt for manual auth testing
 
+### Git Workflow
+
+| Branch | Purpose |
+|--------|---------|
+| `main` | Production-ready code, auto-deploys to staging |
+| `feat/*`, `fix/*`, `chore/*` | Feature/fix development branches |
+
+| Trigger | Target |
+|---------|--------|
+| Push to `main` | Staging (staging.daatan.com) |
+| Push tag `v*` | Production (daatan.com) |
+| Manual workflow | Either environment |
+
 ### Testing
 
 ```bash
-# Run all tests
-npm test
-
-# Run with coverage
-npm test -- --coverage
-
-# Run specific test
-npm test -- path/to/test.ts
-```
-
-### Code Quality
-
-```bash
-# Lint
-npm run lint
-
-# Type check
-npx tsc --noEmit
-
-# Format (if configured)
-npm run format
+npm test                        # Run all tests
+npm test -- --coverage          # Run with coverage
+npm test -- path/to/test.ts     # Run specific test
+npm run lint                    # Lint
+npx tsc --noEmit                # Type check
 ```
 
 ### Local Verification
 
 ```bash
-# Comprehensive check before pushing
-./scripts/verify-local.sh
+./scripts/verify-local.sh       # Comprehensive pre-push check
 ```
 
 ---
 
 ## Troubleshooting
-
-### Common Issues
 
 | Issue | Solution |
 |-------|----------|
@@ -565,28 +740,18 @@ npm run format
 ### Debug Commands
 
 ```bash
-# Check all container status
-docker ps -a --filter name=daatan-
-
-# Check nginx config
-docker exec daatan-nginx nginx -t
-
-# Check environment variables in container
-docker exec daatan-app env | grep -E "NEXT|DATABASE|GOOGLE"
-
-# Check disk space
-df -h
-
-# Check memory
-free -m
+docker ps -a --filter name=daatan-          # All containers
+docker exec daatan-nginx nginx -t           # Check nginx config
+docker exec daatan-app env | grep -E "NEXT|DATABASE|GOOGLE"  # Check env vars
+df -h                                       # Disk space
+free -m                                     # Memory
 ```
 
 ---
 
 ## Related Documentation
 
-- [DEPLOYMENT.md](./DEPLOYMENT.md) — Detailed deployment procedures
-- [INFRASTRUCTURE.md](./INFRASTRUCTURE.md) — AWS infrastructure details
-- [STRUCTURE.md](./STRUCTURE.md) — Project structure
+- [DEPLOYMENT.md](./DEPLOYMENT.md) — Deployment procedures and operations
 - [PRODUCT.md](./PRODUCT.md) — Product documentation
 - [TODO.md](./TODO.md) — Technical debt and roadmap
+- [SECRETS.md](./SECRETS.md) — Secrets management guide

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Sparkles, Search, FileText, Loader2, AlertCircle, Edit2, RotateCcw, ArrowLeft, X, Plus } from 'lucide-react'
+import { Sparkles, Search, FileText, Loader2, AlertCircle, Edit2, RotateCcw, ArrowLeft, X, Plus, List, Trash2 } from 'lucide-react'
 import { createClientLogger } from '@/lib/client-logger'
 
 const log = createClientLogger('ExpressForecast')
@@ -18,6 +18,8 @@ interface GeneratedPrediction {
   domain: string
   tags: string[]
   resolutionRules: string
+  outcomeType: 'BINARY' | 'MULTIPLE_CHOICE'
+  options: string[]
   newsAnchor: {
     url: string
     title: string
@@ -49,9 +51,9 @@ export default function ExpressForecastClient({ userId }: ExpressForecastClientP
 
   const examples = [
     "Bitcoin will reach $100k this year",
-    "Trump will win 2024 US elections",
-    "AI will pass the Turing test by 2025",
-    "https://www.bbc.com/news/world-middle-east-12345678"
+    "Who will win the next Champions League?",
+    "AI will pass the Turing test by 2027",
+    "Which country will host the 2036 Olympics?",
   ]
 
   const handleGenerate = async () => {
@@ -188,6 +190,27 @@ export default function ExpressForecastClient({ userId }: ExpressForecastClientP
         tags: (editForm.tags || []).filter(t => t !== tag)
       })
     }
+  }
+
+  // Option management in edit mode
+  const handleOptionChange = (index: number, value: string) => {
+    if (!editForm) return
+    const newOptions = [...(editForm.options || [])]
+    newOptions[index] = value
+    setEditForm({ ...editForm, options: newOptions })
+  }
+
+  const addOption = () => {
+    if (!editForm) return
+    if ((editForm.options || []).length < 10) {
+      setEditForm({ ...editForm, options: [...(editForm.options || []), ''] })
+    }
+  }
+
+  const removeOption = (index: number) => {
+    if (!editForm) return
+    const newOptions = (editForm.options || []).filter((_, i) => i !== index)
+    setEditForm({ ...editForm, options: newOptions })
   }
 
   return (
@@ -414,6 +437,78 @@ export default function ExpressForecastClient({ userId }: ExpressForecastClientP
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Outcome Type & Options */}
+            <div>
+              <h3 className="text-sm font-bold text-gray-700 mb-2">Outcome Type</h3>
+              <div className="flex items-center gap-2 mb-3">
+                {generated.outcomeType === 'MULTIPLE_CHOICE' ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
+                    <List className="w-4 h-4" />
+                    Multiple Choice
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                    Binary (Yes / No)
+                  </span>
+                )}
+              </div>
+              {((isEditing ? editForm?.outcomeType : generated.outcomeType) === 'MULTIPLE_CHOICE') && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-600 mb-2">Options</h4>
+                  {isEditing ? (
+                    <div className="space-y-2">
+                      {(editForm?.options || []).map((option, index) => (
+                        <div key={index} className="flex gap-2">
+                          <span className="flex items-center justify-center w-8 text-sm text-gray-400">
+                            {index + 1}.
+                          </span>
+                          <input
+                            type="text"
+                            value={option}
+                            onChange={(e) => handleOptionChange(index, e.target.value)}
+                            placeholder={`Option ${index + 1}`}
+                            className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                            maxLength={500}
+                          />
+                          {(editForm?.options || []).length > 2 && (
+                            <button
+                              type="button"
+                              onClick={() => removeOption(index)}
+                              className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                              aria-label={`Remove option ${index + 1}`}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      {(editForm?.options || []).length < 10 && (
+                        <button
+                          type="button"
+                          onClick={addOption}
+                          className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-sm mt-1"
+                        >
+                          <Plus className="w-4 h-4" />
+                          Add Option
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <ol className="space-y-1.5">
+                      {(generated.options || []).map((option, index) => (
+                        <li key={index} className="flex items-center gap-2 text-gray-800">
+                          <span className="flex items-center justify-center w-6 h-6 bg-gray-100 text-gray-500 rounded-full text-xs font-medium">
+                            {index + 1}
+                          </span>
+                          {option}
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Context */}

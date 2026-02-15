@@ -81,13 +81,26 @@ describe('ExpressForecastClient', () => {
   // ── Review & Publish flow (tests the handoff to ForecastWizard) ─────────
 
   describe('handleCreatePrediction (Review & Publish)', () => {
-    const generatedData = {
+    const generatedData: {
+      claimText: string
+      resolveByDatetime: string
+      detailsText: string
+      domain: string
+      tags: string[]
+      resolutionRules: string
+      outcomeType: 'BINARY' | 'MULTIPLE_CHOICE'
+      options: string[]
+      newsAnchor: { url: string; title: string; snippet: string }
+      additionalLinks: Array<{ url: string; title: string }>
+    } = {
       claimText: 'Bitcoin will reach $100k',
       resolveByDatetime: '2026-12-31T23:59:59Z',
       detailsText: 'Context about Bitcoin',
       domain: 'economics',
       tags: ['Crypto', 'Finance'],
       resolutionRules: 'Resolved by CoinMarketCap',
+      outcomeType: 'BINARY',
+      options: [],
       newsAnchor: {
         url: 'https://example.com',
         title: 'Bitcoin News',
@@ -100,12 +113,12 @@ describe('ExpressForecastClient', () => {
      * Helper: put the component into "review" state by simulating a
      * successful generation via a mocked fetch stream.
      */
-    const renderInReviewState = async () => {
+    const renderInReviewState = async (data = generatedData) => {
       // Build a streaming response that goes straight to "complete"
       const streamBody = new ReadableStream({
         start(controller) {
           controller.enqueue(
-            new TextEncoder().encode(JSON.stringify({ stage: 'complete', data: generatedData }) + '\n')
+            new TextEncoder().encode(JSON.stringify({ stage: 'complete', data }) + '\n')
           )
           controller.close()
         },
@@ -150,6 +163,7 @@ describe('ExpressForecastClient', () => {
       const parsed = JSON.parse(stored!)
       expect(parsed.claimText).toBe(generatedData.claimText)
       expect(parsed.resolveByDatetime).toBe(generatedData.resolveByDatetime)
+      expect(parsed.outcomeType).toBe('BINARY')
 
       // Verify redirect was triggered
       expect(hrefSpy).toHaveBeenCalledWith('/create?from=express')
@@ -160,6 +174,59 @@ describe('ExpressForecastClient', () => {
 
       expect(screen.getByText('Review Forecast')).toBeInTheDocument()
       expect(screen.getByText(generatedData.claimText)).toBeInTheDocument()
+    })
+
+    it('shows Binary outcome type badge for binary predictions', async () => {
+      await renderInReviewState()
+
+      expect(screen.getByText(/Binary/)).toBeInTheDocument()
+    })
+
+    it('shows Multiple Choice badge and options for multiple choice predictions', async () => {
+      const mcData = {
+        ...generatedData,
+        claimText: 'Who will win the 2028 US presidential election?',
+        outcomeType: 'MULTIPLE_CHOICE' as const,
+        options: ['Candidate A', 'Candidate B', 'Candidate C', 'Other'],
+      }
+
+      await renderInReviewState(mcData)
+
+      expect(screen.getByText('Multiple Choice')).toBeInTheDocument()
+      expect(screen.getByText('Candidate A')).toBeInTheDocument()
+      expect(screen.getByText('Candidate B')).toBeInTheDocument()
+      expect(screen.getByText('Candidate C')).toBeInTheDocument()
+      expect(screen.getByText('Other')).toBeInTheDocument()
+    })
+
+    it('saves multiple choice data to localStorage with outcomeType and options', async () => {
+      const hrefSpy = vi.fn()
+      Object.defineProperty(window, 'location', {
+        value: { ...window.location, href: '' },
+        writable: true,
+        configurable: true,
+      })
+      Object.defineProperty(window.location, 'href', {
+        set: hrefSpy,
+        get: () => '',
+        configurable: true,
+      })
+
+      const mcData = {
+        ...generatedData,
+        claimText: 'Who will win the Champions League?',
+        outcomeType: 'MULTIPLE_CHOICE' as const,
+        options: ['Real Madrid', 'Manchester City', 'Bayern Munich', 'Other'],
+      }
+
+      const reviewButton = await renderInReviewState(mcData)
+      fireEvent.click(reviewButton)
+
+      const stored = localStorage.getItem('expressPredictionData')
+      expect(stored).toBeTruthy()
+      const parsed = JSON.parse(stored!)
+      expect(parsed.outcomeType).toBe('MULTIPLE_CHOICE')
+      expect(parsed.options).toEqual(['Real Madrid', 'Manchester City', 'Bayern Munich', 'Other'])
     })
   })
 })

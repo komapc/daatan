@@ -1,18 +1,22 @@
 # DAATAN Deployment Guide
 
-> Complete guide for deploying, managing, and troubleshooting DAATAN infrastructure.
+> Complete guide for deploying, managing, and troubleshooting DAATAN.
+> Last updated: February 2026
 
 ---
 
 ## Table of Contents
 
 1. [Quick Start](#quick-start)
-2. [Local Verification](#local-verification)
-3. [Deployment Strategies](#deployment-strategies)
-4. [Rollback Procedures](#rollback-procedures)
-5. [Monitoring & Health Checks](#monitoring--health-checks)
-6. [Troubleshooting](#troubleshooting)
-7. [Infrastructure](#infrastructure)
+2. [Pre-Deployment Checklist](#pre-deployment-checklist)
+3. [Local Verification](#local-verification)
+4. [Deployment Strategies](#deployment-strategies)
+5. [Post-Deployment Verification](#post-deployment-verification)
+6. [Rollback Procedures](#rollback-procedures)
+7. [Monitoring & Health Checks](#monitoring--health-checks)
+8. [Troubleshooting](#troubleshooting)
+9. [Deployment Scenarios](#deployment-scenarios)
+10. [Useful Commands](#useful-commands)
 
 ---
 
@@ -36,14 +40,42 @@ curl https://daatan.com/api/health
 curl https://staging.daatan.com/api/health
 
 # Expected response:
-# {"status":"ok","timestamp":"2026-01-25T14:04:18.46..."}
+# {"status":"ok","version":"1.x.x","timestamp":"..."}
 ```
+
+---
+
+## Pre-Deployment Checklist
+
+### Code Review
+- [ ] All changes reviewed and approved
+- [ ] Tests passing locally (`npm test`)
+- [ ] Build successful locally (`npm run build`)
+- [ ] No console errors or warnings
+- [ ] Linting passes (`npm run lint`)
+
+### Documentation
+- [ ] Commit messages are clear and descriptive
+- [ ] README updated if needed
+- [ ] API documentation updated if applicable
+
+### Database
+- [ ] No breaking schema changes
+- [ ] Migrations tested locally
+- [ ] Rollback plan documented
+- [ ] Backup created (if production)
+
+### Environment
+- [ ] All environment variables set
+- [ ] Secrets not committed to repo
+- [ ] `.env` file not in git
+- [ ] Configuration files reviewed
 
 ---
 
 ## Local Verification
 
-Before pushing code to staging, verify your changes locally to catch issues early.
+Before pushing code, verify your changes locally to catch issues early.
 
 ### Automatic Verification (Git Hooks)
 
@@ -64,8 +96,6 @@ git push --no-verify
 
 ### Manual Verification Script
 
-Run comprehensive verification before pushing:
-
 ```bash
 ./scripts/verify-local.sh
 ```
@@ -79,19 +109,13 @@ Run comprehensive verification before pushing:
 - All tests pass
 - Linting issues
 
-**When to use:**
-- Before creating a pull request
-- After making significant changes
-- When pre-commit hooks are bypassed
-- To verify everything works locally
-
 ### Local Testing Checklist
 
 Before pushing to staging:
 - [ ] Code builds successfully (`npm run build`)
 - [ ] All tests pass (`npm test`)
 - [ ] No linting errors (`npm run lint`)
-- [ ] Changes tested in local dev environment (`npm run dev`)
+- [ ] Changes tested in local dev (`npm run dev`)
 - [ ] Authentication tested if auth code changed
 - [ ] Database migrations tested if schema changed
 
@@ -101,7 +125,7 @@ Before pushing to staging:
 
 ### 1. Standard Deployment (Automatic via CI/CD)
 
-**Trigger:** Push to `main` branch → Staging deployment
+**Trigger:** Push to `main` → Staging deployment
 **Trigger:** Push tag `v*` → Production deployment
 
 ```bash
@@ -122,15 +146,27 @@ git push origin v1.1.1
 - Deploys to production if tag matches `v*`
 - Verifies deployment with health checks
 
+**Characteristics:**
+- ~5-10 minute deployment time
+- ~30 second downtime during container restart
+- Automatic health verification
+
+**Checklist:**
+- [ ] Code pushed to correct branch
+- [ ] GitHub Actions workflow triggered
+- [ ] Build step completed successfully
+- [ ] Tests passed in CI/CD
+- [ ] Deployment step started
+
 ### 2. Blue-Green Deployment (Zero Downtime)
 
-**Use when:** You need zero-downtime deployment with instant rollback capability
+**Use when:** You need zero-downtime deployment with instant rollback
 
 ```bash
-# Deploy to staging with zero downtime
+# Deploy to staging
 ssh daatan-staging "cd ~/app && ./scripts/blue-green-deploy.sh staging"
 
-# Deploy to production with zero downtime
+# Deploy to production
 ssh daatan-release "cd ~/app && ./scripts/blue-green-deploy.sh production"
 ```
 
@@ -141,31 +177,65 @@ ssh daatan-release "cd ~/app && ./scripts/blue-green-deploy.sh production"
 4. Removes old container (blue)
 5. Automatic rollback if health checks fail
 
-**Advantages:**
+**Characteristics:**
+- ~3-5 minute deployment time
 - Zero downtime
-- Instant rollback if issues detected
-- Old container kept until new one is healthy
+- Instant rollback capability
+
+**Checklist:**
+- [ ] SSH access verified
+- [ ] Script is executable
+- [ ] Environment variables set on server
+- [ ] Deployment started
+- [ ] Health checks passing
 
 ### 3. Manual Deployment (Direct SSH)
 
 **Use when:** You need direct control or CI/CD is unavailable
 
 ```bash
-# SSH into EC2
-ssh -i ~/.ssh/daatan-key.pem ubuntu@52.59.160.186
-
-# Navigate to app directory
+ssh -i ~/.ssh/daatan-key.pem ubuntu@<EC2_IP>
 cd ~/app
-
-# Pull latest code
 git pull origin main
-
-# Deploy
 docker compose -f docker-compose.prod.yml up -d --build
-
-# Verify
 ./scripts/verify-deploy.sh https://daatan.com
 ```
+
+**Checklist:**
+- [ ] SSH access working
+- [ ] Git pull successful
+- [ ] Docker build completed
+- [ ] Containers started
+- [ ] Health check passed
+
+---
+
+## Post-Deployment Verification
+
+### Immediate Checks (First 5 minutes)
+- [ ] Health endpoint responds: `curl https://daatan.com/api/health`
+- [ ] Staging health: `curl https://staging.daatan.com/api/health`
+- [ ] No error logs: `docker logs daatan-app --tail 50`
+- [ ] Nginx running: `docker ps | grep nginx`
+- [ ] Database connected: `docker exec daatan-postgres pg_isready`
+
+### Functional Checks (First 15 minutes)
+- [ ] Homepage loads
+- [ ] API endpoints respond
+- [ ] Authentication works
+- [ ] Database queries work
+- [ ] No 502 errors in nginx logs
+
+### Performance Checks (First 30 minutes)
+- [ ] Page load times normal
+- [ ] No memory leaks: `docker stats`
+- [ ] CPU usage normal
+- [ ] Response times acceptable
+
+### Ongoing Monitoring
+- [ ] Error rate normal
+- [ ] Uptime maintained
+- [ ] No unusual logs
 
 ---
 
@@ -176,12 +246,12 @@ docker compose -f docker-compose.prod.yml up -d --build
 **Use when:** Current deployment is broken and you need to revert immediately
 
 ```bash
-# Rollback staging to previous commit
-ssh -i ~/.ssh/daatan-key.pem ubuntu@52.59.160.186 \
+# Rollback staging
+ssh -i ~/.ssh/daatan-key.pem ubuntu@<EC2_IP> \
   "cd ~/app && ./scripts/rollback.sh staging"
 
-# Rollback production to previous commit
-ssh -i ~/.ssh/daatan-key.pem ubuntu@52.59.160.186 \
+# Rollback production
+ssh -i ~/.ssh/daatan-key.pem ubuntu@<EC2_IP> \
   "cd ~/app && ./scripts/rollback.sh production"
 ```
 
@@ -193,26 +263,24 @@ ssh -i ~/.ssh/daatan-key.pem ubuntu@52.59.160.186 \
 
 **Time to rollback:** ~2-3 minutes
 
+**Rollback Checklist:**
+- [ ] Rollback script executed
+- [ ] Health checks passed
+- [ ] Services back online
+- [ ] Previous version confirmed
+- [ ] Team notified
+
 ### Manual Rollback
 
-**Use when:** You need more control or rollback script fails
+**Use when:** Rollback script fails or you need more control
 
 ```bash
-ssh -i ~/.ssh/daatan-key.pem ubuntu@52.59.160.186
-
+ssh -i ~/.ssh/daatan-key.pem ubuntu@<EC2_IP>
 cd ~/app
-
-# Check git history
-git log --oneline -5
-
-# Checkout previous commit
-git checkout <commit-hash>
-
-# Rebuild and restart
+git log --oneline -5                    # Check git history
+git checkout <commit-hash>              # Checkout previous commit
 docker compose -f docker-compose.prod.yml down
 docker compose -f docker-compose.prod.yml up -d --build
-
-# Verify
 ./scripts/verify-deploy.sh https://daatan.com
 ```
 
@@ -221,19 +289,17 @@ docker compose -f docker-compose.prod.yml up -d --build
 **Use when:** Database migrations failed
 
 ```bash
-ssh -i ~/.ssh/daatan-key.pem ubuntu@52.59.160.186
-
-cd ~/app
-
-# Check Prisma migration status
 docker exec daatan-app npx prisma migrate status
-
-# Rollback last migration
 docker exec daatan-app npx prisma migrate resolve --rolled-back <migration-name>
-
-# Reapply migrations
 docker exec daatan-app npx prisma migrate deploy
 ```
+
+### Post-Rollback Actions
+- [ ] Investigate root cause
+- [ ] Document issue
+- [ ] Fix in code
+- [ ] Test thoroughly
+- [ ] Plan re-deployment
 
 ---
 
@@ -242,65 +308,36 @@ docker exec daatan-app npx prisma migrate deploy
 ### Health Check Endpoints
 
 ```bash
-# Production health
 curl https://daatan.com/api/health
-
-# Staging health
 curl https://staging.daatan.com/api/health
-
-# Response format:
-{
-  "status": "ok",
-  "version": "1.1.1",
-  "timestamp": "2026-01-25T14:04:18.46..."
-}
+# Response: {"status":"ok","version":"...","timestamp":"..."}
 ```
 
 ### Container Status
 
 ```bash
-ssh -i ~/.ssh/daatan-key.pem ubuntu@52.59.160.186
-
-# Check all containers
-docker ps -a
-
-# Check specific container logs
-docker logs daatan-app --tail 100
+docker ps -a                            # All containers
+docker logs daatan-app --tail 100       # App logs
 docker logs daatan-app-staging --tail 100
 docker logs daatan-nginx --tail 100
 docker logs daatan-postgres --tail 100
-
-# Follow logs in real-time
-docker logs -f daatan-app
+docker logs -f daatan-app               # Follow logs
 ```
 
 ### Database Health
 
 ```bash
-ssh -i ~/.ssh/daatan-key.pem ubuntu@52.59.160.186
-
-# Check database connection
 docker exec daatan-postgres pg_isready -U daatan -d daatan
-
-# Check database size
-docker exec daatan-postgres psql -U daatan -d daatan -c "SELECT pg_size_pretty(pg_database_size('daatan'));"
-
-# List tables
+docker exec daatan-postgres psql -U daatan -d daatan \
+  -c "SELECT pg_size_pretty(pg_database_size('daatan'));"
 docker exec daatan-postgres psql -U daatan -d daatan -c "\dt"
 ```
 
-### Nginx Status
+### Nginx
 
 ```bash
-ssh -i ~/.ssh/daatan-key.pem ubuntu@52.59.160.186
-
-# Check nginx config
-docker exec daatan-nginx nginx -t
-
-# Reload nginx (without restart)
-docker exec daatan-nginx nginx -s reload
-
-# Check nginx logs
+docker exec daatan-nginx nginx -t       # Check config
+docker exec daatan-nginx nginx -s reload # Reload without restart
 docker logs daatan-nginx --tail 100
 ```
 
@@ -312,18 +349,14 @@ docker logs daatan-nginx --tail 100
 
 **Symptoms:** `curl https://daatan.com/api/health` returns error
 
-**Steps:**
 1. Check container status: `docker ps -a`
 2. Check logs: `docker logs daatan-app --tail 50`
 3. Check nginx: `docker logs daatan-nginx --tail 50`
 4. Restart containers: `docker compose -f docker-compose.prod.yml restart`
-5. If still down, use rollback: `./scripts/rollback.sh production`
+5. If still down, rollback: `./scripts/rollback.sh production`
 
 ### High CPU/Memory Usage
 
-**Symptoms:** Server is slow or unresponsive
-
-**Steps:**
 1. Check resource usage: `docker stats`
 2. Check for memory leaks: `docker logs daatan-app | grep -i "memory\|heap"`
 3. Restart container: `docker compose -f docker-compose.prod.yml restart app`
@@ -333,28 +366,21 @@ docker logs daatan-nginx --tail 100
 
 **Symptoms:** Logs show "connection refused" or "ECONNREFUSED"
 
-**Steps:**
 1. Check postgres status: `docker ps | grep postgres`
 2. Check postgres logs: `docker logs daatan-postgres --tail 50`
 3. Verify connection: `docker exec daatan-postgres pg_isready -U daatan`
 4. Restart postgres: `docker compose -f docker-compose.prod.yml restart postgres`
 5. Check disk space: `df -h`
 
-### Nginx Configuration Errors
+### Nginx 502 Errors
 
-**Symptoms:** Nginx won't start or returns 502 errors
-
-**Steps:**
 1. Check nginx config: `docker exec daatan-nginx nginx -t`
 2. Check nginx logs: `docker logs daatan-nginx --tail 50`
-3. Verify upstream containers are running: `docker ps | grep app`
+3. Verify upstream containers: `docker ps | grep app`
 4. Reload nginx: `docker exec daatan-nginx nginx -s reload`
 
 ### SSL Certificate Issues
 
-**Symptoms:** HTTPS returns certificate errors
-
-**Steps:**
 1. Check certificate expiry: `docker exec daatan-certbot certbot certificates`
 2. Check certificate files: `ls -la ~/app/certbot/conf/live/daatan.com/`
 3. Manual renewal: `docker exec daatan-certbot certbot renew --force-renewal`
@@ -362,75 +388,41 @@ docker logs daatan-nginx --tail 100
 
 ---
 
-## Infrastructure
+## Deployment Scenarios
 
-### Architecture
+### Regular Feature Deployment
+1. Code reviewed and approved
+2. Tests passing
+3. Push to main (staging auto-deploys)
+4. Verify staging health
+5. Create version tag for production
+6. Verify production health
+7. Monitor for 30 minutes
 
-```
-┌─────────────────────────────────────────────────────┐
-│                    Internet                         │
-└────────────────────┬────────────────────────────────┘
-                     │ HTTPS (443)
-                     ▼
-        ┌────────────────────────┐
-        │   Nginx (Reverse Proxy)│
-        │   - SSL Termination    │
-        │   - Load Balancing     │
-        └────────┬───────────────┘
-                 │
-        ┌────────┴────────┐
-        ▼                 ▼
-    ┌────────┐        ┌──────────┐
-    │ App    │        │ App      │
-    │ Prod   │        │ Staging  │
-    │ :3000  │        │ :3000    │
-    └────┬───┘        └──────┬───┘
-         │                   │
-         └───────┬───────────┘
-                 ▼
-         ┌──────────────────┐
-         │  PostgreSQL 16   │
-         │  daatan database │
-         └──────────────────┘
-```
+### Hotfix Deployment
+1. Create hotfix branch
+2. Fix issue and add tests
+3. Code reviewed
+4. Merge to main → staging deploys
+5. Verify staging
+6. Create hotfix tag (e.g. `v1.1.1-hotfix`)
+7. Monitor closely
 
-### Services
+### Database Migration
+1. Migration tested locally
+2. Backup created
+3. Rollback plan documented
+4. Deploy code with migration
+5. Monitor database performance
+6. Verify data integrity
 
-| Service | Container | Port | Purpose |
-|---------|-----------|------|---------|
-| Nginx | daatan-nginx | 80, 443 | Reverse proxy, SSL termination |
-| App (Prod) | daatan-app | 3000 | Production Next.js app |
-| App (Staging) | daatan-app-staging | 3000 | Staging Next.js app |
-| PostgreSQL | daatan-postgres | 5432 | Database |
-| Certbot | daatan-certbot | - | SSL certificate renewal |
-
-### Volumes
-
-| Volume | Mount Point | Purpose |
-|--------|-------------|---------|
-| postgres_data | /var/lib/postgresql/data | Database persistence |
-| ./certbot/conf | /etc/letsencrypt | SSL certificates |
-| ./certbot/www | /var/www/certbot | ACME challenge files |
-
-### Environment Variables
-
-Required in `.env` on server (`~/app/.env`):
-
-```bash
-POSTGRES_PASSWORD=<secure-password>
-NEXTAUTH_SECRET=<secure-secret>
-NEXTAUTH_URL=https://daatan.com
-GOOGLE_CLIENT_ID=<google-oauth-id>
-GOOGLE_CLIENT_SECRET=<google-oauth-secret>
-GEMINI_API_KEY=<gemini-api-key>
-```
-
-**Security Notes:**
-- Secrets stored in `.env` file on server (acceptable for MVP)
-- File permissions: `600` (owner read/write only)
-- Never commit `.env` to git
-- See [SECRETS.md](./SECRETS.md) for best practices and future improvements
-- Plan to migrate to AWS Secrets Manager for production scale
+### Emergency Rollback
+1. Identify issue
+2. Execute rollback script
+3. Verify services online
+4. Notify stakeholders
+5. Investigate root cause
+6. Plan fix and re-deploy
 
 ---
 
@@ -440,15 +432,15 @@ GEMINI_API_KEY=<gemini-api-key>
 
 ```bash
 # Production app logs
-ssh -i ~/.ssh/daatan-key.pem ubuntu@52.59.160.186 \
+ssh -i ~/.ssh/daatan-key.pem ubuntu@<EC2_IP> \
   "docker logs daatan-app --tail 100 -f"
 
 # Staging app logs
-ssh -i ~/.ssh/daatan-key.pem ubuntu@52.59.160.186 \
+ssh -i ~/.ssh/daatan-key.pem ubuntu@<EC2_IP> \
   "docker logs daatan-app-staging --tail 100 -f"
 
 # Nginx logs
-ssh -i ~/.ssh/daatan-key.pem ubuntu@52.59.160.186 \
+ssh -i ~/.ssh/daatan-key.pem ubuntu@<EC2_IP> \
   "docker logs daatan-nginx --tail 100 -f"
 ```
 
@@ -456,46 +448,42 @@ ssh -i ~/.ssh/daatan-key.pem ubuntu@52.59.160.186 \
 
 ```bash
 # Connect to database
-ssh -i ~/.ssh/daatan-key.pem ubuntu@52.59.160.186 \
+ssh -i ~/.ssh/daatan-key.pem ubuntu@<EC2_IP> \
   "docker exec -it daatan-postgres psql -U daatan -d daatan"
 
 # Run migrations
-ssh -i ~/.ssh/daatan-key.pem ubuntu@52.59.160.186 \
+ssh -i ~/.ssh/daatan-key.pem ubuntu@<EC2_IP> \
   "docker exec daatan-app npx prisma migrate deploy"
 
 # Backup database
-ssh -i ~/.ssh/daatan-key.pem ubuntu@52.59.160.186 \
-  "docker exec daatan-postgres pg_dump -U daatan daatan | gzip > ~/backups/daatan_$(date +%Y%m%d_%H%M%S).sql.gz"
+ssh -i ~/.ssh/daatan-key.pem ubuntu@<EC2_IP> \
+  "docker exec daatan-postgres pg_dump -U daatan daatan | gzip > ~/backups/daatan_\$(date +%Y%m%d_%H%M%S).sql.gz"
 ```
 
 ### Container Management
 
 ```bash
 # Restart all services
-ssh -i ~/.ssh/daatan-key.pem ubuntu@52.59.160.186 \
+ssh -i ~/.ssh/daatan-key.pem ubuntu@<EC2_IP> \
   "cd ~/app && docker compose -f docker-compose.prod.yml restart"
 
 # Stop all services
-ssh -i ~/.ssh/daatan-key.pem ubuntu@52.59.160.186 \
+ssh -i ~/.ssh/daatan-key.pem ubuntu@<EC2_IP> \
   "cd ~/app && docker compose -f docker-compose.prod.yml down"
 
 # Start all services
-ssh -i ~/.ssh/daatan-key.pem ubuntu@52.59.160.186 \
+ssh -i ~/.ssh/daatan-key.pem ubuntu@<EC2_IP> \
   "cd ~/app && docker compose -f docker-compose.prod.yml up -d"
 
 # Rebuild and restart
-ssh -i ~/.ssh/daatan-key.pem ubuntu@52.59.160.186 \
+ssh -i ~/.ssh/daatan-key.pem ubuntu@<EC2_IP> \
   "cd ~/app && docker compose -f docker-compose.prod.yml up -d --build"
 ```
 
 ---
 
-## Support
+## Related Documentation
 
-For issues or questions:
-1. Check logs: `docker logs <container-name>`
-2. Review this guide's troubleshooting section
-3. Check GitHub Actions for deployment errors
-4. Review INFRASTRUCTURE.md for detailed setup
-
-Last updated: January 25, 2026
+- [TECH.md](./TECH.md) — Technical architecture and infrastructure
+- [SECRETS.md](./SECRETS.md) — Secrets management
+- [VERSIONING.md](./VERSIONING.md) — Semantic versioning rules

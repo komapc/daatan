@@ -59,7 +59,7 @@
 - [ ] **Express Forecast: Polish** — add save-as-draft, regenerate button, inline field editing on review screen
 - [ ] **Express Forecast: Edit options** — add ability to edit/refine generated options before finalizing prediction
 - [ ] **Manual Forecast: Visual improvements** — enhance UI/UX of manual prediction creation flow
-- [ ] **Express Forecast: Multiple choice support** (e.g., "who will win elections")
+- [x] **Express Forecast: Multiple choice support** (e.g., "who will win elections") — LLM prompt detects multiple-choice scenarios, generates 2-10 options with "Other" fallback. Schema, generation logic, Express review UI, and ForecastWizard handoff all updated. Falls back to BINARY if <2 valid options.
 - [ ] **Express Forecast: Numeric threshold support** (e.g., "Bitcoin price by end of year")
 - [ ] **Express Forecast: Advanced types** (order, date-based, conditional)
 
@@ -82,7 +82,7 @@
 
 - [ ] **About Window** — Add an "About" modal/page with app info, version, and credits.
 
-- [ ] **Docs: Consolidate overlapping documentation** — `TECH.md`, `DEPLOYMENT.md`, `INFRASTRUCTURE.md`, `STRUCTURE.md`, `DEPLOYMENT_CHECKLIST.md` have significant overlap. Consider consolidating into 2 files.
+- [x] **Docs: Consolidate overlapping documentation** — merged 5 files into 2: `TECH.md` (absorbed INFRASTRUCTURE.md + STRUCTURE.md) and `DEPLOYMENT.md` (absorbed DEPLOYMENT_CHECKLIST.md). Deleted INFRASTRUCTURE.md, STRUCTURE.md, DEPLOYMENT_CHECKLIST.md. Updated cross-references in README.md and PRODUCT.md.
 
 - [ ] **Docs: Populate MEMORY.md lessons learned** — section is empty
 

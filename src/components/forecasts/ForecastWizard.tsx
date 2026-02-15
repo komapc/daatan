@@ -86,12 +86,19 @@ export const ForecastWizard = ({ isExpressFlow = false }: ForecastWizardProps) =
         resolveDate = resolveDate.split('T')[0]
       }
 
+      // Determine outcome type — default to BINARY if not recognized
+      const outcomeType = data.outcomeType === 'MULTIPLE_CHOICE' ? 'MULTIPLE_CHOICE' : 'BINARY'
+      const outcomeOptions = outcomeType === 'MULTIPLE_CHOICE' && Array.isArray(data.options)
+        ? data.options.filter((o: string) => o.trim())
+        : undefined
+
       setFormData({
         claimText: data.claimText || '',
         detailsText: data.detailsText || '',
         tags: data.tags || [],
         domain: data.domain || '',
-        outcomeType: 'BINARY',
+        outcomeType,
+        outcomeOptions,
         resolveByDatetime: resolveDate,
         resolutionRules: data.resolutionRules || '',
         newsAnchorUrl: data.newsAnchor?.url || '',
