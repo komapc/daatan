@@ -13,8 +13,8 @@ const googleClientIdSchema = z
   )
 
 /**
- * Google Client Secret format: GOCSPX-<hash> (newer secrets) or a legacy format string.
- * At minimum, must be a non-trivial string (not a placeholder).
+ * Google Client Secret: non-trivial string (not a placeholder).
+ * Newer format uses a specific prefix; legacy format is alphanumeric.
  */
 const googleClientSecretSchema = z
   .string()

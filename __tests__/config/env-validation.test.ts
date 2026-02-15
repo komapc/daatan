@@ -170,7 +170,7 @@ describe('googleOAuthEnvSchema', () => {
     it('rejects plain text secrets (no numbers or special chars)', () => {
       const result = googleOAuthEnvSchema.safeParse({
         ...validEnv,
-        NEXTAUTH_SECRET: 'abcdefghijklmnopqrstuvwxyzabcdefgh',
+        NEXTAUTH_SECRET: 'a'.repeat(36),
       })
       expect(result.success).toBe(false)
       if (!result.success) {
