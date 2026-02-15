@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
       status: searchParams.get('status') || undefined,
       authorId: searchParams.get('authorId') || undefined,
       domain: searchParams.get('domain') || undefined,
+      tags: searchParams.get('tags') || undefined,
       page: searchParams.get('page') || 1,
       limit: searchParams.get('limit') || 20,
     })
@@ -35,6 +36,18 @@ export async function GET(request: NextRequest) {
     
     if (query.authorId) where.authorId = query.authorId
     if (query.domain) where.domain = query.domain
+
+    // Filter by tags (comma-separated, match predictions that have ANY of the selected tags)
+    if (query.tags) {
+      const tagNames = query.tags.split(',').map(t => t.trim()).filter(Boolean)
+      if (tagNames.length > 0) {
+        where.tags = {
+          some: {
+            name: { in: tagNames },
+          },
+        }
+      }
+    }
     
     // Don't show drafts unless filtering by authorId
     if (!query.authorId && !query.status && !resolvedOnly) {
@@ -73,6 +86,9 @@ export async function GET(request: NextRequest) {
               source: true,
               imageUrl: true,
             },
+          },
+          tags: {
+            select: { name: true },
           },
           options: {
             orderBy: { displayOrder: 'asc' },

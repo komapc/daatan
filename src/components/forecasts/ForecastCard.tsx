@@ -42,6 +42,7 @@ export type Prediction = {
     source?: string | null
     imageUrl?: string | null
   } | null
+  tags?: { name: string }[]
   _count: {
     commitments: number
   }
@@ -95,8 +96,7 @@ export default function ForecastCard({
   const handleEdit = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    // TODO: Implement actual edit page/modal
-    alert('Edit functionality not yet implemented')
+    router.push(`/forecasts/${prediction.id}/edit`)
   }
 
   const handleResolve = (e: React.MouseEvent) => {
@@ -181,6 +181,14 @@ export default function ForecastCard({
                 {prediction.domain}
               </span>
             )}
+            {prediction.tags && prediction.tags.length > 0 && prediction.tags.map((tag) => (
+              <span
+                key={tag.name}
+                className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] sm:text-xs font-medium rounded-full border border-blue-100"
+              >
+                {tag.name}
+              </span>
+            ))}
           </div>
 
           {/* Claim Text */}

@@ -30,12 +30,48 @@ const basePrediction: Prediction = {
     role: 'USER',
   },
   newsAnchor: null,
+  tags: [],
   _count: {
     commitments: 0,
   },
   totalCuCommitted: 0,
   userHasCommitted: false,
 }
+
+describe('ForecastCard tag display', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+    vi.mocked(useSession).mockReturnValue({
+      data: null,
+      status: 'unauthenticated',
+    } as any)
+  })
+
+  it('renders tag pills when tags are present', () => {
+    const prediction = {
+      ...basePrediction,
+      tags: [{ name: 'AI' }, { name: 'Crypto' }],
+    }
+    render(<ForecastCard prediction={prediction} />)
+
+    expect(screen.getByText('AI')).toBeInTheDocument()
+    expect(screen.getByText('Crypto')).toBeInTheDocument()
+  })
+
+  it('does not render tag section when tags array is empty', () => {
+    render(<ForecastCard prediction={basePrediction} />)
+
+    expect(screen.queryByText('AI')).toBeNull()
+    expect(screen.queryByText('Crypto')).toBeNull()
+  })
+
+  it('does not render tag section when tags is undefined', () => {
+    const { tags, ...predictionWithoutTags } = basePrediction
+    render(<ForecastCard prediction={predictionWithoutTags as Prediction} />)
+
+    expect(screen.queryByText('AI')).toBeNull()
+  })
+})
 
 describe('ForecastCard moderation controls', () => {
   beforeEach(() => {

@@ -124,6 +124,7 @@ export const listPredictionsQuerySchema = z.object({
   status: z.enum(['DRAFT', 'ACTIVE', 'PENDING', 'RESOLVED_CORRECT', 'RESOLVED_WRONG', 'VOID', 'UNRESOLVABLE']).optional(),
   authorId: z.string().cuid().optional(),
   domain: z.string().max(100).optional(),
+  tags: z.string().max(500).optional(), // Comma-separated tag names for filtering
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
 })

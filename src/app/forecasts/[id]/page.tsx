@@ -179,8 +179,7 @@ export default function PredictionDetailPage() {
 
   const handleEdit = () => {
     if (!prediction?.id) return
-    // Admin-only edit page (future enhancement could be a modal)
-    window.location.href = `/admin/forecasts/${prediction.id}/edit`
+    router.push(`/forecasts/${prediction.id}/edit`)
   }
 
   const canAdminister = session?.user?.role === 'ADMIN'

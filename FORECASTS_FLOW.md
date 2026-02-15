@@ -125,6 +125,24 @@ Prediction {
 - Outcome definition (Binary/MC/Numeric)
 - Resolve-by deadline
 - Commitment details (CU, RS snapshot, weight)
+- Tags (displayed as colored pills on forecast cards)
+
+### Editing Forecasts
+- Admins can edit any forecast; authors can edit their drafts
+- Edit page at `/forecasts/[id]/edit` with form for:
+  - Claim text, details, category, resolution rules, deadline
+- Only changed fields are sent in the PATCH request
+- Edit buttons on forecast cards and detail pages link directly to the editor
+
+### Feed Filtering
+The feed supports three types of filters, all persisted in URL query params:
+1. **Status** — Open, Closing Soon, Awaiting Resolution, Resolved, All
+2. **Category** — domain-based dropdown
+3. **Tags** — multi-select clickable tag chips (e.g. `?tags=AI,Crypto`)
+   - Tags filter uses OR logic: predictions matching *any* selected tag are shown
+   - Standard tags: Politics, Geopolitics, Economy, Technology, AI, Crypto, Sports, Entertainment, Science, Climate, Health, Business, Conflict, Elections, US Politics, Europe, Middle East, Asia, Energy, Space
+
+Filter state is persisted in the URL (e.g. `?status=RESOLVED&tags=AI,Crypto`) so filters survive page refresh and can be shared via link.
 
 ### Prediction Statuses
 
