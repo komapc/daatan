@@ -136,7 +136,7 @@ if [ "${SKIP_BUILD}" == "true" ]; then
     if [ -n "$ECR_REGISTRY" ] && [ -n "$IMAGE_TAG" ]; then
         echo "🔐 Logging in to ECR ($ECR_REGISTRY)..."
         # Determine region from registry URL (e.g. 123.dkr.ecr.eu-central-1.amazonaws.com)
-        # 272007598366.dkr.ecr.eu-central-1.amazonaws.com
+        # ECR_REGISTRY is set by deploy.yml env or passed to this script
         REGION=$(echo "$ECR_REGISTRY" | cut -d'.' -f4)
         if [ -z "$REGION" ]; then REGION="eu-central-1"; fi # Fallback to Frankfurt as per docker-compose
 
