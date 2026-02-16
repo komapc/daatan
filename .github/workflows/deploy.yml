@@ -171,12 +171,13 @@ jobs:
             --output text)
           echo "Found Staging Instance: $INSTANCE_ID"
 
-          # Encode scripts
+          # Encode scripts and nginx config (nginx must be deployed so /api/auth/ pass-through is live)
           BLUE_GREEN_SCRIPT=$(base64 -w 0 scripts/blue-green-deploy.sh)
           VERIFY_HEALTH_SCRIPT=$(base64 -w 0 scripts/verify-health.sh)
           VERIFY_LOGS_SCRIPT=$(base64 -w 0 scripts/verify-logs.sh)
           VERIFY_DEPLOY_SCRIPT=$(base64 -w 0 scripts/verify-deploy.sh)
           COMPOSE_FILE=$(base64 -w 0 docker-compose.prod.yml)
+          NGINX_CONF=$(base64 -w 0 nginx-ssl.conf)
           
           # Construct the shell script to run on EC2
           SDK_SCRIPT_CONTENT="
@@ -191,6 +192,9 @@ jobs:
           echo '📄 Writing docker-compose.prod.yml...'
           echo \"$COMPOSE_FILE\" | base64 -d > docker-compose.prod.yml
           
+          echo '📄 Writing nginx-ssl.conf...'
+          echo \"$NGINX_CONF\" | base64 -d > nginx-ssl.conf
+          
           echo '📜 Writing blue-green-deploy.sh...'
           echo \"$BLUE_GREEN_SCRIPT\" | base64 -d > scripts/blue-green-deploy.sh
           
@@ -200,6 +204,9 @@ jobs:
           echo \"$VERIFY_DEPLOY_SCRIPT\" | base64 -d > scripts/verify-deploy.sh
           
           chmod +x scripts/*.sh
+          
+          echo '🔄 Reloading nginx to apply config...'
+          docker compose -f docker-compose.prod.yml exec -T nginx nginx -s reload 2>/dev/null || true
           
           echo '🔐 Logging in to ECR (Region: eu-central-1)...'
           aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin $ECR_REGISTRY
@@ -328,12 +335,13 @@ jobs:
           fi
           echo "Deploying Image Tag: $IMAGE_TAG"
 
-          # Encode scripts
+          # Encode scripts and nginx config (nginx must be deployed so /api/auth/ pass-through is live)
           BLUE_GREEN_SCRIPT=$(base64 -w 0 scripts/blue-green-deploy.sh)
           VERIFY_HEALTH_SCRIPT=$(base64 -w 0 scripts/verify-health.sh)
           VERIFY_LOGS_SCRIPT=$(base64 -w 0 scripts/verify-logs.sh)
           VERIFY_DEPLOY_SCRIPT=$(base64 -w 0 scripts/verify-deploy.sh)
           COMPOSE_FILE=$(base64 -w 0 docker-compose.prod.yml)
+          NGINX_CONF=$(base64 -w 0 nginx-ssl.conf)
           
           # Construct the shell script to run on EC2
           SDK_SCRIPT_CONTENT="
@@ -348,6 +356,9 @@ jobs:
           echo '📄 Writing docker-compose.prod.yml...'
           echo \"$COMPOSE_FILE\" | base64 -d > docker-compose.prod.yml
           
+          echo '📄 Writing nginx-ssl.conf...'
+          echo \"$NGINX_CONF\" | base64 -d > nginx-ssl.conf
+          
           echo '📜 Writing blue-green-deploy.sh...'
           echo \"$BLUE_GREEN_SCRIPT\" | base64 -d > scripts/blue-green-deploy.sh
           
@@ -357,6 +368,9 @@ jobs:
           echo \"$VERIFY_DEPLOY_SCRIPT\" | base64 -d > scripts/verify-deploy.sh
           
           chmod +x scripts/*.sh
+          
+          echo '🔄 Reloading nginx to apply config...'
+          docker compose -f docker-compose.prod.yml exec -T nginx nginx -s reload 2>/dev/null || true
           
           echo '🔐 Logging in to ECR (Region: eu-central-1)...'
           aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin $ECR_REGISTRY
