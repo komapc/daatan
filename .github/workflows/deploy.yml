@@ -82,6 +82,17 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+      - name: Set app version for build
+        if: github.event_name != 'pull_request'
+        id: app_version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          else
+            echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+          fi
+          echo "Using NEXT_PUBLIC_APP_VERSION=${{ steps.app_version.outputs.version }}"
+
       - name: Extract metadata
         if: github.event_name != 'pull_request'
         id: meta
@@ -104,7 +115,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            NEXT_PUBLIC_APP_VERSION=${{ github.ref_name }}
+            NEXT_PUBLIC_APP_VERSION=${{ steps.app_version.outputs.version }}
             DATABASE_URL=postgresql://placeholder
             NEXTAUTH_URL=https://daatan.com
             NEXT_PUBLIC_ENV=production
