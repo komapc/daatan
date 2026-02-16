@@ -52,6 +52,11 @@ export default function SignInClient() {
                 Google OAuth failed. Ensure your OAuth client has this redirect URI configured: {typeof window !== 'undefined' ? `${window.location.origin}/api/auth/callback/google` : ''}
               </p>
             )}
+            {error === 'OAuthCallback' && (
+              <p className="text-xs text-red-500">
+                Session check failed. Try again, or clear this site&apos;s cookies and sign in again.
+              </p>
+            )}
           </div>
         )}
 

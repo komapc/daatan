@@ -1,5 +1,7 @@
 # Secrets Management
 
+**If sign-in works on staging but not production (or vice versa):** see [docs/TROUBLESHOOTING-AUTH.md](docs/TROUBLESHOOTING-AUTH.md) for step-by-step checks (server `.env`, Google Console redirect URIs, health checks).
+
 ## Current Approach
 
 **Status:** Using `.env` files on server + **AWS Secrets Manager for Backup**

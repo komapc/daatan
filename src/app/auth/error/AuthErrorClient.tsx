@@ -8,6 +8,8 @@ import { AlertCircle, ArrowLeft } from 'lucide-react'
 export default function AuthErrorClient() {
   const searchParams = useSearchParams()
   const error = searchParams.get('error')
+  const callbackUrl = searchParams.get('callbackUrl') || '/'
+  const signInHref = callbackUrl && callbackUrl !== '/' ? `/auth/signin?callbackUrl=${encodeURIComponent(callbackUrl)}` : '/auth/signin'
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
@@ -33,13 +35,18 @@ export default function AuthErrorClient() {
                  {' '}Also verify GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set on the server.
                </>
              ) :
+             error === 'OAuthCallback' ? (
+               <>
+                 Sign-in could not be completed (session or security check failed). Try again. If it keeps failing, clear this site&apos;s cookies and sign in again.
+               </>
+             ) :
              (error || 'An unexpected error occurred during authentication.')}
           </p>
         </div>
 
         <div className="pt-4">
           <Link
-            href="/auth/signin"
+            href={signInHref}
             className="inline-flex items-center gap-2 text-blue-600 font-medium hover:text-blue-700 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
