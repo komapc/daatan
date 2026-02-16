@@ -29,14 +29,14 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async signIn({ user, account }) {
-      if (isStaging) {
-        log.debug({ userId: user?.id, email: user?.email, provider: account?.provider }, 'signIn callback')
+      if (isStaging || env.NEXTAUTH_DEBUG === 'true') {
+        log.info({ userId: user?.id, email: user?.email, provider: account?.provider }, 'signIn callback')
       }
       return true
     },
     async redirect({ url, baseUrl }) {
-      if (isStaging) {
-        log.debug({ url, baseUrl }, 'redirect callback')
+      if (isStaging || env.NEXTAUTH_DEBUG === 'true') {
+        log.info({ url, baseUrl }, 'redirect callback')
       }
       if (url.startsWith('/')) return `${baseUrl}${url}`
       if (new URL(url).origin === baseUrl) return url
@@ -108,13 +108,25 @@ export const authOptions: NextAuthOptions = {
     signIn: '/auth/signin',
     error: '/auth/error',
   },
+  // Route NextAuth errors/warnings to our logger (helps diagnose OAuthCallback / cookie issues in prod)
+  logger: {
+    error(code, metadata) {
+      log.error({ code, metadata: metadata ?? {} }, `NextAuth error: ${code}`)
+    },
+    warn(code) {
+      log.warn({ code }, `NextAuth warn: ${code}`)
+    },
+    debug(code, metadata) {
+      log.debug({ code, metadata: metadata ?? {} }, `NextAuth debug: ${code}`)
+    },
+  },
   // When behind nginx: use secure cookies and explicit cookie options so state/PKCE
   // cookies are set and sent on OAuth callback (avoids OAuthCallback / "state cookie missing")
   ...(isHosted && {
     useSecureCookies: true,
     cookies: {
       csrfToken: {
-        name: `__Host-next-auth.csrf-token`,
+        name: `__Secure-next-auth.csrf-token`,
         options: {
           httpOnly: true,
           sameSite: 'lax',
