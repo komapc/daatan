@@ -9,11 +9,14 @@ import { env } from '@/env'
 const log = createLogger('auth')
 
 const isStaging = env.NEXT_PUBLIC_ENV === 'staging'
+/** Staging and production both run behind nginx; use explicit cookie options for both. */
+const isHosted = env.NEXT_PUBLIC_ENV === 'staging' || env.NEXT_PUBLIC_ENV === 'production'
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as Adapter,
   secret: env.NEXTAUTH_SECRET,
   debug: isStaging || env.NEXTAUTH_DEBUG === 'true',
+  // Trust Host header: set AUTH_TRUST_HOST=true when behind nginx (see docker-compose.prod.yml)
   providers: [
     GoogleProvider({
       clientId: env.GOOGLE_CLIENT_ID,
@@ -105,10 +108,28 @@ export const authOptions: NextAuthOptions = {
     signIn: '/auth/signin',
     error: '/auth/error',
   },
-  // Explicit cookie options for staging behind nginx - ensures PKCE/state cookies
-  // are set with correct domain/path so they're sent when Google redirects back
-  ...(isStaging && {
+  // When behind nginx: use secure cookies and explicit cookie options so state/PKCE
+  // cookies are set and sent on OAuth callback (avoids OAuthCallback / "state cookie missing")
+  ...(isHosted && {
+    useSecureCookies: true,
     cookies: {
+      csrfToken: {
+        name: `__Host-next-auth.csrf-token`,
+        options: {
+          httpOnly: true,
+          sameSite: 'lax',
+          path: '/',
+          secure: true,
+        },
+      },
+      callbackUrl: {
+        name: `__Secure-next-auth.callback-url`,
+        options: {
+          sameSite: 'lax',
+          path: '/',
+          secure: true,
+        },
+      },
       pkceCodeVerifier: {
         name: `__Secure-next-auth.pkce.code_verifier`,
         options: {
@@ -127,6 +148,15 @@ export const authOptions: NextAuthOptions = {
           path: '/',
           secure: true,
           maxAge: 900,
+        },
+      },
+      nonce: {
+        name: `__Secure-next-auth.nonce`,
+        options: {
+          httpOnly: true,
+          sameSite: 'lax',
+          path: '/',
+          secure: true,
         },
       },
     },
