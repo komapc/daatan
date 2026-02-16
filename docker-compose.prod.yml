@@ -39,6 +39,7 @@ services:
       - "3000"
     environment:
       - NODE_ENV=production
+      - APP_ENV=production
       - DATABASE_URL=postgresql://daatan:${POSTGRES_PASSWORD}@postgres:5432/daatan
       - NEXT_PUBLIC_ENV=production
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
@@ -80,6 +81,7 @@ services:
       - "3000"
     environment:
       - NODE_ENV=production
+      - APP_ENV=staging
       - DATABASE_URL=postgresql://daatan:${POSTGRES_PASSWORD}@postgres-staging:5432/daatan_staging
       - NEXT_PUBLIC_ENV=staging
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}

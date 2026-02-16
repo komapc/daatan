@@ -36,11 +36,12 @@ export default async function RootLayout({
   const locale = await getLocale() as Locale
   const messages = await getMessages()
   const gaMeasurementId = process.env.GA_MEASUREMENT_ID ?? ''
+  const isStaging = process.env.APP_ENV === 'staging'
 
   return (
     <html lang={locale} dir={isRtl(locale) ? 'rtl' : 'ltr'} suppressHydrationWarning>
       <body className="bg-white" suppressHydrationWarning>
-        <GoogleAnalytics measurementId={gaMeasurementId} />
+        <GoogleAnalytics measurementId={gaMeasurementId} isStaging={isStaging} />
         <NextIntlClientProvider messages={messages}>
           <SessionWrapper>
             <StagingBanner />
