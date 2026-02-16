@@ -10,12 +10,19 @@ import {
  * Tests for environment variable validation.
  * Ensures Google OAuth credentials have the correct format BEFORE deployment,
  * catching misconfiguration (wrong key, placeholder values, truncation) early.
+ * Use short, obviously-fake constants to avoid GitGuardian "Generic High Entropy" false positives.
  */
+const FAKE_CLIENT_ID = '123456789-abcdef.apps.googleusercontent.com'
+const FAKE_CLIENT_ID_LONG = '999999999999-xxxxxxxxxxxxxxxx.apps.googleusercontent.com'
+const FAKE_SECRET = 'fake-client-secret-value-long-enough'
+/** 32+ chars, no placeholder words so schema accepts it */
+const FAKE_NEXTAUTH = 'good-secret-32-chars-minimum!!!!'
+const FAKE_LEGACY_SECRET = 'legacy-format-secret-value-here'
 
 const validEnv = {
-  GOOGLE_CLIENT_ID: '123456789-abcdef.apps.googleusercontent.com',
-  GOOGLE_CLIENT_SECRET: 'test-fake-client-secret-value-long-enough',
-  NEXTAUTH_SECRET: 'a-very-long-random-secret-string-at-least-32-chars',
+  GOOGLE_CLIENT_ID: FAKE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET: FAKE_SECRET,
+  NEXTAUTH_SECRET: FAKE_NEXTAUTH,
   NEXTAUTH_URL: 'https://daatan.com',
 }
 
@@ -56,7 +63,7 @@ describe('googleOAuthEnvSchema', () => {
     it('accepts client ID with complex project number prefix', () => {
       const result = googleOAuthEnvSchema.safeParse({
         ...validEnv,
-        GOOGLE_CLIENT_ID: '987654321012-a1b2c3d4e5f6g7h8i9j0.apps.googleusercontent.com',
+        GOOGLE_CLIENT_ID: FAKE_CLIENT_ID_LONG,
       })
       expect(result.success).toBe(true)
     })
@@ -98,40 +105,84 @@ describe('googleOAuthEnvSchema', () => {
     it('accepts legacy format secrets', () => {
       const result = googleOAuthEnvSchema.safeParse({
         ...validEnv,
-        GOOGLE_CLIENT_SECRET: 'a1b2c3d4e5f6g7h8i9j0k1l2',
+        GOOGLE_CLIENT_SECRET: FAKE_LEGACY_SECRET,
       })
       expect(result.success).toBe(true)
     })
   })
 
   describe('NEXTAUTH_SECRET', () => {
-    it('accepts valid long secret', () => {
+    it('accepts valid hex secret', () => {
       const result = googleOAuthEnvSchema.safeParse(validEnv)
       expect(result.success).toBe(true)
     })
 
-    it('rejects placeholder values', () => {
+    it('accepts openssl rand -hex 32 output', () => {
+      const result = googleOAuthEnvSchema.safeParse({
+        ...validEnv,
+        NEXTAUTH_SECRET: '0'.repeat(64),
+      })
+      expect(result.success).toBe(true)
+    })
+
+    it('accepts openssl rand -base64 32 output', () => {
+      const result = googleOAuthEnvSchema.safeParse({
+        ...validEnv,
+        NEXTAUTH_SECRET: 'A'.repeat(32) + '==',
+      })
+      expect(result.success).toBe(true)
+    })
+
+    it('rejects the exact placeholder that caused the production outage', () => {
+      const result = googleOAuthEnvSchema.safeParse({
+        ...validEnv,
+        NEXTAUTH_SECRET: 'development-secret-key-change-in-prod',
+      })
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        expect(result.error.issues[0].message).toContain('placeholder')
+      }
+    })
+
+    it('rejects common placeholder values', () => {
       const placeholders = [
-        'your-secret-key-here',
-        'dummy-secret-for-build',
-        'changeme',
-        'test-secret',
+        'your-secret-key-here-please-replace-me',
+        'dummy-secret-for-build-not-for-production',
+        'changeme-this-is-not-a-real-secret-value',
+        'default-secret-value-update-before-deploy',
+        'replace-this-with-a-real-secret-key-now',
+        'placeholder-secret-not-for-production-use',
+        'example-secret-key-from-documentation-page',
       ]
       for (const placeholder of placeholders) {
         const result = googleOAuthEnvSchema.safeParse({
           ...validEnv,
           NEXTAUTH_SECRET: placeholder,
         })
-        expect(result.success).toBe(false)
+        expect(result.success, `should reject: "${placeholder}"`).toBe(false)
       }
     })
 
-    it('rejects secrets shorter than 16 characters', () => {
+    it('rejects secrets shorter than 32 characters', () => {
       const result = googleOAuthEnvSchema.safeParse({
         ...validEnv,
-        NEXTAUTH_SECRET: 'short',
+        NEXTAUTH_SECRET: 'abc123def456',
       })
       expect(result.success).toBe(false)
+      if (!result.success) {
+        expect(result.error.issues[0].message).toContain('too short')
+      }
+    })
+
+    it('rejects plain text secrets (no numbers or special chars)', () => {
+      const result = googleOAuthEnvSchema.safeParse({
+        ...validEnv,
+        NEXTAUTH_SECRET: 'a'.repeat(36),
+      })
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        expect(result.error.issues[0].message).toContain('plain text')
+      }
     })
   })
 
@@ -201,9 +252,9 @@ describe('validateOAuthEnv', () => {
 
   it('trims whitespace from values', () => {
     const result = validateOAuthEnv({
-      GOOGLE_CLIENT_ID: '  123456789-abcdef.apps.googleusercontent.com  ',
-      GOOGLE_CLIENT_SECRET: '  test-fake-client-secret-value-long-enough  ',
-      NEXTAUTH_SECRET: '  a-very-long-random-secret-string-at-least-32-chars  ',
+      GOOGLE_CLIENT_ID: `  ${FAKE_CLIENT_ID}  `,
+      GOOGLE_CLIENT_SECRET: `  ${FAKE_SECRET}  `,
+      NEXTAUTH_SECRET: `  ${FAKE_NEXTAUTH}  `,
       NEXTAUTH_URL: '  https://daatan.com  ',
     })
     expect(result.valid).toBe(true)
@@ -218,7 +269,7 @@ describe('validateOAuthEnv', () => {
 
 describe('maskSecret', () => {
   it('masks long secrets showing first 4 and last 4 chars', () => {
-    expect(maskSecret('test-fake-client-secret-value-long-enough')).toBe('test...ough')
+    expect(maskSecret(FAKE_SECRET)).toBe('fake...ough')
   })
 
   it('masks short values completely', () => {
@@ -249,9 +300,8 @@ describe('getOAuthDiagnostics', () => {
   it('does not expose secret values', () => {
     const diag = getOAuthDiagnostics(validEnv)
     const diagString = JSON.stringify(diag)
-    // Should not contain the full secret
-    expect(diagString).not.toContain('test-fake-client-secret-value-long-enough')
-    expect(diagString).not.toContain('a-very-long-random-secret-string-at-least-32-chars')
+    expect(diagString).not.toContain(FAKE_SECRET)
+    expect(diagString).not.toContain(FAKE_NEXTAUTH)
   })
 
   it('reports missing values', () => {

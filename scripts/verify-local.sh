@@ -64,6 +64,7 @@ echo -e "${BLUE}📦 Building application...${NC}"
 export DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
 export NEXTAUTH_SECRET="dummy-secret-for-build"
 export NEXTAUTH_URL="http://localhost:3000"
+export SKIP_ENV_VALIDATION=1
 
 if npm run build; then
   echo -e "${GREEN}✅ Build successful${NC}"

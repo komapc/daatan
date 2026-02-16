@@ -12,10 +12,13 @@ ARG NEXTAUTH_URL
 ARG NEXT_PUBLIC_ENV="production"
 ARG GIT_COMMIT="unknown"
 
-# Hardcoded fallback values for the build phase only
+# Hardcoded fallback values for the build phase only (@t3-oss/env-nextjs validates at runtime; skip during build)
+ENV SKIP_ENV_VALIDATION=1
 ENV DATABASE_URL=${DATABASE_URL:-"postgresql://daatan:dummy@localhost:5432/daatan"}
 ENV NEXTAUTH_SECRET="dummy-secret-for-build"
 ENV NEXTAUTH_URL=${NEXTAUTH_URL:-"http://localhost:3000"}
+ENV GOOGLE_CLIENT_ID=123456789-dummy.apps.googleusercontent.com
+ENV GOOGLE_CLIENT_SECRET=dummysecret12
 ENV NEXT_PUBLIC_ENV=$NEXT_PUBLIC_ENV
 ENV GIT_COMMIT=$GIT_COMMIT
 

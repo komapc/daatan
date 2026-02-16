@@ -24,8 +24,11 @@ export default defineConfig({
     timeout: 30_000,
     env: {
       DATABASE_URL: process.env.DATABASE_URL || 'postgresql://dummy:dummy@localhost:5432/dummy',
-      NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'test-secret',
+      NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'test-secret-32-chars-minimum-length!!',
       NEXTAUTH_URL: 'http://localhost:3000',
+      GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '123456789-dummy.apps.googleusercontent.com',
+      GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || 'dummy-client-secret-min-10-chars',
+      SKIP_ENV_VALIDATION: process.env.SKIP_ENV_VALIDATION || '1',
     },
   },
 });
