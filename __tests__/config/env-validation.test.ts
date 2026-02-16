@@ -10,12 +10,19 @@ import {
  * Tests for environment variable validation.
  * Ensures Google OAuth credentials have the correct format BEFORE deployment,
  * catching misconfiguration (wrong key, placeholder values, truncation) early.
+ * Use short, obviously-fake constants to avoid GitGuardian "Generic High Entropy" false positives.
  */
+const FAKE_CLIENT_ID = '123456789-abcdef.apps.googleusercontent.com'
+const FAKE_CLIENT_ID_LONG = '999999999999-xxxxxxxxxxxxxxxx.apps.googleusercontent.com'
+const FAKE_SECRET = 'fake-client-secret-value-long-enough'
+/** 32+ chars, no placeholder words so schema accepts it */
+const FAKE_NEXTAUTH = 'good-secret-32-chars-minimum!!!!'
+const FAKE_LEGACY_SECRET = 'legacy-format-secret-value-here'
 
 const validEnv = {
-  GOOGLE_CLIENT_ID: '123456789-abcdef.apps.googleusercontent.com',
-  GOOGLE_CLIENT_SECRET: 'test-fake-client-secret-value-long-enough',
-  NEXTAUTH_SECRET: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa!!',
+  GOOGLE_CLIENT_ID: FAKE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET: FAKE_SECRET,
+  NEXTAUTH_SECRET: FAKE_NEXTAUTH,
   NEXTAUTH_URL: 'https://daatan.com',
 }
 
@@ -56,7 +63,7 @@ describe('googleOAuthEnvSchema', () => {
     it('accepts client ID with complex project number prefix', () => {
       const result = googleOAuthEnvSchema.safeParse({
         ...validEnv,
-        GOOGLE_CLIENT_ID: '987654321012-a1b2c3d4e5f6g7h8i9j0.apps.googleusercontent.com',
+        GOOGLE_CLIENT_ID: FAKE_CLIENT_ID_LONG,
       })
       expect(result.success).toBe(true)
     })
@@ -98,7 +105,7 @@ describe('googleOAuthEnvSchema', () => {
     it('accepts legacy format secrets', () => {
       const result = googleOAuthEnvSchema.safeParse({
         ...validEnv,
-        GOOGLE_CLIENT_SECRET: 'a1b2c3d4e5f6g7h8i9j0k1l2',
+        GOOGLE_CLIENT_SECRET: FAKE_LEGACY_SECRET,
       })
       expect(result.success).toBe(true)
     })
@@ -245,9 +252,9 @@ describe('validateOAuthEnv', () => {
 
   it('trims whitespace from values', () => {
     const result = validateOAuthEnv({
-      GOOGLE_CLIENT_ID: '  123456789-abcdef.apps.googleusercontent.com  ',
-      GOOGLE_CLIENT_SECRET: '  test-fake-client-secret-value-long-enough  ',
-      NEXTAUTH_SECRET: '  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa!!  ',
+      GOOGLE_CLIENT_ID: `  ${FAKE_CLIENT_ID}  `,
+      GOOGLE_CLIENT_SECRET: `  ${FAKE_SECRET}  `,
+      NEXTAUTH_SECRET: `  ${FAKE_NEXTAUTH}  `,
       NEXTAUTH_URL: '  https://daatan.com  ',
     })
     expect(result.valid).toBe(true)
@@ -262,7 +269,7 @@ describe('validateOAuthEnv', () => {
 
 describe('maskSecret', () => {
   it('masks long secrets showing first 4 and last 4 chars', () => {
-    expect(maskSecret('test-fake-client-secret-value-long-enough')).toBe('test...ough')
+    expect(maskSecret(FAKE_SECRET)).toBe('fake...ough')
   })
 
   it('masks short values completely', () => {
@@ -293,9 +300,8 @@ describe('getOAuthDiagnostics', () => {
   it('does not expose secret values', () => {
     const diag = getOAuthDiagnostics(validEnv)
     const diagString = JSON.stringify(diag)
-    // Should not contain the full secret
-    expect(diagString).not.toContain('test-fake-client-secret-value-long-enough')
-    expect(diagString).not.toContain('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa!!')
+    expect(diagString).not.toContain(FAKE_SECRET)
+    expect(diagString).not.toContain(FAKE_NEXTAUTH)
   })
 
   it('reports missing values', () => {

@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client'
+import { env } from '@/env'
 
 declare global {
   // eslint-disable-next-line no-var
@@ -7,25 +8,20 @@ declare global {
 
 // Create Prisma client (using standard native driver)
 const createPrismaClient = (): PrismaClient => {
-  const connectionString = process.env.DATABASE_URL
-  if (!connectionString) {
-    throw new Error('DATABASE_URL environment variable is not set')
-  }
-  
   return new PrismaClient({
     datasources: {
       db: {
-        url: connectionString,
+        url: env.DATABASE_URL,
       },
     },
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+    log: env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
   })
 }
 
 // Use cached client in development to prevent hot-reload connection exhaustion
 export const prisma: PrismaClient = global.prismaClient ?? createPrismaClient()
 
-if (process.env.NODE_ENV !== 'production') {
+if (env.NODE_ENV !== 'production') {
   global.prismaClient = prisma
 }
 
