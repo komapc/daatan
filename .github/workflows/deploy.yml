@@ -242,15 +242,24 @@ jobs:
           echo '⏳ Waiting for command execution (Timeout: 10m)...'
           START_TIME=$(date +%s)
           while true; do
-            STATUS=$(aws ssm list-command-invocations --command-id "$COMMAND_ID" --details --query "CommandInvocations[0].Status" --output text)
-            echo "Status: $STATUS"
-            if [[ "$STATUS" == "Success" ]]; then
-              echo "✅ Deployment successful!"
+            # Get statuses of all invocations
+            STATUSES=$(aws ssm list-command-invocations --command-id "$COMMAND_ID" --details --query "CommandInvocations[].Status" --output text)
+            # e.g. "Success Success" or "Success InProgress"
+            
+            # Count total, success, failed
+            TOTAL_COUNT=$(echo "$STATUSES" | wc -w)
+            SUCCESS_COUNT=$(echo "$STATUSES" | grep -o "Success" | wc -l)
+            FAILED_COUNT=$(echo "$STATUSES" | grep -oE "Failed|Cancelled|TimedOut" | wc -l)
+            
+            echo "Statuses: $STATUSES ($SUCCESS_COUNT/$TOTAL_COUNT succeeded)"
+            
+            if [[ $FAILED_COUNT -gt 0 ]]; then
+              echo "❌ One or more deployments failed!"
+              aws ssm list-command-invocations --command-id "$COMMAND_ID" --details --query "CommandInvocations[?Status=='Failed' || Status=='Cancelled' || Status=='TimedOut'].CommandPlugins[0].Output" --output text
+              exit 1
+            elif [[ $SUCCESS_COUNT -eq $TOTAL_COUNT ]]; then
+              echo "✅ All deployments successful!"
               break
-            elif [[ "$STATUS" == "Failed" || "$STATUS" == "Cancelled" || "$STATUS" == "TimedOut" ]]; then
-              echo "❌ Deployment failed!"
-              aws ssm list-command-invocations --command-id "$COMMAND_ID" --details --query "CommandInvocations[0].CommandPlugins[0].Output" --output text
-               exit 1
             fi
 
             CURRENT_TIME=$(date +%s)
@@ -304,30 +313,52 @@ jobs:
 
       - name: Check Instance SSM Health
         run: |
-          INSTANCE_ID=$(aws ec2 describe-instances \
+          INSTANCE_IDS=$(aws ec2 describe-instances \
             --filters "Name=tag:Name,Values=daatan-backend" "Name=tag:Environment,Values=prod" \
-            --query "Reservations[0].Instances[0].InstanceId" \
-            --output text)
+            --query "Reservations[].Instances[].InstanceId" \
+            --output text | tr '\t' ' ' | tr '\n' ' ')
           
-          PING_STATUS=$(aws ssm describe-instance-information \
-            --filters "Key=InstanceIds,Values=$INSTANCE_ID" \
-            --query "InstanceInformationList[0].PingStatus" \
-            --output text)
-            
-          echo "Instance $INSTANCE_ID PingStatus: $PING_STATUS"
-          if [[ "$PING_STATUS" != "Online" ]]; then
-            echo "❌ Error: Instance is $PING_STATUS. SSM command will fail. Please check or reboot the instance."
-            exit 1
+          # Trim spaces
+          INSTANCE_IDS=$(echo $INSTANCE_IDS | xargs)
+          
+          if [ -z "$INSTANCE_IDS" ]; then
+             echo "❌ No production instances found."
+             exit 1
           fi
+
+          echo "Checking SSM status for: $INSTANCE_IDS"
+          
+          # Check ping status for all instances
+          # We loop because describe-instance-information output order isn't guaranteed
+          for ID in $INSTANCE_IDS; do
+            PING_STATUS=$(aws ssm describe-instance-information \
+              --filters "Key=InstanceIds,Values=$ID" \
+              --query "InstanceInformationList[0].PingStatus" \
+              --output text)
+              
+            echo "Instance $ID PingStatus: $PING_STATUS"
+            if [[ "$PING_STATUS" != "Online" ]]; then
+              echo "❌ Error: Instance $ID is $PING_STATUS. SSM command will fail."
+              exit 1
+            fi
+          done
 
       - name: Deploy to Production (SSM)
         run: |
-          # Get Instance ID (Note: Tag Value is 'prod')
-          INSTANCE_ID=$(aws ec2 describe-instances \
+          # Get Instance IDs (All instances with tag Value 'prod')
+          # We use Reservations[].Instances[].InstanceId to get all IDs
+          # and tr to format as comma-separated list for SSM
+          INSTANCE_IDS=$(aws ec2 describe-instances \
             --filters "Name=tag:Name,Values=daatan-backend" "Name=tag:Environment,Values=prod" \
-            --query "Reservations[0].Instances[0].InstanceId" \
-            --output text)
-          echo "Found Production Instance: $INSTANCE_ID"
+            --query "Reservations[].Instances[].InstanceId" \
+            --output text | tr '\t' ',' | tr '\n' ',' | sed 's/,$//')
+          
+          if [ -z "$INSTANCE_IDS" ]; then
+            echo "❌ No production instances found!"
+            exit 1
+          fi
+          
+          echo "Found Production Instances: $INSTANCE_IDS"
 
           # Determine Image Tag
           if [[ "${{ steps.version.outputs.version }}" != "manual" ]]; then
@@ -399,7 +430,7 @@ jobs:
           echo "🚀 Sending SSM Command..."
           COMMAND_ID=$(aws ssm send-command \
             --document-name "AWS-RunShellScript" \
-            --targets "Key=instanceids,Values=$INSTANCE_ID" \
+            --targets "Key=instanceids,Values=$INSTANCE_IDS" \
             --comment "Deploy Production ${{ steps.version.outputs.version }}" \
             --parameters commands="[\"echo $B64_SDK_SCRIPT | base64 -d | bash\"]" \
             --output text \
@@ -410,15 +441,24 @@ jobs:
           echo '⏳ Waiting for command execution (Timeout: 10m)...'
           START_TIME=$(date +%s)
           while true; do
-            STATUS=$(aws ssm list-command-invocations --command-id "$COMMAND_ID" --details --query "CommandInvocations[0].Status" --output text)
-            echo "Status: $STATUS"
-            if [[ "$STATUS" == "Success" ]]; then
-              echo "✅ Deployment successful!"
+            # Get statuses of all invocations
+            STATUSES=$(aws ssm list-command-invocations --command-id "$COMMAND_ID" --details --query "CommandInvocations[].Status" --output text)
+            # e.g. "Success Success" or "Success InProgress"
+            
+            # Count total, success, failed
+            TOTAL_COUNT=$(echo "$STATUSES" | wc -w)
+            SUCCESS_COUNT=$(echo "$STATUSES" | grep -o "Success" | wc -l)
+            FAILED_COUNT=$(echo "$STATUSES" | grep -oE "Failed|Cancelled|TimedOut" | wc -l)
+            
+            echo "Statuses: $STATUSES ($SUCCESS_COUNT/$TOTAL_COUNT succeeded)"
+            
+            if [[ $FAILED_COUNT -gt 0 ]]; then
+              echo "❌ One or more deployments failed!"
+              aws ssm list-command-invocations --command-id "$COMMAND_ID" --details --query "CommandInvocations[?Status=='Failed' || Status=='Cancelled' || Status=='TimedOut'].CommandPlugins[0].Output" --output text
+              exit 1
+            elif [[ $SUCCESS_COUNT -eq $TOTAL_COUNT ]]; then
+              echo "✅ All deployments successful!"
               break
-            elif [[ "$STATUS" == "Failed" || "$STATUS" == "Cancelled" || "$STATUS" == "TimedOut" ]]; then
-              echo "❌ Deployment failed!"
-              aws ssm list-command-invocations --command-id "$COMMAND_ID" --details --query "CommandInvocations[0].CommandPlugins[0].Output" --output text
-               exit 1
             fi
 
             CURRENT_TIME=$(date +%s)
