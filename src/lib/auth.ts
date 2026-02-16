@@ -4,45 +4,20 @@ import GoogleProvider from 'next-auth/providers/google'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
-import { validateOAuthEnv, maskSecret } from '@/lib/validations/env'
+import { env } from '@/env'
 
 const log = createLogger('auth')
 
-const googleClientId = process.env.GOOGLE_CLIENT_ID?.trim() ?? ''
-const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim() ?? ''
-const isStaging = process.env.NEXT_PUBLIC_ENV === 'staging'
-
-// Validate OAuth credentials format at startup (server-side only)
-if (typeof window === 'undefined') {
-  const envValidation = validateOAuthEnv()
-  if (!envValidation.valid) {
-    log.error(
-      {
-        errors: envValidation.errors,
-        clientIdPreview: googleClientId ? `${googleClientId.slice(0, 8)}...` : '(empty)',
-        secretPreview: maskSecret(googleClientSecret),
-        nextAuthUrl: process.env.NEXTAUTH_URL ?? '(empty)',
-      },
-      'Google OAuth misconfigured — auth will fail. Fix these issues:\n' +
-      envValidation.errors.map(e => `  - ${e}`).join('\n') +
-      '\nFor staging, also ensure https://staging.daatan.com/api/auth/callback/google is in your Google OAuth client\'s Authorized redirect URIs.'
-    )
-  } else {
-    log.info(
-      { clientIdPrefix: googleClientId.slice(0, 8), nextAuthUrl: process.env.NEXTAUTH_URL },
-      'Google OAuth credentials validated successfully'
-    )
-  }
-}
+const isStaging = env.NEXT_PUBLIC_ENV === 'staging'
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as Adapter,
-  secret: process.env.NEXTAUTH_SECRET,
-  debug: isStaging || process.env.NEXTAUTH_DEBUG === 'true',
+  secret: env.NEXTAUTH_SECRET,
+  debug: isStaging || env.NEXTAUTH_DEBUG === 'true',
   providers: [
     GoogleProvider({
-      clientId: googleClientId,
-      clientSecret: googleClientSecret,
+      clientId: env.GOOGLE_CLIENT_ID,
+      clientSecret: env.GOOGLE_CLIENT_SECRET,
       allowDangerousEmailAccountLinking: true,
     }),
   ],

@@ -5,10 +5,11 @@ set -e
 
 echo "🚀 Running pre-push verification..."
 
-# Set dummy environment variables for build
+# Set dummy environment variables for build (validation skipped via @t3-oss/env-nextjs)
 export DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
 export NEXTAUTH_SECRET="dummy-secret-for-build"
 export NEXTAUTH_URL="http://localhost:3000"
+export SKIP_ENV_VALIDATION=1
 
 # 1. Type check (fast, clear errors)
 echo "🔎 Running type check..."
