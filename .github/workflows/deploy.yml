@@ -314,7 +314,7 @@ jobs:
       - name: Check Instance SSM Health
         run: |
           INSTANCE_IDS=$(aws ec2 describe-instances \
-            --filters "Name=tag:Name,Values=daatan-backend" "Name=tag:Environment,Values=prod" \
+            --filters "Name=tag:Name,Values=daatan-backend" "Name=tag:Environment,Values=prod,production" \
             --query "Reservations[].Instances[].InstanceId" \
             --output text | tr '\t' ' ' | tr '\n' ' ')
           
@@ -345,11 +345,9 @@ jobs:
 
       - name: Deploy to Production (SSM)
         run: |
-          # Get Instance IDs (All instances with tag Value 'prod')
-          # We use Reservations[].Instances[].InstanceId to get all IDs
-          # and tr to format as comma-separated list for SSM
+          # Get Instance IDs (All instances with tag Value 'prod' OR 'production')
           INSTANCE_IDS=$(aws ec2 describe-instances \
-            --filters "Name=tag:Name,Values=daatan-backend" "Name=tag:Environment,Values=prod" \
+            --filters "Name=tag:Name,Values=daatan-backend" "Name=tag:Environment,Values=prod,production" \
             --query "Reservations[].Instances[].InstanceId" \
             --output text | tr '\t' ',' | tr '\n' ',' | sed 's/,$//')
           
