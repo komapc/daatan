@@ -388,6 +388,8 @@ jobs:
           echo '🚀 Executing blue-green deployment...'
           export GIT_COMMIT=\"${{ github.sha }}\"
           export SKIP_BUILD=true
+          export ECR_REGISTRY=\"$ECR_REGISTRY\"
+          export IMAGE_TAG=\"$IMAGE_TAG\"
           ./scripts/blue-green-deploy.sh production
           "
           
@@ -433,3 +435,16 @@ jobs:
         run: |
           sleep 5
           ./scripts/verify-health.sh "https://daatan.com"
+
+      - name: Verify deployed version
+        run: |
+          EXPECTED="${{ steps.version.outputs.version }}"
+          # Strip leading 'v' if present (e.g. v1.4.14 -> 1.4.14)
+          EXPECTED="${EXPECTED#v}"
+          sleep 3
+          VERSION=$(curl -sS "https://daatan.com/api/health?t=$(date +%s)" | jq -r '.version')
+          if [ "$VERSION" != "$EXPECTED" ]; then
+            echo "❌ Version mismatch: expected $EXPECTED, got $VERSION"
+            exit 1
+          fi
+          echo "✅ Production version confirmed: $VERSION"

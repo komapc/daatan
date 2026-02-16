@@ -175,8 +175,12 @@ echo "🆕 Phase 3: Starting new container alongside old one..."
 docker rm -f $CONTAINER_NEW 2>/dev/null || true
 
 # Get the image name that was just built (or pre-pulled)
+# When ECR_REGISTRY and IMAGE_TAG are set (CI), use the exact image we pulled to avoid any tag ambiguity
 if [ "${SKIP_BUILD}" == "true" ]; then
-    if [ "$ENVIRONMENT" = "staging" ]; then
+    if [ -n "$ECR_REGISTRY" ] && [ -n "$IMAGE_TAG" ]; then
+        IMAGE_NAME="$ECR_REGISTRY/daatan-app:$IMAGE_TAG"
+        echo "   Using exact image: $IMAGE_NAME"
+    elif [ "$ENVIRONMENT" = "staging" ]; then
         IMAGE_NAME="daatan-app:staging-latest"
     else
         IMAGE_NAME="daatan-app:latest"
@@ -245,6 +249,18 @@ for i in {1..20}; do
     sleep 3
 done
 
+# Verify new container reports expected version (avoid swapping in wrong image)
+if [ -n "$IMAGE_TAG" ]; then
+    NEW_VERSION=$(docker exec $CONTAINER_NEW wget -qO- http://localhost:3000/api/health 2>/dev/null | grep -oE '"version"\s*:\s*"[^"]*"' | sed 's/.*"\([^"]*\)"$/\1/')
+    if [ "$NEW_VERSION" != "$IMAGE_TAG" ]; then
+        echo "❌ New container version mismatch: got '$NEW_VERSION', expected '$IMAGE_TAG'. Aborting swap."
+        docker rm -f $CONTAINER_NEW 2>/dev/null || true
+        echo "🔄 Old container still serving traffic — no downtime occurred"
+        exit 1
+    fi
+    echo "✅ New container version matches: $IMAGE_TAG"
+fi
+
 # ─── Phase 5: Run migrations (BEFORE swap — old container still serves traffic) ─
 echo ""
 echo "🗄️ Phase 5: Running Prisma migrations on new container..."
@@ -289,13 +305,23 @@ echo "✅ Old container removed, new container is now $CONTAINER"
 echo ""
 echo "🔍 Phase 7: Verifying deployment externally..."
 echo "   (waiting for nginx DNS cache to expire...)"
-sleep 3
+sleep 5
 if ./scripts/verify-health.sh "$HEALTH_URL"; then
     echo "✅ Health check passed"
 else
     echo "❌ External health check failed"
     docker logs $CONTAINER --tail 50
     exit 1
+fi
+
+# Verify external health returns expected version (catches wrong instance or stale nginx)
+if [ -n "$IMAGE_TAG" ]; then
+    EXTERNAL_VERSION=$(curl -sS "${HEALTH_URL}/api/health?t=$(date +%s)" | grep -oE '"version"\s*:\s*"[^"]*"' | sed 's/.*"\([^"]*\)"$/\1/')
+    if [ "$EXTERNAL_VERSION" != "$IMAGE_TAG" ]; then
+        echo "❌ External version mismatch: got '$EXTERNAL_VERSION', expected '$IMAGE_TAG'. Traffic may be hitting another instance or nginx cache."
+        exit 1
+    fi
+    echo "✅ External health version confirmed: $IMAGE_TAG"
 fi
 
 # Docker log inspection (non-fatal warnings only)
