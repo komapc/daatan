@@ -10,6 +10,7 @@ WORKDIR /app
 ARG DATABASE_URL
 ARG NEXTAUTH_URL
 ARG NEXT_PUBLIC_ENV="production"
+ARG NEXT_PUBLIC_APP_VERSION
 ARG GIT_COMMIT="unknown"
 
 # Hardcoded fallback values for the build phase only (@t3-oss/env-nextjs validates at runtime; skip during build)
@@ -20,6 +21,7 @@ ENV NEXTAUTH_URL=${NEXTAUTH_URL:-"http://localhost:3000"}
 ENV GOOGLE_CLIENT_ID=123456789-dummy.apps.googleusercontent.com
 ENV GOOGLE_CLIENT_SECRET=dummysecret12
 ENV NEXT_PUBLIC_ENV=$NEXT_PUBLIC_ENV
+ENV NEXT_PUBLIC_APP_VERSION=$NEXT_PUBLIC_APP_VERSION
 ENV GIT_COMMIT=$GIT_COMMIT
 
 # Copy package files
