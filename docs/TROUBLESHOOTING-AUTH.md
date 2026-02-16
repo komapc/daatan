@@ -21,6 +21,7 @@ Common causes:
 | `redirect_uri_mismatch` from Google | Prod redirect URI not in Google Cloud Console, or wrong `NEXTAUTH_URL`. |
 | `OAuthSignin` on our error page | Wrong/missing credentials or redirect URI; check server `.env` and Console. |
 | Callback returns but no session / loop to sign-in | Cookie/domain/path (e.g. missing `AUTH_TRUST_HOST` or cookie config). |
+| “Session check failed” / `OAuthCallback` | State or PKCE cookie not sent on callback. Ensure nginx has a dedicated `location /api/auth/` with **no** `add_header` so all `Set-Cookie` headers pass through; clear site cookies and try again. |
 
 ---
 
