@@ -21,7 +21,7 @@ Common causes:
 | `redirect_uri_mismatch` from Google | Prod redirect URI not in Google Cloud Console, or wrong `NEXTAUTH_URL`. |
 | `OAuthSignin` on our error page | Wrong/missing credentials or redirect URI; check server `.env` and Console. |
 | Callback returns but no session / loop to sign-in | Cookie/domain/path (e.g. missing `AUTH_TRUST_HOST` or cookie config). |
-| “Session check failed” / `OAuthCallback` | State or PKCE cookie not sent on callback. Ensure nginx has a dedicated `location /api/auth/` with **no** `add_header` so all `Set-Cookie` headers pass through; clear site cookies and try again. |
+| “Session check failed” / `OAuthCallback` | State or PKCE cookie not sent on callback. Nginx must have a dedicated `location /api/auth/` where the only `add_header` is `Cache-Control` (so server-level `add_header` are not inherited and upstream `Set-Cookie` pass through); clear site cookies and try again. |
 
 ---
 
@@ -65,19 +65,28 @@ Staging and production use **different EC2 instances** and **different** `~/app/
 
 ---
 
-## 4. Check Google Cloud Console (redirect URIs)
+## 4. What to check on Google Cloud Console
 
-The OAuth client used by **production** must list the **production** callback URL.
+Use the **same** OAuth client as in your production server’s `GOOGLE_CLIENT_ID` (from `~/app/.env`).
 
-1. Open [Google Cloud Console](https://console.cloud.google.com/) → **APIs & Services** → **Credentials**.
-2. Find the **OAuth 2.0 Client ID** whose **Client ID** matches `GOOGLE_CLIENT_ID` from the **production** server’s `.env`.
-3. Open that client → **Authorized redirect URIs**.
-4. Ensure this exact URI is present (no trailing slash):
-   - **Production:** `https://daatan.com/api/auth/callback/google`
-   - If the same client is used for staging: `https://staging.daatan.com/api/auth/callback/google`
-5. Save. Changes can take a short time to propagate.
+### Where to go
 
-If you use **separate** OAuth clients for staging and prod, the production server’s `.env` must use the **production** client’s ID and secret, and that client must have `https://daatan.com/api/auth/callback/google`.
+1. [Google Cloud Console](https://console.cloud.google.com/) → **APIs & Services** → **Credentials**.
+2. Under **OAuth 2.0 Client IDs**, open the client whose **Client ID** matches prod’s `GOOGLE_CLIENT_ID`.
+
+### Checklist
+
+| What to check | What it should be |
+|---------------|-------------------|
+| **Application type** | “Web application” (not Desktop or other). |
+| **Authorized JavaScript origins** | Add if you need JS-based flows. For NextAuth server-side flow you often only need redirect URIs. |
+| **Authorized redirect URIs** | Must contain **exactly** (no trailing slash, correct scheme/host): |
+| → Production | `https://daatan.com/api/auth/callback/google` |
+| → Staging (if same client) | `https://staging.daatan.com/api/auth/callback/google` |
+
+- **Typical mistake:** Wrong host (e.g. `http://` or `staging.daatan.com` in prod), or extra/missing path (e.g. `/api/auth/callback` without `/google`).
+- After editing, click **Save**. Changes can take a minute to propagate.
+- If you use **separate** OAuth clients for staging and prod, the production instance’s `.env` must use the **production** client’s ID and secret, and that client’s redirect URIs must include **only** `https://daatan.com/api/auth/callback/google` (staging client has staging URL).
 
 ---
 
@@ -98,7 +107,33 @@ After a **code/image deploy**, the deploy process already restarts the container
 
 ---
 
-## 6. If it still fails: capture the exact error
+## 6. Server check when you see OAuthCallback / "Session check failed"
+
+**On the production EC2 instance** (SSH in, then):
+
+```bash
+cd ~/app
+./scripts/verify-auth-server.sh
+```
+
+(The deploy workflow copies this script to `~/app/scripts/`; if it’s missing, run the checks from the script manually or re-deploy.)
+
+This checks:
+- Whether `nginx-ssl.conf` has `location /api/auth/` with only a **Cache-Control** `add_header` (so server-level headers aren’t inherited and Set-Cookie passes through).
+- Whether nginx config is valid and reloaded.
+- Recent app logs for NextAuth/callback errors.
+- That `AUTH_TRUST_HOST` is set in the app container.
+
+If the script reports **"location /api/auth/ NOT FOUND"**, the deployed nginx config is old. Then either:
+- Re-run a production deploy (e.g. push tag `v*` again) so the workflow writes the latest `nginx-ssl.conf`, or
+- Manually copy the repo’s current `nginx-ssl.conf` into `~/app/nginx-ssl.conf` and run:
+  ```bash
+  docker compose -f docker-compose.prod.yml exec -T nginx nginx -s reload
+  ```
+
+---
+
+## 7. If it still fails: capture the exact error
 
 1. **Browser**
    - Try sign-in again; note the final URL and any error message.
@@ -106,8 +141,8 @@ After a **code/image deploy**, the deploy process already restarts the container
 2. **Server logs**
    - On the **production** instance:
      ```bash
-     docker logs daatan-app --tail 100 2>&1
+     docker logs daatan-app --tail 200 2>&1
      ```
-   - Look for NextAuth/OAuth or `Configuration` errors (and ensure no secrets are shared when pasting logs).
+   - Look for lines like `NextAuth error: CALLBACK_*` or `NextAuth error: ...` (our logger records these). Share the **error code** (not secrets) if you need help.
 
-With the exact error (e.g. `redirect_uri_mismatch`, `invalid_client`, or our `error=OAuthSignin`/`Configuration`) and the checks above, you can usually narrow it to: wrong/missing redirect URI, wrong client ID/secret on the server, or cookie/URL building (the codebase now sets `AUTH_TRUST_HOST` and explicit cookies for prod as well as staging to reduce that class of issue).
+With the exact error (e.g. `redirect_uri_mismatch`, `invalid_client`, or our `error=OAuthSignin`/`Configuration`) and the checks above, you can usually narrow it to: wrong/missing redirect URI, wrong client ID/secret on the server, or cookie/URL building (the codebase sets `AUTH_TRUST_HOST` and explicit cookies for prod; nginx must have `location /api/auth/` without `add_header` so cookies pass through).

@@ -176,6 +176,7 @@ jobs:
           VERIFY_HEALTH_SCRIPT=$(base64 -w 0 scripts/verify-health.sh)
           VERIFY_LOGS_SCRIPT=$(base64 -w 0 scripts/verify-logs.sh)
           VERIFY_DEPLOY_SCRIPT=$(base64 -w 0 scripts/verify-deploy.sh)
+          VERIFY_AUTH_SERVER_SCRIPT=$(base64 -w 0 scripts/verify-auth-server.sh)
           COMPOSE_FILE=$(base64 -w 0 docker-compose.prod.yml)
           NGINX_CONF=$(base64 -w 0 nginx-ssl.conf)
           
@@ -202,6 +203,7 @@ jobs:
           echo \"$VERIFY_HEALTH_SCRIPT\" | base64 -d > scripts/verify-health.sh
           echo \"$VERIFY_LOGS_SCRIPT\" | base64 -d > scripts/verify-logs.sh
           echo \"$VERIFY_DEPLOY_SCRIPT\" | base64 -d > scripts/verify-deploy.sh
+          echo \"$VERIFY_AUTH_SERVER_SCRIPT\" | base64 -d > scripts/verify-auth-server.sh
           
           chmod +x scripts/*.sh
           
@@ -340,6 +342,7 @@ jobs:
           VERIFY_HEALTH_SCRIPT=$(base64 -w 0 scripts/verify-health.sh)
           VERIFY_LOGS_SCRIPT=$(base64 -w 0 scripts/verify-logs.sh)
           VERIFY_DEPLOY_SCRIPT=$(base64 -w 0 scripts/verify-deploy.sh)
+          VERIFY_AUTH_SERVER_SCRIPT=$(base64 -w 0 scripts/verify-auth-server.sh)
           COMPOSE_FILE=$(base64 -w 0 docker-compose.prod.yml)
           NGINX_CONF=$(base64 -w 0 nginx-ssl.conf)
           
@@ -366,6 +369,7 @@ jobs:
           echo \"$VERIFY_HEALTH_SCRIPT\" | base64 -d > scripts/verify-health.sh
           echo \"$VERIFY_LOGS_SCRIPT\" | base64 -d > scripts/verify-logs.sh
           echo \"$VERIFY_DEPLOY_SCRIPT\" | base64 -d > scripts/verify-deploy.sh
+          echo \"$VERIFY_AUTH_SERVER_SCRIPT\" | base64 -d > scripts/verify-auth-server.sh
           
           chmod +x scripts/*.sh
           
