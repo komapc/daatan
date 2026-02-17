@@ -32,3 +32,9 @@ variable "ec2_instance_type" {
   type        = string
   default     = "t3.small"
 }
+
+variable "github_repository" {
+  description = "GitHub repository (org/repo) for OIDC federation"
+  type        = string
+  default     = "komapc/daatan"
+}

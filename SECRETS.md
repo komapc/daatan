@@ -21,9 +21,9 @@
 
 ### Current Setup
 
-**Location:** `~/app/.env` on EC2 server (52.59.160.186)
+**Location:** `~/app/.env` on EC2 server (use `terraform output ec2_public_ip` to get IP)
 
-**Access:** SSH with key-based auth (`~/.ssh/daatan-key.pem`)
+**Access:** SSH with key-based auth (`~/.ssh/daatan-key-new.pem`)
 
 **Permissions:** 
 - File: `600` (owner read/write only)
@@ -126,7 +126,7 @@ aws secretsmanager get-secret-value \
 **When:** If `invalid_client` errors appear in logs or Google Cloud Console integrity is compromised.
 1.  **Generate New Secret:** Go to Google Cloud Console > Credentials > OAuth 2.0 Client IDs > Reset Secret.
 2.  **Update Config:**
-    *   Update `.env` on **Staging** (`i-0286f62b47117b85c`) and **Production** (`i-02105582701f77d29`).
+    *   Update `.env` on both Staging and Production EC2 instances.
     *   Update local `.env`.
     *   Sync to AWS Secrets Manager (see above).
 3.  **Restart Containers:** `docker restart daatan-app` (Prod) / `daatan-app-staging` (Staging).
@@ -135,17 +135,18 @@ aws secretsmanager get-secret-value \
 
 ## Migration Plan
 
-### Phase 1: Audit (Week 1)
-- [ ] Document all secrets currently in use
-- [ ] Identify which secrets are shared vs unique
-- [ ] Determine rotation schedule for each secret
+### Phase 1: Audit ~~(Week 1)~~ — Done
+- [x] Document all secrets currently in use (see table above)
+- [x] Identify which secrets are shared vs unique
+- [x] Determine rotation schedule for each secret
 - [ ] Set up password manager for team
 
-### Phase 2: AWS Secrets Manager (Week 2-3)
-- [ ] Create AWS Secrets Manager secrets
-- [ ] Update application to read from Secrets Manager
-- [ ] Test in staging environment
-- [ ] Deploy to production
+### Phase 2: AWS Secrets Manager ~~(Week 2-3)~~ — Partial
+- [x] Create AWS Secrets Manager secrets (`daatan-env-prod`, `daatan-env-staging`)
+- [x] IAM policies scoped to specific secret ARNs
+- [x] EC2 user data retrieves secrets on bootstrap
+- [ ] Update application to read from Secrets Manager at runtime (currently reads `.env`)
+- [ ] Automate sync (currently manual `aws secretsmanager put-secret-value`)
 - [ ] Remove secrets from `.env` (keep as fallback)
 
 ### Phase 3: Automation (Week 4)

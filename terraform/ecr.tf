@@ -11,9 +11,7 @@ resource "aws_ecr_repository" "daatan_app" {
   }
 
   tags = {
-    Name        = "daatan-app"
-    Environment = "production"
-    ManagedBy   = "terraform"
+    Name = "daatan-app"
   }
 }
 
