@@ -27,5 +27,9 @@ provider "aws" {
       ManagedBy   = "terraform"
     }
   }
+
+  ignore_tags {
+    key_prefixes = ["awsApplication"]
+  }
 }
 

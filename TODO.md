@@ -41,6 +41,8 @@
 
 - [ ] **CI/CD: Add production approval gate** — `deploy-production` job in `deploy.yml` has no `environment:` protection rule. Add `environment: production` with required reviewers in GitHub repo settings. Neither staging nor production jobs use GitHub Environments currently.
 
+- [ ] **Infra: Separate Terraform state per environment** — currently both prod and staging share the same backend key (`prod/terraform.tfstate` in `main.tf`). Running `terraform apply -var-file=staging.tfvars` operates against the prod state. Fix: use Terraform workspaces or separate backend keys per environment. Requires careful `terraform state` migration. Do in a dedicated session with no concurrent changes.
+
 - [ ] **CI/CD: Reconcile Dockerfile ARGs** — two mismatches in `Dockerfile` vs `deploy.yml` build-args:
   - `NEXT_PUBLIC_APP_VERSION` is passed in workflow build-args but never declared as `ARG` in Dockerfile (silently ignored)
   - `GIT_COMMIT` is declared as `ARG` in Dockerfile but never passed in workflow build-args (only set as env var during SSM deployment script)

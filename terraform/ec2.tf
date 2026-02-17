@@ -108,7 +108,8 @@ resource "aws_instance" "backend" {
         chown ubuntu:ubuntu /home/ubuntu/app/.env
         chmod 600 /home/ubuntu/app/.env
     else
-         echo "Failed to retrieve .env"
+        echo "Failed to retrieve .env — aborting setup"
+        exit 1
     fi
 
     # 5. Start Application
