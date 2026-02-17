@@ -49,9 +49,6 @@ function validateCommitEligibility(
   if (prediction.status !== 'ACTIVE') {
     return { ok: false, error: 'Can only commit to active predictions', status: 400 }
   }
-  if (prediction.authorId === userId) {
-    return { ok: false, error: 'Cannot commit to your own prediction', status: 400 }
-  }
   return null
 }
 

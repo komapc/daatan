@@ -191,7 +191,6 @@ export default function PredictionDetailPage() {
 
   const canCommit = session?.user?.id &&
     prediction?.status === 'ACTIVE' &&
-    prediction?.author.id !== session.user.id &&
     !userCommitment
 
   if (isLoading) {
@@ -368,7 +367,7 @@ export default function PredictionDetailPage() {
               onSuccess={handleCommitmentSuccess}
               onCancel={() => setShowCommitmentForm(false)}
             />
-          ) : prediction.author.id !== session.user.id && (
+          ) : (
             showCommitmentForm ? (
               <CommitmentForm
                 prediction={prediction}
