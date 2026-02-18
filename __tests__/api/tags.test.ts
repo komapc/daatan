@@ -52,8 +52,7 @@ describe('GET /api/tags', () => {
 
     vi.mocked(prisma.tag.findMany).mockResolvedValue(mockTags as any)
 
-    const request = new NextRequest('http://localhost/api/tags')
-    const response = await GET(request)
+    const response = await GET()
     const data = await response.json()
 
     expect(response.status).toBe(200)
@@ -77,8 +76,7 @@ describe('GET /api/tags', () => {
 
     vi.mocked(prisma.tag.findMany).mockResolvedValue([])
 
-    const request = new NextRequest('http://localhost/api/tags')
-    const response = await GET(request)
+    const response = await GET()
     const data = await response.json()
 
     expect(response.status).toBe(200)
@@ -96,8 +94,7 @@ describe('GET /api/tags', () => {
 
     vi.mocked(prisma.tag.findMany).mockResolvedValue(mockTags as any)
 
-    const request = new NextRequest('http://localhost/api/tags')
-    await GET(request)
+    await GET()
 
     expect(prisma.tag.findMany).toHaveBeenCalledWith({
       select: {
@@ -119,8 +116,7 @@ describe('GET /api/tags', () => {
 
     vi.mocked(prisma.tag.findMany).mockRejectedValue(new Error('DB error'))
 
-    const request = new NextRequest('http://localhost/api/tags')
-    const response = await GET(request)
+    const response = await GET()
     const data = await response.json()
 
     expect(response.status).toBe(500)
@@ -162,10 +158,11 @@ describe('POST /api/tags', () => {
       id: 'new-tag',
       name: 'Technology',
       slug: 'technology',
+      createdAt: new Date(),
     })
 
     const request = createRequest({ name: 'Technology' })
-    const response = await POST(request, createMockUser(), { params: {} })
+    const response = await POST(request, { params: {} } as any)
     const data = await response.json()
 
     expect(response.status).toBe(201)
@@ -183,7 +180,7 @@ describe('POST /api/tags', () => {
     vi.mocked(getServerSession).mockResolvedValue({ user: createMockUser({ role: 'USER' }) } as any)
 
     const request = createRequest({ name: 'Technology' })
-    const response = await POST(request, createMockUser({ role: 'USER' }), { params: {} })
+    const response = await POST(request, { params: {} } as any)
     const data = await response.json()
 
     expect(response.status).toBe(403)
@@ -197,7 +194,7 @@ describe('POST /api/tags', () => {
     vi.mocked(getServerSession).mockResolvedValue({ user: createMockUser() } as any)
 
     const request = createRequest({ name: '' })
-    const response = await POST(request, createMockUser(), { params: {} })
+    const response = await POST(request, { params: {} } as any)
     const data = await response.json()
 
     expect(response.status).toBe(400)
@@ -212,7 +209,7 @@ describe('POST /api/tags', () => {
 
     const longName = 'a'.repeat(51)
     const request = createRequest({ name: longName })
-    const response = await POST(request, createMockUser(), { params: {} })
+    const response = await POST(request, { params: {} } as any)
     const data = await response.json()
 
     expect(response.status).toBe(400)
@@ -225,13 +222,13 @@ describe('POST /api/tags', () => {
 
     vi.mocked(getServerSession).mockResolvedValue({ user: createMockUser() } as any)
     vi.mocked(prisma.tag.findUnique).mockResolvedValue({
-      id: 'existing',
+      id: 'existing', createdAt: new Date(),
       name: 'Politics',
       slug: 'politics',
     })
 
     const request = createRequest({ name: 'Politics' })
-    const response = await POST(request, createMockUser(), { params: {} })
+    const response = await POST(request, { params: {} } as any)
     const data = await response.json()
 
     expect(response.status).toBe(409)
@@ -248,10 +245,11 @@ describe('POST /api/tags', () => {
       id: 'new-tag',
       name: 'Technology',
       slug: 'technology',
+      createdAt: new Date(),
     })
 
     const request = createRequest({ name: '  Technology  ' })
-    await POST(request, createMockUser(), { params: {} })
+    await POST(request, { params: {} } as any)
 
     expect(prisma.tag.create).toHaveBeenCalledWith({
       data: {
@@ -271,10 +269,11 @@ describe('POST /api/tags', () => {
       id: 'new-tag',
       name: 'US Politics',
       slug: 'us-politics',
+      createdAt: new Date(),
     })
 
     const request = createRequest({ name: 'US Politics' })
-    await POST(request, createMockUser(), { params: {} })
+    await POST(request, { params: {} } as any)
 
     expect(prisma.tag.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -293,7 +292,7 @@ describe('POST /api/tags', () => {
     vi.mocked(prisma.tag.findUnique).mockRejectedValue(new Error('DB error'))
 
     const request = createRequest({ name: 'Technology' })
-    const response = await POST(request, createMockUser(), { params: {} })
+    const response = await POST(request, { params: {} } as any)
     const data = await response.json()
 
     expect(response.status).toBe(500)
