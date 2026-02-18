@@ -58,7 +58,7 @@ type AdminComment = {
   createdAt: string
   deletedAt: string | null
   author: { id: string; name: string | null; username: string | null; image: string | null }
-  prediction: { id: string; claimText: string } | null
+  prediction: { id: string; slug?: string; claimText: string } | null
   forecast: { id: string; title: string } | null
   _count: { replies: number; reactions: number }
 }
@@ -273,7 +273,7 @@ function ForecastsTab() {
                       </td>
                       <td className="px-4 py-3 text-center">
                         <Link
-                          href={`/forecasts/${p.id}`}
+                          href={`/forecasts/${p.slug || p.id}`}
                           className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs font-medium"
                         >
                           <ExternalLink className="w-3 h-3" />
@@ -379,7 +379,7 @@ function CommentsTab() {
           <div className="space-y-3">
             {comments.map((c) => {
               const target = c.prediction
-                ? { label: c.prediction.claimText, href: `/forecasts/${c.prediction.id}` }
+                ? { label: c.prediction.claimText, href: `/forecasts/${c.prediction.slug || c.prediction.id}` }
                 : c.forecast
                   ? { label: c.forecast.title, href: '#' }
                   : null

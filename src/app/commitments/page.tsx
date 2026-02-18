@@ -43,6 +43,7 @@ interface Commitment {
   createdAt: string
   prediction: {
     id: string
+    slug?: string
     claimText: string
     status: string
     resolveByDatetime: string
@@ -223,7 +224,7 @@ export default function CommitmentHistoryPage() {
             return (
               <Link
                 key={commitment.id}
-                href={`/forecasts/${commitment.prediction.id}`}
+                href={`/forecasts/${commitment.prediction.slug || commitment.prediction.id}`}
                 className="block bg-white rounded-xl border border-gray-100 p-4 hover:border-blue-200 hover:shadow-sm transition-all group"
               >
                 <div className="flex items-start justify-between gap-3">

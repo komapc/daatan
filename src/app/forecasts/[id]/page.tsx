@@ -31,6 +31,7 @@ const log = createClientLogger('ForecastDetail')
 
 type Prediction = {
   id: string
+  slug?: string
   claimText: string
   detailsText?: string
   domain?: string
@@ -179,7 +180,7 @@ export default function PredictionDetailPage() {
 
   const handleEdit = () => {
     if (!prediction?.id) return
-    router.push(`/forecasts/${prediction.id}/edit`)
+    router.push(`/forecasts/${prediction.slug || prediction.id}/edit`)
   }
 
   const canAdminister = session?.user?.role === 'ADMIN'

@@ -23,6 +23,7 @@ import { RoleBadge } from '@/components/RoleBadge'
 
 export type Prediction = {
   id: string
+  slug?: string | null
   claimText: string
   domain?: string | null
   outcomeType: string
@@ -96,13 +97,13 @@ export default function ForecastCard({
   const handleEdit = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    router.push(`/forecasts/${prediction.id}/edit`)
+    router.push(`/forecasts/${prediction.slug || prediction.id}/edit`)
   }
 
   const handleResolve = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    router.push(`/forecasts/${prediction.id}`)
+    router.push(`/forecasts/${prediction.slug || prediction.id}`)
   }
 
   const formatDate = (date: string | Date) => {
@@ -165,7 +166,7 @@ export default function ForecastCard({
 
   return (
     <Link
-      href={`/forecasts/${prediction.id}`}
+      href={`/forecasts/${prediction.slug || prediction.id}`}
       className="group block p-4 sm:p-5 bg-white border border-gray-200 rounded-xl hover:border-blue-300 hover:shadow-md transition-all duration-200"
     >
       <div className="flex items-start justify-between gap-4">

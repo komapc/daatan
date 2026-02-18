@@ -180,7 +180,7 @@ export const ForecastWizard = ({ isExpressFlow = false }: ForecastWizardProps) =
       }
 
       // Redirect to prediction page
-      router.push(`/forecasts/${prediction.id}`)
+      router.push(`/forecasts/${prediction.slug || prediction.id}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
