@@ -186,7 +186,7 @@ export default function EditForecastClient() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto">
       {/* Back Link */}
       <Link
-        href={`/forecasts/${prediction.id}`}
+        href={`/forecasts/${prediction.slug || prediction.id}`}
         className="inline-flex items-center gap-1 text-gray-500 hover:text-gray-700 mb-6"
       >
         <ChevronLeft className="w-4 h-4" />
@@ -316,7 +316,7 @@ export default function EditForecastClient() {
             {isSaving ? 'Saving...' : 'Save Changes'}
           </button>
           <button
-            onClick={() => router.push(`/forecasts/${prediction.id}`)}
+            onClick={() => router.push(`/forecasts/${prediction.slug || prediction.id}`)}
             className="flex items-center gap-2 px-6 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-all"
           >
             <X className="w-4 h-4" />
