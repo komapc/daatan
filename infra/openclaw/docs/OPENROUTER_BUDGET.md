@@ -1,7 +1,6 @@
 # OpenRouter Budget-Friendly Models
 
 **Budget:** $5/month  
-**Key:** `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`
 
 ---
 
@@ -90,7 +89,7 @@
 
 ```bash
 # Check OpenRouter usage
-curl -H "Authorization: Bearer sk-or-..." \
+curl -H "Authorization: Bearer YOUR_API_KEY" \
   https://openrouter.ai/api/v1/usage
 
 # Or visit: https://openrouter.ai/activity
@@ -129,7 +128,7 @@ curl -H "Authorization: Bearer sk-or-..." \
 
 ```bash
 # Add to crontab (weekly check)
-0 9 * * 1 curl -s -H "Authorization: Bearer sk-or-..." \
+0 9 * * 1 curl -s -H "Authorization: Bearer YOUR_API_KEY" \
   https://openrouter.ai/api/v1/usage | jq '.total_cost'
 ```
 
