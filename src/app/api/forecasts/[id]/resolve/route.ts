@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { resolvePredictionSchema } from '@/lib/validations/prediction'
 import { apiError } from '@/lib/api-error'
 import { withAuth } from '@/lib/api-middleware'
+import { notifyForecastResolved } from '@/lib/services/telegram'
 
 export const POST = withAuth(async (request, user) => {
   const body = await request.json()
@@ -145,6 +146,8 @@ export const POST = withAuth(async (request, user) => {
 
     return updatedPrediction
   })
+
+  notifyForecastResolved(prediction, outcome, prediction.commitments.length)
 
   return NextResponse.json(result)
 }, { roles: ['ADMIN', 'RESOLVER'] })

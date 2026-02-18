@@ -36,6 +36,10 @@ export const env = createEnv({
     GEMINI_API_KEY: z.string().min(1).optional(),
     SERPER_API_KEY: z.string().min(1).optional(),
     GA_MEASUREMENT_ID: z.string().startsWith('G-').optional(),
+
+    // Telegram notifications
+    TELEGRAM_BOT_TOKEN: z.string().min(1).optional(),
+    TELEGRAM_CHAT_ID: z.string().min(1).optional(),
   },
   client: {
     NEXT_PUBLIC_APP_VERSION: z.string().optional(),
@@ -53,6 +57,8 @@ export const env = createEnv({
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
     SERPER_API_KEY: process.env.SERPER_API_KEY,
     GA_MEASUREMENT_ID: process.env.GA_MEASUREMENT_ID,
+    TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
+    TELEGRAM_CHAT_ID: process.env.TELEGRAM_CHAT_ID,
     NEXT_PUBLIC_APP_VERSION: process.env.NEXT_PUBLIC_APP_VERSION,
     NEXT_PUBLIC_ENV: process.env.NEXT_PUBLIC_ENV,
   },
