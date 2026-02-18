@@ -4,8 +4,9 @@
 # Verifies deployment health via HTTP — safe to run from anywhere (CI runners, local, server).
 # Does NOT require Docker or local container access.
 #
-# Usage: ./scripts/verify-health.sh <url>
+# Usage: ./scripts/verify-health.sh <url> [expected-version]
 #   e.g. ./scripts/verify-health.sh https://staging.daatan.com
+#   e.g. ./scripts/verify-health.sh https://staging.daatan.com 1.4.17
 
 set -e
 
@@ -16,9 +17,10 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 URL=$1
+EXPECTED_VERSION=${2:-$EXPECTED_VERSION}  # Accept as arg or env var
 
 if [ -z "$URL" ]; then
-    echo -e "${RED}Usage: $0 <url>${NC}"
+    echo -e "${RED}Usage: $0 <url> [expected-version]${NC}"
     exit 1
 fi
 
@@ -47,12 +49,25 @@ fi
 
 echo -e "${GREEN}OK${NC}"
 
-# Report deployed version and commit (informational only)
+# Report deployed version and commit
 if [ -n "$DEPLOYED_VERSION" ]; then
     echo -e "  Version: ${GREEN}$DEPLOYED_VERSION${NC}"
 fi
 if [ -n "$DEPLOYED_COMMIT" ]; then
     echo -e "  Commit:  ${GREEN}${DEPLOYED_COMMIT:0:8}${NC}"
+fi
+
+# Validate version matches expected (fail loudly if not)
+if [ -n "$EXPECTED_VERSION" ]; then
+    echo -n "Checking expected version ($EXPECTED_VERSION)... "
+    if [ "$DEPLOYED_VERSION" != "$EXPECTED_VERSION" ]; then
+        echo -e "${RED}FAILED${NC}"
+        echo -e "  Expected version: ${RED}$EXPECTED_VERSION${NC}"
+        echo -e "  Deployed version: ${RED}$DEPLOYED_VERSION${NC}"
+        echo -e "  The deployment did not apply the expected version!"
+        exit 1
+    fi
+    echo -e "${GREEN}OK${NC} (version matches)"
 fi
 
 # Check OAuth providers endpoint

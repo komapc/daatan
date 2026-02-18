@@ -31,6 +31,8 @@ jobs:
     permissions:
       id-token: write
       contents: read
+    outputs:
+      app_version: ${{ steps.app_version.outputs.version }}
     concurrency:
       group: build-${{ github.ref }}
       cancel-in-progress: true
@@ -89,11 +91,12 @@ jobs:
         id: app_version
         run: |
           if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-            echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+            APP_VER="${GITHUB_REF#refs/tags/v}"
           else
-            echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+            APP_VER="$(node -p "require('./package.json').version")"
           fi
-          echo "Using NEXT_PUBLIC_APP_VERSION=${{ steps.app_version.outputs.version }}"
+          echo "version=$APP_VER" >> $GITHUB_OUTPUT
+          echo "Using NEXT_PUBLIC_APP_VERSION=$APP_VER"
 
       - name: Extract metadata
         if: github.event_name != 'pull_request'
@@ -167,6 +170,8 @@ jobs:
           fi
 
       - name: Deploy to Staging (SSM)
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           # Get Instance ID
           INSTANCE_ID=$(aws ec2 describe-instances \
@@ -175,72 +180,48 @@ jobs:
             --output text)
           echo "Found Staging Instance: $INSTANCE_ID"
 
-          # Encode scripts and nginx config (nginx must be deployed so /api/auth/ pass-through is live)
-          BLUE_GREEN_SCRIPT=$(base64 -w 0 scripts/blue-green-deploy.sh)
-          VERIFY_HEALTH_SCRIPT=$(base64 -w 0 scripts/verify-health.sh)
-          VERIFY_LOGS_SCRIPT=$(base64 -w 0 scripts/verify-logs.sh)
-          VERIFY_DEPLOY_SCRIPT=$(base64 -w 0 scripts/verify-deploy.sh)
-          COMPOSE_FILE=$(base64 -w 0 docker-compose.prod.yml)
-          NGINX_CONF=$(base64 -w 0 nginx-ssl.conf)
-          
-          # Construct the shell script to run on EC2
-          SDK_SCRIPT_CONTENT="
-          set -e
-          export HOME=/home/ubuntu
-          export PATH=\$PATH:/usr/local/bin:/usr/bin
-          
-          echo '📂 Setting up deployment directories...'
-          mkdir -p ~/app/scripts
-          cd ~/app
-          
-          echo '📄 Writing docker-compose.prod.yml...'
-          echo \"$COMPOSE_FILE\" | base64 -d > docker-compose.prod.yml
-          
-          echo '📄 Writing nginx-ssl.conf...'
-          echo \"$NGINX_CONF\" | base64 -d > nginx-ssl.conf
-          
-          echo '📜 Writing blue-green-deploy.sh...'
-          echo \"$BLUE_GREEN_SCRIPT\" | base64 -d > scripts/blue-green-deploy.sh
-          
-          echo '🔍 Writing verify scripts...'
-          echo \"$VERIFY_HEALTH_SCRIPT\" | base64 -d > scripts/verify-health.sh
-          echo \"$VERIFY_LOGS_SCRIPT\" | base64 -d > scripts/verify-logs.sh
-          echo \"$VERIFY_DEPLOY_SCRIPT\" | base64 -d > scripts/verify-deploy.sh
-          
-          chmod +x scripts/*.sh
-          
-          echo '🔄 Reloading nginx to apply config...'
-          docker compose -f docker-compose.prod.yml exec -T nginx nginx -s reload 2>/dev/null || true
-          
-          echo '🔐 Logging in to ECR (Region: eu-central-1)...'
-          aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin $ECR_REGISTRY
-          
-          echo '⬇️ Pulling staging image...'
-          docker pull $ECR_REGISTRY/daatan-app:staging-latest
-          
-          echo '🏷️ Tagging image...'
-          docker tag $ECR_REGISTRY/daatan-app:staging-latest daatan-app:staging-latest
-          
-          echo '🚀 Executing blue-green deployment...'
-          export GIT_COMMIT=\"${{ github.sha }}\"
-          export SKIP_BUILD=true
-          ./scripts/blue-green-deploy.sh staging
-          "
-          
-          # Encode the entire shell script content to avoid JSON escaping issues
-          B64_SDK_SCRIPT=$(echo "$SDK_SCRIPT_CONTENT" | base64 -w 0)
-          
+          RAW_BASE="https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}"
+          DEPLOY_FILES="scripts/blue-green-deploy.sh scripts/verify-health.sh scripts/verify-logs.sh scripts/verify-deploy.sh docker-compose.prod.yml nginx-ssl.conf"
+
           echo "🚀 Sending SSM Command..."
           COMMAND_ID=$(aws ssm send-command \
             --document-name "AWS-RunShellScript" \
             --targets "Key=instanceids,Values=$INSTANCE_ID" \
             --comment "Deploy Staging ${{ github.sha }}" \
-            --parameters commands="[\"echo $B64_SDK_SCRIPT | base64 -d | bash\"]" \
+            --timeout-seconds 600 \
+            --parameters commands='[
+              "set -e",
+              "export HOME=/home/ubuntu",
+              "export PATH=$PATH:/usr/local/bin:/usr/bin",
+              "",
+              "echo \"📦 Downloading deploy files from GitHub...\"",
+              "mkdir -p ~/app/scripts",
+              "cd ~/app",
+              "for f in '"$DEPLOY_FILES"'; do curl -sfL -H \"Authorization: token '"$GH_TOKEN"'\" \"'"$RAW_BASE"'/$f\" -o \"$f\" && echo \"  ✅ $f\" || { echo \"  ❌ Failed: $f\"; exit 1; }; done",
+              "chmod +x scripts/*.sh",
+              "",
+              "echo \"🔄 Reloading nginx to apply config...\"",
+              "docker compose -f docker-compose.prod.yml exec -T nginx nginx -s reload 2>/dev/null || true",
+              "",
+              "echo \"🔐 Logging in to ECR (Region: eu-central-1)...\"",
+              "aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin '"$ECR_REGISTRY"'",
+              "",
+              "echo \"⬇️ Pulling staging image...\"",
+              "docker pull '"$ECR_REGISTRY"'/daatan-app:staging-latest",
+              "",
+              "echo \"🏷️ Tagging image...\"",
+              "docker tag '"$ECR_REGISTRY"'/daatan-app:staging-latest daatan-app:staging-latest",
+              "",
+              "echo \"🚀 Executing blue-green deployment...\"",
+              "export GIT_COMMIT='"${{ github.sha }}"'",
+              "export SKIP_BUILD=true",
+              "./scripts/blue-green-deploy.sh staging"
+            ]' \
             --output text \
             --query "Command.CommandId")
-            
+
           echo "✅ Command sent. ID: $COMMAND_ID"
-          
+
           echo '⏳ Waiting for command execution (Timeout: 10m)...'
           START_TIME=$(date +%s)
           while true; do
@@ -268,7 +249,7 @@ jobs:
       - name: Verify staging site (External)
         run: |
           sleep 5
-          ./scripts/verify-health.sh "https://staging.daatan.com"
+          ./scripts/verify-health.sh "https://staging.daatan.com" "${{ needs.build.outputs.app_version }}"
 
   # Deploy to PRODUCTION (on tag push only)
   deploy-production:
@@ -325,6 +306,8 @@ jobs:
           fi
 
       - name: Deploy to Production (SSM)
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           # Get Instance ID (Note: Tag Value is 'prod')
           INSTANCE_ID=$(aws ec2 describe-instances \
@@ -341,72 +324,48 @@ jobs:
           fi
           echo "Deploying Image Tag: $IMAGE_TAG"
 
-          # Encode scripts and nginx config (nginx must be deployed so /api/auth/ pass-through is live)
-          BLUE_GREEN_SCRIPT=$(base64 -w 0 scripts/blue-green-deploy.sh)
-          VERIFY_HEALTH_SCRIPT=$(base64 -w 0 scripts/verify-health.sh)
-          VERIFY_LOGS_SCRIPT=$(base64 -w 0 scripts/verify-logs.sh)
-          VERIFY_DEPLOY_SCRIPT=$(base64 -w 0 scripts/verify-deploy.sh)
-          COMPOSE_FILE=$(base64 -w 0 docker-compose.prod.yml)
-          NGINX_CONF=$(base64 -w 0 nginx-ssl.conf)
-          
-          # Construct the shell script to run on EC2
-          SDK_SCRIPT_CONTENT="
-          set -e
-          export HOME=/home/ubuntu
-          export PATH=\$PATH:/usr/local/bin:/usr/bin
-          
-          echo '📂 Setting up deployment directories...'
-          mkdir -p ~/app/scripts
-          cd ~/app
-          
-          echo '📄 Writing docker-compose.prod.yml...'
-          echo \"$COMPOSE_FILE\" | base64 -d > docker-compose.prod.yml
-          
-          echo '📄 Writing nginx-ssl.conf...'
-          echo \"$NGINX_CONF\" | base64 -d > nginx-ssl.conf
-          
-          echo '📜 Writing blue-green-deploy.sh...'
-          echo \"$BLUE_GREEN_SCRIPT\" | base64 -d > scripts/blue-green-deploy.sh
-          
-          echo '🔍 Writing verify scripts...'
-          echo \"$VERIFY_HEALTH_SCRIPT\" | base64 -d > scripts/verify-health.sh
-          echo \"$VERIFY_LOGS_SCRIPT\" | base64 -d > scripts/verify-logs.sh
-          echo \"$VERIFY_DEPLOY_SCRIPT\" | base64 -d > scripts/verify-deploy.sh
-          
-          chmod +x scripts/*.sh
-          
-          echo '🔄 Reloading nginx to apply config...'
-          docker compose -f docker-compose.prod.yml exec -T nginx nginx -s reload 2>/dev/null || true
-          
-          echo '🔐 Logging in to ECR (Region: eu-central-1)...'
-          aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin $ECR_REGISTRY
-          
-          echo \"⬇️ Pulling production image (tag: $IMAGE_TAG)...\"
-          docker pull $ECR_REGISTRY/daatan-app:$IMAGE_TAG
-          
-          echo '🏷️ Tagging image as latest...'
-          docker tag $ECR_REGISTRY/daatan-app:$IMAGE_TAG daatan-app:latest
-          
-          echo '🚀 Executing blue-green deployment...'
-          export GIT_COMMIT=\"${{ github.sha }}\"
-          export SKIP_BUILD=true
-          ./scripts/blue-green-deploy.sh production
-          "
-          
-          # Encode the entire shell script content to avoid JSON escaping issues
-          B64_SDK_SCRIPT=$(echo "$SDK_SCRIPT_CONTENT" | base64 -w 0)
-          
+          RAW_BASE="https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}"
+          DEPLOY_FILES="scripts/blue-green-deploy.sh scripts/verify-health.sh scripts/verify-logs.sh scripts/verify-deploy.sh docker-compose.prod.yml nginx-ssl.conf"
+
           echo "🚀 Sending SSM Command..."
           COMMAND_ID=$(aws ssm send-command \
             --document-name "AWS-RunShellScript" \
             --targets "Key=instanceids,Values=$INSTANCE_ID" \
             --comment "Deploy Production ${{ steps.version.outputs.version }}" \
-            --parameters commands="[\"echo $B64_SDK_SCRIPT | base64 -d | bash\"]" \
+            --timeout-seconds 600 \
+            --parameters commands='[
+              "set -e",
+              "export HOME=/home/ubuntu",
+              "export PATH=$PATH:/usr/local/bin:/usr/bin",
+              "",
+              "echo \"📦 Downloading deploy files from GitHub...\"",
+              "mkdir -p ~/app/scripts",
+              "cd ~/app",
+              "for f in '"$DEPLOY_FILES"'; do curl -sfL -H \"Authorization: token '"$GH_TOKEN"'\" \"'"$RAW_BASE"'/$f\" -o \"$f\" && echo \"  ✅ $f\" || { echo \"  ❌ Failed: $f\"; exit 1; }; done",
+              "chmod +x scripts/*.sh",
+              "",
+              "echo \"🔄 Reloading nginx to apply config...\"",
+              "docker compose -f docker-compose.prod.yml exec -T nginx nginx -s reload 2>/dev/null || true",
+              "",
+              "echo \"🔐 Logging in to ECR (Region: eu-central-1)...\"",
+              "aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin '"$ECR_REGISTRY"'",
+              "",
+              "echo \"⬇️ Pulling production image (tag: '"$IMAGE_TAG"')...\"",
+              "docker pull '"$ECR_REGISTRY"'/daatan-app:'"$IMAGE_TAG"'",
+              "",
+              "echo \"🏷️ Tagging image as latest...\"",
+              "docker tag '"$ECR_REGISTRY"'/daatan-app:'"$IMAGE_TAG"' daatan-app:latest",
+              "",
+              "echo \"🚀 Executing blue-green deployment...\"",
+              "export GIT_COMMIT='"${{ github.sha }}"'",
+              "export SKIP_BUILD=true",
+              "./scripts/blue-green-deploy.sh production"
+            ]' \
             --output text \
             --query "Command.CommandId")
-            
+
           echo "✅ Command sent. ID: $COMMAND_ID"
-          
+
           echo '⏳ Waiting for command execution (Timeout: 10m)...'
           START_TIME=$(date +%s)
           while true; do
@@ -434,4 +393,4 @@ jobs:
       - name: Verify production site
         run: |
           sleep 5
-          ./scripts/verify-health.sh "https://daatan.com"
+          ./scripts/verify-health.sh "https://daatan.com" "${{ needs.build.outputs.app_version }}"
