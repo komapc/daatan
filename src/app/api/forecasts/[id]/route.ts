@@ -3,6 +3,7 @@ import { updatePredictionSchema } from '@/lib/validations/prediction'
 import { apiError, handleRouteError } from '@/lib/api-error'
 import { withAuth } from '@/lib/api-middleware'
 import { prisma } from '@/lib/prisma'
+import { transitionIfExpired } from '@/lib/services/prediction-lifecycle'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,6 +14,9 @@ type RouteParams = {
 // GET /api/predictions/[id] - Get a single prediction (supports ID or slug)
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
+    // Transition this prediction to PENDING if it's past its deadline
+    await transitionIfExpired(params.id)
+
     // Try to find by ID first, then by slug
     const prediction = await prisma.prediction.findFirst({
       where: {
