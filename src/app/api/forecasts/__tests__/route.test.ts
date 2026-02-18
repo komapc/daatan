@@ -202,5 +202,135 @@ describe('/api/forecasts', () => {
             const response = await POST(request, { params: {} } as any)
             expect(response.status).toBe(401)
         })
+
+        it('creates forecast with tags using connectOrCreate', async () => {
+            const { prisma } = await import('@/lib/prisma')
+
+            vi.mocked(getServerSession).mockResolvedValue({
+                user: { id: 'user1', email: 'user@example.com', role: 'USER' },
+            } as any)
+
+            vi.mocked(prisma.user.findUnique).mockResolvedValue({
+                id: 'user1',
+                rs: 100,
+            } as any)
+
+            const newForecast = {
+                id: 'new-1',
+                claimText: 'AI Prediction',
+                status: 'DRAFT',
+                tags: [{ id: 't1', name: 'AI', slug: 'ai' }],
+            }
+
+            vi.mocked(prisma.prediction.create).mockResolvedValue(newForecast as any)
+            vi.mocked(prisma.prediction.findUnique).mockResolvedValue(newForecast as any)
+            vi.mocked(prisma.prediction.findMany).mockResolvedValue([])
+
+            const body = {
+                claimText: 'AI Prediction',
+                resolveByDatetime: '2026-12-31T23:59:59Z',
+                outcomeType: 'BINARY',
+                tags: ['AI', 'Technology'],
+            }
+
+            const request = new NextRequest('http://localhost/api/forecasts', {
+                method: 'POST',
+                body: JSON.stringify(body),
+            })
+
+            await POST(request, { params: {} } as any)
+
+            // Verify tags were passed to create with connectOrCreate
+            const createCall = vi.mocked(prisma.prediction.create).mock.calls[0][0] as any
+            expect(createCall.data.tags).toBeDefined()
+            expect(createCall.data.tags.connectOrCreate).toBeDefined()
+            expect(Array.isArray(createCall.data.tags.connectOrCreate)).toBe(true)
+        })
+
+        it('creates forecast without tags when tags not provided', async () => {
+            const { prisma } = await import('@/lib/prisma')
+
+            vi.mocked(getServerSession).mockResolvedValue({
+                user: { id: 'user1', email: 'user@example.com', role: 'USER' },
+            } as any)
+
+            vi.mocked(prisma.user.findUnique).mockResolvedValue({
+                id: 'user1',
+                rs: 100,
+            } as any)
+
+            const newForecast = {
+                id: 'new-1',
+                claimText: 'Simple Prediction',
+                status: 'DRAFT',
+            }
+
+            vi.mocked(prisma.prediction.create).mockResolvedValue(newForecast as any)
+            vi.mocked(prisma.prediction.findUnique).mockResolvedValue(newForecast as any)
+            vi.mocked(prisma.prediction.findMany).mockResolvedValue([])
+
+            const body = {
+                claimText: 'Simple Prediction',
+                resolveByDatetime: '2026-12-31T23:59:59Z',
+                outcomeType: 'BINARY',
+            }
+
+            const request = new NextRequest('http://localhost/api/forecasts', {
+                method: 'POST',
+                body: JSON.stringify(body),
+            })
+
+            await POST(request, { params: {} } as any)
+
+            // Verify tags were not passed to create
+            const createCall = vi.mocked(prisma.prediction.create).mock.calls[0][0] as any
+            expect(createCall.data.tags).toBeUndefined()
+        })
+
+        it('includes tags in forecast response', async () => {
+            const { prisma } = await import('@/lib/prisma')
+
+            vi.mocked(getServerSession).mockResolvedValue({
+                user: { id: 'user1', email: 'user@example.com', role: 'USER' },
+            } as any)
+
+            vi.mocked(prisma.user.findUnique).mockResolvedValue({
+                id: 'user1',
+                rs: 100,
+            } as any)
+
+            const newForecast = {
+                id: 'new-1',
+                claimText: 'AI Prediction',
+                status: 'DRAFT',
+                tags: [
+                    { id: 't1', name: 'AI', slug: 'ai' },
+                    { id: 't2', name: 'Technology', slug: 'technology' },
+                ],
+            }
+
+            vi.mocked(prisma.prediction.create).mockResolvedValue(newForecast as any)
+            vi.mocked(prisma.prediction.findUnique).mockResolvedValue(newForecast as any)
+            vi.mocked(prisma.prediction.findMany).mockResolvedValue([])
+
+            const body = {
+                claimText: 'AI Prediction',
+                resolveByDatetime: '2026-12-31T23:59:59Z',
+                outcomeType: 'BINARY',
+                tags: ['AI', 'Technology'],
+            }
+
+            const request = new NextRequest('http://localhost/api/forecasts', {
+                method: 'POST',
+                body: JSON.stringify(body),
+            })
+
+            const response = await POST(request, { params: {} } as any)
+            const data = await response.json()
+
+            expect(data.tags).toHaveLength(2)
+            expect(data.tags[0].name).toBe('AI')
+            expect(data.tags[1].name).toBe('Technology')
+        })
     })
 })
