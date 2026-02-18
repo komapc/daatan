@@ -40,19 +40,22 @@ export const createPredictionSchema = z.object({
   newsAnchorId: z.string().cuid().optional(),
   newsAnchorUrl: z.string().url().optional(), // Alternative: create anchor from URL
   newsAnchorTitle: z.string().max(500).optional(), // Title when creating from URL
-  
+
   // Prediction content
   claimText: z.string().min(10, 'Claim must be at least 10 characters').max(500),
   detailsText: z.string().max(5000).optional(),
   domain: z.string().max(100).optional(),
-  
+
   // Outcome definition
   outcomeType: z.enum(['BINARY', 'MULTIPLE_CHOICE', 'NUMERIC_THRESHOLD']),
   outcomePayload: z.record(z.string(), z.unknown()).optional(),
-  
+
   // Resolution
   resolutionRules: z.string().max(2000).optional(),
   resolveByDatetime: z.string().datetime(),
+
+  // Tags (1-5 tags from STANDARD_TAGS)
+  tags: z.array(z.string().min(1).max(50)).min(1).max(5).optional(),
 })
 
 export const updatePredictionSchema = z.object({
@@ -62,6 +65,7 @@ export const updatePredictionSchema = z.object({
   outcomePayload: z.record(z.string(), z.unknown()).optional(),
   resolutionRules: z.string().max(2000).optional().nullable(),
   resolveByDatetime: z.string().datetime().optional(),
+  tags: z.array(z.string().min(1).max(50)).min(1).max(5).optional(),
 })
 
 // ============================================

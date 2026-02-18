@@ -221,6 +221,23 @@ export const POST = withAuth(async (request, user) => {
       resolutionRules: data.resolutionRules,
       resolveByDatetime: new Date(data.resolveByDatetime),
       status: 'DRAFT',
+      // Connect or create tags
+      tags: data.tags?.length
+        ? {
+            connectOrCreate: await Promise.all(
+              data.tags.map(async (tagName) => {
+                const tagSlug = slugify(tagName)
+                return {
+                  where: { slug: tagSlug },
+                  create: {
+                    name: tagName,
+                    slug: tagSlug,
+                  },
+                }
+              })
+            ),
+          }
+        : undefined,
     },
     include: {
       author: {
@@ -233,6 +250,7 @@ export const POST = withAuth(async (request, user) => {
       },
       newsAnchor: true,
       options: true,
+      tags: true,
     },
   })
 
