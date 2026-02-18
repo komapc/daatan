@@ -372,7 +372,6 @@ cmd_init() {
     check_aws
     
     # Store the OpenRouter key that was provided
-    local openrouter_key="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"
     
     create_or_update_secret "$SECRET_OPENROUTER" "$openrouter_key" "OpenRouter API Key (Budget: \$5/month)"
     
