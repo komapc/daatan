@@ -22,6 +22,22 @@ Deploy The Clawborators on a t4g.medium EC2 instance for Daatan and Calendar pro
 
 **Ollama + Docker:** Containers use `host.docker.internal` to reach Ollama on host. No extra bridge overhead.
 
+### Cost Optimization
+
+**On-demand start/stop:** Instance costs ~$0.0336/hour (~$24/month continuous). To save costs:
+
+```bash
+# Stop (keeps EIP and volume, stops billing for compute)
+aws ec2 stop-instances --instance-ids <instance-id>
+
+# Start (compute billing resumes)
+aws ec2 start-instances --instance-ids <instance-id>
+```
+
+**After start:** SSH in and run `sg docker -c "docker compose up -d"` in `~/projects/openclaw` (containers don't auto-start).
+
+**Warning:** Stopping preserves data; terminating destroys instance and loses uncommitted data. EIP is released on termination unless explicitly preserved.
+
 ---
 
 ## Directory Layout (~/projects/)
@@ -129,6 +145,27 @@ Add per-agent `identity` for personality:
 
 GitHub: Uses SSH deploy key (generated on instance by Terraform user_data). No token needed for clone. Add deploy key to both repos with **write** access if agents will push; **read-only** suffices for clone-only. **Security:** Deploy key is instance-specific; rotate by generating new key on instance and updating GitHub.
 
+### .env Backup Strategy
+
+**Critical:** The `.env` file is stored only on the EC2 instance. If the instance is terminated, all secrets are lost.
+
+**Options:**
+
+1. **Manual backup (recommended for now):**
+   ```bash
+   # Before destroy, backup .env locally
+   scp -i ~/.ssh/daatan-key.pem ubuntu@<IP>:~/projects/openclaw/.env ./openclaw.env.backup
+   
+   # After recreate, restore
+   scp -i ~/.ssh/daatan-key.pem ./openclaw.env.backup ubuntu@<IP>:~/projects/openclaw/.env
+   ```
+
+2. **AWS Secrets Manager (future):** Store `.env` as a secret, retrieve in user_data or setup script.
+
+3. **Encrypted S3 bucket:** Upload `.env.enc` (encrypted with KMS or age), decrypt on instance.
+
+**Best practice:** Keep a local encrypted backup. The `.env` file contains only API keys and bot tokens — all replaceable, but re-creation is tedious.
+
 ---
 
 ## Personalities (Best-Practice SOUL.md and AGENTS.md)
@@ -206,6 +243,102 @@ Create `AGENTS.md`:
 **State:** Local backend. Back up `terraform.tfstate`; if lost, you cannot destroy or manage the stack.
 
 **Rollback:** If deployment fails mid-way, `terraform destroy` cleans up. Re-run `terraform apply` to recreate. No stateful app data on instance (repos are cloned fresh by setup script). Backup: `.env` and any local edits — recreate manually if needed.
+
+---
+
+## Pre-Flight Checklist
+
+Before running `raise-openclaw.sh`, verify:
+
+- [ ] **AWS credentials configured:** `aws sts get-caller-identity` works
+- [ ] **SSH key exists in target region:** `aws ec2 describe-key-pairs --key-names daatan-key --region eu-central-1`
+- [ ] **Local SSH key file:** `~/.ssh/daatan-key.pem` exists with `chmod 400`
+- [ ] **Your IP for SSH:** `curl -s ifconfig.me` → update `allowed_ssh_cidr` in `terraform.tfvars`
+- [ ] **Telegram bots created:** @BotFather → two bots, tokens saved
+- [ ] **Your Telegram chat ID:** Message a bot, then `curl https://api.telegram.org/bot$TOKEN/getUpdates | jq '.result[0].message.chat.id'`
+- [ ] **Gemini API key:** [Google AI Studio](https://aistudio.google.com/app/apikey) → create key
+- [ ] **Disk space:** Instance has 30 GB GP3 (sufficient for repos + models)
+
+---
+
+## Post-Deployment Verification
+
+After `docker compose up -d`, run these checks:
+
+### 1. Container Health
+
+```bash
+# Check container status
+docker compose ps
+# Expected: openclaw is "Up (healthy)" if health checks configured
+
+# Check logs for errors
+docker compose logs --tail=50 | grep -i error
+```
+
+### 2. Ollama Model
+
+```bash
+# Verify model is loaded
+ollama list
+# Expected: qwen:1.5b in list
+
+# Test Ollama directly
+ollama run qwen:1.5b "Hello" --noword
+```
+
+### 3. GitHub Deploy Key
+
+```bash
+# Get the public key
+cat ~/.ssh/id_github.pub
+
+# Add to GitHub:
+# 1. Go to https://github.com/komapc/daatan/settings/keys/new
+# 2. Paste key, title "OpenClaw EC2", check "Allow write access"
+# 3. Repeat for https://github.com/komapc/year-shape/settings/keys/new
+```
+
+### 4. Telegram Bot Response
+
+```bash
+# Message @DaatanBot with /start
+# Expected: Bot responds (or prompts for pairing if first time)
+
+# Message @CalendarBot with /start
+# Expected: Bot responds (or prompts for pairing if first time)
+```
+
+### 5. Agent Workspace Access
+
+Message Daatan bot:
+```
+List files in your workspace
+```
+
+Expected: Agent lists files from `~/projects/daatan/`
+
+Message Calendar bot:
+```
+List files in your workspace
+```
+
+Expected: Agent lists files from `~/projects/year-shape/`
+
+### 6. Fallback Path Test (Optional)
+
+Temporarily test Ollama fallback:
+
+```bash
+# Edit .env, comment out GEMINI_API_KEY
+docker compose restart openclaw
+
+# Ask agent a simple question
+# Expected: Slower response from Ollama, not error
+
+# Restore GEMINI_API_KEY
+docker compose restart openclaw
+```
 
 ---
 
@@ -354,10 +487,121 @@ After `docker compose up -d`:
 | Terraform apply fails (wrong account) | allowed_account_ids mismatch | Set `allowed_account_ids` to your AWS account ID in provider block or variable |
 | `docker: command not found` in agent | Image lacks docker CLI | We use custom Dockerfile that adds docker.io |
 | `permission denied` on docker socket | Container user not in docker group | `group_add: "999"` in compose; if host docker GID differs, run `getent group docker` and update group_add |
+| Pairing code never arrives | Telegram bot webhook not set | Check bot token in .env; restart container; verify bot is not already managed elsewhere |
+| Agents don't respond to DMs | Pairing not approved or wrong chat ID | Run `docker exec -it openclaw openclaw pairing list telegram`; approve pending codes; verify TELEGRAM_CHAT_ID |
+
+### Docker Group Issue (Common)
+
+After first boot, the `ubuntu` user may not be in the `docker` group yet:
+
+```bash
+# Quick fix (current session only)
+sg docker -c "docker compose up -d"
+
+# Permanent fix (requires logout)
+usermod -aG docker ubuntu
+# Then log out and back in
+```
+
+The setup script uses `sg docker` to work around this.
+
+### Ollama Pull Timeout
+
+User_data runs `timeout 300 ollama pull qwen:1.5b`. If network is slow:
+
+```bash
+# Check if model exists
+ollama list
+
+# If missing, pull manually
+ollama pull qwen:1.5b
+
+# Restart container
+docker compose restart openclaw
+```
+
+### Terraform State Lost
+
+If `terraform.tfstate` is lost, you cannot `terraform destroy`. Manual cleanup:
+
+```bash
+# Release EIP
+aws ec2 release-address --allocation-id eipalloc-xxx
+
+# Terminate instance
+aws ec2 terminate-instances --instance-ids i-xxx
+
+# Delete security group
+aws ec2 delete-security-group --group-id sg-xxx
+
+# Delete key pair
+aws ec2 delete-key-pair --key-name daatan-key
+```
+
+### High Memory Usage
+
+Monitor with:
+
+```bash
+# Check Ollama models loaded
+ollama ps
+
+# Check system memory
+free -h
+
+# Check container memory
+docker stats --no-stream
+```
+
+If memory > 3.5 GB:
+1. Stop unused models: `ollama stop <model>`
+2. Reduce concurrent agents
+3. Consider scaling to t4g.large (8 GB RAM)
 
 ---
 
 **Legacy configs:** [config/daatan.json](config/daatan.json) and [config/calendar.json](config/calendar.json) remain for reference. The active config is [config/unified.json](config/unified.json).
+
+---
+
+## Security Considerations
+
+### Deploy Keys
+
+- **Scope:** Instance-specific (generated by user_data on first boot)
+- **Access:** Add to GitHub with **write** access if agents will push commits; **read-only** suffices for clone-only
+- **Rotation:** Generate new key on instance, update GitHub, delete old key
+- **Storage:** `~/.ssh/id_github` on EC2; public key `~/.ssh/id_github.pub`
+
+### SSH Access
+
+- **Key:** `daatan-key` in AWS EC2 (target region)
+- **Local file:** `~/.ssh/daatan-key.pem` with `chmod 400`
+- **Restriction:** Security group allows only your IP (`allowed_ssh_cidr`)
+- **Best practice:** Use AWS Session Manager for SSH if possible (no open port 22)
+
+### Secrets Management
+
+| Secret | Storage | Rotation |
+|--------|---------|----------|
+| `GEMINI_API_KEY` | `.env` on EC2 | Regenerate at [Google AI Studio](https://aistudio.google.com/app/apikey) |
+| `TELEGRAM_BOT_TOKEN_*` | `.env` on EC2 | Revoke via @BotFather, create new bot |
+| SSH deploy key | `~/.ssh/id_github` on EC2 | Generate new key, update GitHub |
+| AWS credentials | Local Terraform machine | IAM user console or AWS CLI |
+
+### Network Security
+
+- **Ingress:** Port 22 (SSH) restricted to your IP
+- **Egress:** All traffic allowed (required for apt, Docker Hub, Ollama, GitHub)
+- **EIP:** Static public IP; update DNS if using domain
+
+### Hardening Recommendations
+
+1. **Fail2ban:** Install to block brute-force SSH attempts
+2. **Unattended upgrades:** Enable security patches
+3. **CloudWatch alarms:** CPU > 80%, memory > 90%, disk > 85%
+4. **VPC endpoints:** For S3, Secrets Manager (reduces egress costs)
+5. **IAM role:** Attach to instance for AWS API access (no credentials in .env)
 
 ---
 
