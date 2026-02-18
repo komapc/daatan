@@ -5,12 +5,16 @@ import { createPredictionSchema, listPredictionsQuerySchema } from '@/lib/valida
 import { apiError, handleRouteError } from '@/lib/api-error'
 import { withAuth } from '@/lib/api-middleware'
 import { prisma } from '@/lib/prisma'
+import { transitionExpiredPredictions } from '@/lib/services/prediction-lifecycle'
 
 export const dynamic = 'force-dynamic'
 
 // GET /api/predictions - List predictions (public, with optional session for user context)
 export async function GET(request: NextRequest) {
   try {
+    // Transition any ACTIVE predictions past their deadline to PENDING
+    await transitionExpiredPredictions()
+
     const { searchParams } = new URL(request.url)
     
     const query = listPredictionsQuerySchema.parse({
@@ -29,7 +33,7 @@ export async function GET(request: NextRequest) {
     
     // Handle resolved filter
     if (resolvedOnly) {
-      where.status = { in: ['RESOLVED_CORRECT', 'RESOLVED_WRONG'] }
+      where.status = { in: ['RESOLVED_CORRECT', 'RESOLVED_WRONG', 'VOID', 'UNRESOLVABLE'] }
     } else if (query.status) {
       where.status = query.status
     }

@@ -22,6 +22,7 @@ vi.mock('@/lib/prisma', () => ({
             create: vi.fn(),
             count: vi.fn(),
             findUnique: vi.fn(),
+            updateMany: vi.fn().mockResolvedValue({ count: 0 }),
         },
         user: {
             findUnique: vi.fn(),
@@ -32,9 +33,9 @@ vi.mock('@/lib/prisma', () => ({
     },
 }))
 
-// Mock slugify utility if needed, but it seems to be imported dynamically.
-// However, since it's an external module, we might not need to mock it if it doesn't have side effects.
-// But wait, it uses crypto.
+vi.mock('@/lib/services/prediction-lifecycle', () => ({
+    transitionExpiredPredictions: vi.fn().mockResolvedValue(0),
+}))
 
 describe('/api/forecasts', () => {
     beforeEach(() => {
