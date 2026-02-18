@@ -39,10 +39,9 @@ export interface Comment {
 
 interface CommentThreadProps {
   predictionId?: string
-  forecastId?: string
 }
 
-export default function CommentThread({ predictionId, forecastId }: CommentThreadProps) {
+export default function CommentThread({ predictionId }: CommentThreadProps) {
   const { data: session } = useSession()
   const [comments, setComments] = useState<Comment[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -52,7 +51,6 @@ export default function CommentThread({ predictionId, forecastId }: CommentThrea
       try {
         const params = new URLSearchParams()
         if (predictionId) params.set('predictionId', predictionId)
-        if (forecastId) params.set('forecastId', forecastId)
         
         const response = await fetch(`/api/comments?${params}`)
         if (response.ok) {
@@ -67,7 +65,7 @@ export default function CommentThread({ predictionId, forecastId }: CommentThrea
     }
 
     fetchComments()
-  }, [predictionId, forecastId])
+  }, [predictionId])
 
   const handleCommentAdded = (newComment: Comment) => {
     setComments([newComment, ...comments])
@@ -91,7 +89,6 @@ export default function CommentThread({ predictionId, forecastId }: CommentThrea
       {session && (
         <CommentForm
           predictionId={predictionId}
-          forecastId={forecastId}
           onCommentAdded={handleCommentAdded}
         />
       )}
@@ -113,7 +110,6 @@ export default function CommentThread({ predictionId, forecastId }: CommentThrea
               key={comment.id}
               comment={comment}
               predictionId={predictionId}
-              forecastId={forecastId}
               onDeleted={handleCommentDeleted}
             />
           ))}

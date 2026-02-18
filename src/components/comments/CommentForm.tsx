@@ -9,7 +9,6 @@ const log = createClientLogger('CommentForm')
 
 interface CommentFormProps {
   predictionId?: string
-  forecastId?: string
   parentId?: string
   onCommentAdded: (comment: Comment) => void
   onCancel?: () => void
@@ -18,7 +17,6 @@ interface CommentFormProps {
 
 export default function CommentForm({
   predictionId,
-  forecastId,
   parentId,
   onCommentAdded,
   onCancel,
@@ -40,7 +38,6 @@ export default function CommentForm({
         body: JSON.stringify({
           text: text.trim(),
           predictionId,
-          forecastId,
           parentId,
         }),
       })

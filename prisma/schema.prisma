@@ -384,7 +384,6 @@ model Forecast {
   // Relations
   options ForecastOption[]
   votes   Vote[]
-  comments Comment[]
 
   @@index([status])
   @@index([creatorId])
@@ -468,12 +467,9 @@ model Comment {
   // Content
   text String @db.Text
 
-  // Target (polymorphic - either prediction or forecast)
+  // Target
   predictionId String?
   prediction   Prediction? @relation(fields: [predictionId], references: [id], onDelete: Cascade)
-  
-  forecastId String?
-  forecast   Forecast? @relation(fields: [forecastId], references: [id], onDelete: Cascade)
 
   // Threading (for replies)
   parentId String?
@@ -491,12 +487,10 @@ model Comment {
   reactions CommentReaction[]
 
   @@index([predictionId])
-  @@index([forecastId])
   @@index([authorId])
   @@index([parentId])
   @@index([createdAt])
   @@index([predictionId, createdAt])
-  @@index([forecastId, createdAt])
   @@index([deletedAt])
   @@map("comments")
 }

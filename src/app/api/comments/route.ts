@@ -11,10 +11,9 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    
+
     const query = listCommentsQuerySchema.parse({
       predictionId: searchParams.get('predictionId') || undefined,
-      forecastId: searchParams.get('forecastId') || undefined,
       parentId: searchParams.get('parentId') || undefined,
       page: searchParams.get('page') || 1,
       limit: searchParams.get('limit') || 50,
@@ -23,9 +22,8 @@ export async function GET(request: NextRequest) {
     const where: Record<string, unknown> = {
       deletedAt: null, // Only show non-deleted comments
     }
-    
+
     if (query.predictionId) where.predictionId = query.predictionId
-    if (query.forecastId) where.forecastId = query.forecastId
     if (query.parentId) {
       where.parentId = query.parentId
     } else {
@@ -88,25 +86,14 @@ export const POST = withAuth(async (request, user) => {
   const body = await request.json()
   const data = createCommentSchema.parse(body)
 
-  // Verify the target exists
+  // Verify the prediction exists
   let prediction: { id: string; claimText: string } | null = null
-  if (data.predictionId) {
-    prediction = await prisma.prediction.findUnique({
-      where: { id: data.predictionId },
-      select: { id: true, claimText: true },
-    })
-    if (!prediction) {
-      return apiError('Prediction not found', 404)
-    }
-  }
-
-  if (data.forecastId) {
-    const forecast = await prisma.forecast.findUnique({
-      where: { id: data.forecastId },
-    })
-    if (!forecast) {
-      return apiError('Forecast not found', 404)
-    }
+  prediction = await prisma.prediction.findUnique({
+    where: { id: data.predictionId },
+    select: { id: true, claimText: true },
+  })
+  if (!prediction) {
+    return apiError('Prediction not found', 404)
   }
 
   // Verify parent comment exists if specified
@@ -124,7 +111,6 @@ export const POST = withAuth(async (request, user) => {
       authorId: user.id,
       text: data.text,
       predictionId: data.predictionId,
-      forecastId: data.forecastId,
       parentId: data.parentId,
     },
     include: {
@@ -145,9 +131,7 @@ export const POST = withAuth(async (request, user) => {
     },
   })
 
-  if (prediction) {
-    notifyNewComment(prediction, comment.author, data.text)
-  }
+  notifyNewComment(prediction, comment.author, data.text)
 
   return NextResponse.json(comment, { status: 201 })
 })
