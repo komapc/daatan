@@ -1,0 +1,14 @@
+# OpenClaw Instance Information
+# Generated: 2026-02-18T09:48:39+02:00
+
+PUBLIC_IP=63.182.142.184
+INSTANCE_ID=
+SSH_KEY=/home/mark/.ssh/daatan-key.pem
+SSH_USER=ubuntu
+REGION=eu-central-1
+
+# SSH Command
+SSH_CMD="ssh -i /home/mark/.ssh/daatan-key.pem ubuntu@63.182.142.184"
+
+# SCP Command
+SCP_CMD="scp -i /home/mark/.ssh/daatan-key.pem"

@@ -4,20 +4,58 @@ services:
     image: openclaw-daatan:local
     container_name: openclaw
     restart: unless-stopped
+    
+    # Docker group - dynamically detect host docker GID
     group_add:
       - "999"
+    
+    # Workspace and volumes
     volumes:
+      # Main workspace (both agents)
       - /home/ubuntu/projects:/workspace
+      
+      # Docker socket for agent docker commands
       - /var/run/docker.sock:/var/run/docker.sock
+      
+      # OpenClaw configuration
       - ./config/unified.json:/home/node/.openclaw/openclaw.json:ro
+      
+      # SSH keys for GitHub access
       - /home/ubuntu/.ssh/id_github:/home/node/.ssh/id_ed25519:ro
       - /home/ubuntu/.ssh/id_github.pub:/home/node/.ssh/id_ed25519.pub:ro
+      
+      # Backup directory (optional, for .env backups)
+      - ./backups:/home/node/.openclaw/backups:rw
+    
+    # Environment variables
     env_file:
       - .env
+    
+    # Network configuration for Ollama access
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "openclaw"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    # Logging
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
+    
+    # Resource limits (t4g.medium: 2 vCPU, 4GB RAM)
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M

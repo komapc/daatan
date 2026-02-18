@@ -30,35 +30,7 @@ provider "aws" {
 }
 
 # --- Networking ---
-data "aws_availability_zones" "available" { state = "available" }
-data "aws_subnet" "default" {
-  availability_zone = data.aws_availability_zones.available.names[0]
-  default_for_az    = true
-}
-
-resource "aws_default_vpc" "default" {}
-
-resource "aws_security_group" "openclaw" {
-  name        = "openclaw-sg"
-  description = "Security group for OpenClaw EC2"
-  vpc_id      = aws_default_vpc.default.id
-
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = [var.allowed_ssh_cidr]
-    description = "SSH access"
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-    description = "Allow all outbound"
-  }
-}
+# Security group defined in vpc.tf
 
 # --- EC2 Instance ---
 data "aws_ami" "ubuntu" {
@@ -76,13 +48,56 @@ data "aws_ami" "ubuntu" {
   }
 }
 
+# IAM role for Secrets Manager access
+resource "aws_iam_role" "openclaw_secrets" {
+  name = "openclaw-secrets-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "openclaw_secrets" {
+  name = "openclaw-secrets-policy"
+  role = aws_iam_role.openclaw_secrets.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:DescribeSecret"
+        ]
+        Resource = "arn:aws:secretsmanager:${var.aws_region}:${var.aws_account_id}:secret:openclaw/*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_instance_profile" "openclaw_secrets" {
+  name = "openclaw-secrets-profile"
+  role = aws_iam_role.openclaw_secrets.name
+}
+
 resource "aws_instance" "openclaw" {
   ami                         = data.aws_ami.ubuntu.id
   instance_type               = var.ec2_instance_type
   key_name                    = var.ssh_key_name
-  subnet_id                   = data.aws_subnet.default.id
+  subnet_id                   = data.aws_subnets.default.ids[0]
   vpc_security_group_ids      = [aws_security_group.openclaw.id]
   associate_public_ip_address = true
+  iam_instance_profile        = aws_iam_instance_profile.openclaw_secrets.name
 
   root_block_device {
     volume_size           = 30

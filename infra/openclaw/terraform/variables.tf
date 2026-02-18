@@ -31,3 +31,9 @@ variable "allowed_ssh_cidr" {
     error_message = "allowed_ssh_cidr must be set to your IP/32 in terraform.tfvars. Refusing 0.0.0.0/0 and placeholder."
   }
 }
+
+variable "aws_account_id" {
+  description = "AWS account ID for Secrets Manager ARN"
+  type        = string
+  default     = "272007598366"
+}
