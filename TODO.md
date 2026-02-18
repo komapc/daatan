@@ -43,10 +43,7 @@
 
 - [ ] **Infra: Separate Terraform state per environment** — currently both prod and staging share the same backend key (`prod/terraform.tfstate` in `main.tf`). Running `terraform apply -var-file=staging.tfvars` operates against the prod state. Fix: use Terraform workspaces or separate backend keys per environment. Requires careful `terraform state` migration. Do in a dedicated session with no concurrent changes.
 
-- [ ] **CI/CD: Reconcile Dockerfile ARGs** — two mismatches in `Dockerfile` vs `deploy.yml` build-args:
-  - `NEXT_PUBLIC_APP_VERSION` is passed in workflow build-args but never declared as `ARG` in Dockerfile (silently ignored)
-  - `GIT_COMMIT` is declared as `ARG` in Dockerfile but never passed in workflow build-args (only set as env var during SSM deployment script)
-  - **Fix:** either add `ARG NEXT_PUBLIC_APP_VERSION` to Dockerfile and pass `GIT_COMMIT` in build-args, or remove the unused references
+- [x] **CI/CD: Reconcile Dockerfile ARGs** — `GIT_COMMIT` now passed as build-arg in `deploy.yml`. `NEXT_PUBLIC_APP_VERSION` was already declared in Dockerfile (TODO was outdated).
 
 - [ ] **CI/CD: Add version input for manual production deploys** — `workflow_dispatch` with `environment: production` currently deploys `staging-latest` tag with no version selection. Add a `version` input (string) so manual production deploys can target a specific tag. Update the image tag logic in `deploy-production` job.
 
