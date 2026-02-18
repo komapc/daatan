@@ -1,0 +1,68 @@
+{
+  "agents": {
+    "defaults": {
+      "workspace": "/workspace"
+    },
+    "list": [
+      {
+        "id": "daatan",
+        "default": true,
+        "name": "Corvus",
+        "workspace": "/workspace/daatan",
+        "model": { "primary": "openrouter/qwen/qwen-2.5-7b-instruct" }
+      },
+      {
+        "id": "calendar",
+        "name": "Calendar Agent",
+        "workspace": "/workspace/year-shape",
+        "model": { "primary": "openrouter/qwen/qwen-2.5-7b-instruct" }
+      }
+    ]
+  },
+  "bindings": [
+    { "agentId": "daatan", "match": { "channel": "telegram", "accountId": "daatan" } },
+    { "agentId": "calendar", "match": { "channel": "telegram", "accountId": "calendar" } }
+  ],
+  "models": {
+    "providers": {
+      "openrouter": {
+        "apiKey": "${OPENROUTER_API_KEY}",
+        "baseUrl": "https://openrouter.ai/api/v1",
+        "models": [
+          {
+            "id": "qwen/qwen-2.5-7b-instruct",
+            "name": "Qwen 2.5 7B"
+          }
+        ]
+      },
+      "ollama": {
+        "baseUrl": "http://host.docker.internal:11434/v1",
+        "apiKey": "ollama-local",
+        "api": "openai-responses",
+        "models": []
+      }
+    }
+  },
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "dmPolicy": "pairing",
+      "streamMode": "partial",
+      "accounts": {
+        "daatan": {
+          "name": "Daatan",
+          "botToken": "${TELEGRAM_BOT_TOKEN_DAATAN}"
+        },
+        "calendar": {
+          "name": "Calendar",
+          "botToken": "${TELEGRAM_BOT_TOKEN_CALENDAR}"
+        }
+      }
+    }
+  },
+  "auth": {
+    "profiles": {
+      "openrouter:default": { "provider": "openrouter", "mode": "api_key" }
+    }
+  }
+}

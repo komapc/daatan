@@ -35,9 +35,6 @@ vi.mock('@/lib/prisma', () => ({
     prediction: {
       findUnique: vi.fn(),
     },
-    forecast: {
-      findUnique: vi.fn(),
-    },
     user: {
       findUnique: vi.fn(),
     },
@@ -64,7 +61,6 @@ describe('Comments API', () => {
           text: 'Test comment',
           authorId: 'user1',
           predictionId: 'pred1',
-          forecastId: null,
           parentId: null,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -176,7 +172,7 @@ describe('Comments API', () => {
       expect(response.status).toBe(401)
     })
 
-    it('validates that either predictionId or forecastId is provided', async () => {
+    it('validates that predictionId is required', async () => {
       const { getServerSession } = await import('next-auth')
 
       vi.mocked(getServerSession).mockResolvedValue({
@@ -187,7 +183,7 @@ describe('Comments API', () => {
         method: 'POST',
         body: JSON.stringify({
           text: 'New comment',
-          // Missing both predictionId and forecastId
+          // Missing predictionId
         }),
       })
 

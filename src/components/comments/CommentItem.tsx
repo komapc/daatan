@@ -31,7 +31,6 @@ function SimpleAvatar({ user, size = 'sm' }: { user: { name: string | null; imag
 interface CommentItemProps {
   comment: Comment
   predictionId?: string
-  forecastId?: string
   onDeleted: (commentId: string) => void
   isReply?: boolean
 }
@@ -39,7 +38,6 @@ interface CommentItemProps {
 export default function CommentItem({
   comment,
   predictionId,
-  forecastId,
   onDeleted,
   isReply = false,
 }: CommentItemProps) {
@@ -136,8 +134,6 @@ export default function CommentItem({
     try {
       const params = new URLSearchParams({ parentId: comment.id })
       if (predictionId) params.set('predictionId', predictionId)
-      if (forecastId) params.set('forecastId', forecastId)
-
       const response = await fetch(`/api/comments?${params}`)
       if (response.ok) {
         const data = await response.json()
@@ -297,7 +293,6 @@ export default function CommentItem({
             <div className="mt-3">
               <CommentForm
                 predictionId={predictionId}
-                forecastId={forecastId}
                 parentId={comment.id}
                 onCommentAdded={handleReplyAdded}
                 onCancel={() => setShowReplyForm(false)}
@@ -330,7 +325,6 @@ export default function CommentItem({
                   key={reply.id}
                   comment={reply}
                   predictionId={predictionId}
-                  forecastId={forecastId}
                   onDeleted={(id) => setReplies(replies.filter(r => r.id !== id))}
                   isReply
                 />

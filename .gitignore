@@ -43,3 +43,5 @@ coverage/
 *.local
 
 *.tsbuildinfo
+infra/openclaw/.env
+infra/openclaw/.instance-info
