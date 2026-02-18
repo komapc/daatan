@@ -4,14 +4,13 @@
 
 ### P0 - Critical
 
-- [ ] **DB: Sunset legacy Forecast/Vote/ForecastOption models** — dual system adds complexity. Legacy models (`Forecast`, `ForecastOption`, `Vote`) are fully replaced by new models (`Prediction`, `PredictionOption`, `Commitment`). ~8 files still reference old models:
+- [ ] **DB: Sunset legacy Forecast/Vote/ForecastOption models** — dual system adds complexity. Legacy models (`Forecast`, `ForecastOption`, `Vote`) are fully replaced by new models (`Prediction`, `PredictionOption`, `Commitment`). Remaining:
   - 4 API routes under `src/app/api/legacy-forecasts/`
   - 1 validation file: `src/lib/validations/forecast.ts`
   - 1 test file: `__tests__/api/legacy-forecasts.test.ts`
-  - `Comment` model has polymorphic relations (`predictionId` + `forecastId`) — both optional, exactly one set
-  - Comments API (`/api/comments/route.ts`) accepts both `predictionId` and `forecastId`
   - Admin `CommentsTable.tsx` displays `forecast.title` in comment context
-  - **Migration plan:** (1) migrate existing Forecast comments to Prediction comments, (2) remove `forecastId` from Comment model and API, (3) delete legacy API routes + validation + test, (4) drop old tables, (5) update admin UI
+  - **Done:** `forecastId` removed from Comment model and API (v1.4.20)
+  - **Remaining:** (1) delete legacy API routes + validation + test, (2) drop old tables, (3) update admin UI
 
 - [ ] **Security: Rate limiting** — no rate limiting on any API route. LLM routes (`/api/forecasts/express/generate`, AI extract) are expensive (Gemini API calls + Serper searches per request). Implement at Nginx level using `limit_req_zone`. Consider tiered limits: stricter for LLM routes (~5 req/min), standard for other API routes (~60 req/min).
 
@@ -19,21 +18,19 @@
 
 - [ ] **Commitments: Elaborate commitment/join forecast system** — define how users commit to forecasts, change commitments, what happens on resolution. Open design questions: can users update commitment after placing? Time-lock before resolution? CU refund policy on cancellation? How do "Other" option commitments resolve in multiple-choice?
 
-- [ ] **Forecasts: Tags/domains system** — evolve single `domain` string on `Prediction` to many-to-many tags. Requires: new `Tag` and `PredictionTag` Prisma models, LLM auto-assigns during express creation, user can edit on detail page. Existing `domain` values become seed tags. Feed filtering/search by tags. Consider: tag taxonomy (flat vs hierarchical), tag limit per prediction, popular tags sidebar.
-
 - [ ] **Forecasts: "Updated Context" feature** — "Analyze Context" button on forecast detail page. Re-runs Serper web search for latest articles, updates the prediction's context field. Claim text never changes, only context evolves. Requires: new API route, rate limit on re-analysis (once per day?), show "context last updated" timestamp, diff view of old vs new context.
 
 - [ ] **Analytics: Google Analytics 4** — component and infra ready (`src/components/GoogleAnalytics.tsx`, `docker-compose.prod.yml`). Disabled until GA properties are created. **To activate:** create two GA4 properties (production + staging) at analytics.google.com, add `GA_MEASUREMENT_ID_PROD` / `GA_MEASUREMENT_ID_STAGING` to server `.env`, restart containers, sync to Secrets Manager.
 
 ### P2 - Medium Priority
 
-- [ ] **Notifications system** (unified) — Prisma schema, service layer (`src/lib/services/notification.ts`), and API routes (`/api/notifications`) are built. Types defined: `COMMITMENT_RESOLVED`, `COMMENT_ON_FORECAST`, `REPLY_TO_COMMENT`, `NEW_COMMITMENT`, `MENTION`, `SYSTEM`. `createNotification` exists but is never called outside tests. Remaining:
-  - [ ] Wire notification triggers into commitment resolution, comments, new commitments
-  - [ ] Telegram channel integration
+- [ ] **Notifications system** (unified) — Prisma schema, service layer, and API routes are built. Remaining:
+  - [ ] Wire in-app notification triggers into commitment resolution, comments, new commitments
   - [ ] Browser push notifications (service worker + Web Push API)
   - [ ] Email notifications (pick provider: SES, Resend, or Postmark)
   - [ ] Settings page: per-user notification channel configuration (UI for `NotificationPreference` model)
   - [ ] Comment `@mentions`: parse `@username` in comment text, resolve to user, trigger `MENTION` notification
+  - **Done:** Telegram channel notifications for publish, commit, comment, resolve (v1.4.19)
 
 - [ ] **i18n: Wire translations into all components** — `messages/en.json` and `messages/he.json` both exist with ~103 keys and matching structure. However, many components still use hardcoded English strings instead of `useTranslations()`. Need to audit all UI text and replace with translation keys. Priority: navigation, buttons, form labels, error messages.
 
@@ -43,13 +40,9 @@
 
 - [ ] **Infra: Separate Terraform state per environment** — currently both prod and staging share the same backend key (`prod/terraform.tfstate` in `main.tf`). Running `terraform apply -var-file=staging.tfvars` operates against the prod state. Fix: use Terraform workspaces or separate backend keys per environment. Requires careful `terraform state` migration. Do in a dedicated session with no concurrent changes.
 
-- [x] **CI/CD: Reconcile Dockerfile ARGs** — `GIT_COMMIT` now passed as build-arg in `deploy.yml`. `NEXT_PUBLIC_APP_VERSION` was already declared in Dockerfile (TODO was outdated).
-
 - [ ] **CI/CD: Add version input for manual production deploys** — `workflow_dispatch` with `environment: production` currently deploys `staging-latest` tag with no version selection. Add a `version` input (string) so manual production deploys can target a specific tag. Update the image tag logic in `deploy-production` job.
 
 - [ ] **CI/CD: Create `version-bump.yml` workflow** — no workflow exists, but `.husky/pre-commit` references `./scripts/check-version-bump.sh`. Either create the workflow and script, or remove the stale husky reference.
-
-- [x] **CI/CD: Centralize ECR registry** — registry URL `272007598366.dkr.ecr.eu-central-1.amazonaws.com` hardcoded in 4 files: `deploy.yml` (6 occurrences), `docker-compose.prod.yml` (2 occurrences), `scripts/blue-green-deploy.sh` (1, commented out). Extract to a single GitHub Actions variable or env var and reference everywhere.
 
 ### P3 - Low Priority
 
