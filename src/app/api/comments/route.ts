@@ -3,6 +3,7 @@ import { createCommentSchema, listCommentsQuerySchema } from '@/lib/validations/
 import { apiError, handleRouteError } from '@/lib/api-error'
 import { withAuth } from '@/lib/api-middleware'
 import { prisma } from '@/lib/prisma'
+import { notifyNewComment } from '@/lib/services/telegram'
 
 export const dynamic = 'force-dynamic'
 
@@ -88,9 +89,11 @@ export const POST = withAuth(async (request, user) => {
   const data = createCommentSchema.parse(body)
 
   // Verify the target exists
+  let prediction: { id: string; claimText: string } | null = null
   if (data.predictionId) {
-    const prediction = await prisma.prediction.findUnique({
+    prediction = await prisma.prediction.findUnique({
       where: { id: data.predictionId },
+      select: { id: true, claimText: true },
     })
     if (!prediction) {
       return apiError('Prediction not found', 404)
@@ -141,6 +144,10 @@ export const POST = withAuth(async (request, user) => {
       },
     },
   })
+
+  if (prediction) {
+    notifyNewComment(prediction, comment.author, data.text)
+  }
 
   return NextResponse.json(comment, { status: 201 })
 })

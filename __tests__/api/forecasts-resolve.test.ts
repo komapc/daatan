@@ -14,6 +14,10 @@ vi.mock('next-auth', () => ({
   getServerSession: mockGetServerSession,
 }))
 
+vi.mock('@/lib/services/telegram', () => ({
+  notifyForecastResolved: vi.fn(),
+}))
+
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     user: {

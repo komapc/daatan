@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-middleware'
 import { apiError, handleRouteError } from '@/lib/api-error'
 import { prisma } from '@/lib/prisma'
+import { notifyForecastPublished } from '@/lib/services/telegram'
 
 export const dynamic = 'force-dynamic'
 
@@ -66,6 +67,8 @@ export const POST = withAuth(async (_request, user, { params }) => {
         },
       },
     })
+
+    notifyForecastPublished(updated, updated.author)
 
     return NextResponse.json(updated)
   } catch (error) {

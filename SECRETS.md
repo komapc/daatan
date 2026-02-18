@@ -18,6 +18,8 @@
 | `SERPER_API_KEY` | Server `.env` | Serper.dev API for Express Forecast web search |
 | `GA_MEASUREMENT_ID_PROD` | Server `.env` | Google Analytics 4 — production (daatan.com) |
 | `GA_MEASUREMENT_ID_STAGING` | Server `.env` | Google Analytics 4 — staging (staging.daatan.com) |
+| `TELEGRAM_BOT_TOKEN` | Server `.env` | @ScoopPredictBot token for channel notifications |
+| `TELEGRAM_CHAT_ID` | Server `.env` | Telegram channel ID for notifications (`-1003127305278`) |
 
 ### Current Setup
 

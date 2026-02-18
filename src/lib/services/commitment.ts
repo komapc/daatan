@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import type { Prisma, PredictionOption } from '@prisma/client'
+import { notifyNewCommitment } from '@/lib/services/telegram'
 
 /** Minimal user fields needed for commitment operations. */
 interface CommitmentUser {
@@ -172,6 +173,12 @@ export async function createCommitment(
 
     return created
   })
+
+  // Determine choice label for notification
+  const choiceLabel = prediction.outcomeType === 'MULTIPLE_CHOICE'
+    ? commitment.option?.text ?? 'option'
+    : data.binaryChoice ? 'Yes' : 'No'
+  notifyNewCommitment(prediction, commitment.user, data.cuCommitted, choiceLabel)
 
   return { ok: true, data: commitment, status: 201 }
 }
