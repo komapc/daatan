@@ -16,6 +16,7 @@ const log = createClientLogger('EditForecast')
 
 type PredictionData = {
   id: string
+  slug?: string
   claimText: string
   detailsText?: string | null
   domain?: string | null

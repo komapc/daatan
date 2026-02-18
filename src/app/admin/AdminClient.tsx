@@ -58,7 +58,7 @@ type AdminComment = {
   createdAt: string
   deletedAt: string | null
   author: { id: string; name: string | null; username: string | null; image: string | null }
-  prediction: { id: string; claimText: string } | null
+  prediction: { id: string; slug?: string; claimText: string } | null
   forecast: { id: string; title: string } | null
   _count: { replies: number; reactions: number }
 }

@@ -23,6 +23,7 @@ import { RoleBadge } from '@/components/RoleBadge'
 
 export type Prediction = {
   id: string
+  slug?: string | null
   claimText: string
   domain?: string | null
   outcomeType: string

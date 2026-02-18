@@ -43,6 +43,7 @@ interface Commitment {
   createdAt: string
   prediction: {
     id: string
+    slug?: string
     claimText: string
     status: string
     resolveByDatetime: string

@@ -31,6 +31,7 @@ const log = createClientLogger('ForecastDetail')
 
 type Prediction = {
   id: string
+  slug?: string
   claimText: string
   detailsText?: string
   domain?: string
