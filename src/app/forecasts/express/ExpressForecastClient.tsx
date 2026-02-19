@@ -237,7 +237,7 @@ export default function ExpressForecastClient({ userId }: ExpressForecastClientP
           <div className="flex justify-between items-center mt-2">
             <span className="text-xs text-gray-500">{userInput.length}/1000 characters</span>
             {/^(https?:\/\/[^\s]+)$/i.test(userInput.trim()) && (
-              <span className="text-xs text-blue-600 font-medium">URL detected - will fetch content directly</span>
+              <span className="text-xs text-blue-600 font-medium">URL detected - will read article and find related sources</span>
             )}
           </div>
 
