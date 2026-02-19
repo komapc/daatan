@@ -5,11 +5,11 @@ import { apiError } from '@/lib/api-error'
 import { withAuth } from '@/lib/api-middleware'
 import { notifyForecastResolved } from '@/lib/services/telegram'
 
-export const POST = withAuth(async (request, user) => {
+export const POST = withAuth(async (request, user, { params }) => {
   const body = await request.json()
   const { outcome, evidenceLinks, resolutionNote, correctOptionId } = resolvePredictionSchema.parse(body)
 
-  const predictionId = request.nextUrl.pathname.split('/').at(-2)!
+  const predictionId = params.id
 
   // Get prediction with commitments and options
   const prediction = await prisma.prediction.findUnique({
@@ -119,7 +119,7 @@ export const POST = withAuth(async (request, user) => {
 
       // Update user balances
       const newCuAvailable = commitment.user.cuAvailable + cuReturned
-      const newCuLocked = commitment.user.cuLocked - commitment.cuCommitted
+      const newCuLocked = Math.max(0, commitment.user.cuLocked - commitment.cuCommitted)
       const newRs = Math.max(0, commitment.user.rs + rsChange) // RS can't go below 0
 
       await tx.user.update({
