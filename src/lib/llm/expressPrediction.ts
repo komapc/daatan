@@ -97,9 +97,20 @@ export async function generateExpressPrediction(
     throw new Error('NO_ARTICLES_FOUND')
   }
 
+  // Build source summary like "CNN×2, Bloomberg, BBC"
+  const sourceCounts = new Map<string, number>()
+  for (const r of searchResults) {
+    const name = r.source || 'Unknown'
+    sourceCounts.set(name, (sourceCounts.get(name) || 0) + 1)
+  }
+  const sourceSummary = Array.from(sourceCounts.entries())
+    .map(([name, count]) => count > 1 ? `${name}×${count}` : name)
+    .join(', ')
+
   onProgress?.('found_articles', {
     count: searchResults.length,
-    message: `Found ${searchResults.length} relevant sources`
+    sources: sourceSummary,
+    message: `Found ${searchResults.length} sources (${sourceSummary})`
   })
 
   // Step 2: Prepare articles for LLM
