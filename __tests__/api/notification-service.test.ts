@@ -13,6 +13,10 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
+vi.mock('@/lib/services/push', () => ({
+  dispatchBrowserPush: vi.fn(),
+}))
+
 // Mock the logger to suppress output in tests
 vi.mock('@/lib/logger', () => ({
   createLogger: () => ({

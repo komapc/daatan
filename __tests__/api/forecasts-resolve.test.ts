@@ -18,6 +18,10 @@ vi.mock('@/lib/services/telegram', () => ({
   notifyForecastResolved: vi.fn(),
 }))
 
+vi.mock('@/lib/services/notification', () => ({
+  createNotification: vi.fn(),
+}))
+
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     user: {
@@ -241,6 +245,8 @@ describe('POST /api/predictions/[id]/resolve', () => {
         id: 'pred-1',
         status: 'ACTIVE',
         outcomeType: 'BINARY',
+        claimText: 'Test prediction',
+        slug: 'test-prediction',
         options: [],
         commitments,
       } as never)

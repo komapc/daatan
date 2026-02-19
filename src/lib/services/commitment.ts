@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import type { Prisma, PredictionOption } from '@prisma/client'
 import { notifyNewCommitment } from '@/lib/services/telegram'
+import { createNotification } from '@/lib/services/notification'
 
 /** Minimal user fields needed for commitment operations. */
 interface CommitmentUser {
@@ -17,6 +18,7 @@ interface CommitmentPrediction {
   authorId: string
   outcomeType: string
   claimText: string
+  slug: string | null
   options: PredictionOption[]
 }
 
@@ -179,6 +181,17 @@ export async function createCommitment(
     ? commitment.option?.text ?? 'option'
     : data.binaryChoice ? 'Yes' : 'No'
   notifyNewCommitment(prediction, commitment.user, data.cuCommitted, choiceLabel)
+
+  // Notify forecast author about new commitment
+  createNotification({
+    userId: prediction.authorId,
+    type: 'NEW_COMMITMENT',
+    title: 'New commitment on your forecast',
+    message: `${commitment.user.name || commitment.user.username || 'Someone'} committed ${data.cuCommitted} CU (${choiceLabel}) on "${prediction.claimText.substring(0, 80)}"`,
+    link: `/forecasts/${prediction.slug || prediction.id}`,
+    predictionId: prediction.id,
+    actorId: userId,
+  })
 
   return { ok: true, data: commitment, status: 201 }
 }

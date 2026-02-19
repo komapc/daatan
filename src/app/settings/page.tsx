@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { useLocale } from 'next-intl'
 import { LanguagePicker } from '@/components/LanguagePicker'
+import NotificationPreferences from '@/components/settings/NotificationPreferences'
 
 export default function SettingsPage() {
   const { status } = useSession({
@@ -35,6 +36,17 @@ export default function SettingsPage() {
 
         <div className="p-6 space-y-6">
           <LanguagePicker currentLocale={locale} />
+        </div>
+      </div>
+
+      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden mt-6">
+        <div className="p-6 border-b border-gray-100">
+          <h2 className="text-lg font-semibold text-gray-900 mb-1">Notifications</h2>
+          <p className="text-sm text-gray-500">Choose which notifications you receive and how.</p>
+        </div>
+
+        <div className="p-6">
+          <NotificationPreferences />
         </div>
       </div>
     </div>

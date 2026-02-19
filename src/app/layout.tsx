@@ -6,6 +6,7 @@ import { StagingBanner } from '@/components/StagingBanner'
 import Sidebar from '@/components/Sidebar'
 import SessionWrapper from '@/components/SessionWrapper'
 import PwaInstaller from '@/components/PwaInstaller'
+import PushPermissionPrompt from '@/components/PushPermissionPrompt'
 import GoogleAnalytics from '@/components/GoogleAnalytics'
 import { isRtl } from '@/i18n/config'
 import type { Locale } from '@/i18n/config'
@@ -53,6 +54,7 @@ export default async function RootLayout({
               </main>
             </div>
             <PwaInstaller />
+            <PushPermissionPrompt />
           </SessionWrapper>
         </NextIntlClientProvider>
       </body>

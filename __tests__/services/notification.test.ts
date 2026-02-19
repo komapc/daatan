@@ -13,6 +13,10 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
+vi.mock('@/lib/services/push', () => ({
+  dispatchBrowserPush: vi.fn(),
+}))
+
 // Must mock after prisma since the module imports prisma at load time
 vi.mock('@/lib/logger', () => ({
   createLogger: () => ({
