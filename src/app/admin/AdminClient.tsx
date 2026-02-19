@@ -59,7 +59,6 @@ type AdminComment = {
   deletedAt: string | null
   author: { id: string; name: string | null; username: string | null; image: string | null }
   prediction: { id: string; slug?: string; claimText: string } | null
-  forecast: { id: string; title: string } | null
   _count: { replies: number; reactions: number }
 }
 
@@ -380,9 +379,7 @@ function CommentsTab() {
             {comments.map((c) => {
               const target = c.prediction
                 ? { label: c.prediction.claimText, href: `/forecasts/${c.prediction.slug || c.prediction.id}` }
-                : c.forecast
-                  ? { label: c.forecast.title, href: '#' }
-                  : null
+                : null
 
               return (
                 <div

@@ -4,14 +4,6 @@
 
 ### P0 - Critical
 
-- [ ] **DB: Sunset legacy Forecast/Vote/ForecastOption models** — dual system adds complexity. Legacy models (`Forecast`, `ForecastOption`, `Vote`) are fully replaced by new models (`Prediction`, `PredictionOption`, `Commitment`). Remaining:
-  - 4 API routes under `src/app/api/legacy-forecasts/`
-  - 1 validation file: `src/lib/validations/forecast.ts`
-  - 1 test file: `__tests__/api/legacy-forecasts.test.ts`
-  - Admin `CommentsTable.tsx` displays `forecast.title` in comment context
-  - **Done:** `forecastId` removed from Comment model and API (v1.4.20)
-  - **Remaining:** (1) delete legacy API routes + validation + test, (2) drop old tables, (3) update admin UI
-
 - [ ] **Security: Rate limiting** — no rate limiting on any API route. LLM routes (`/api/forecasts/express/generate`, AI extract) are expensive (Gemini API calls + Serper searches per request). Implement at Nginx level using `limit_req_zone`. Consider tiered limits: stricter for LLM routes (~5 req/min), standard for other API routes (~60 req/min).
 
 ### P1 - High Priority
