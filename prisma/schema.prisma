@@ -66,6 +66,7 @@ model User {
   // Notifications
   notifications          Notification[]
   notificationPreferences NotificationPreference[]
+  pushSubscriptions      PushSubscription[]
 
   @@map("users")
 }
@@ -474,4 +475,23 @@ model NotificationPreference {
 
   @@unique([userId, type])
   @@map("notification_preferences")
+}
+
+// ============================================
+// PUSH SUBSCRIPTIONS (Browser push per device)
+// ============================================
+
+model PushSubscription {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint   String    @unique @db.VarChar(2000)
+  p256dh     String    @db.VarChar(200)
+  auth       String    @db.VarChar(100)
+  userAgent  String?   @db.VarChar(500)
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+
+  @@index([userId])
+  @@map("push_subscriptions")
 }

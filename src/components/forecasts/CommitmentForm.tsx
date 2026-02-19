@@ -102,6 +102,7 @@ export default function CommitmentForm({
       }
 
       const result = await response.json()
+      window.dispatchEvent(new CustomEvent('daatan:first-action'))
       onSuccess(result)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')

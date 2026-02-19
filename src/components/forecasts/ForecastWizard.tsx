@@ -179,6 +179,8 @@ export const ForecastWizard = ({ isExpressFlow = false }: ForecastWizardProps) =
         }
       }
 
+      window.dispatchEvent(new CustomEvent('daatan:first-action'))
+
       // Redirect to prediction page
       router.push(`/forecasts/${prediction.slug || prediction.id}`)
     } catch (err) {

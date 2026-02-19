@@ -21,6 +21,10 @@ vi.mock('@/lib/services/telegram', () => ({
   notifyNewComment: vi.fn(),
 }))
 
+vi.mock('@/lib/services/notification', () => ({
+  createNotification: vi.fn(),
+}))
+
 // Mock prisma
 vi.mock('@/lib/prisma', () => ({
   prisma: {
@@ -116,6 +120,9 @@ describe('Comments API', () => {
 
       vi.mocked(prisma.prediction.findUnique).mockResolvedValue({
         id: 'pred1',
+        claimText: 'Test prediction',
+        authorId: 'author1',
+        slug: 'test-prediction',
       } as any)
 
       vi.mocked(prisma.comment.create).mockResolvedValue({

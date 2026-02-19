@@ -7,6 +7,7 @@ import Image from 'next/image'
 import { useSession, signOut, signIn } from 'next-auth/react'
 import { VERSION } from '@/lib/version'
 import { Avatar } from './Avatar'
+import { useUnreadCount } from '@/lib/hooks/useUnreadCount'
 import {
   Home,
   Bell,
@@ -83,6 +84,8 @@ const Sidebar = () => {
     signIn()
     handleCloseMenu()
   }
+
+  const { count: unreadCount } = useUnreadCount()
 
   // Use "loading" state for SSR and pre-mount to ensure server/client HTML matches
   const effectiveStatus = hasMounted ? status : 'loading'
@@ -204,7 +207,14 @@ const Sidebar = () => {
                     `}
                     aria-current={isActive ? 'page' : undefined}
                   >
-                    <Icon className="w-5 h-5" />
+                    <span className="relative">
+                      <Icon className="w-5 h-5" />
+                      {item.href === '/notifications' && hasMounted && unreadCount > 0 && (
+                        <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center min-w-[16px] h-4 px-1 text-[10px] font-bold text-white bg-red-500 rounded-full">
+                          {unreadCount > 99 ? '99+' : unreadCount}
+                        </span>
+                      )}
+                    </span>
                     <span className="font-medium">{item.label}</span>
                   </Link>
                 </li>

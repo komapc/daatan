@@ -4,6 +4,7 @@ import { apiError, handleRouteError } from '@/lib/api-error'
 import { withAuth } from '@/lib/api-middleware'
 import { prisma } from '@/lib/prisma'
 import { notifyNewComment } from '@/lib/services/telegram'
+import { createNotification } from '@/lib/services/notification'
 
 export const dynamic = 'force-dynamic'
 
@@ -87,19 +88,21 @@ export const POST = withAuth(async (request, user) => {
   const data = createCommentSchema.parse(body)
 
   // Verify the prediction exists
-  let prediction: { id: string; claimText: string } | null = null
+  let prediction: { id: string; claimText: string; authorId: string; slug: string | null } | null = null
   prediction = await prisma.prediction.findUnique({
     where: { id: data.predictionId },
-    select: { id: true, claimText: true },
+    select: { id: true, claimText: true, authorId: true, slug: true },
   })
   if (!prediction) {
     return apiError('Prediction not found', 404)
   }
 
   // Verify parent comment exists if specified
+  let parentComment: { id: string; authorId: string; deletedAt: Date | null } | null = null
   if (data.parentId) {
-    const parentComment = await prisma.comment.findUnique({
+    parentComment = await prisma.comment.findUnique({
       where: { id: data.parentId },
+      select: { id: true, authorId: true, deletedAt: true },
     })
     if (!parentComment || parentComment.deletedAt) {
       return apiError('Parent comment not found', 404)
@@ -132,6 +135,33 @@ export const POST = withAuth(async (request, user) => {
   })
 
   notifyNewComment(prediction, comment.author, data.text)
+
+  // Notify forecast author about new comment
+  const forecastLink = `/forecasts/${prediction.slug || prediction.id}`
+  createNotification({
+    userId: prediction.authorId,
+    type: 'COMMENT_ON_FORECAST',
+    title: 'New comment on your forecast',
+    message: `${comment.author.name || comment.author.username || 'Someone'} commented on "${prediction.claimText.substring(0, 80)}"`,
+    link: forecastLink,
+    predictionId: prediction.id,
+    commentId: comment.id,
+    actorId: user.id,
+  })
+
+  // Notify parent comment author about reply
+  if (data.parentId && parentComment) {
+    createNotification({
+      userId: parentComment.authorId,
+      type: 'REPLY_TO_COMMENT',
+      title: 'New reply to your comment',
+      message: `${comment.author.name || comment.author.username || 'Someone'} replied to your comment`,
+      link: forecastLink,
+      predictionId: prediction.id,
+      commentId: comment.id,
+      actorId: user.id,
+    })
+  }
 
   return NextResponse.json(comment, { status: 201 })
 })

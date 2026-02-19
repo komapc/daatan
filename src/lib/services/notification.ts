@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
+import { dispatchBrowserPush } from '@/lib/services/push'
 import type { NotificationType } from '@prisma/client'
 
 const log = createLogger('notification-service')
@@ -19,9 +20,15 @@ interface CreateNotificationInput {
  * Create a notification for a user.
  * Checks user preferences before creating — if the user has disabled
  * in-app notifications for this type, the notification is not created.
+ * Dispatches browser push if enabled.
  */
 export const createNotification = async (input: CreateNotificationInput) => {
   try {
+    // Don't notify users about their own actions
+    if (input.actorId && input.actorId === input.userId) {
+      return null
+    }
+
     // Check user preference for this notification type
     const preference = await prisma.notificationPreference.findUnique({
       where: {
@@ -32,31 +39,39 @@ export const createNotification = async (input: CreateNotificationInput) => {
       },
     })
 
-    // If preference exists and in-app is disabled, skip in-app notification
-    if (preference && !preference.inApp) {
+    // Determine channel enablement (fall back to defaults if no preference row)
+    const defaults = NOTIFICATION_TYPE_DEFAULTS[input.type]
+    const inAppEnabled = preference ? preference.inApp : defaults.inApp
+    const browserPushEnabled = preference ? preference.browserPush : defaults.browserPush
+
+    // Create in-app notification if enabled
+    let notification = null
+    if (inAppEnabled) {
+      notification = await prisma.notification.create({
+        data: {
+          userId: input.userId,
+          type: input.type,
+          title: input.title,
+          message: input.message,
+          link: input.link,
+          predictionId: input.predictionId,
+          commentId: input.commentId,
+          actorId: input.actorId,
+        },
+      })
+    } else {
       log.debug({ userId: input.userId, type: input.type }, 'In-app notification disabled by user preference')
-      return null
     }
 
-    // Don't notify users about their own actions
-    if (input.actorId && input.actorId === input.userId) {
-      return null
-    }
-
-    const notification = await prisma.notification.create({
-      data: {
-        userId: input.userId,
-        type: input.type,
+    // Dispatch browser push (fire-and-forget)
+    if (browserPushEnabled) {
+      dispatchBrowserPush(input.userId, {
         title: input.title,
         message: input.message,
         link: input.link,
-        predictionId: input.predictionId,
-        commentId: input.commentId,
-        actorId: input.actorId,
-      },
-    })
-
-    // TODO: Dispatch to other channels (email, push, telegram) based on preferences
+        type: input.type,
+      })
+    }
 
     return notification
   } catch (error) {
@@ -95,14 +110,13 @@ export const getUnreadCount = async (userId: string): Promise<number> => {
 }
 
 /**
- * Get default notification preferences for a new user.
- * Called during user creation to seed preferences.
+ * Default notification preferences for each type.
  */
-export const NOTIFICATION_TYPE_DEFAULTS: Record<NotificationType, { inApp: boolean; email: boolean }> = {
-  COMMITMENT_RESOLVED: { inApp: true, email: true },
-  COMMENT_ON_FORECAST: { inApp: true, email: false },
-  REPLY_TO_COMMENT: { inApp: true, email: false },
-  NEW_COMMITMENT: { inApp: true, email: false },
-  MENTION: { inApp: true, email: true },
-  SYSTEM: { inApp: true, email: true },
+export const NOTIFICATION_TYPE_DEFAULTS: Record<NotificationType, { inApp: boolean; email: boolean; browserPush: boolean }> = {
+  COMMITMENT_RESOLVED: { inApp: true, email: true, browserPush: true },
+  COMMENT_ON_FORECAST: { inApp: true, email: false, browserPush: true },
+  REPLY_TO_COMMENT: { inApp: true, email: false, browserPush: true },
+  NEW_COMMITMENT: { inApp: true, email: false, browserPush: false },
+  MENTION: { inApp: true, email: true, browserPush: true },
+  SYSTEM: { inApp: true, email: true, browserPush: false },
 }
