@@ -6,15 +6,49 @@
 
 - [ ] **Security: Rate limiting** — no rate limiting on any API route. LLM routes (`/api/forecasts/express/generate`, AI extract) are expensive (Gemini API calls + Serper searches per request). Implement at Nginx level using `limit_req_zone`. Consider tiered limits: stricter for LLM routes (~5 req/min), standard for other API routes (~60 req/min).
 
+- [ ] **Security: SSRF protection on URL fetching** — `fetchUrlContent()` in `src/lib/utils/scraper.ts` accepts arbitrary URLs with no validation. Any authenticated user can hit internal services (AWS IMDS `169.254.169.254`, localhost, Docker IPs). Fix: validate HTTPS-only, block RFC-1918/link-local ranges. Affects `/api/ai/extract` and express forecast URL flow.
+
+- [ ] **Bug: `predictionId` extracted from URL pathname instead of route params** — `src/app/api/forecasts/[id]/resolve/route.ts:12` uses `request.nextUrl.pathname.split('/').at(-2)!` instead of `params.id`. Fragile and uses non-null assertion. One-line fix.
+
+- [ ] **Bug: `cuLocked` can go negative on resolution** — `src/app/api/forecasts/[id]/resolve/route.ts:122-129` computes `cuLocked - cuCommitted` with no floor guard. Add `Math.max(0, ...)`. One-line fix.
+
 ### P1 - High Priority
 
 - [ ] **Commitments: Elaborate commitment/join forecast system** — define how users commit to forecasts, change commitments, what happens on resolution. Open design questions: can users update commitment after placing? Time-lock before resolution? CU refund policy on cancellation? How do "Other" option commitments resolve in multiple-choice?
+
+- [ ] **Commitments: Enforce `lockedAt` check** — `removeCommitment` and `updateCommitment` in `src/lib/services/commitment.ts` fetch `lockedAt` but never enforce it. Users can withdraw/change commitments after others have committed, breaking game-theory integrity. ~4 lines each.
+
+- [ ] **Security: Review `allowDangerousEmailAccountLinking`** — `src/lib/auth.ts:24` has `allowDangerousEmailAccountLinking: true` on Google OAuth. Attacker with a Google account matching a victim's email can hijack their daatan account. Disable unless there's a specific product requirement.
+
+- [ ] **Code quality: URL hash inconsistency across 3 locations** — `news-anchors/route.ts` normalizes URL (lowercase, strip protocol/trailing slash) before hashing, but `forecasts/route.ts` and `expressPrediction.ts` hash the raw URL. Same URL produces different hashes → deduplication breaks. Extract a shared `hashUrl()` utility.
+
+- [ ] **Code quality: Admin routes use `where: any`** — `src/app/api/admin/forecasts/route.ts`, `users/route.ts`, `comments/route.ts` all use `where: any` instead of typed `Prisma.XxxWhereInput`. Typos in filter keys fail silently at runtime.
+
+- [ ] **Code quality: Uncapped pagination in admin/notification routes** — `parseInt(searchParams.get('limit'))` with no cap. `limit=99999` loads entire table. Add Zod validation or `Math.min`/`Math.max` clamping. Affects: admin forecasts, users, comments, notifications routes.
+
+- [ ] **Bug: `JSON.parse` without try/catch in Gemini provider** — `src/lib/llm/gemini.ts:50` parses LLM response with no error handling. Malformed JSON (hallucination, safety block) causes unhandled 500.
 
 - [ ] **Forecasts: "Updated Context" feature** — "Analyze Context" button on forecast detail page. Re-runs Serper web search for latest articles, updates the prediction's context field. Claim text never changes, only context evolves. Requires: new API route, rate limit on re-analysis (once per day?), show "context last updated" timestamp, diff view of old vs new context.
 
 - [ ] **Analytics: Google Analytics 4** — component and infra ready (`src/components/GoogleAnalytics.tsx`, `docker-compose.prod.yml`). Disabled until GA properties are created. **To activate:** create two GA4 properties (production + staging) at analytics.google.com, add `GA_MEASUREMENT_ID_PROD` / `GA_MEASUREMENT_ID_STAGING` to server `.env`, restart containers, sync to Secrets Manager.
 
 ### P2 - Medium Priority
+
+- [ ] **Privacy: Activity feed leaks `isPublic: false` users** — `/api/commitments/activity` returns RS and activity for all users with no `isPublic` filter. Inconsistent with leaderboard which correctly filters. Add `where: { user: { isPublic: true } }`.
+
+- [ ] **Bug: Slug uniqueness TOCTOU race** — `POST /api/forecasts` does find-then-create for slugs (not atomic). Two concurrent requests with same `claimText` can produce duplicate slugs → unhandled P2002 error (500). Fix: catch P2002 and retry with incremented suffix.
+
+- [ ] **Code quality: Improve `withAuth` error logging** — `src/lib/api-middleware.ts:65-67` catches errors but logs no request context (URL, user ID). Add request path and user ID to the log for production debugging.
+
+- [ ] **Code quality: Admin PATCH returns full user record** — `src/app/api/admin/users/[id]/route.ts` returns all User fields including email, preferences. Add a `select` clause to return only needed fields.
+
+- [ ] **Code quality: Comment schema uses `string().min(1)` not `.cuid()`** — `src/lib/validations/comment.ts:5` validates `predictionId` loosely. All other entity IDs use `.cuid()`.
+
+- [ ] **Code quality: Unnecessary async/Promise.all in tag mapping** — `src/app/api/forecasts/route.ts:231-244` wraps a synchronous mapper in `async`/`Promise.all`. Remove the unnecessary overhead.
+
+- [ ] **Code quality: Deprecate or remove `domain` field** — `Prediction.domain` is marked deprecated in schema, LLM prompt, and comments, but is still actively written everywhere. Either formally retire it (migration + remove from schemas) or un-deprecate.
+
+- [ ] **Code quality: Tags route uses manual validation** — `POST /api/tags` (`src/app/api/tags/route.ts:51-59`) does manual string checks instead of Zod. Inconsistent with all other routes.
 
 - [ ] **Notifications system** (unified) — Prisma schema, service layer, and API routes are built. Remaining:
   - [ ] Wire in-app notification triggers into commitment resolution, comments, new commitments
@@ -65,6 +99,12 @@
   - `src/app/admin/CommentsTable.tsx` (admin comment actions)
   - `src/app/admin/UsersTable.tsx` (admin user actions)
   - Replace with toast notifications or inline error state UI.
+
+- [ ] **Testing: Missing unit test coverage** — notable gaps found in code review:
+  - `updateCommitment` / `removeCommitment` — zero test coverage (CU delta logic untested)
+  - Admin routes (`/api/admin/forecasts`, `users`, `comments`) — no tests at all
+  - Slug collision race condition (P2002 error path) — untested
+  - Concurrent first-commitment race (`isFirstCommitment` / `lockedAt` logic) — untested
 
 - [ ] **Testing: E2E tests** (Playwright) — no E2E tests exist. Priority flows: login, create forecast (express + manual), commit to forecast, comment, admin resolution. Set up Playwright config, CI integration, test database seeding.
 
