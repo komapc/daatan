@@ -4,7 +4,7 @@ import { apiError } from '@/lib/api-error'
 import { withAuth } from '@/lib/api-middleware'
 
 const generateSchema = z.object({
-  userInput: z.string().min(5).max(200),
+  userInput: z.string().min(5).max(1000),
 })
 
 export const POST = withAuth(async (request) => {

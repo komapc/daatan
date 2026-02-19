@@ -2,6 +2,7 @@ import { SchemaType, type Schema } from '@google/generative-ai'
 import { getExpressPredictionPrompt } from './prompts'
 import { llmService } from './index'
 import { searchArticles, type SearchResult } from '../utils/webSearch'
+import { fetchUrlContent } from '../utils/scraper'
 import crypto from 'crypto'
 import { createLogger } from '@/lib/logger'
 
@@ -88,30 +89,115 @@ export async function generateExpressPrediction(
   userInput: string,
   onProgress?: (stage: string, data?: Record<string, unknown>) => void
 ): Promise<ExpressPredictionResult> {
-  // Step 1: Search for relevant articles
-  onProgress?.('searching', { message: 'Searching for relevant articles...' })
+  const isUrl = /^https?:\/\/[^\s]+$/i.test(userInput.trim())
 
-  const searchResults: SearchResult[] = await searchArticles(userInput, 5)
+  let searchResults: SearchResult[]
+  let primaryArticle: SearchResult | null = null
 
-  if (searchResults.length === 0) {
-    throw new Error('NO_ARTICLES_FOUND')
+  if (isUrl) {
+    // URL flow: fetch article, extract topic, search for related articles
+    const url = userInput.trim()
+    onProgress?.('searching', { message: 'Fetching article content...' })
+
+    let articleContent: string
+    try {
+      articleContent = await fetchUrlContent(url)
+    } catch {
+      log.warn({ url }, 'Failed to fetch URL content, falling back to search')
+      articleContent = ''
+    }
+
+    if (!articleContent) {
+      // Fallback: use the URL as a search query
+      onProgress?.('searching', { message: 'Searching for relevant articles...' })
+      searchResults = await searchArticles(url, 5)
+      if (searchResults.length === 0) throw new Error('NO_ARTICLES_FOUND')
+    } else {
+      // Extract topic from article content using LLM
+      onProgress?.('searching', { message: 'Reading article and extracting topic...' })
+
+      let topic: string
+      try {
+        const extractResult = await llmService.generateContent({
+          prompt: `Extract the main topic of this article in 5-10 words suitable as a web search query. Return ONLY the search query, nothing else.\n\nArticle content:\n${articleContent.substring(0, 3000)}`,
+          temperature: 0,
+        })
+        topic = extractResult.text.trim().replace(/^["']|["']$/g, '')
+      } catch (error) {
+        log.warn({ err: error }, 'Failed to extract topic from article, using URL as search')
+        topic = url
+      }
+
+      log.info({ url, topic }, 'Extracted topic from URL')
+
+      // Build primary article from fetched content
+      const domain = extractDomainFromUrl(url)
+      // Extract title: first meaningful line from content (before any long text)
+      const titleMatch = articleContent.match(/^(.{10,120}?)(?:\s{2,}|\.\s)/)
+      primaryArticle = {
+        title: titleMatch ? titleMatch[1] : topic,
+        url,
+        snippet: articleContent.substring(0, 500),
+        source: domain,
+      }
+
+      // Search for related articles using the extracted topic
+      onProgress?.('searching', { message: `Finding related articles for: "${topic}"` })
+
+      try {
+        searchResults = await searchArticles(topic, 5)
+      } catch {
+        searchResults = []
+      }
+
+      // Remove the original URL from search results if it appeared
+      searchResults = searchResults.filter(r => r.url !== url)
+
+      // Prepend the primary article
+      searchResults = [primaryArticle, ...searchResults.slice(0, 4)]
+    }
+  } else {
+    // Normal text flow: search for articles
+    onProgress?.('searching', { message: 'Searching for relevant articles...' })
+    searchResults = await searchArticles(userInput, 5)
+
+    if (searchResults.length === 0) {
+      throw new Error('NO_ARTICLES_FOUND')
+    }
   }
+
+  // Build source summary like "CNN×2, Bloomberg, BBC"
+  const sourceCounts = new Map<string, number>()
+  for (const r of searchResults) {
+    const name = r.source || 'Unknown'
+    sourceCounts.set(name, (sourceCounts.get(name) || 0) + 1)
+  }
+  const sourceSummary = Array.from(sourceCounts.entries())
+    .map(([name, count]) => count > 1 ? `${name}×${count}` : name)
+    .join(', ')
 
   onProgress?.('found_articles', {
     count: searchResults.length,
-    message: `Found ${searchResults.length} relevant sources`
+    sources: sourceSummary,
+    message: `Found ${searchResults.length} sources (${sourceSummary})`
   })
 
   // Step 2: Prepare articles for LLM
   const articlesText = searchResults
-    .map((article, i) => `
+    .map((article, i) => {
+      // For the primary fetched article, include more content
+      const snippet = (article === primaryArticle && article.snippet.length > 200)
+        ? article.snippet
+        : article.snippet
+      return `
 [Article ${i + 1}]
 Title: ${article.title}
 Source: ${article.source || 'Unknown'}
 Published: ${article.publishedDate || 'Unknown'}
-Snippet: ${article.snippet}
+Snippet: ${snippet}
 URL: ${article.url}
-`)
+`
+    })
     .join('\n')
 
   onProgress?.('analyzing', { message: 'Analyzing context and forming prediction...' })
@@ -198,6 +284,15 @@ URL: ${article.url}
       publishedAt: bestArticle.publishedDate ? new Date(bestArticle.publishedDate) : undefined
     },
     additionalLinks
+  }
+}
+
+export function extractDomainFromUrl(url: string): string {
+  try {
+    const domain = new URL(url).hostname
+    return domain.replace('www.', '')
+  } catch {
+    return 'Unknown'
   }
 }
 

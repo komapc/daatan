@@ -76,6 +76,8 @@
 
 ### Verify / Check Later
 
+- [ ] **Notifications: Validate Telegram notifications** — verify that Telegram notifications fire correctly on all 4 trigger points (publish, commit, comment, resolve) in both staging and production. Bot: @ScoopPredictBot (prod), @DaatanClawBot (staging). Channel: @ScoopPredict.
+
 - [ ] **SEO: Slugs** — `Prediction` model has a `slug` field (optional, unique) and the API route (`/api/forecasts/[id]/route.ts`) supports lookup by both ID and slug. But the frontend route is `/forecasts/[id]/` and always uses numeric IDs in URLs. To use slugs: update `Link` hrefs to use `slug` instead of `id`, add slug generation on prediction creation, handle slug-based routing in the page component.
 
 - [ ] **SEO: Server-render home feed** — `src/app/page.tsx` wraps `FeedClient` (a `'use client'` component) that fetches via `useEffect`. No SSR — content invisible to crawlers on initial load. To fix: convert to Server Component with server-side data fetch, or use React Server Components with streaming.

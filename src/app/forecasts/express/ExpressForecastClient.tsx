@@ -42,6 +42,7 @@ export default function ExpressForecastClient({ userId }: ExpressForecastClientP
   const [generated, setGenerated] = useState<GeneratedPrediction | null>(null)
   const [progressMessage, setProgressMessage] = useState('')
   const [articlesFound, setArticlesFound] = useState(0)
+  const [sourcesSummary, setSourcesSummary] = useState('')
   const [predictionPreview, setPredictionPreview] = useState<{ claim: string; resolveBy: string } | null>(null)
 
   // Edit mode state
@@ -69,6 +70,7 @@ export default function ExpressForecastClient({ userId }: ExpressForecastClientP
     setStep('searching')
     setProgressMessage(isUrl ? 'Fetching article content...' : 'Searching for relevant articles...')
     setArticlesFound(0)
+    setSourcesSummary('')
     setPredictionPreview(null)
 
     try {
@@ -105,6 +107,7 @@ export default function ExpressForecastClient({ userId }: ExpressForecastClientP
               setProgressMessage(data.data?.message || 'Searching...')
             } else if (data.stage === 'found_articles') {
               setArticlesFound(data.data?.count || 0)
+              setSourcesSummary(data.data?.sources || '')
               setProgressMessage(data.data?.message || `Found ${data.data?.count} sources`)
               setStep('analyzing')
             } else if (data.stage === 'analyzing') {
@@ -149,6 +152,7 @@ export default function ExpressForecastClient({ userId }: ExpressForecastClientP
     setIsEditing(false)
     setProgressMessage('')
     setArticlesFound(0)
+    setSourcesSummary('')
     setPredictionPreview(null)
   }
 
@@ -233,7 +237,7 @@ export default function ExpressForecastClient({ userId }: ExpressForecastClientP
           <div className="flex justify-between items-center mt-2">
             <span className="text-xs text-gray-500">{userInput.length}/1000 characters</span>
             {/^(https?:\/\/[^\s]+)$/i.test(userInput.trim()) && (
-              <span className="text-xs text-blue-600 font-medium">URL detected - will fetch content directly</span>
+              <span className="text-xs text-blue-600 font-medium">URL detected - will read article and find related sources</span>
             )}
           </div>
 
@@ -284,7 +288,9 @@ export default function ExpressForecastClient({ userId }: ExpressForecastClientP
                 <div className="flex-1">
                   <span className="font-medium">Searching / Fetching...</span>
                   {articlesFound > 0 && (
-                    <span className="ml-2 text-sm text-gray-600">({articlesFound} found)</span>
+                    <span className="ml-2 text-sm text-gray-600">
+                      ({sourcesSummary || `${articlesFound} found`})
+                    </span>
                   )}
                 </div>
                 {step !== 'searching' && step !== 'input' && <span className="ml-auto text-green-600">✓</span>}
