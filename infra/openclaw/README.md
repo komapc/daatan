@@ -1,192 +1,252 @@
 # OpenClaw EC2 Deployment
 
-Deploy The Clawborators on a t4g.medium EC2 instance for Daatan and Calendar projects. Mixed Gemini + local Qwen fallback, Telegram integration.
-
-**Full documentation:** See [DEPLOYMENT_PLAN.md](DEPLOYMENT_PLAN.md) for complete implementation details, troubleshooting, and security considerations.
+Deploy OpenClaw AI agents on AWS EC2 with Telegram integration.
 
 ## Quick Start
 
-**One-script provision:**
+### Prerequisites
+
+- AWS account with EC2 access
+- OpenRouter API key (https://openrouter.ai/keys)
+- Telegram Bot tokens (from @BotFather)
+- SSH key configured in AWS EC2
+
+### One-Command Deploy
 
 ```bash
 cd infra/openclaw
 
-# 1. Configure Terraform
-cp terraform/terraform.tfvars.example terraform/terraform.tfvars
-# Edit: allowed_ssh_cidr = "YOUR_IP/32" (run: curl -s ifconfig.me)
-
-# 2. Configure secrets
-cp .env.example .env
-# Edit: GEMINI_API_KEY, TELEGRAM_CHAT_ID, TELEGRAM_BOT_TOKEN_DAATAN, TELEGRAM_BOT_TOKEN_CALENDAR
-
-# 3. Deploy
-./scripts/raise-openclaw.sh
-```
-
-**One-script destroy:**
-
-```bash
-cd infra/openclaw
-./scripts/destroy-openclaw.sh
-```
-
-**Expected behavior:** Run the raise script → orchestrate The Claw by Telegram. Message @DaatanBot or @CalendarBot after deployment completes.
-
----
-
-## Prerequisites
-
-| Requirement | How to Verify |
-|-------------|---------------|
-| Terraform >= 1.0 | `terraform version` |
-| AWS credentials | `aws sts get-caller-identity` |
-| SSH key in EC2 | `aws ec2 describe-key-pairs --key-names daatan-key` |
-| Local SSH key | `ls -la ~/.ssh/daatan-key.pem` (chmod 400) |
-| Telegram bots | Created via @BotFather |
-| Gemini API key | [Google AI Studio](https://aistudio.google.com/app/apikey) |
-
----
-
-## Cost Optimization
-
-**On-demand start/stop** (~$0.0336/hour, ~$24/month continuous):
-
-```bash
-# Stop (keeps EIP and volume, stops compute billing)
-aws ec2 stop-instances --instance-ids <instance-id>
-
-# Start (compute billing resumes)
-aws ec2 start-instances --instance-ids <instance-id>
-
-# After start: restart containers
-ssh -i ~/.ssh/daatan-key.pem ubuntu@<IP> "cd ~/projects/openclaw && sg docker -c 'docker compose up -d'"
-```
-
-**Warning:** Stopping preserves data; terminating destroys instance and loses uncommitted data.
-
----
-
-## Manual Steps (if not using scripts)
-
-### Create
-
-```bash
-cd terraform
+# 1. Configure
 cp terraform.tfvars.example terraform.tfvars
-# Edit: allowed_ssh_cidr = "YOUR_IP/32"
-terraform init
-terraform apply
+# Edit terraform.tfvars: set allowed_ssh_cidr to your IP
+
+cp .env.example .env
+# Edit .env: add OPENROUTER_API_KEY and TELEGRAM_BOT_TOKEN_*
+
+# 2. Deploy
+./scripts/provision/deploy-all.sh
+
+# 3. Test
+# Message your Telegram bot @YourBotName
 ```
-
-### Destroy
-
-```bash
-cd terraform
-terraform destroy
-```
-
-Releases EIP and terminates instance. Volume data is lost.
-
-**State:** Terraform state is local (`terraform/terraform.tfstate`). Back it up; if lost, you cannot destroy or manage the stack.
-
-### Post-Provision
-
-1. **SSH in:** `ssh -i ~/.ssh/daatan-key.pem ubuntu@<OPENCLAW_IP>`
-   - Get IP: `terraform -chdir=terraform output -raw openclaw_public_ip`
-
-2. **Get deploy key:** `cat ~/.ssh/id_github.pub` — add to GitHub as Deploy Key for `komapc/daatan` and `komapc/year-shape` (with write access if agents will push)
-
-3. **Copy infra to EC2:**
-   ```bash
-   ssh -i ~/.ssh/daatan-key.pem ubuntu@<OPENCLAW_IP> "mkdir -p ~/projects"
-   scp -r -i ~/.ssh/daatan-key.pem infra/openclaw ubuntu@<OPENCLAW_IP>:~/projects/
-   ```
-
-4. **Copy .env:** Create `infra/openclaw/.env` locally, fill in values, then:
-   ```bash
-   scp -i ~/.ssh/daatan-key.pem infra/openclaw/.env ubuntu@<IP>:~/projects/openclaw/
-   ```
-
-5. **Run setup script:**
-   ```bash
-   ssh -i ~/.ssh/daatan-key.pem ubuntu@<OPENCLAW_IP>
-   chmod +x ~/projects/openclaw/scripts/setup-on-ec2.sh
-   ~/projects/openclaw/scripts/setup-on-ec2.sh
-   ```
-
-6. **Docker group:** If `docker compose` fails with "permission denied":
-   ```bash
-   sg docker -c "docker compose up -d"
-   # Or log out and back in
-   ```
 
 ---
 
-## Environment Variables
+## Architecture
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `GEMINI_API_KEY` | Yes | Google Gemini API key |
-| `TELEGRAM_CHAT_ID` | Yes | Your chat ID (primary user). Message a bot, then `curl https://api.telegram.org/bot$TOKEN/getUpdates` to get it |
-| `TELEGRAM_BOT_TOKEN_DAATAN` | Yes | @BotFather token for Daatan bot |
-| `TELEGRAM_BOT_TOKEN_CALENDAR` | Yes | @BotFather token for Calendar bot |
-
-**Second user:** They DM a bot, get a pairing code. Run:
-```bash
-docker exec -it openclaw openclaw pairing list telegram
-docker exec -it openclaw openclaw pairing approve telegram <CODE>
 ```
-
-See [DEPLOYMENT_PLAN.md](DEPLOYMENT_PLAN.md) for details.
+┌─────────────────┐
+│   Telegram      │
+│     Bot         │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐     ┌──────────────────┐
+│   EC2 Instance  │────▶│  OpenClaw        │
+│   (t4g.medium)  │     │  Container       │
+└─────────────────┘     └────────┬─────────┘
+         │                       │
+         ▼                       ▼
+┌─────────────────┐     ┌──────────────────┐
+│  Ollama (local) │     │  OpenRouter API  │
+│  qwen2.5:1.5b   │     │  qwen-2.5-7b     │
+└─────────────────┘     └──────────────────┘
+```
 
 ---
 
-## Verification
+## Directory Structure
 
-After deployment:
+```
+infra/openclaw/
+├── scripts/
+│   ├── provision/       # Terraform wrappers
+│   │   ├── create.sh
+│   │   ├── destroy.sh
+│   │   └── deploy-all.sh
+│   ├── setup/           # EC2 setup scripts
+│   │   ├── on-ec2.sh
+│   │   └── validate-env.sh
+│   └── utils/           # Maintenance utilities
+│       ├── backup-env.sh
+│       ├── health-check.sh
+│       └── secrets.sh
+├── terraform/           # Infrastructure as Code
+│   ├── main.tf
+│   ├── vpc.tf
+│   └── variables.tf
+├── config/              # OpenClaw configuration
+│   └── unified.json
+├── docs/                # Documentation
+│   ├── RUNBOOK.md
+│   ├── SECRETS_MANAGER.md
+│   └── TROUBLESHOOTING.md
+└── Dockerfile           # Custom OpenClaw image
+```
+
+---
+
+## Configuration
+
+### Required Environment Variables (.env)
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `OPENROUTER_API_KEY` | OpenRouter API key | `sk-or-v1-...` |
+| `TELEGRAM_BOT_TOKEN_DAATAN` | Daatan bot token | `123456:ABC...` |
+| `TELEGRAM_BOT_TOKEN_CALENDAR` | Calendar bot token | `789012:DEF...` |
+| `TELEGRAM_CHAT_ID` | Your Telegram ID | `188323801` |
+
+### Terraform Variables (terraform.tfvars)
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `allowed_ssh_cidr` | Your IP for SSH access | `1.2.3.4/32` |
+| `ec2_instance_type` | EC2 instance type | `t4g.medium` |
+| `ssh_key_name` | AWS SSH key name | `daatan-key` |
+| `aws_region` | AWS region | `eu-central-1` |
+
+---
+
+## Scripts Reference
+
+### Provisioning
+
+| Script | Description |
+|--------|-------------|
+| `scripts/provision/create.sh` | Create EC2 infrastructure |
+| `scripts/provision/destroy.sh` | Destroy infrastructure |
+| `scripts/provision/deploy-all.sh` | Full deployment (create + setup) |
+| `scripts/provision/copy-infra.sh` | Copy code to EC2 |
+| `scripts/provision/run-setup.sh` | Run setup on EC2 |
+
+### Setup
+
+| Script | Description |
+|--------|-------------|
+| `scripts/setup/on-ec2.sh` | Clone repos, start containers |
+| `scripts/setup/validate-env.sh` | Validate environment file |
+
+### Utilities
+
+| Script | Description |
+|--------|-------------|
+| `scripts/utils/backup-env.sh` | Backup .env to local/S3 |
+| `scripts/utils/restore-env.sh` | Restore .env from backup |
+| `scripts/utils/health-check.sh` | Health monitoring |
+| `scripts/utils/secrets.sh` | AWS Secrets Manager CLI |
+
+---
+
+## Maintenance
+
+### Check Status
 
 ```bash
-# 1. Container running
+# SSH to instance
+ssh -i ~/.ssh/daatan-key.pem ubuntu@<INSTANCE_IP>
+
+# Check container
 docker compose ps
 
-# 2. Ollama model loaded
-ollama list
-
-# 3. Telegram bots responsive
-# Message @DaatanBot and @CalendarBot with /start
-
-# 4. Agents can read workspace
-# Message Daatan bot: "List files in your workspace"
+# Check bot status
+docker exec openclaw npx --yes openclaw channels status
 ```
 
-See [DEPLOYMENT_PLAN.md](DEPLOYMENT_PLAN.md) for full verification checklist.
+### View Logs
+
+```bash
+# Real-time
+docker compose logs -f openclaw
+
+# Last 100 lines
+docker compose logs --tail=100 openclaw
+
+# Search for errors
+docker compose logs 2>&1 | grep -i error
+```
+
+### Update Configuration
+
+```bash
+# Edit .env
+nano ~/projects/openclaw/.env
+
+# Restart container (REQUIRED for env changes)
+docker compose down
+docker compose up -d
+
+# Verify
+docker exec openclaw env | grep OPENROUTER
+```
+
+### Backup
+
+```bash
+# Backup .env
+cp ~/projects/openclaw/.env ~/projects/openclaw/.env.backup.$(date +%Y%m%d)
+
+# Backup config
+docker exec openclaw cat /home/node/.openclaw/openclaw.json > backup.json
+```
 
 ---
 
 ## Troubleshooting
 
-| Symptom | Quick Fix |
-|---------|-----------|
-| Container exits | Check `.env` exists with all required vars; `docker compose logs` |
-| Git clone fails | Add deploy key to GitHub: `cat ~/.ssh/id_github.pub` |
-| Ollama connection refused | `systemctl status ollama`; containers use `host.docker.internal:11434` |
-| Docker permission denied | `sg docker -c "command"` or log out/in |
-| Agents don't respond | Check pairing: `docker exec -it openclaw openclaw pairing list telegram` |
+See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) for common issues and solutions.
 
-**Full troubleshooting:** See [DEPLOYMENT_PLAN.md](DEPLOYMENT_PLAN.md#troubleshooting).
+### Quick Fixes
+
+| Issue | Fix |
+|-------|-----|
+| HTTP 401 error | Update OpenRouter key + restart container |
+| No bot response | Check `openclaw channels status` |
+| SSH connection failed | Update security group with your IP |
 
 ---
 
-## Files
+## Cost Estimate
 
-| File | Description |
-|------|-------------|
-| [Dockerfile](Dockerfile) | Extends OpenClaw image with docker-cli |
-| [.env.example](.env.example) | Template for OpenClaw .env (gitignored) |
-| [DEPLOYMENT_PLAN.md](DEPLOYMENT_PLAN.md) | **Full implementation guide** |
-| [scripts/raise-openclaw.sh](scripts/raise-openclaw.sh) | One-script provision |
-| [scripts/destroy-openclaw.sh](scripts/destroy-openclaw.sh) | One-script destroy |
-| [scripts/setup-on-ec2.sh](scripts/setup-on-ec2.sh) | Post-provision setup (run on EC2) |
-| [terraform/](terraform/) | Terraform config |
-| [config/](config/) | unified.json (active), daatan.json, calendar.json (legacy) |
-| [calendar-agent-bootstrap/](calendar-agent-bootstrap/) | SOUL.md and AGENTS.md for Calendar |
+| Resource | Monthly Cost |
+|----------|--------------|
+| EC2 t4g.medium | ~$24 |
+| EIP (if not attached) | ~$3 |
+| 30GB GP3 volume | ~$3 |
+| OpenRouter API | ~$5 (budget limit) |
+| **Total** | **~$35/month** |
+
+---
+
+## Security
+
+- ✅ SSH restricted to your IP only
+- ✅ Secrets stored in AWS Secrets Manager
+- ✅ IAM role for EC2 (no hardcoded credentials)
+- ✅ Docker container runs as non-root user
+- ✅ Security group allows only SSH (port 22)
+
+### Best Practices
+
+1. **Rotate API keys regularly**
+2. **Backup .env before changes**
+3. **Use AWS Secrets Manager for production**
+4. **Monitor OpenRouter usage** (set budget alerts)
+5. **Keep security group updated** (your IP may change)
+
+---
+
+## Related Documentation
+
+- [RUNBOOK.md](docs/RUNBOOK.md) - Operational procedures
+- [SECRETS_MANAGER.md](docs/SECRETS_MANAGER.md) - AWS Secrets setup
+- [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) - Common issues
+- [OPENROUTER_BUDGET.md](docs/OPENROUTER_BUDGET.md) - Cost management
+
+---
+
+## Support
+
+- **OpenClaw Docs:** https://docs.openclaw.ai
+- **GitHub Issues:** https://github.com/openclaw/openclaw/issues
+- **Telegram Bot API:** https://core.telegram.org/bots/api
