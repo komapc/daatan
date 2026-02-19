@@ -287,7 +287,7 @@ URL: ${article.url}
   }
 }
 
-function extractDomainFromUrl(url: string): string {
+export function extractDomainFromUrl(url: string): string {
   try {
     const domain = new URL(url).hostname
     return domain.replace('www.', '')
