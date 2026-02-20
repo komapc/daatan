@@ -1,5 +1,6 @@
 import { GeminiProvider } from './providers/gemini'
 import { OllamaProvider } from './providers/ollama'
+import { OpenRouterProvider } from './providers/openrouter'
 import { ResilientLLMService } from './service'
 import type { LLMProvider } from './types'
 import { createLogger } from '@/lib/logger'
@@ -41,3 +42,19 @@ providers.push(
 // Create service instance with fallback strategy.
 // Tries providers in the order they were registered above.
 export const llmService = new ResilientLLMService(providers)
+
+/**
+ * Creates an LLM service backed by OpenRouter for a specific model.
+ * Used by the bot runner where each bot may have a different model preference.
+ */
+export function createBotLLMService(modelName: string): ResilientLLMService {
+  const openrouterApiKey = process.env.OPENROUTER_API_KEY || ''
+
+  if (!openrouterApiKey) {
+    log.warn('OPENROUTER_API_KEY is not set; bot LLM calls will fail')
+  }
+
+  return new ResilientLLMService([
+    new OpenRouterProvider({ apiKey: openrouterApiKey, modelName }),
+  ])
+}

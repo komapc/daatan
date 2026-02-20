@@ -1,0 +1,44 @@
+name: Bot Runner
+
+on:
+  schedule:
+    # Every 5 minutes — the API checks which bots are actually due
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (generate but do not post)'
+        required: false
+        default: 'false'
+        type: boolean
+
+jobs:
+  trigger-bots:
+    name: Trigger bot runner on staging
+    runs-on: ubuntu-latest
+    # Only run on the main branch (staging target)
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Trigger bot runner
+        run: |
+          DRY_RUN="${{ github.event.inputs.dry_run || 'false' }}"
+          URL="${{ secrets.STAGING_URL }}/api/bots/run"
+
+          echo "Triggering bot runner at $URL (dry=$DRY_RUN)"
+
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$URL" \
+            -H "x-bot-runner-secret: ${{ secrets.BOT_RUNNER_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --max-time 30)
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n-1)
+
+          echo "Response: $BODY"
+          echo "HTTP status: $HTTP_CODE"
+
+          if [ "$HTTP_CODE" -ne 200 ]; then
+            echo "Bot runner failed with status $HTTP_CODE"
+            exit 1
+          fi
