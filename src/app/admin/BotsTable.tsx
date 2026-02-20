@@ -28,6 +28,16 @@ interface Bot {
   forecastPrompt: string
   votePrompt: string
   newsSources: string[]
+  // Extended params
+  activeHoursStart: number | null
+  activeHoursEnd: number | null
+  tagFilter: string[]
+  voteBias: number
+  cuRefillAt: number
+  cuRefillAmount: number
+  canCreateForecasts: boolean
+  canVote: boolean
+  // Computed
   lastRunAt: string | null
   nextRunAt: string | null
   forecastsToday: number
@@ -429,6 +439,15 @@ function EditBotModal({ bot, onSave, onClose }: {
     modelPreference: bot.modelPreference,
     hotnessMinSources: bot.hotnessMinSources,
     hotnessWindowHours: bot.hotnessWindowHours,
+    // Extended params
+    activeHoursStart: bot.activeHoursStart,
+    activeHoursEnd: bot.activeHoursEnd,
+    tagFilter: (bot.tagFilter ?? []).join('\n'),
+    voteBias: bot.voteBias ?? 50,
+    cuRefillAt: bot.cuRefillAt ?? 0,
+    cuRefillAmount: bot.cuRefillAmount ?? 50,
+    canCreateForecasts: bot.canCreateForecasts ?? true,
+    canVote: bot.canVote ?? true,
   })
   const [saving, setSaving] = useState(false)
 
@@ -439,9 +458,14 @@ function EditBotModal({ bot, onSave, onClose }: {
       .split('\n')
       .map((s) => s.trim())
       .filter(Boolean)
+    const tags = form.tagFilter
+      .split('\n')
+      .map((s) => s.trim())
+      .filter(Boolean)
     onSave({
       ...form,
       newsSources: sources,
+      tagFilter: tags,
     } as unknown as Partial<Bot>)
     setSaving(false)
   }
@@ -522,6 +546,129 @@ function EditBotModal({ bot, onSave, onClose }: {
               onChange={(v) => setForm({ ...form, hotnessWindowHours: v })} />
           </div>
 
+          {/* ── Actions & Bias ─────────────────────────────────────── */}
+          <div className="border rounded-lg p-3 space-y-3 bg-gray-50">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions &amp; Bias</p>
+            <div className="flex flex-wrap gap-4">
+              <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={form.canCreateForecasts}
+                  onChange={(e) => setForm({ ...form, canCreateForecasts: e.target.checked })}
+                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                Create forecasts
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={form.canVote}
+                  onChange={(e) => setForm({ ...form, canVote: e.target.checked })}
+                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                Vote on forecasts
+              </label>
+            </div>
+            <div className="max-w-xs">
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Vote bias: {form.voteBias} / 100
+                <span className="ml-2 text-gray-400 font-normal">
+                  ({form.voteBias < 40 ? 'leans NO' : form.voteBias > 60 ? 'leans YES' : 'neutral'})
+                </span>
+              </label>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={form.voteBias}
+                onChange={(e) => setForm({ ...form, voteBias: parseInt(e.target.value) })}
+                className="w-full accent-blue-600"
+              />
+              <div className="flex justify-between text-xs text-gray-400 mt-0.5">
+                <span>0 NO</span>
+                <span>50 neutral</span>
+                <span>100 YES</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Active Window ──────────────────────────────────────── */}
+          <div className="border rounded-lg p-3 space-y-3 bg-gray-50">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Active Window (UTC)</p>
+            <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={form.activeHoursStart == null}
+                onChange={(e) => setForm({
+                  ...form,
+                  activeHoursStart: e.target.checked ? null : 8,
+                  activeHoursEnd: e.target.checked ? null : 22,
+                })}
+                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              Always active (no time restriction)
+            </label>
+            {form.activeHoursStart != null && (
+              <div className="grid grid-cols-2 gap-4">
+                <NumberField
+                  label="Start hour (0–23 UTC)"
+                  value={form.activeHoursStart}
+                  min={0}
+                  max={23}
+                  onChange={(v) => setForm({ ...form, activeHoursStart: v })}
+                />
+                <NumberField
+                  label="End hour (0–23 UTC, exclusive)"
+                  value={form.activeHoursEnd ?? 22}
+                  min={0}
+                  max={23}
+                  onChange={(v) => setForm({ ...form, activeHoursEnd: v })}
+                />
+                <p className="col-span-2 text-xs text-gray-400">
+                  Overnight ranges work — e.g. start&nbsp;22 &rarr; end&nbsp;06 means 10&nbsp;pm–6&nbsp;am UTC.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* ── CU Auto-Refill ─────────────────────────────────────── */}
+          <div className="border rounded-lg p-3 space-y-3 bg-gray-50">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">CU Auto-Refill</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <NumberField
+                  label="Refill threshold (CU)"
+                  value={form.cuRefillAt}
+                  min={0}
+                  onChange={(v) => setForm({ ...form, cuRefillAt: v })}
+                />
+                {form.cuRefillAt === 0 && (
+                  <p className="text-xs text-gray-400 mt-1">0 = disabled</p>
+                )}
+              </div>
+              <NumberField
+                label="Refill amount (CU)"
+                value={form.cuRefillAmount}
+                min={1}
+                onChange={(v) => setForm({ ...form, cuRefillAmount: v })}
+              />
+            </div>
+            <p className="text-xs text-gray-400">
+              When bot&apos;s CU balance drops to or below the threshold, grant the refill amount automatically before the next stake.
+            </p>
+          </div>
+
+          {/* ── Tag Filter ─────────────────────────────────────────── */}
+          <Field label="Tag filter" hint="One tag per line. Leave empty to act on all tags.">
+            <textarea
+              value={form.tagFilter}
+              onChange={(e) => setForm({ ...form, tagFilter: e.target.value })}
+              rows={3}
+              placeholder={'politics\ntechnology\nclimate'}
+              className="w-full border rounded px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-blue-500 outline-none"
+            />
+          </Field>
+
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={onClose} className="px-4 py-2 text-sm border rounded hover:bg-gray-50">
               Cancel
@@ -551,8 +698,8 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
   )
 }
 
-function NumberField({ label, value, min, onChange }: {
-  label: string; value: number; min: number; onChange: (v: number) => void
+function NumberField({ label, value, min, max, onChange }: {
+  label: string; value: number; min: number; max?: number; onChange: (v: number) => void
 }) {
   return (
     <div>
@@ -561,6 +708,7 @@ function NumberField({ label, value, min, onChange }: {
         type="number"
         value={value}
         min={min}
+        max={max}
         onChange={(e) => onChange(parseInt(e.target.value) || min)}
         className="w-full border rounded px-2 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
       />

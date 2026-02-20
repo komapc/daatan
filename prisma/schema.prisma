@@ -577,8 +577,35 @@ model BotConfig {
   modelPreference String @default("google/gemini-2.0-flash-exp:free")
 
   // Hotness detection thresholds
-  hotnessMinSources  Int @default(2)   // Min sources to consider hot
-  hotnessWindowHours Int @default(6)   // Time window for hotness detection
+  hotnessMinSources  Int @default(2) // Min sources to consider hot
+  hotnessWindowHours Int @default(6) // Time window for hotness detection
+
+  // Active hours window (UTC). Both null = always active.
+  // If set, bot only runs when: hour >= start && hour < end (overnight works: start > end).
+  // TODO(stage2-bot-params): enforced in bot-runner.ts runBot()
+  activeHoursStart Int?
+  activeHoursEnd   Int?
+
+  // Tag focus filter: bot only creates/votes on forecasts with these tags.
+  // Empty array = no filter (act on all tags).
+  // TODO(stage2-bot-params): enforced in bot-runner.ts processTopics() + runVoting()
+  tagFilter Json @default("[]") // String[]
+
+  // Vote bias 0–100: 0 = lean NO, 50 = neutral, 100 = lean YES.
+  // Injected into votePrompt at runtime.
+  // TODO(stage2-bot-params): injected in bot-runner.ts runVoting() LLM prompt
+  voteBias Int @default(50)
+
+  // CU auto-refill: when bot's cuAvailable drops to/below cuRefillAt,
+  // grant cuRefillAmount CU. cuRefillAt = 0 disables auto-refill.
+  // TODO(stage2-bot-params): enforced in bot-runner.ts before each stake
+  cuRefillAt     Int @default(0)
+  cuRefillAmount Int @default(50)
+
+  // Enabled action flags — disable phases without removing the bot.
+  // TODO(stage2-bot-params): guarded at start of each phase in bot-runner.ts
+  canCreateForecasts Boolean @default(true)
+  canVote            Boolean @default(true)
 
   isActive  Boolean   @default(true)
   lastRunAt DateTime?

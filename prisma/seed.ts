@@ -16,7 +16,7 @@ async function main() {
       update: { role: 'ADMIN' },
       create: {
         email,
-        name: 'Admin User',
+        name: email.split('@')[0], // Replaced on first Google login
         role: 'ADMIN',
         username: email.split('@')[0], // Fallback username
       },
