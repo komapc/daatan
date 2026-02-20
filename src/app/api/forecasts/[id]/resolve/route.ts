@@ -12,7 +12,7 @@ export const POST = withAuth(async (request, user, { params }) => {
 
   const predictionId = params.id
 
-  // Get prediction with commitments and options
+  // Get prediction with commitments, options, and withdrawals
   const prediction = await prisma.prediction.findUnique({
     where: { id: predictionId },
     include: {
@@ -21,6 +21,10 @@ export const POST = withAuth(async (request, user, { params }) => {
         include: {
           user: true,
         },
+      },
+      withdrawals: {
+        where: { cuBurned: { gt: 0 } },
+        select: { userId: true, cuBurned: true },
       },
     },
   })
@@ -77,12 +81,17 @@ export const POST = withAuth(async (request, user, { params }) => {
       }
     }
 
+    const isVoidOutcome = outcome === 'void' || outcome === 'unresolvable'
+
+    // Collect winner commitments for bonus pool distribution
+    const winnerCommitments: typeof prediction.commitments = []
+
     // Process each commitment
     for (const commitment of prediction.commitments) {
       let cuReturned = 0
       let rsChange = 0
 
-      if (outcome === 'void' || outcome === 'unresolvable') {
+      if (isVoidOutcome) {
         // Refund CU, no RS change
         cuReturned = commitment.cuCommitted
       } else {
@@ -102,6 +111,7 @@ export const POST = withAuth(async (request, user, { params }) => {
           // Correct prediction: return CU + bonus, increase RS
           cuReturned = Math.floor(commitment.cuCommitted * 1.5) // 50% bonus
           rsChange = commitment.cuCommitted * 0.1 // 10% of committed CU as RS gain
+          winnerCommitments.push(commitment)
         } else {
           // Wrong prediction: lose CU, decrease RS
           cuReturned = 0
@@ -136,12 +146,64 @@ export const POST = withAuth(async (request, user, { params }) => {
       await tx.cuTransaction.create({
         data: {
           userId: commitment.userId,
-          type: outcome === 'void' || outcome === 'unresolvable' ? 'REFUND' : 'COMMITMENT_UNLOCK',
+          type: isVoidOutcome ? 'REFUND' : 'COMMITMENT_UNLOCK',
           amount: cuReturned,
           referenceId: commitment.id,
           note: `Prediction resolved: ${outcome}`,
           balanceAfter: newCuAvailable,
         },
+      })
+    }
+
+    // Distribute winners pool bonus to winners proportionally
+    if (!isVoidOutcome && winnerCommitments.length > 0 && prediction.winnersPoolBonus > 0) {
+      const totalWinnerCU = winnerCommitments.reduce((sum, c) => sum + c.cuCommitted, 0)
+      for (const winner of winnerCommitments) {
+        const bonusShare = winner.cuCommitted / totalWinnerCU
+        const bonusCU = Math.floor(prediction.winnersPoolBonus * bonusShare)
+        if (bonusCU > 0) {
+          const updatedWinner = await tx.user.update({
+            where: { id: winner.userId },
+            data: { cuAvailable: { increment: bonusCU } },
+            select: { cuAvailable: true },
+          })
+          await tx.cuTransaction.create({
+            data: {
+              userId: winner.userId,
+              type: 'BONUS',
+              amount: bonusCU,
+              referenceId: prediction.id,
+              note: `Exit penalty pool bonus (${Math.round(bonusShare * 100)}% of winners pool)`,
+              balanceAfter: updatedWinner.cuAvailable,
+            },
+          })
+        }
+      }
+    }
+
+    // On void/unresolvable: refund burned CU to exiters
+    if (isVoidOutcome && prediction.withdrawals.length > 0) {
+      for (const withdrawal of prediction.withdrawals) {
+        const updatedExiter = await tx.user.update({
+          where: { id: withdrawal.userId },
+          data: { cuAvailable: { increment: withdrawal.cuBurned } },
+          select: { cuAvailable: true },
+        })
+        await tx.cuTransaction.create({
+          data: {
+            userId: withdrawal.userId,
+            type: 'VOID_BURN_REFUND',
+            amount: withdrawal.cuBurned,
+            referenceId: prediction.id,
+            note: `Burn penalty refunded — prediction resolved as ${outcome}`,
+            balanceAfter: updatedExiter.cuAvailable,
+          },
+        })
+      }
+      // Clear the winners pool bonus
+      await tx.prediction.update({
+        where: { id: predictionId },
+        data: { winnersPoolBonus: 0 },
       })
     }
 

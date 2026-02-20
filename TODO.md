@@ -8,15 +8,11 @@
 
 - [ ] **Security: SSRF protection on URL fetching** — `fetchUrlContent()` in `src/lib/utils/scraper.ts` accepts arbitrary URLs with no validation. Any authenticated user can hit internal services (AWS IMDS `169.254.169.254`, localhost, Docker IPs). Fix: validate HTTPS-only, block RFC-1918/link-local ranges. Affects `/api/ai/extract` and express forecast URL flow.
 
-- [ ] **Bug: `predictionId` extracted from URL pathname instead of route params** — `src/app/api/forecasts/[id]/resolve/route.ts:12` uses `request.nextUrl.pathname.split('/').at(-2)!` instead of `params.id`. Fragile and uses non-null assertion. One-line fix.
-
-- [ ] **Bug: `cuLocked` can go negative on resolution** — `src/app/api/forecasts/[id]/resolve/route.ts:122-129` computes `cuLocked - cuCommitted` with no floor guard. Add `Math.max(0, ...)`. One-line fix.
-
 ### P1 - High Priority
 
 - [ ] **Commitments: Elaborate commitment/join forecast system** — define how users commit to forecasts, change commitments, what happens on resolution. Open design questions: can users update commitment after placing? Time-lock before resolution? CU refund policy on cancellation? How do "Other" option commitments resolve in multiple-choice?
 
-- [ ] **Commitments: Enforce `lockedAt` check** — `removeCommitment` and `updateCommitment` in `src/lib/services/commitment.ts` fetch `lockedAt` but never enforce it. Users can withdraw/change commitments after others have committed, breaking game-theory integrity. ~4 lines each.
+- [x] **Commitments: Enforce `lockedAt` check + exit penalty** — Implemented C3 pool-imbalance penalty on withdrawal (burnRate = max(10%, yourSideShare)), blocks CU increases and side changes after lock, burned CU goes to winnersPoolBonus distributed to winners at resolution, void refunds burned CU to exiters via CommitmentWithdrawal records.
 
 - [ ] **Security: Review `allowDangerousEmailAccountLinking`** — `src/lib/auth.ts:24` has `allowDangerousEmailAccountLinking: true` on Google OAuth. Attacker with a Google account matching a victim's email can hijack their daatan account. Disable unless there's a specific product requirement.
 
@@ -50,13 +46,10 @@
 
 - [ ] **Code quality: Tags route uses manual validation** — `POST /api/tags` (`src/app/api/tags/route.ts:51-59`) does manual string checks instead of Zod. Inconsistent with all other routes.
 
-- [ ] **Notifications system** (unified) — Prisma schema, service layer, and API routes are built. Remaining:
-  - [ ] Wire in-app notification triggers into commitment resolution, comments, new commitments
-  - [ ] Browser push notifications (service worker + Web Push API)
+- [ ] **Notifications system** (unified) — Remaining:
   - [ ] Email notifications (pick provider: SES, Resend, or Postmark)
-  - [ ] Settings page: per-user notification channel configuration (UI for `NotificationPreference` model)
   - [ ] Comment `@mentions`: parse `@username` in comment text, resolve to user, trigger `MENTION` notification
-  - **Done:** Telegram channel notifications for publish, commit, comment, resolve (v1.4.19)
+  - **Done:** Telegram channel notifications (v1.4.19), in-app triggers (comments, commitments, resolve), browser push (service worker + Web Push API + VAPID), settings UI, unread badge, notifications page (v1.5.0)
 
 - [ ] **i18n: Wire translations into all components** — `messages/en.json` and `messages/he.json` both exist with ~103 keys and matching structure. However, many components still use hardcoded English strings instead of `useTranslations()`. Need to audit all UI text and replace with translation keys. Priority: navigation, buttons, form labels, error messages.
 

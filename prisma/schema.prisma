@@ -56,6 +56,7 @@ model User {
   // Prediction system relations
   predictions         Prediction[] // Predictions authored by user
   commitments         Commitment[] // User's CU commitments
+  withdrawals         CommitmentWithdrawal[] // Exited commitments
   cuTransactions      CuTransaction[] // CU ledger entries
   resolvedPredictions Prediction[]    @relation("ResolvedBy")
 
@@ -210,6 +211,9 @@ model Prediction {
   publishedAt DateTime? // When status changed to ACTIVE
   lockedAt    DateTime? // When first commitment was made
 
+  // Exit penalty pool (burned CU from early withdrawals, distributed to winners)
+  winnersPoolBonus Int @default(0)
+
   // Resolution data (filled when resolved)
   resolvedAt        DateTime?
   resolvedById      String?
@@ -219,9 +223,10 @@ model Prediction {
   resolutionNote    String?   @db.Text
 
   // Relations
-  options     PredictionOption[]
-  commitments Commitment[]
-  comments    Comment[]
+  options      PredictionOption[]
+  commitments  Commitment[]
+  withdrawals  CommitmentWithdrawal[]
+  comments     Comment[]
 
   @@index([status])
   @@index([authorId])
@@ -298,6 +303,31 @@ model Commitment {
 }
 
 // ============================================
+// COMMITMENT WITHDRAWALS (Exit penalty tracking)
+// ============================================
+
+model CommitmentWithdrawal {
+  id           String   @id @default(cuid())
+
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  predictionId String
+  prediction   Prediction @relation(fields: [predictionId], references: [id], onDelete: Cascade)
+
+  cuCommitted  Int // Original committed amount at time of exit
+  cuBurned     Int // Amount burned as penalty (goes to winnersPoolBonus)
+  cuRefunded   Int // Amount returned immediately (cuCommitted - cuBurned)
+  burnRate     Int // Burn rate × 100 (e.g., 25 = 25%)
+
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([predictionId])
+  @@map("commitment_withdrawals")
+}
+
+// ============================================
 // CU LEDGER (Transaction history)
 // ============================================
 
@@ -308,6 +338,9 @@ enum CuTransactionType {
   REFUND // CU refunded (void/unresolvable)
   BONUS // Streak/achievement bonus
   ADMIN_ADJUSTMENT // Manual adjustment by admin
+  WITHDRAWAL_PENALTY // CU burned as exit penalty (negative)
+  WITHDRAWAL_REFUND // CU returned to user on exit after penalty (positive)
+  VOID_BURN_REFUND // Burned CU refunded when prediction ends void/unresolvable
 }
 
 model CuTransaction {

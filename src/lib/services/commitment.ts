@@ -2,6 +2,9 @@ import { prisma } from '@/lib/prisma'
 import type { Prisma, PredictionOption } from '@prisma/client'
 import { notifyNewCommitment } from '@/lib/services/telegram'
 import { createNotification } from '@/lib/services/notification'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('commitment-service')
 
 /** Minimal user fields needed for commitment operations. */
 interface CommitmentUser {
@@ -19,6 +22,7 @@ interface CommitmentPrediction {
   outcomeType: string
   claimText: string
   slug: string | null
+  lockedAt: Date | null
   options: PredictionOption[]
 }
 
@@ -40,6 +44,66 @@ interface UpdateCommitmentData {
 type ServiceResult<T> =
   | { ok: true; data: T; status: number }
   | { ok: false; error: string; status: number }
+
+// ============================================
+// Penalty helpers
+// ============================================
+
+interface PoolState {
+  totalPoolCU: number
+  yourSideCU: number
+}
+
+/**
+ * Compute pool state for penalty calculation.
+ * yourSideCU includes the user's own commitment.
+ */
+async function computePoolState(
+  predictionId: string,
+  userId: string,
+  binaryChoice: boolean | null | undefined,
+  optionId: string | null | undefined,
+): Promise<PoolState> {
+  const commitments = await prisma.commitment.findMany({
+    where: { predictionId },
+    select: { userId: true, cuCommitted: true, binaryChoice: true, optionId: true },
+  })
+
+  let totalPoolCU = 0
+  let yourSideCU = 0
+
+  for (const c of commitments) {
+    totalPoolCU += c.cuCommitted
+    // Determine if on same side as the exiting user
+    if (optionId !== undefined && optionId !== null) {
+      if (c.optionId === optionId) yourSideCU += c.cuCommitted
+    } else {
+      if (c.binaryChoice === binaryChoice) yourSideCU += c.cuCommitted
+    }
+  }
+
+  return { totalPoolCU, yourSideCU }
+}
+
+/** Pure penalty calculation — no side effects. */
+export function calculatePenalty(
+  cuCommitted: number,
+  yourSideCU: number,
+  totalPoolCU: number,
+): { cuBurned: number; cuRefunded: number; burnRate: number } {
+  if (totalPoolCU === 0) {
+    return { cuBurned: 0, cuRefunded: cuCommitted, burnRate: 0 }
+  }
+  // yourSideShare includes own commitment
+  const yourSideShare = yourSideCU / totalPoolCU
+  const burnRateFraction = Math.max(0.10, yourSideShare)
+  const cuBurned = Math.floor(cuCommitted * burnRateFraction)
+  return {
+    cuBurned,
+    cuRefunded: cuCommitted - cuBurned,
+    burnRate: Math.round(burnRateFraction * 100),
+  }
+}
 
 // ============================================
 // Validation helpers
@@ -197,15 +261,17 @@ export async function createCommitment(
 }
 
 /**
- * Remove a commitment and refund CU.
+ * Remove a commitment and refund CU minus exit penalty.
+ * Penalty formula (C3): burnRate = max(10%, yourSideShare).
+ * Burns cuBurned into prediction.winnersPoolBonus.
  */
 export async function removeCommitment(
   userId: string,
   predictionId: string,
-): Promise<ServiceResult<{ success: true }>> {
+): Promise<ServiceResult<{ success: true; cuBurned: number; cuRefunded: number; burnRate: number }>> {
   const commitment = await prisma.commitment.findUnique({
     where: { userId_predictionId: { userId, predictionId } },
-    include: { prediction: { select: { status: true, lockedAt: true } } },
+    include: { prediction: { select: { status: true, lockedAt: true, claimText: true } } },
   })
 
   if (!commitment) return { ok: false, error: 'Commitment not found', status: 404 }
@@ -213,34 +279,82 @@ export async function removeCommitment(
     return { ok: false, error: 'Cannot remove commitment from non-active predictions', status: 400 }
   }
 
+  // Compute pool state and penalty
+  const poolState = await computePoolState(predictionId, userId, commitment.binaryChoice, commitment.optionId)
+  const { cuBurned, cuRefunded, burnRate } = calculatePenalty(
+    commitment.cuCommitted,
+    poolState.yourSideCU,
+    poolState.totalPoolCU,
+  )
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { cuAvailable: true },
+  })
+  if (!user) return { ok: false, error: 'User not found', status: 404 }
+
   await prisma.$transaction(async (tx) => {
     await tx.commitment.delete({ where: { id: commitment.id } })
+
+    await tx.commitmentWithdrawal.create({
+      data: {
+        userId,
+        predictionId,
+        cuCommitted: commitment.cuCommitted,
+        cuBurned,
+        cuRefunded,
+        burnRate,
+      },
+    })
 
     const updatedUser = await tx.user.update({
       where: { id: userId },
       data: {
-        cuAvailable: { increment: commitment.cuCommitted },
+        cuAvailable: { increment: cuRefunded },
         cuLocked: { decrement: commitment.cuCommitted },
       },
     })
 
+    if (cuBurned > 0) {
+      await tx.prediction.update({
+        where: { id: predictionId },
+        data: { winnersPoolBonus: { increment: cuBurned } },
+      })
+
+      await tx.cuTransaction.create({
+        data: {
+          userId,
+          type: 'WITHDRAWAL_PENALTY',
+          amount: -cuBurned,
+          referenceId: commitment.id,
+          note: `Exit penalty (${burnRate}%) on: ${commitment.prediction.claimText.substring(0, 50)}...`,
+          balanceAfter: updatedUser.cuAvailable,
+        },
+      })
+    }
+
     await tx.cuTransaction.create({
       data: {
         userId,
-        type: 'REFUND',
-        amount: commitment.cuCommitted,
+        type: 'WITHDRAWAL_REFUND',
+        amount: cuRefunded,
         referenceId: commitment.id,
-        note: 'Commitment withdrawn',
+        note: `Commitment withdrawn (${cuBurned > 0 ? `${burnRate}% penalty applied` : 'no penalty'})`,
         balanceAfter: updatedUser.cuAvailable,
       },
     })
   })
 
-  return { ok: true, data: { success: true }, status: 200 }
+  log.info({ userId, predictionId, cuBurned, cuRefunded, burnRate }, 'Commitment removed with penalty')
+
+  return { ok: true, data: { success: true, cuBurned, cuRefunded, burnRate }, status: 200 }
 }
 
 /**
- * Update an existing commitment (CU amount, choice, or option).
+ * Update an existing commitment (CU amount only after lock).
+ * Rules:
+ * - Rule 1: Cannot increase CU after prediction is locked (lockedAt set)
+ * - Rule 3: Cannot change side (binaryChoice/optionId) after lock — must exit and re-commit
  */
 export async function updateCommitment(
   userId: string,
@@ -265,14 +379,34 @@ export async function updateCommitment(
     return { ok: false, error: 'Can only update commitments on active predictions', status: 400 }
   }
 
-  // Validate option if changing
+  const isLocked = commitment.prediction.lockedAt !== null
+
+  // Rule 3: No side changes after lock
+  if (isLocked && (data.binaryChoice !== undefined || data.optionId !== undefined)) {
+    return {
+      ok: false,
+      error: 'Cannot change side after prediction is locked. Remove your commitment and create a new one.',
+      status: 400,
+    }
+  }
+
+  // Rule 1: No CU increases after lock
+  const newCuAmount = data.cuCommitted ?? commitment.cuCommitted
+  if (isLocked && newCuAmount > commitment.cuCommitted) {
+    return {
+      ok: false,
+      error: 'Cannot increase commitment after prediction is locked',
+      status: 400,
+    }
+  }
+
+  // Validate option if changing (before lock only)
   if (data.optionId !== undefined) {
     const optionExists = commitment.prediction.options.some((o) => o.id === data.optionId)
     if (!optionExists) return { ok: false, error: 'Invalid option', status: 400 }
   }
 
   // CU delta calculation
-  const newCuAmount = data.cuCommitted ?? commitment.cuCommitted
   const cuDelta = newCuAmount - commitment.cuCommitted
 
   if (cuDelta > 0 && user.cuAvailable < cuDelta) {
