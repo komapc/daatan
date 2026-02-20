@@ -67,6 +67,15 @@ function makeBot(overrides: Partial<{
   personaPrompt: string
   forecastPrompt: string
   votePrompt: string
+  // Extended params
+  activeHoursStart: number | null
+  activeHoursEnd: number | null
+  tagFilter: string[]
+  voteBias: number
+  cuRefillAt: number
+  cuRefillAmount: number
+  canCreateForecasts: boolean
+  canVote: boolean
   user: { id: string; name: string | null; cuAvailable: number }
 }> = {}) {
   return {
@@ -86,6 +95,15 @@ function makeBot(overrides: Partial<{
     personaPrompt: 'You are a forecasting bot.',
     forecastPrompt: 'Generate a forecast.',
     votePrompt: 'Should you vote?',
+    // Extended params — safe defaults so existing tests keep passing
+    activeHoursStart: null,
+    activeHoursEnd: null,
+    tagFilter: [],
+    voteBias: 50,
+    cuRefillAt: 0,
+    cuRefillAmount: 50,
+    canCreateForecasts: true,
+    canVote: true,
     user: { id: 'user-1', name: 'BotUser', cuAvailable: 1000 },
     ...overrides,
   }
