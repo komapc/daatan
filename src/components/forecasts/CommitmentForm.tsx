@@ -11,6 +11,7 @@ interface Prediction {
   id: string
   outcomeType: string
   options?: PredictionOption[]
+  lockedAt?: string | null
 }
 
 interface ExistingCommitment {
@@ -45,6 +46,7 @@ export default function CommitmentForm({
   onCancel,
 }: CommitmentFormProps) {
   const isUpdate = !!existingCommitment
+  const isLocked = !!prediction.lockedAt
 
   // State
   const [cuAmount, setCuAmount] = useState(existingCommitment?.cuCommitted || 10)
@@ -56,9 +58,11 @@ export default function CommitmentForm({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Validation
+  // After lock: cannot increase CU; cap at current committed amount
   const maxCu = isUpdate
-    ? userCuAvailable + (existingCommitment?.cuCommitted || 0)
+    ? isLocked
+      ? existingCommitment.cuCommitted // locked: no increases allowed
+      : userCuAvailable + existingCommitment.cuCommitted
     : userCuAvailable
   const isValid = selectedOutcome !== null && cuAmount >= 1 && cuAmount <= maxCu
 
@@ -120,6 +124,11 @@ export default function CommitmentForm({
         <p className="mt-1 text-sm text-gray-500">
           Available CU: <span className="font-medium">{userCuAvailable}</span>
         </p>
+        {isUpdate && isLocked && (
+          <p className="mt-1 text-xs text-orange-600">
+            Prediction is locked — you can reduce your CU but not increase it or change your side.
+          </p>
+        )}
       </div>
 
       {/* Outcome Selection */}
@@ -131,21 +140,25 @@ export default function CommitmentForm({
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => setSelectedOutcome(true)}
+                onClick={() => !isLocked && setSelectedOutcome(true)}
+                disabled={isUpdate && isLocked}
+                title={isUpdate && isLocked ? 'Cannot change side after prediction is locked' : undefined}
                 className={`flex-1 rounded-md border px-4 py-2 text-sm font-medium transition-colors ${selectedOutcome === true
                     ? 'border-green-500 bg-green-50 text-green-700'
                     : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-                  }`}
+                  } ${isUpdate && isLocked ? 'opacity-60 cursor-not-allowed' : ''}`}
               >
                 Will Happen
               </button>
               <button
                 type="button"
-                onClick={() => setSelectedOutcome(false)}
+                onClick={() => !isLocked && setSelectedOutcome(false)}
+                disabled={isUpdate && isLocked}
+                title={isUpdate && isLocked ? 'Cannot change side after prediction is locked' : undefined}
                 className={`flex-1 rounded-md border px-4 py-2 text-sm font-medium transition-colors ${selectedOutcome === false
                     ? 'border-red-500 bg-red-50 text-red-700'
                     : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-                  }`}
+                  } ${isUpdate && isLocked ? 'opacity-60 cursor-not-allowed' : ''}`}
               >
                 Won&apos;t Happen
               </button>
@@ -156,17 +169,18 @@ export default function CommitmentForm({
               {prediction.options?.map((option) => (
                 <label
                   key={option.id}
-                  className={`flex cursor-pointer items-center rounded-md border px-4 py-3 transition-colors ${selectedOutcome === option.id
+                  className={`flex items-center rounded-md border px-4 py-3 transition-colors ${selectedOutcome === option.id
                       ? 'border-blue-500 bg-blue-50'
                       : 'border-gray-300 bg-white hover:bg-gray-50'
-                    }`}
+                    } ${isUpdate && isLocked ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
                 >
                   <input
                     type="radio"
                     name="outcome"
                     value={option.id}
                     checked={selectedOutcome === option.id}
-                    onChange={(e) => setSelectedOutcome(e.target.value)}
+                    onChange={(e) => !isLocked && setSelectedOutcome(e.target.value)}
+                    disabled={isUpdate && isLocked}
                     className="h-4 w-4 text-blue-600"
                   />
                   <span className="ml-3 text-sm font-medium text-gray-900">{option.text}</span>

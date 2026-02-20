@@ -16,6 +16,15 @@ const baseCommitment = {
 const activePrediction = { id: 'p1', status: 'ACTIVE', outcomeType: 'BINARY' }
 const resolvedPrediction = { id: 'p2', status: 'RESOLVED_CORRECT', outcomeType: 'BINARY' }
 
+const mockPreview = {
+  cuCommitted: 25,
+  cuBurned: 13,
+  cuRefunded: 12,
+  burnRate: 52,
+  totalPoolCU: 50,
+  yourSideCU: 26,
+}
+
 describe('CommitmentDisplay Component', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
@@ -105,21 +114,12 @@ describe('CommitmentDisplay Component', () => {
     expect(onEdit).toHaveBeenCalledTimes(1)
   })
 
-  it('shows confirm step before removing', () => {
-    const onRemove = vi.fn()
-    render(
-      <CommitmentDisplay
-        commitment={baseCommitment}
-        prediction={activePrediction}
-        onRemove={onRemove}
-      />
-    )
-    fireEvent.click(screen.getByText('Remove'))
-    expect(screen.getByText('Confirm?')).toBeInTheDocument()
-    expect(screen.getByText('Cancel')).toBeInTheDocument()
-  })
+  it('shows penalty preview after clicking Remove', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => mockPreview,
+    })
 
-  it('cancels removal when Cancel is clicked', () => {
     render(
       <CommitmentDisplay
         commitment={baseCommitment}
@@ -127,15 +127,42 @@ describe('CommitmentDisplay Component', () => {
         onRemove={vi.fn()}
       />
     )
+
     fireEvent.click(screen.getByText('Remove'))
-    expect(screen.getByText('Confirm?')).toBeInTheDocument()
-    fireEvent.click(screen.getByText('Cancel'))
-    expect(screen.getByText('Remove')).toBeInTheDocument()
+
+    await waitFor(() => {
+      expect(screen.getByText('Exit penalty applies')).toBeInTheDocument()
+      expect(screen.getByText('Confirm exit')).toBeInTheDocument()
+      expect(screen.getByText('Cancel')).toBeInTheDocument()
+    })
+    expect(global.fetch).toHaveBeenCalledWith('/api/forecasts/p1/commit/preview')
   })
 
-  it('calls API and onRemove on confirm', async () => {
+  it('cancels removal when Cancel is clicked after preview', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => mockPreview,
+    })
+
+    render(
+      <CommitmentDisplay
+        commitment={baseCommitment}
+        prediction={activePrediction}
+        onRemove={vi.fn()}
+      />
+    )
+
+    fireEvent.click(screen.getByText('Remove'))
+    await waitFor(() => expect(screen.getByText('Cancel')).toBeInTheDocument())
+    fireEvent.click(screen.getByText('Cancel'))
+    await waitFor(() => expect(screen.getByText('Remove')).toBeInTheDocument())
+  })
+
+  it('calls DELETE API and onRemove after confirming exit', async () => {
     const onRemove = vi.fn()
-    global.fetch = vi.fn().mockResolvedValue({ ok: true })
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => mockPreview }) // preview
+      .mockResolvedValueOnce({ ok: true }) // DELETE
 
     render(
       <CommitmentDisplay
@@ -146,13 +173,52 @@ describe('CommitmentDisplay Component', () => {
     )
 
     fireEvent.click(screen.getByText('Remove'))
-    fireEvent.click(screen.getByText('Confirm?'))
+    await waitFor(() => expect(screen.getByText('Confirm exit')).toBeInTheDocument())
+    fireEvent.click(screen.getByText('Confirm exit'))
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith('/api/forecasts/p1/commit', {
-        method: 'DELETE',
-      })
+      expect(global.fetch).toHaveBeenCalledWith('/api/forecasts/p1/commit', { method: 'DELETE' })
       expect(onRemove).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  it('shows error message when preview fetch fails', async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: false })
+
+    render(
+      <CommitmentDisplay
+        commitment={baseCommitment}
+        prediction={activePrediction}
+        onRemove={vi.fn()}
+      />
+    )
+
+    fireEvent.click(screen.getByText('Remove'))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Failed to load penalty info/)).toBeInTheDocument()
+    })
+  })
+
+  it('shows error message when DELETE fails', async () => {
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => mockPreview })
+      .mockResolvedValueOnce({ ok: false })
+
+    render(
+      <CommitmentDisplay
+        commitment={baseCommitment}
+        prediction={activePrediction}
+        onRemove={vi.fn()}
+      />
+    )
+
+    fireEvent.click(screen.getByText('Remove'))
+    await waitFor(() => expect(screen.getByText('Confirm exit')).toBeInTheDocument())
+    fireEvent.click(screen.getByText('Confirm exit'))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Failed to remove commitment/)).toBeInTheDocument()
     })
   })
 
@@ -186,24 +252,5 @@ describe('CommitmentDisplay Component', () => {
       />
     )
     expect(screen.getByText('-3.2')).toBeInTheDocument()
-  })
-
-  it('shows error message on failed removal', async () => {
-    global.fetch = vi.fn().mockResolvedValue({ ok: false })
-
-    render(
-      <CommitmentDisplay
-        commitment={baseCommitment}
-        prediction={activePrediction}
-        onRemove={vi.fn()}
-      />
-    )
-
-    fireEvent.click(screen.getByText('Remove'))
-    fireEvent.click(screen.getByText('Confirm?'))
-
-    await waitFor(() => {
-      expect(screen.getByText(/Failed to remove commitment/)).toBeInTheDocument()
-    })
   })
 })

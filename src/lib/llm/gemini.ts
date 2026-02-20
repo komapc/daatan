@@ -47,7 +47,12 @@ export async function extractPrediction(text: string) {
       temperature: 0.1,
     })
     
-    return JSON.parse(result.text)
+    try {
+      return JSON.parse(result.text)
+    } catch {
+      log.error({ text: result.text }, 'Failed to parse LLM response as JSON')
+      throw new Error('LLM returned malformed JSON')
+    }
   } catch (error) {
     log.error({ err: error }, 'Failed to extract prediction')
     throw error
