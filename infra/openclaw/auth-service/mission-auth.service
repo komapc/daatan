@@ -1,0 +1,15 @@
+[Unit]
+Description=Mission Control Authentication Service
+After=network.target redis-server.service
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/mission-auth
+Environment="PATH=/opt/mission-auth/venv/bin:/usr/bin:/bin"
+ExecStart=/opt/mission-auth/venv/bin/python app.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

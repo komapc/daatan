@@ -7,6 +7,8 @@ node_modules/
 !.env.example
 # OpenClaw .env (separate from daatan app .env)
 infra/openclaw/.env
+infra/openclaw/config/openclaw.json
+infra/openclaw/auth-service/.env
 
 # SSH Keys
 *.pem
