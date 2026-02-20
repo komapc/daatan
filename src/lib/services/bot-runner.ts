@@ -111,10 +111,25 @@ async function runBot(bot: BotWithUser, dryRun: boolean): Promise<BotRunSummary>
 
   log.info({ botId: bot.id, dryRun }, 'Running bot')
 
+  // TODO(stage2-bot-params): activeHoursStart / activeHoursEnd
+  // If both are set, skip this run when the current UTC hour is outside the window.
+  // Overnight ranges: if start > end, the active window wraps midnight
+  //   (active when: hour >= start || hour < end).
+  // Implementation sketch:
+  //   const hour = new Date().getUTCHours()
+  //   if (bot.activeHoursStart != null && bot.activeHoursEnd != null) {
+  //     const inWindow = bot.activeHoursStart <= bot.activeHoursEnd
+  //       ? hour >= bot.activeHoursStart && hour < bot.activeHoursEnd
+  //       : hour >= bot.activeHoursStart || hour < bot.activeHoursEnd
+  //     if (!inWindow) { log.debug(...); return summary }
+  //   }
+
   const llm = createBotLLMService(bot.modelPreference)
 
   try {
     // ── Forecast creation ────────────────────────────────────────────────
+    // TODO(stage2-bot-params): canCreateForecasts
+    // Skip this entire block when bot.canCreateForecasts === false.
     const todayForecastCount = await countTodayActions(bot.id, 'CREATED_FORECAST')
     const forecastSlotsLeft = bot.maxForecastsPerDay - todayForecastCount
 
@@ -144,6 +159,8 @@ async function runBot(bot: BotWithUser, dryRun: boolean): Promise<BotRunSummary>
     }
 
     // ── Voting ────────────────────────────────────────────────────────────
+    // TODO(stage2-bot-params): canVote
+    // Skip this entire block when bot.canVote === false.
     const todayVoteCount = await countTodayActions(bot.id, 'VOTED')
     const voteSlotsLeft = bot.maxVotesPerDay - todayVoteCount
 
@@ -309,6 +326,10 @@ Rules:
     })
 
     // Stake on own forecast
+    // TODO(stage2-bot-params): cuRefillAt / cuRefillAmount
+    // Before staking, re-fetch bot.user.cuAvailable. If cuRefillAt > 0 and
+    // cuAvailable <= cuRefillAt, create a CuTransaction (type: 'ADMIN_GRANT',
+    // note: 'bot auto-refill') and update user.cuAvailable += cuRefillAmount.
     const stakeAmount = randomInt(bot.stakeMin, bot.stakeMax)
     await createCommitment(bot.userId, prediction.id, {
       cuCommitted: stakeAmount,
@@ -333,6 +354,10 @@ async function runVoting(
   maxVotes: number,
 ): Promise<number> {
   // Fetch open forecasts the bot hasn't voted on yet
+  // TODO(stage2-bot-params): tagFilter
+  // When bot.tagFilter (String[]) is non-empty, add a tags filter to the query:
+  //   tags: { hasSome: bot.tagFilter as string[] }
+  // (Prisma scalar list filter — requires tags to be String[] in schema)
   const candidates = await prisma.prediction.findMany({
     where: {
       status: 'ACTIVE',
@@ -352,6 +377,9 @@ async function runVoting(
     if (voted >= maxVotes) break
 
     try {
+      // TODO(stage2-bot-params): voteBias
+      // Append a bias sentence to the prompt:
+      //   `Your current disposition is ${bot.voteBias}/100 toward YES (0=strongly lean NO, 50=neutral, 100=strongly lean YES).`
       const votePrompt = `${bot.personaPrompt}
 
 ${bot.votePrompt}
@@ -377,6 +405,10 @@ Respond with JSON: { "shouldVote": true|false, "binaryChoice": true|false, "reas
       if (!decision.shouldVote) continue
 
       const generatedText = JSON.stringify(decision, null, 2)
+      // TODO(stage2-bot-params): cuRefillAt / cuRefillAmount
+      // Before staking, re-fetch bot.user.cuAvailable. If cuRefillAt > 0 and
+      // cuAvailable <= cuRefillAt, create a CuTransaction (type: 'ADMIN_GRANT',
+      // note: 'bot auto-refill') and update user.cuAvailable += cuRefillAmount.
       const stakeAmount = randomInt(bot.stakeMin, bot.stakeMax)
 
       if (dryRun) {
