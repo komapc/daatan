@@ -210,7 +210,7 @@ describe('runDueBots', () => {
     const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/rss')
     const { runDueBots } = await import('@/lib/services/bot-runner')
 
-    const dueBbot = makeBot({
+    const dueBot = makeBot({
       id: 'bot-due',
       lastRunAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 h ago, interval=60 → due
       intervalMinutes: 60,
@@ -221,7 +221,7 @@ describe('runDueBots', () => {
       lastRunAt: new Date(Date.now() - 10 * 60 * 1000), // 10 min ago, interval=60 → not due
       intervalMinutes: 60,
     })
-    vi.mocked(prisma.botConfig.findMany).mockResolvedValue([dueBbot, notDueBot] as any)
+    vi.mocked(prisma.botConfig.findMany).mockResolvedValue([dueBot, notDueBot] as any)
     vi.mocked(prisma.botRunLog.count).mockResolvedValue(0)
     vi.mocked(fetchRssFeeds).mockResolvedValue([])
     vi.mocked(detectHotTopics).mockReturnValue([])
@@ -326,9 +326,11 @@ describe('runDueBots — maxForecastsPerDay cap', () => {
     const bot = makeBot({ maxForecastsPerDay: 3, maxVotesPerDay: 0 })
     vi.mocked(prisma.botConfig.findMany).mockResolvedValue([bot] as any)
 
-    // 2 forecasts already created today → 1 slot left
+    // 2 forecasts already created today → 1 slot left.
+    // Simulate count incrementing after each CREATED_FORECAST log is written.
+    let createdCount = 2
     vi.mocked(prisma.botRunLog.count).mockImplementation(({ where }: any) => {
-      if (where.action === 'CREATED_FORECAST') return Promise.resolve(2) as any
+      if (where.action === 'CREATED_FORECAST') return Promise.resolve(createdCount) as any
       return Promise.resolve(0) as any
     })
 
@@ -349,7 +351,11 @@ describe('runDueBots — maxForecastsPerDay cap', () => {
     vi.mocked(prisma.prediction.create).mockResolvedValue({ id: 'pred-new' } as any)
     vi.mocked(prisma.prediction.update).mockResolvedValue({} as any)
     vi.mocked(createCommitment).mockResolvedValue({ ok: true } as any)
-    vi.mocked(prisma.botRunLog.create).mockResolvedValue({} as any)
+    // Increment createdCount when a CREATED_FORECAST log entry is written
+    vi.mocked(prisma.botRunLog.create).mockImplementation(({ data }: any) => {
+      if (data.action === 'CREATED_FORECAST') createdCount++
+      return Promise.resolve({}) as any
+    })
     vi.mocked(prisma.botConfig.update).mockResolvedValue({} as any)
 
     const summaries = await runDueBots()
