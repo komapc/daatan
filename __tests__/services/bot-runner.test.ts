@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 // ─── Prisma mock ─────────────────────────────────────────────────────────────
 vi.mock('@/lib/prisma', () => ({
@@ -287,8 +287,8 @@ describe('runDueBots — maxForecastsPerDay cap', () => {
 
     // Already at cap: count returns 3 for CREATED_FORECAST, 0 for VOTED
     vi.mocked(prisma.botRunLog.count).mockImplementation(({ where }: any) => {
-      if (where.action === 'CREATED_FORECAST') return Promise.resolve(3)
-      return Promise.resolve(0)
+      if (where.action === 'CREATED_FORECAST') return Promise.resolve(3) as any
+      return Promise.resolve(0) as any
     })
     vi.mocked(prisma.botConfig.update).mockResolvedValue({} as any)
 
@@ -310,8 +310,8 @@ describe('runDueBots — maxForecastsPerDay cap', () => {
 
     // 2 forecasts already created today → 1 slot left
     vi.mocked(prisma.botRunLog.count).mockImplementation(({ where }: any) => {
-      if (where.action === 'CREATED_FORECAST') return Promise.resolve(2)
-      return Promise.resolve(0)
+      if (where.action === 'CREATED_FORECAST') return Promise.resolve(2) as any
+      return Promise.resolve(0) as any
     })
 
     vi.mocked(fetchRssFeeds).mockResolvedValue([])
