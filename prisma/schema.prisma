@@ -45,6 +45,9 @@ model User {
   cuAvailable Int   @default(100) // Confidence Units available to commit
   cuLocked    Int   @default(0) // Confidence Units locked in active predictions
 
+  // Bot flag
+  isBot Boolean @default(false)
+
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -52,6 +55,9 @@ model User {
   // Relations
   accounts Account[]
   sessions Session[]
+
+  // Bot relation
+  botConfig BotConfig?
 
   // Prediction system relations
   predictions         Prediction[] // Predictions authored by user
@@ -204,6 +210,9 @@ model Prediction {
   resolutionRules   String?  @db.Text // How to determine outcome
   resolveByDatetime DateTime // Deadline for resolution
 
+  // Source tracking (e.g. 'bot' for bot-created predictions)
+  source      String?          @db.VarChar(50)
+
   // Status & timestamps
   status      PredictionStatus @default(DRAFT)
   createdAt   DateTime         @default(now())
@@ -212,7 +221,7 @@ model Prediction {
   lockedAt    DateTime? // When first commitment was made
 
   // Exit penalty pool (burned CU from early withdrawals, distributed to winners)
-  winnersPoolBonus Int @default(0)
+  winnersPoolBonus Int @default(0) @map("winners_pool_bonus")
 
   // Resolution data (filled when resolved)
   resolvedAt        DateTime?
@@ -527,4 +536,74 @@ model PushSubscription {
 
   @@index([userId])
   @@map("push_subscriptions")
+}
+
+// ============================================
+// BOT SYSTEM
+// ============================================
+
+enum BotAction {
+  CREATED_FORECAST
+  VOTED
+  SKIPPED
+  ERROR
+}
+
+model BotConfig {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Persona & prompts (all admin-editable)
+  personaPrompt  String @db.Text // Bot's character description
+  forecastPrompt String @db.Text // Prompt for creating a forecast from a news item
+  votePrompt     String @db.Text // Prompt for deciding whether/how to vote on a forecast
+
+  // News sources (array of RSS URLs)
+  newsSources Json // String[]
+
+  // Schedule
+  intervalMinutes Int @default(360) // How often to run (in minutes)
+
+  // Activity caps
+  maxForecastsPerDay Int @default(3)
+  maxVotesPerDay     Int @default(10)
+
+  // Staking
+  stakeMin Int @default(10)
+  stakeMax Int @default(100)
+
+  // LLM model preference (e.g. "google/gemini-2.0-flash-exp:free")
+  modelPreference String @default("google/gemini-2.0-flash-exp:free")
+
+  // Hotness detection thresholds
+  hotnessMinSources  Int @default(2)   // Min sources to consider hot
+  hotnessWindowHours Int @default(6)   // Time window for hotness detection
+
+  isActive  Boolean   @default(true)
+  lastRunAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  runLogs BotRunLog[]
+
+  @@map("bot_configs")
+}
+
+model BotRunLog {
+  id    String    @id @default(cuid())
+  botId String
+  bot   BotConfig @relation(fields: [botId], references: [id], onDelete: Cascade)
+
+  runAt         DateTime  @default(now())
+  action        BotAction
+  triggerNews   Json?     // { title, url, sources: string[] }
+  generatedText String?   @db.Text // LLM-generated forecast text (for review)
+  forecastId    String?   // Prediction ID if forecast was created
+  isDryRun      Boolean   @default(false)
+  error         String?   @db.Text
+
+  @@index([botId])
+  @@index([runAt])
+  @@map("bot_run_logs")
 }
