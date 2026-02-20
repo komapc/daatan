@@ -146,32 +146,35 @@ async function runBot(bot: BotWithUser, dryRun: boolean): Promise<BotRunSummary>
   try {
     // ── Forecast creation ────────────────────────────────────────────────
     if (bot.canCreateForecasts) {
-      const todayForecastCount = await countTodayActions(bot.id, 'CREATED_FORECAST')
-      const forecastSlotsLeft = bot.maxForecastsPerDay - todayForecastCount
+      const feedUrls = bot.newsSources as string[]
 
-      if (forecastSlotsLeft > 0) {
-        const feedUrls = bot.newsSources as string[]
+      const initialForecastCount = await countTodayActions(bot.id, 'CREATED_FORECAST')
+      if (feedUrls.length > 0 && initialForecastCount < bot.maxForecastsPerDay) {
+        const items = await fetchRssFeeds(feedUrls)
+        const hotTopics = detectHotTopics(items, bot.hotnessMinSources, bot.hotnessWindowHours)
 
-        if (feedUrls.length > 0) {
-          const items = await fetchRssFeeds(feedUrls)
-          const hotTopics = detectHotTopics(items, bot.hotnessMinSources, bot.hotnessWindowHours)
+        log.info({ botId: bot.id, hotCount: hotTopics.length }, 'Hot topics detected')
 
-          log.info({ botId: bot.id, hotCount: hotTopics.length }, 'Hot topics detected')
-
-          for (const topic of hotTopics.slice(0, forecastSlotsLeft)) {
-            const created = await processTopic(bot, topic.title, topic.items.map(i => i.url), llm, dryRun)
-            if (created === 'created') summary.forecastsCreated++
-            else if (created === 'skipped') summary.skipped++
-            else summary.errors++
+        for (const topic of hotTopics) {
+          // Atomic slot check: re-fetch count before each creation to prevent race conditions
+          const todayForecastCount = await countTodayActions(bot.id, 'CREATED_FORECAST')
+          if (todayForecastCount >= bot.maxForecastsPerDay) {
+            log.info({ botId: bot.id, count: todayForecastCount }, 'Daily forecast limit reached')
+            break
           }
 
-          if (hotTopics.length === 0) {
-            await logBotAction(bot.id, 'SKIPPED', null, null, null, dryRun)
-            summary.skipped++
-          }
-        } else {
-          log.warn({ botId: bot.id }, 'No RSS sources configured')
+          const created = await processTopic(bot, topic.title, topic.items.map(i => i.url), llm, dryRun)
+          if (created === 'created') summary.forecastsCreated++
+          else if (created === 'skipped') summary.skipped++
+          else summary.errors++
         }
+
+        if (hotTopics.length === 0) {
+          await logBotAction(bot.id, 'SKIPPED', null, null, null, dryRun)
+          summary.skipped++
+        }
+      } else if (feedUrls.length === 0) {
+        log.warn({ botId: bot.id }, 'No RSS sources configured')
       }
     }
 
