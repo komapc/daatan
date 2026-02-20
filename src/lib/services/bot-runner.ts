@@ -10,6 +10,13 @@
  *   5. Stakes on the forecast immediately
  *   6. Optionally votes on existing open forecasts
  *   7. Logs all actions to BotRunLog
+ *
+ * Extended params wired here (Stage 2):
+ *   - activeHoursStart/End: UTC hour window gate at top of runBot()
+ *   - canCreateForecasts / canVote: phase enable flags
+ *   - tagFilter: prompt injection for creation; DB filter for voting
+ *   - voteBias: soft prompt hint in vote decision
+ *   - cuRefillAt / cuRefillAmount: ADMIN_GRANT auto top-up via ensureBotCU()
  */
 
 import { prisma } from '@/lib/prisma'
@@ -58,7 +65,11 @@ export async function runDueBots(dryRun = false): Promise<BotRunSummary[]> {
     const summary = await runBot(bot, dryRun)
     summaries.push(summary)
 
-    if (!dryRun) {
+    // Only update lastRunAt if the bot actually ran (not skipped by active hours gate).
+    // runBot() returns early without setting a flag, so we use forecastsCreated+votes+skipped+errors
+    // to distinguish "ran but did nothing" from "was gated out".
+    // The gate sets summary.skipped = -1 as a sentinel to signal no-update.
+    if (!dryRun && summary.skipped !== -1) {
       await prisma.botConfig.update({
         where: { id: bot.id },
         data: { lastRunAt: now },
@@ -82,7 +93,7 @@ export async function runBotById(botId: string, dryRun = false): Promise<BotRunS
 
   const summary = await runBot(bot, dryRun)
 
-  if (!dryRun) {
+  if (!dryRun && summary.skipped !== -1) {
     await prisma.botConfig.update({
       where: { id: bot.id },
       data: { lastRunAt: new Date() },
@@ -109,25 +120,49 @@ async function runBot(bot: BotWithUser, dryRun: boolean): Promise<BotRunSummary>
     dryRun,
   }
 
+  // ── Active hours gate ────────────────────────────────────────────────────
+  // Skip (without updating lastRunAt) when outside the configured UTC window.
+  // Overnight ranges are supported: start=22, end=6 → active 10pm–6am UTC.
+  if (bot.activeHoursStart != null && bot.activeHoursEnd != null) {
+    const hour = new Date().getUTCHours()
+    const inWindow =
+      bot.activeHoursStart <= bot.activeHoursEnd
+        ? hour >= bot.activeHoursStart && hour < bot.activeHoursEnd
+        : hour >= bot.activeHoursStart || hour < bot.activeHoursEnd
+    if (!inWindow) {
+      log.debug(
+        { botId: bot.id, hour, activeHoursStart: bot.activeHoursStart, activeHoursEnd: bot.activeHoursEnd },
+        'Bot outside active window, skipping without updating lastRunAt',
+      )
+      summary.skipped = -1 // sentinel: tell caller not to update lastRunAt
+      return summary
+    }
+  }
+
   log.info({ botId: bot.id, dryRun }, 'Running bot')
 
   const llm = createBotLLMService(bot.modelPreference)
 
   try {
     // ── Forecast creation ────────────────────────────────────────────────
-    const todayForecastCount = await countTodayActions(bot.id, 'CREATED_FORECAST')
-    const forecastSlotsLeft = bot.maxForecastsPerDay - todayForecastCount
-
-    if (forecastSlotsLeft > 0) {
+    if (bot.canCreateForecasts) {
       const feedUrls = bot.newsSources as string[]
 
-      if (feedUrls.length > 0) {
+      const initialForecastCount = await countTodayActions(bot.id, 'CREATED_FORECAST')
+      if (feedUrls.length > 0 && initialForecastCount < bot.maxForecastsPerDay) {
         const items = await fetchRssFeeds(feedUrls)
         const hotTopics = detectHotTopics(items, bot.hotnessMinSources, bot.hotnessWindowHours)
 
         log.info({ botId: bot.id, hotCount: hotTopics.length }, 'Hot topics detected')
 
-        for (const topic of hotTopics.slice(0, forecastSlotsLeft)) {
+        for (const topic of hotTopics) {
+          // Atomic slot check: re-fetch count before each creation to prevent race conditions
+          const todayForecastCount = await countTodayActions(bot.id, 'CREATED_FORECAST')
+          if (todayForecastCount >= bot.maxForecastsPerDay) {
+            log.info({ botId: bot.id, count: todayForecastCount }, 'Daily forecast limit reached')
+            break
+          }
+
           const created = await processTopic(bot, topic.title, topic.items.map(i => i.url), llm, dryRun)
           if (created === 'created') summary.forecastsCreated++
           else if (created === 'skipped') summary.skipped++
@@ -138,18 +173,20 @@ async function runBot(bot: BotWithUser, dryRun: boolean): Promise<BotRunSummary>
           await logBotAction(bot.id, 'SKIPPED', null, null, null, dryRun)
           summary.skipped++
         }
-      } else {
+      } else if (feedUrls.length === 0) {
         log.warn({ botId: bot.id }, 'No RSS sources configured')
       }
     }
 
     // ── Voting ────────────────────────────────────────────────────────────
-    const todayVoteCount = await countTodayActions(bot.id, 'VOTED')
-    const voteSlotsLeft = bot.maxVotesPerDay - todayVoteCount
+    if (bot.canVote) {
+      const todayVoteCount = await countTodayActions(bot.id, 'VOTED')
+      const voteSlotsLeft = bot.maxVotesPerDay - todayVoteCount
 
-    if (voteSlotsLeft > 0) {
-      const voted = await runVoting(bot, llm, dryRun, voteSlotsLeft)
-      summary.votes += voted
+      if (voteSlotsLeft > 0) {
+        const voted = await runVoting(bot, llm, dryRun, voteSlotsLeft)
+        summary.votes += voted
+      }
     }
   } catch (err) {
     log.error({ err, botId: bot.id }, 'Bot run failed')
@@ -195,6 +232,13 @@ Does this topic already have a forecast? Reply with only "yes" or "no".`
       return 'skipped'
     }
 
+    // Build tag constraint for prompt injection when tagFilter is set
+    const tagFilter = bot.tagFilter as string[]
+    const tagConstraint =
+      tagFilter.length > 0
+        ? `\nConstraint: assign one of these tag slugs to this forecast: ${tagFilter.join(', ')}. If the news topic does not fit any of these tags, respond with exactly: {"skip": true}`
+        : ''
+
     // Generate a forecast from this topic
     const now = new Date()
     const forecastPrompt = `${bot.personaPrompt}
@@ -219,9 +263,24 @@ Rules:
 - claimText MUST start with "🤖 "
 - Be specific and verifiable
 - Use English
-- resolveByDatetime must be in the future`
+- resolveByDatetime must be in the future${tagConstraint}`
 
     const response = await llm.generateContent({ prompt: forecastPrompt, temperature: 0.7, schema: true as never })
+
+    // Check for tag-filter skip signal before full parse
+    const rawText = response.text.trim()
+    if (tagFilter.length > 0 && rawText.includes('"skip"') && rawText.includes('true')) {
+      try {
+        const skipCheck = JSON.parse(rawText.match(/\{[\s\S]*\}/)?.[0] ?? rawText)
+        if (skipCheck?.skip === true) {
+          log.info({ botId: bot.id, topic: topicTitle, tagFilter }, 'Topic does not match tag filter, skipping')
+          await logBotAction(bot.id, 'SKIPPED', { title: topicTitle, urls: sourceUrls }, null, null, dryRun)
+          return 'skipped'
+        }
+      } catch {
+        // not a skip signal, continue to full parse
+      }
+    }
 
     let forecast: {
       claimText: string
@@ -233,9 +292,8 @@ Rules:
     }
 
     try {
-      const text = response.text.trim()
-      const jsonMatch = text.match(/\{[\s\S]*\}/)
-      forecast = JSON.parse(jsonMatch ? jsonMatch[0] : text)
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/)
+      forecast = JSON.parse(jsonMatch ? jsonMatch[0] : rawText)
     } catch {
       log.warn({ botId: bot.id, topic: topicTitle, raw: response.text }, 'Failed to parse LLM forecast JSON')
       await logBotAction(bot.id, 'ERROR', { title: topicTitle }, null, 'JSON parse failed', dryRun)
@@ -308,7 +366,8 @@ Rules:
       data: { status: 'ACTIVE', publishedAt: new Date() },
     })
 
-    // Stake on own forecast
+    // Auto-refill CU if balance is low, then stake on own forecast
+    await ensureBotCU(bot, dryRun)
     const stakeAmount = randomInt(bot.stakeMin, bot.stakeMax)
     await createCommitment(bot.userId, prediction.id, {
       cuCommitted: stakeAmount,
@@ -332,12 +391,18 @@ async function runVoting(
   dryRun: boolean,
   maxVotes: number,
 ): Promise<number> {
-  // Fetch open forecasts the bot hasn't voted on yet
+  const tagFilter = bot.tagFilter as string[]
+
+  // Fetch open forecasts the bot hasn't voted on yet.
+  // If tagFilter is set, restrict to forecasts that have at least one matching tag.
   const candidates = await prisma.prediction.findMany({
     where: {
       status: 'ACTIVE',
       authorId: { not: bot.userId },
       commitments: { none: { userId: bot.userId } },
+      ...(tagFilter.length > 0 && {
+        tags: { some: { slug: { in: tagFilter } } },
+      }),
     },
     select: { id: true, claimText: true, detailsText: true, outcomeType: true },
     orderBy: { createdAt: 'desc' },
@@ -345,6 +410,12 @@ async function runVoting(
   })
 
   if (candidates.length === 0) return 0
+
+  // Build vote bias hint (omit when neutral)
+  const biasHint =
+    bot.voteBias !== 50
+      ? `\nYour current disposition is ${bot.voteBias}/100 toward YES (0 = strongly lean NO, 50 = neutral, 100 = strongly lean YES).`
+      : ''
 
   let voted = 0
 
@@ -358,7 +429,7 @@ ${bot.votePrompt}
 
 Forecast: "${forecast.claimText}"
 Details: "${forecast.detailsText ?? 'None'}"
-
+${biasHint}
 Should this bot commit to this forecast? If yes, what is the binary choice (true = yes it will happen, false = no it won't)?
 
 Respond with JSON: { "shouldVote": true|false, "binaryChoice": true|false, "reason": "brief reason" }`
@@ -377,6 +448,9 @@ Respond with JSON: { "shouldVote": true|false, "binaryChoice": true|false, "reas
       if (!decision.shouldVote) continue
 
       const generatedText = JSON.stringify(decision, null, 2)
+
+      // Auto-refill CU if balance is low, then stake
+      await ensureBotCU(bot, dryRun)
       const stakeAmount = randomInt(bot.stakeMin, bot.stakeMax)
 
       if (dryRun) {
@@ -405,6 +479,42 @@ Respond with JSON: { "shouldVote": true|false, "binaryChoice": true|false, "reas
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/**
+ * Ensure the bot has enough CU to stake. If `cuRefillAt > 0` and the bot's
+ * current balance is at or below the threshold, create an ADMIN_GRANT
+ * CuTransaction and increment cuAvailable by cuRefillAmount.
+ * No-ops in dry-run mode or when cuRefillAt === 0 (feature disabled).
+ */
+async function ensureBotCU(bot: BotWithUser, dryRun: boolean): Promise<void> {
+  if (dryRun) return
+  const cuRefillAt = bot.cuRefillAt ?? 0
+  if (cuRefillAt === 0) return
+
+  const freshUser = await prisma.user.findUnique({
+    where: { id: bot.userId },
+    select: { cuAvailable: true },
+  })
+  if (!freshUser || freshUser.cuAvailable > cuRefillAt) return
+
+  const amount = bot.cuRefillAmount ?? 50
+  await prisma.$transaction([
+    prisma.cuTransaction.create({
+      data: {
+        userId: bot.userId,
+        type: 'ADMIN_ADJUSTMENT',
+        amount,
+        balanceAfter: freshUser.cuAvailable + amount,
+        note: 'bot auto-refill',
+      },
+    }),
+    prisma.user.update({
+      where: { id: bot.userId },
+      data: { cuAvailable: { increment: amount } },
+    }),
+  ])
+  log.info({ botId: bot.id, amount, balanceBefore: freshUser.cuAvailable }, 'Bot CU auto-refilled')
+}
 
 async function countTodayActions(botId: string, action: BotAction): Promise<number> {
   const startOfDay = new Date()

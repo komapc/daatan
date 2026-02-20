@@ -6,21 +6,43 @@ import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
 
-const updateBotSchema = z.object({
-  personaPrompt: z.string().min(10).optional(),
-  forecastPrompt: z.string().min(10).optional(),
-  votePrompt: z.string().min(10).optional(),
-  newsSources: z.array(z.string().url()).optional(),
-  intervalMinutes: z.number().int().min(5).max(10080).optional(),
-  maxForecastsPerDay: z.number().int().min(0).max(20).optional(),
-  maxVotesPerDay: z.number().int().min(0).max(50).optional(),
-  stakeMin: z.number().int().min(1).optional(),
-  stakeMax: z.number().int().min(1).optional(),
-  modelPreference: z.string().optional(),
-  hotnessMinSources: z.number().int().min(1).optional(),
-  hotnessWindowHours: z.number().int().min(1).optional(),
-  isActive: z.boolean().optional(),
-})
+const updateBotSchema = z
+  .object({
+    personaPrompt: z.string().min(10).optional(),
+    forecastPrompt: z.string().min(10).optional(),
+    votePrompt: z.string().min(10).optional(),
+    newsSources: z.array(z.string().url()).optional(),
+    intervalMinutes: z.number().int().min(5).max(10080).optional(),
+    maxForecastsPerDay: z.number().int().min(0).max(20).optional(),
+    maxVotesPerDay: z.number().int().min(0).max(50).optional(),
+    stakeMin: z.number().int().min(1).optional(),
+    stakeMax: z.number().int().min(1).optional(),
+    modelPreference: z.string().optional(),
+    hotnessMinSources: z.number().int().min(1).optional(),
+    hotnessWindowHours: z.number().int().min(1).optional(),
+    isActive: z.boolean().optional(),
+    // Extended params (Stage 1 — stored only; wired in bot-runner in Stage 2)
+    activeHoursStart: z.number().int().min(0).max(23).nullable().optional(),
+    activeHoursEnd: z.number().int().min(0).max(23).nullable().optional(),
+    tagFilter: z.array(z.string().min(1)).optional(),
+    voteBias: z.number().int().min(0).max(100).optional(),
+    cuRefillAt: z.number().int().min(0).optional(),
+    cuRefillAmount: z.number().int().min(1).optional(),
+    canCreateForecasts: z.boolean().optional(),
+    canVote: z.boolean().optional(),
+  })
+  .refine(
+    (d) => {
+      const startSet = d.activeHoursStart != null
+      const endSet = d.activeHoursEnd != null
+      // Allow partial update only if neither or both are provided
+      return startSet === endSet || (d.activeHoursStart === null && d.activeHoursEnd === null)
+    },
+    {
+      message: 'activeHoursStart and activeHoursEnd must both be set or both be null',
+      path: ['activeHoursStart'],
+    },
+  )
 
 // PATCH /api/admin/bots/[id] — update bot config
 export const PATCH = withAuth(

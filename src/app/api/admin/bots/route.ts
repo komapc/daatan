@@ -10,21 +10,35 @@ const DEFAULT_PERSONA = 'You are a curious analyst who follows world news and en
 const DEFAULT_FORECAST_PROMPT = 'Based on the news topic provided, create a specific and verifiable forecast. Be realistic about timeframes.'
 const DEFAULT_VOTE_PROMPT = 'Based on your interests and the available forecasts, decide whether to commit to each one.'
 
-const createBotSchema = z.object({
-  name: z.string().min(2).max(50),
-  personaPrompt: z.string().min(10).default(DEFAULT_PERSONA),
-  forecastPrompt: z.string().min(10).default(DEFAULT_FORECAST_PROMPT),
-  votePrompt: z.string().min(10).default(DEFAULT_VOTE_PROMPT),
-  newsSources: z.array(z.string().url()).default([]),
-  intervalMinutes: z.number().int().min(5).max(10080).default(360),
-  maxForecastsPerDay: z.number().int().min(0).max(20).default(3),
-  maxVotesPerDay: z.number().int().min(0).max(50).default(10),
-  stakeMin: z.number().int().min(1).default(10),
-  stakeMax: z.number().int().min(1).default(100),
-  modelPreference: z.string().default('google/gemini-2.0-flash-exp:free'),
-  hotnessMinSources: z.number().int().min(1).default(2),
-  hotnessWindowHours: z.number().int().min(1).default(6),
-})
+const createBotSchema = z
+  .object({
+    name: z.string().min(2).max(50),
+    personaPrompt: z.string().min(10).default(DEFAULT_PERSONA),
+    forecastPrompt: z.string().min(10).default(DEFAULT_FORECAST_PROMPT),
+    votePrompt: z.string().min(10).default(DEFAULT_VOTE_PROMPT),
+    newsSources: z.array(z.string().url()).default([]),
+    intervalMinutes: z.number().int().min(5).max(10080).default(360),
+    maxForecastsPerDay: z.number().int().min(0).max(20).default(3),
+    maxVotesPerDay: z.number().int().min(0).max(50).default(10),
+    stakeMin: z.number().int().min(1).default(10),
+    stakeMax: z.number().int().min(1).default(100),
+    modelPreference: z.string().default('google/gemini-2.0-flash-exp:free'),
+    hotnessMinSources: z.number().int().min(1).default(2),
+    hotnessWindowHours: z.number().int().min(1).default(6),
+    // Extended params (Stage 1 — stored only; wired in bot-runner in Stage 2)
+    activeHoursStart: z.number().int().min(0).max(23).nullable().default(null),
+    activeHoursEnd: z.number().int().min(0).max(23).nullable().default(null),
+    tagFilter: z.array(z.string().min(1)).default([]),
+    voteBias: z.number().int().min(0).max(100).default(50),
+    cuRefillAt: z.number().int().min(0).default(0),
+    cuRefillAmount: z.number().int().min(1).default(50),
+    canCreateForecasts: z.boolean().default(true),
+    canVote: z.boolean().default(true),
+  })
+  .refine((d) => (d.activeHoursStart == null) === (d.activeHoursEnd == null), {
+    message: 'activeHoursStart and activeHoursEnd must both be set or both be null',
+    path: ['activeHoursStart'],
+  })
 
 // GET /api/admin/bots — list all bots
 export const GET = withAuth(
@@ -126,6 +140,14 @@ export const POST = withAuth(
             modelPreference: data.modelPreference,
             hotnessMinSources: data.hotnessMinSources,
             hotnessWindowHours: data.hotnessWindowHours,
+            activeHoursStart: data.activeHoursStart,
+            activeHoursEnd: data.activeHoursEnd,
+            tagFilter: data.tagFilter,
+            voteBias: data.voteBias,
+            cuRefillAt: data.cuRefillAt,
+            cuRefillAmount: data.cuRefillAmount,
+            canCreateForecasts: data.canCreateForecasts,
+            canVote: data.canVote,
           },
           include: { user: true },
         })
