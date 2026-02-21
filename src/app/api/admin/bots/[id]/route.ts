@@ -11,7 +11,7 @@ const updateBotSchema = z
     personaPrompt: z.string().min(10).optional(),
     forecastPrompt: z.string().min(10).optional(),
     votePrompt: z.string().min(10).optional(),
-    newsSources: z.array(z.string().url()).optional(),
+    newsSources: z.array(z.string()).optional(),
     intervalMinutes: z.number().int().min(5).max(10080).optional(),
     maxForecastsPerDay: z.number().int().min(0).max(20).optional(),
     maxVotesPerDay: z.number().int().min(0).max(50).optional(),

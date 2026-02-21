@@ -16,7 +16,7 @@ const createBotSchema = z
     personaPrompt: z.string().min(10).default(DEFAULT_PERSONA),
     forecastPrompt: z.string().min(10).default(DEFAULT_FORECAST_PROMPT),
     votePrompt: z.string().min(10).default(DEFAULT_VOTE_PROMPT),
-    newsSources: z.array(z.string().url()).default([]),
+    newsSources: z.array(z.string()).default([]),
     intervalMinutes: z.number().int().min(5).max(10080).default(360),
     maxForecastsPerDay: z.number().int().min(0).max(20).default(3),
     maxVotesPerDay: z.number().int().min(0).max(50).default(10),
