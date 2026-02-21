@@ -11,53 +11,152 @@ https://mission.daatan.com
 
 ---
 
-## 🔐 Authentication
+## 🔐 Authentication: Email Verification
 
-### User Accounts
+Mission Control now uses **secure email-based authentication** with verification codes.
 
-| Username | Password | Role |
-|----------|----------|------|
-| `mission_user` | `OpenClaw2026!` | Admin |
-| `user2` | `OpenClaw2026!` | User |
-| `user3` | `OpenClaw2026!` | User |
-| `user4` | `OpenClaw2026!` | User |
+### How to Login
 
-**To add more users:**
+1. **Visit:** https://mission.daatan.com
+2. **Enter your email** (must be whitelisted)
+3. **Check your email** for a 6-digit verification code
+4. **Enter the code** on the website
+5. **Access granted** for 24 hours
+
+---
+
+## 👥 Current Whitelist
+
+| Email | Status |
+|-------|--------|
+| `komapc@gmail.com` | ✅ Approved |
+
+---
+
+## ➕ Adding New Users
+
+### Quick Add
+
 ```bash
 ssh -i ~/.ssh/daatan-key.pem ubuntu@63.182.142.184
-sudo htpasswd -b /etc/nginx/.htpasswd newuser 'Password123!'
+
+# Edit whitelist
+sudo nano /opt/mission-auth/.env
+
+# Add email (comma-separated)
+ALLOWED_EMAILS=komapc@gmail.com,newuser@example.com
+
+# Restart service
+sudo systemctl restart mission-auth
+```
+
+### User Experience
+
+New users will:
+1. Enter their email at https://mission.daatan.com
+2. Receive a 6-digit code via email
+3. Enter the code to gain access
+4. Stay logged in for 24 hours
+
+---
+
+## 📧 Email Configuration (Optional)
+
+By default, verification codes are logged to the console. To send real emails:
+
+### Using SendGrid
+
+1. Get API key from https://sendgrid.com
+2. Update config:
+   ```bash
+   sudo nano /opt/mission-auth/.env
+   ```
+3. Add:
+   ```env
+   SENDGRID_API_KEY=SG.xxxxxx.yyyyyy
+   FROM_EMAIL=noreply@mission.daatan.com
+   ```
+4. Restart:
+   ```bash
+   sudo systemctl restart mission-auth
+   ```
+
+---
+
+## 🔒 Security Features
+
+| Feature | Description |
+|---------|-------------|
+| **Email Whitelist** | Only approved emails can login |
+| **Verification Codes** | 6-digit codes, 10-minute expiry |
+| **Session Management** | 24-hour sessions via Redis |
+| **No Passwords** | Nothing to steal or forget |
+| **HTTPS Only** | All traffic encrypted |
+
+---
+
+## 🛠️ Maintenance Commands
+
+### Check Service Status
+```bash
+ssh -i ~/.ssh/daatan-key.pem ubuntu@63.182.142.184
+sudo systemctl status mission-auth
+```
+
+### View Logs
+```bash
+# Service logs
+sudo journalctl -u mission-auth -f
+
+# Verification codes (without SendGrid)
+sudo journalctl -u mission-auth | grep "VERIFICATION CODE"
+```
+
+### Health Check
+```bash
+curl http://127.0.0.1:5001/health
+# Expected: {"status":"healthy","redis":true,"allowed_emails":1}
+```
+
+### Manage Sessions
+```bash
+# List active sessions
+redis-cli KEYS "session:*"
+
+# Clear all sessions (force re-login)
+redis-cli KEYS "session:*" | xargs redis-cli DEL
 ```
 
 ---
 
-## 🔒 Security
+## 🚨 Troubleshooting
 
-| Feature | Status |
-|---------|--------|
-| HTTPS Encryption | ✅ Let's Encrypt SSL |
-| Authentication | ✅ Basic Auth (htpasswd) |
-| IP Restriction | ⚠️ Open (can be restricted) |
-| Auto-Renew SSL | ✅ Certbot auto-renewal |
+### User Can't Login
 
-### To Restrict Access to Specific IPs
+1. **Check whitelist:**
+   ```bash
+   grep ALLOWED_EMAILS /opt/mission-auth/.env
+   ```
 
-Edit nginx config:
-```bash
-ssh -i ~/.ssh/daatan-key.pem ubuntu@63.182.142.184
-sudo nano /etc/nginx/sites-available/mission.daatan.com
-```
+2. **Check services:**
+   ```bash
+   sudo systemctl status mission-auth
+   sudo systemctl status redis-server
+   ```
 
-Add inside the `server` block:
-```nginx
-allow 84.229.91.11;  # Your IP
-allow 1.2.3.4;       # Add more IPs
-deny all;            # Block everyone else
-```
+3. **Check logs:**
+   ```bash
+   sudo journalctl -u mission-auth -n 50
+   ```
 
-Then reload:
-```bash
-sudo nginx -t && sudo systemctl reload nginx
-```
+### Code Not Received
+
+- **Without SendGrid:** Check logs
+  ```bash
+  sudo journalctl -u mission-auth | grep "VERIFICATION CODE"
+  ```
+
+- **With SendGrid:** Check SendGrid dashboard
 
 ---
 
@@ -65,125 +164,11 @@ sudo nginx -t && sudo systemctl reload nginx
 
 | Feature | Description |
 |---------|-------------|
-| **WebChat** | Chat with AI agents directly from browser |
-| **Session Management** | View and control active agent sessions |
-| **Channel Status** | See Telegram bot status and connections |
-| **Logs** | View real-time agent activity and errors |
-| **Configuration** | View current configuration |
-
----
-
-## 🛠️ Maintenance Commands
-
-### Check Status
-```bash
-ssh -i ~/.ssh/daatan-key.pem ubuntu@63.182.142.184
-cd ~/projects/openclaw
-
-# Check bot status
-docker exec openclaw npx --yes openclaw channels status
-
-# Check container
-docker compose ps
-
-# View logs
-docker compose logs -f openclaw
-```
-
-### Restart Services
-```bash
-# Restart OpenClaw
-docker compose restart openclaw
-
-# Restart nginx
-sudo systemctl restart nginx
-
-# Check nginx status
-sudo systemctl status nginx
-```
-
-### SSL Certificate
-```bash
-# Check SSL expiry
-sudo certbot certificates
-
-# Manual renewal
-sudo certbot renew --dry-run
-```
-
----
-
-## 🌐 DNS & Network
-
-| Setting | Value |
-|---------|-------|
-| Domain | `mission.daatan.com` |
-| Instance IP | `63.182.142.184` |
-| HTTPS Port | `443` (open to all) |
-| HTTP Port | `80` (redirects to HTTPS) |
-| Gateway Port | `18789` (internal only) |
-
-### DNS Record
-```
-mission.daatan.com.  300  IN  A  63.182.142.184
-```
-
----
-
-## 📧 SSL Certificate
-
-| Property | Value |
-|----------|-------|
-| Provider | Let's Encrypt |
-| Issued | 2026-02-19 |
-| Expires | 2026-05-20 |
-| Auto-Renew | ✅ Enabled |
-
-**Certificate Location:**
-- Certificate: `/etc/letsencrypt/live/mission.daatan.com/fullchain.pem`
-- Private Key: `/etc/letsencrypt/live/mission.daatan.com/privkey.pem`
-
----
-
-## 🚨 Troubleshooting
-
-### Can't Access Website
-
-1. **Check DNS:**
-   ```bash
-   dig mission.daatan.com
-   # Should return: 63.182.142.184
-   ```
-
-2. **Check nginx:**
-   ```bash
-   ssh -i ~/.ssh/daatan-key.pem ubuntu@63.182.142.184
-   sudo systemctl status nginx
-   ```
-
-3. **Check OpenClaw:**
-   ```bash
-   docker compose ps
-   docker compose logs openclaw
-   ```
-
-### SSL Certificate Issues
-
-```bash
-# Test renewal
-sudo certbot renew --dry-run
-
-# Force renewal
-sudo certbot renew --force-renewal
-```
-
-### Authentication Issues
-
-```bash
-# Reset password
-sudo htpasswd -D /etc/nginx/.htpasswd username  # Delete user
-sudo htpasswd -b /etc/nginx/.htpasswd username 'NewPassword!'  # Add user
-```
+| **WebChat** | Chat with AI agents from browser |
+| **Session Management** | View active agent sessions |
+| **Channel Status** | See Telegram bot status |
+| **Logs** | View real-time activity |
+| **Configuration** | View current settings |
 
 ---
 
@@ -191,21 +176,20 @@ sudo htpasswd -b /etc/nginx/.htpasswd username 'NewPassword!'  # Add user
 
 | File | Purpose |
 |------|---------|
+| `/opt/mission-auth/.env` | Auth service config |
+| `/opt/mission-auth/app.py` | Auth service code |
 | `/etc/nginx/sites-available/mission.daatan.com` | Nginx config |
-| `/etc/nginx/.htpasswd` | User credentials |
-| `/etc/letsencrypt/live/mission.daatan.com/` | SSL certificates |
-| `~/projects/openclaw/.env` | OpenClaw environment |
-| `~/.openclaw/openclaw.json` | OpenClaw configuration |
 
 ---
 
-## 🔗 Related Links
+## 🔗 Related Documentation
 
-- **OpenClaw Docs:** https://docs.openclaw.ai
-- **GitHub Repo:** https://github.com/openclaw/openclaw
-- **Let's Encrypt:** https://letsencrypt.org
+- [EMAIL_AUTH_SETUP.md](EMAIL_AUTH_SETUP.md) - Detailed auth setup
+- [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Troubleshooting guide
+- [RUNBOOK.md](RUNBOOK.md) - Operational procedures
 
 ---
 
 **Last Updated:** 2026-02-19  
-**Instance:** AWS EC2 t4g.medium (eu-central-1)
+**Instance:** AWS EC2 t4g.medium (eu-central-1)  
+**Auth Version:** 2.0 (Email Verification)
