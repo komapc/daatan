@@ -267,7 +267,7 @@ Rules:
 - Use English
 - resolveByDatetime must be in the future${tagConstraint}`
 
-    const response = await llm.generateContent({ prompt: forecastPrompt, temperature: 0.7, schema: true as never })
+    const response = await llm.generateContent({ prompt: forecastPrompt, temperature: 0.7, schema: {} as any })
 
     // Check for tag-filter skip signal before full parse
     const rawText = response.text.trim()

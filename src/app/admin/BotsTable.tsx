@@ -546,10 +546,29 @@ function EditBotModal({ bot, allTags, onSave, onClose }: {
       .split('\n')
       .map((s) => s.trim())
       .filter(Boolean)
-    onSave({
-      ...form,
+    const updates: Partial<Bot> = {
+      personaPrompt: form.personaPrompt,
+      forecastPrompt: form.forecastPrompt,
+      votePrompt: form.votePrompt,
       newsSources: sources,
-    } as unknown as Partial<Bot>)
+      intervalMinutes: form.intervalMinutes,
+      maxForecastsPerDay: form.maxForecastsPerDay,
+      maxVotesPerDay: form.maxVotesPerDay,
+      stakeMin: form.stakeMin,
+      stakeMax: form.stakeMax,
+      modelPreference: form.modelPreference,
+      hotnessMinSources: form.hotnessMinSources,
+      hotnessWindowHours: form.hotnessWindowHours,
+      activeHoursStart: form.activeHoursStart,
+      activeHoursEnd: form.activeHoursEnd,
+      tagFilter: form.tagFilter,
+      voteBias: form.voteBias,
+      cuRefillAt: form.cuRefillAt,
+      cuRefillAmount: form.cuRefillAmount,
+      canCreateForecasts: form.canCreateForecasts,
+      canVote: form.canVote,
+    }
+    onSave(updates)
     setSaving(false)
   }
 

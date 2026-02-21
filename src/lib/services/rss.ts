@@ -81,7 +81,7 @@ async function scrapeHtmlAsFeed(url: string): Promise<RssItem[]> {
     const response = await fetch(url, {
       headers: { 'User-Agent': 'Daatan-Bot/1.0' },
       next: { revalidate: 3600 },
-    })
+    } as RequestInit & { next: { revalidate: number } })
     if (!response.ok) return []
 
     const html = await response.text()
