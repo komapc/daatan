@@ -141,9 +141,9 @@ async function runBot(bot: BotWithUser, dryRun: boolean): Promise<BotRunSummary>
 
   log.info({ botId: bot.id, dryRun }, 'Running bot')
 
-  const llm = createBotLLMService(bot.modelPreference)
-
   try {
+    const llm = createBotLLMService(bot.modelPreference)
+
     // ── Forecast creation ────────────────────────────────────────────────
     if (bot.canCreateForecasts) {
       const feedUrls = bot.newsSources as string[]
@@ -348,14 +348,14 @@ Rules:
         status: 'DRAFT',
         tags: forecast.tags?.length
           ? {
-              connectOrCreate: forecast.tags.slice(0, 5).map((tagName: string) => {
-                const tagSlug = slugify(tagName)
-                return {
-                  where: { slug: tagSlug },
-                  create: { name: tagName, slug: tagSlug },
-                }
-              }),
-            }
+            connectOrCreate: forecast.tags.slice(0, 5).map((tagName: string) => {
+              const tagSlug = slugify(tagName)
+              return {
+                where: { slug: tagSlug },
+                create: { name: tagName, slug: tagSlug },
+              }
+            }),
+          }
           : undefined,
       },
     })
