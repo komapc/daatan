@@ -41,7 +41,7 @@ SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY', '')
 FROM_EMAIL = os.environ.get('FROM_EMAIL', 'noreply@mission.daatan.com')
 
 # Gateway token for Control UI
-GATEWAY_TOKEN = os.environ.get('GATEWAY_TOKEN', '9d93fb6cac5dc5e0a00e979efa74c906adbb9ec4b4bff10a')
+GATEWAY_TOKEN = os.environ.get('GATEWAY_TOKEN', '')
 
 # Session timeout (24 hours)
 SESSION_TIMEOUT = timedelta(hours=24)
