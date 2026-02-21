@@ -17,6 +17,10 @@ vi.mock('rss-parser', () => ({
   },
 }))
 
+// Mock global fetch for scraping fallback
+const mockFetch = vi.fn()
+global.fetch = mockFetch as any
+
 describe('detectHotTopics', () => {
   // Helper to build an RssItem published `hoursAgo` hours in the past
   const makeItem = (
@@ -164,6 +168,7 @@ describe('fetchRssFeeds', () => {
   beforeEach(async () => {
     vi.resetModules()
     mockParseURL.mockReset()
+    mockFetch.mockReset()
     fetchRssFeeds = (await import('@/lib/services/rss')).fetchRssFeeds
   })
 
@@ -252,6 +257,8 @@ describe('fetchRssFeeds', () => {
         title: 'Good Feed',
         items: [{ title: 'Good headline', link: 'https://goodfeed.com/1', pubDate: '2026-02-01T00:00:00Z' }],
       })
+    // Mock fetch to fail for the fallback too
+    mockFetch.mockResolvedValueOnce({ ok: false })
 
     const results = await fetchRssFeeds([
       'https://badfeed.com/rss',
@@ -264,6 +271,7 @@ describe('fetchRssFeeds', () => {
 
   it('returns empty array when all feeds fail', async () => {
     mockParseURL.mockRejectedValue(new Error('Timeout'))
+    mockFetch.mockResolvedValue({ ok: false })
 
     const results = await fetchRssFeeds(['https://bad1.com/rss', 'https://bad2.com/rss'])
     expect(results).toEqual([])
@@ -289,5 +297,31 @@ describe('fetchRssFeeds', () => {
     const results = await fetchRssFeeds(['https://a.com/rss', 'https://b.com/rss'])
     expect(results).toHaveLength(2)
     expect(results.map(r => r.source)).toEqual(['Feed A', 'Feed B'])
+  })
+
+  it('supports "Search:" prefix by using google news rss', async () => {
+    mockParseURL.mockResolvedValue({
+      title: 'Google News',
+      items: [{ title: 'Search result', link: 'https://news.google.com/1', pubDate: '2026-02-01T00:00:00Z' }],
+    })
+
+    await fetchRssFeeds(['Search: bitcoin'])
+
+    expect(mockParseURL).toHaveBeenCalledWith(expect.stringContaining('news.google.com/rss/search?q=bitcoin'))
+  })
+
+  it('falls back to HTML scraping when RSS fails but URL is valid', async () => {
+    mockParseURL.mockRejectedValue(new Error('Not RSS'))
+    mockFetch.mockResolvedValue({
+      ok: true,
+      text: async () => '<html><body><a href="/news/1">Valid Headline From Page</a></body></html>',
+    })
+
+    const results = await fetchRssFeeds(['https://example.com/news'])
+
+    expect(results).toHaveLength(1)
+    expect(results[0].title).toBe('Valid Headline From Page')
+    expect(results[0].source).toBe('example.com')
+    expect(results[0].url).toBe('https://example.com/news/1')
   })
 })
