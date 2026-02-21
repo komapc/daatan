@@ -94,7 +94,8 @@ export default function BotsTable() {
         fetchBots()
         if (expandedLogs.has(botId)) fetchLogs(botId)
       } else {
-        flash(`Error: ${data.error}`)
+        const errorDetail = data.details?.[0]?.message ?? data.error
+        flash(`Error: ${errorDetail}`)
       }
     } catch {
       flash('Request failed')
@@ -212,9 +213,8 @@ export default function BotsTable() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-gray-900">{bot.user.name}</span>
                       <span className="text-xs font-mono text-gray-500">@{bot.user.username}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        bot.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
-                      }`}>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${bot.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                        }`}>
                         {bot.isActive ? 'Active' : 'Disabled'}
                       </span>
                     </div>
@@ -278,11 +278,10 @@ export default function BotsTable() {
                     <button
                       onClick={() => toggleActive(bot)}
                       title={bot.isActive ? 'Disable' : 'Enable'}
-                      className={`p-1.5 rounded transition-colors ${
-                        bot.isActive
+                      className={`p-1.5 rounded transition-colors ${bot.isActive
                           ? 'text-green-600 hover:bg-red-50 hover:text-red-600'
                           : 'text-gray-400 hover:bg-green-50 hover:text-green-600'
-                      }`}
+                        }`}
                     >
                       <Power className="w-4 h-4" />
                     </button>
