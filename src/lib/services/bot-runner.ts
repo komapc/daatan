@@ -21,7 +21,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { createBotLLMService } from '@/lib/llm'
-import { fetchRssFeeds, detectHotTopics } from '@/lib/services/rss'
+import { fetchRssFeeds, detectHotTopics, type HotTopic } from '@/lib/services/rss'
 import { createCommitment } from '@/lib/services/commitment'
 import { createLogger } from '@/lib/logger'
 import { slugify, generateUniqueSlug } from '@/lib/utils/slugify'
@@ -37,6 +37,7 @@ export interface BotRunSummary {
   skipped: number
   errors: number
   dryRun: boolean
+  hotTopics?: HotTopic[]
 }
 
 /**
@@ -152,6 +153,7 @@ async function runBot(bot: BotWithUser, dryRun: boolean): Promise<BotRunSummary>
       if (feedUrls.length > 0 && initialForecastCount < bot.maxForecastsPerDay) {
         const items = await fetchRssFeeds(feedUrls)
         const hotTopics = detectHotTopics(items, bot.hotnessMinSources, bot.hotnessWindowHours)
+        summary.hotTopics = hotTopics
 
         log.info({ botId: bot.id, hotCount: hotTopics.length }, 'Hot topics detected')
 
