@@ -629,7 +629,7 @@ function EditBotModal({ bot, allTags, onSave, onClose }: {
 
           <Field label="News sources" hint="One URL per line. RSS preferred, but standard news URLs also supported via scraping.">
             <div className="text-[10px] text-blue-600 mb-1 font-medium">
-              Tip: Use "Search: bitcoin" to fetch from Google News search.
+              Tip: Use &quot;Search: bitcoin&quot; to fetch from Google News search.
             </div>
             <textarea
               value={form.newsSources}
@@ -822,7 +822,7 @@ function EditBotModal({ bot, allTags, onSave, onClose }: {
                     ))}
                     {filteredTags.length === 0 && (
                       <div className="px-3 py-2 text-xs text-gray-500">
-                        No matches. Press Enter to add "{tagInput}"
+                        No matches. Press Enter to add &quot;{tagInput}&quot;
                       </div>
                     )}
                   </div>
