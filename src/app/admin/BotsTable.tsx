@@ -2,6 +2,30 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Loader2, Play, FlaskConical, Power, ChevronDown, ChevronUp, Plus, Pencil, X, Check } from 'lucide-react'
 
+interface RssItem {
+  title: string
+  url: string
+  source: string
+  publishedAt: string
+}
+
+interface HotTopic {
+  title: string
+  items: RssItem[]
+  sourceCount: number
+}
+
+interface BotRunSummary {
+  botId: string
+  botName: string
+  forecastsCreated: number
+  votes: number
+  skipped: number
+  errors: number
+  dryRun: boolean
+  hotTopics?: HotTopic[]
+}
+
 interface BotLog {
   id: string
   runAt: string
@@ -56,6 +80,8 @@ export default function BotsTable() {
   const [editingBot, setEditingBot] = useState<Bot | null>(null)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [actionMsg, setActionMsg] = useState<string | null>(null)
+  const [runResult, setRunResult] = useState<BotRunSummary | null>(null)
+  const [allTags, setAllTags] = useState<{ id: string; name: string; slug: string }[]>([])
 
   const fetchBots = useCallback(async () => {
     setIsLoading(true)
@@ -70,9 +96,20 @@ export default function BotsTable() {
     }
   }, [])
 
+  const fetchTags = useCallback(async () => {
+    try {
+      const res = await fetch('/api/tags')
+      if (res.ok) {
+        const data = await res.json()
+        setAllTags(data.tags)
+      }
+    } catch { }
+  }, [])
+
   useEffect(() => {
     fetchBots()
-  }, [fetchBots])
+    fetchTags()
+  }, [fetchBots, fetchTags])
 
   const flash = (msg: string) => {
     setActionMsg(msg)
@@ -81,10 +118,12 @@ export default function BotsTable() {
 
   const runBot = async (botId: string, dryRun: boolean) => {
     setRunningBots((s) => new Set(s).add(botId))
+    setRunResult(null)
     try {
       const res = await fetch(`/api/admin/bots/${botId}/run${dryRun ? '?dry=true' : ''}`, { method: 'POST' })
       const data = await res.json()
       if (res.ok) {
+        setRunResult(data.summary)
         const s = data.summary
         flash(
           dryRun
@@ -94,8 +133,7 @@ export default function BotsTable() {
         fetchBots()
         if (expandedLogs.has(botId)) fetchLogs(botId)
       } else {
-        const errorDetail = data.details?.[0]?.message ?? data.error
-        flash(`Error: ${errorDetail}`)
+        flash(`Error: ${data.details?.[0]?.message ?? data.error}`)
       }
     } catch {
       flash('Request failed')
@@ -193,9 +231,58 @@ export default function BotsTable() {
       {editingBot && (
         <EditBotModal
           bot={editingBot}
+          allTags={allTags}
           onSave={(updates) => saveBot(editingBot.id, updates)}
           onClose={() => setEditingBot(null)}
         />
+      )}
+
+      {runResult && (
+        <div className="mb-6 border-2 border-blue-200 bg-blue-50 rounded-xl overflow-hidden shadow-sm">
+          <div className="bg-blue-600 px-4 py-2 flex justify-between items-center">
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider">Run Summary: {runResult.botName}</h3>
+            <button onClick={() => setRunResult(null)} className="text-blue-100 hover:text-white">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="p-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+              <Stat label="Created" value={runResult.forecastsCreated} color="text-green-700" />
+              <Stat label="Votes" value={runResult.votes} color="text-blue-700" />
+              <Stat label="Skipped" value={runResult.skipped} color="text-gray-600" />
+              <Stat label="Errors" value={runResult.errors} color="text-red-700" />
+            </div>
+
+            {runResult.hotTopics && runResult.hotTopics.length > 0 ? (
+              <div className="space-y-3">
+                <p className="text-xs font-bold text-gray-500 uppercase">Detection results ({runResult.hotTopics.length} topics found)</p>
+                <div className="max-h-60 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                  {runResult.hotTopics.map((topic, i) => (
+                    <div key={i} className="bg-white border rounded-lg p-3 text-sm shadow-sm group hover:border-blue-300 transition-colors">
+                      <div className="font-semibold text-gray-900 group-hover:text-blue-700">{topic.title}</div>
+                      <div className="text-[10px] text-gray-400 mt-0.5">Appears in {topic.sourceCount} sources</div>
+                      <div className="mt-2 space-y-1">
+                        {topic.items.slice(0, 3).map((item, j) => (
+                          <a key={j} href={item.url} target="_blank" rel="noopener noreferrer"
+                            className="block text-xs text-blue-600 hover:underline truncate">
+                            • [{item.source}] {item.title}
+                          </a>
+                        ))}
+                        {topic.items.length > 3 && (
+                          <div className="text-[10px] text-gray-400 pl-3">...and {topic.items.length - 3} more</div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-4 text-sm text-gray-500 italic">
+                No hot topics detected in configured sources.
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
       <div className="space-y-4">
@@ -279,8 +366,8 @@ export default function BotsTable() {
                       onClick={() => toggleActive(bot)}
                       title={bot.isActive ? 'Disable' : 'Enable'}
                       className={`p-1.5 rounded transition-colors ${bot.isActive
-                          ? 'text-green-600 hover:bg-red-50 hover:text-red-600'
-                          : 'text-gray-400 hover:bg-green-50 hover:text-green-600'
+                        ? 'text-green-600 hover:bg-red-50 hover:text-red-600'
+                        : 'text-gray-400 hover:bg-green-50 hover:text-green-600'
                         }`}
                     >
                       <Power className="w-4 h-4" />
@@ -419,9 +506,9 @@ function CreateBotForm({ onCreated, onCancel }: { onCreated: () => void; onCance
 }
 
 // ── Edit Bot Modal ─────────────────────────────────────────────────────────────
-
-function EditBotModal({ bot, onSave, onClose }: {
+function EditBotModal({ bot, allTags, onSave, onClose }: {
   bot: Bot
+  allTags: { id: string; name: string; slug: string }[]
   onSave: (updates: Partial<Bot>) => void
   onClose: () => void
 }) {
@@ -441,7 +528,7 @@ function EditBotModal({ bot, onSave, onClose }: {
     // Extended params
     activeHoursStart: bot.activeHoursStart,
     activeHoursEnd: bot.activeHoursEnd,
-    tagFilter: (bot.tagFilter ?? []).join('\n'),
+    tagFilter: bot.tagFilter ?? [],
     voteBias: bot.voteBias ?? 50,
     cuRefillAt: bot.cuRefillAt ?? 0,
     cuRefillAmount: bot.cuRefillAmount ?? 50,
@@ -449,6 +536,8 @@ function EditBotModal({ bot, onSave, onClose }: {
     canVote: bot.canVote ?? true,
   })
   const [saving, setSaving] = useState(false)
+  const [tagInput, setTagInput] = useState('')
+  const [showTagSuggestions, setShowTagSuggestions] = useState(false)
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -457,22 +546,50 @@ function EditBotModal({ bot, onSave, onClose }: {
       .split('\n')
       .map((s) => s.trim())
       .filter(Boolean)
-    const tags = form.tagFilter
-      .split('\n')
-      .map((s) => s.trim())
-      .filter(Boolean)
-    onSave({
-      ...form,
+    const updates: Partial<Bot> = {
+      personaPrompt: form.personaPrompt,
+      forecastPrompt: form.forecastPrompt,
+      votePrompt: form.votePrompt,
       newsSources: sources,
-      tagFilter: tags,
-    } as unknown as Partial<Bot>)
+      intervalMinutes: form.intervalMinutes,
+      maxForecastsPerDay: form.maxForecastsPerDay,
+      maxVotesPerDay: form.maxVotesPerDay,
+      stakeMin: form.stakeMin,
+      stakeMax: form.stakeMax,
+      modelPreference: form.modelPreference,
+      hotnessMinSources: form.hotnessMinSources,
+      hotnessWindowHours: form.hotnessWindowHours,
+      activeHoursStart: form.activeHoursStart,
+      activeHoursEnd: form.activeHoursEnd,
+      tagFilter: form.tagFilter,
+      voteBias: form.voteBias,
+      cuRefillAt: form.cuRefillAt,
+      cuRefillAmount: form.cuRefillAmount,
+      canCreateForecasts: form.canCreateForecasts,
+      canVote: form.canVote,
+    }
+    onSave(updates)
     setSaving(false)
   }
 
+  const toggleTag = (slug: string) => {
+    setForm(prev => {
+      const tags = prev.tagFilter.includes(slug)
+        ? prev.tagFilter.filter(t => t !== slug)
+        : [...prev.tagFilter, slug]
+      return { ...prev, tagFilter: tags }
+    })
+  }
+
+  const filteredTags = allTags.filter(t =>
+    t.name.toLowerCase().includes(tagInput.toLowerCase()) ||
+    t.slug.toLowerCase().includes(tagInput.toLowerCase())
+  ).filter(t => !form.tagFilter.includes(t.slug)).slice(0, 5)
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
+        <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white z-10">
           <h3 className="font-semibold text-gray-900">Edit bot: {bot.user.name}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X className="w-5 h-5" />
@@ -510,7 +627,10 @@ function EditBotModal({ bot, onSave, onClose }: {
             />
           </Field>
 
-          <Field label="RSS sources" hint="One URL per line">
+          <Field label="News sources" hint="One URL per line. RSS preferred, but standard news URLs also supported via scraping.">
+            <div className="text-[10px] text-blue-600 mb-1 font-medium">
+              Tip: Use &quot;Search: bitcoin&quot; to fetch from Google News search.
+            </div>
             <textarea
               value={form.newsSources}
               onChange={(e) => setForm({ ...form, newsSources: e.target.value })}
@@ -545,7 +665,6 @@ function EditBotModal({ bot, onSave, onClose }: {
               onChange={(v) => setForm({ ...form, hotnessWindowHours: v })} />
           </div>
 
-          {/* ── Actions & Bias ─────────────────────────────────────── */}
           <div className="border rounded-lg p-3 space-y-3 bg-gray-50">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions &amp; Bias</p>
             <div className="flex flex-wrap gap-4">
@@ -591,7 +710,6 @@ function EditBotModal({ bot, onSave, onClose }: {
             </div>
           </div>
 
-          {/* ── Active Window ──────────────────────────────────────── */}
           <div className="border rounded-lg p-3 space-y-3 bg-gray-50">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Active Window (UTC)</p>
             <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
@@ -630,7 +748,6 @@ function EditBotModal({ bot, onSave, onClose }: {
             )}
           </div>
 
-          {/* ── CU Auto-Refill ─────────────────────────────────────── */}
           <div className="border rounded-lg p-3 space-y-3 bg-gray-50">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">CU Auto-Refill</p>
             <div className="grid grid-cols-2 gap-4">
@@ -657,18 +774,64 @@ function EditBotModal({ bot, onSave, onClose }: {
             </p>
           </div>
 
-          {/* ── Tag Filter ─────────────────────────────────────────── */}
-          <Field label="Tag filter" hint="One tag per line. Leave empty to act on all tags.">
-            <textarea
-              value={form.tagFilter}
-              onChange={(e) => setForm({ ...form, tagFilter: e.target.value })}
-              rows={3}
-              placeholder={'politics\ntechnology\nclimate'}
-              className="w-full border rounded px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-blue-500 outline-none"
-            />
+          <Field label="Tag filter" hint="Bot only acts on forecasts with these tags. Leave empty for all tags.">
+            <div className="mt-2 space-y-2">
+              <div className="flex flex-wrap gap-1.5 min-h-8 p-2 border rounded bg-white">
+                {form.tagFilter.map(slug => (
+                  <span key={slug} className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-medium">
+                    {allTags.find(t => t.slug === slug)?.name ?? slug}
+                    <button type="button" onClick={() => toggleTag(slug)} className="hover:text-blue-900">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+                {form.tagFilter.length === 0 && <span className="text-gray-400 text-xs italic">All tags enabled</span>}
+              </div>
+
+              <div className="relative">
+                <input
+                  type="text"
+                  value={tagInput}
+                  onChange={(e) => { setTagInput(e.target.value); setShowTagSuggestions(true) }}
+                  onFocus={() => setShowTagSuggestions(true)}
+                  placeholder="Search tags to add..."
+                  className="w-full border rounded px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      if (tagInput.trim()) {
+                        const slug = tagInput.toLowerCase().replace(/\s+/g, '-')
+                        if (!form.tagFilter.includes(slug)) toggleTag(slug)
+                        setTagInput('')
+                      }
+                    }
+                  }}
+                />
+                {showTagSuggestions && tagInput && (
+                  <div className="absolute top-full left-0 right-0 z-20 mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto">
+                    {filteredTags.map(tag => (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        onClick={() => { toggleTag(tag.slug); setTagInput(''); setShowTagSuggestions(false) }}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 transition-colors border-b last:border-0"
+                      >
+                        <span className="font-medium">{tag.name}</span>
+                        <span className="ml-2 text-[10px] text-gray-400">#{tag.slug}</span>
+                      </button>
+                    ))}
+                    {filteredTags.length === 0 && (
+                      <div className="px-3 py-2 text-xs text-gray-500">
+                        No matches. Press Enter to add &quot;{tagInput}&quot;
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
           </Field>
 
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex justify-end gap-2 pt-2 pb-4">
             <button type="button" onClick={onClose} className="px-4 py-2 text-sm border rounded hover:bg-gray-50">
               Cancel
             </button>
@@ -683,6 +846,15 @@ function EditBotModal({ bot, onSave, onClose }: {
           </div>
         </form>
       </div>
+    </div>
+  )
+}
+
+function Stat({ label, value, color }: { label: string; value: number | string; color: string }) {
+  return (
+    <div className="bg-white p-2 rounded-lg border text-center">
+      <div className={`text-xl font-bold ${color}`}>{value}</div>
+      <div className="text-[10px] text-gray-400 uppercase font-medium">{label}</div>
     </div>
   )
 }
