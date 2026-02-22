@@ -174,8 +174,88 @@ async function seedBots() {
   }
 }
 
+async function seedNotifications() {
+  console.log('Seeding notifications...')
+
+  const admin = await prisma.user.findFirst({ where: { role: 'ADMIN' } })
+  const bot = await prisma.user.findFirst({ where: { isBot: true } })
+  const prediction = await prisma.prediction.findFirst()
+
+  if (!admin) {
+    console.log('No admin found, skipping notifications.')
+    return
+  }
+
+  // Clear existing notifications for admin to avoid duplicates on re-seed
+  await prisma.notification.deleteMany({
+    where: { userId: admin.id }
+  })
+
+  const notifications = [
+    {
+      userId: admin.id,
+      type: 'SYSTEM',
+      title: 'Welcome to DAATAN!',
+      message: 'Your account has been successfully created. Start by making your first forecast.',
+      read: false,
+    },
+  ]
+
+  if (bot && prediction) {
+    notifications.push(
+      {
+        userId: admin.id,
+        type: 'NEW_COMMITMENT',
+        title: 'New commitment on your forecast',
+        message: `${bot.name} has committed to your forecast.`,
+        read: false,
+      } as any,
+      {
+        userId: admin.id,
+        type: 'COMMENT_ON_FORECAST',
+        title: 'New comment on your forecast',
+        message: `${bot.name} commented: "I think the historical data supports this."`,
+        read: false,
+      } as any,
+      {
+        userId: admin.id,
+        type: 'MENTION',
+        title: 'You were mentioned',
+        message: `${bot.name} mentioned you in a comment.`,
+        read: false,
+      } as any,
+      {
+        userId: admin.id,
+        type: 'COMMITMENT_RESOLVED',
+        title: 'Forecast resolved',
+        message: 'A forecast you committed to has been resolved as correct!',
+        read: true,
+      } as any
+    )
+
+    // add links and refs
+    for (let i = 1; i < notifications.length; i++) {
+      (notifications[i] as any).predictionId = prediction.id;
+      (notifications[i] as any).actorId = bot.id;
+      if (notifications[i].type === 'COMMENT_ON_FORECAST' || notifications[i].type === 'MENTION') {
+        (notifications[i] as any).link = `/forecasts/${prediction.id}#comments`;
+      } else {
+        (notifications[i] as any).link = `/forecasts/${prediction.id}`;
+      }
+    }
+  }
+
+  for (const n of notifications) {
+    await prisma.notification.create({
+      data: n as any
+    })
+  }
+  console.log(`Created ${notifications.length} notifications for admin`)
+}
+
 main()
   .then(() => seedBots())
+  .then(() => seedNotifications())
   .catch((e) => {
     console.error(e)
     process.exit(1)
