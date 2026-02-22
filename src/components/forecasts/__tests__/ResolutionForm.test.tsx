@@ -17,7 +17,7 @@ describe('ResolutionForm', () => {
     expect(screen.getByText('Wrong')).toBeInTheDocument()
     expect(screen.getByText('Void')).toBeInTheDocument()
     expect(screen.getByText('Unresolvable')).toBeInTheDocument()
-    const submitButtons = screen.getAllByRole('button', { name: /Resolve Forecast/i })
+    const submitButtons = screen.getAllByRole('button', { name: /Confirm Resolution/i })
     expect(submitButtons.length).toBeGreaterThan(0)
   })
 
