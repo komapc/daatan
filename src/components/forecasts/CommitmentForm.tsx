@@ -12,7 +12,7 @@ interface Prediction {
   outcomeType: string
   options?: PredictionOption[]
   lockedAt?: string | null
-  commitments?: { binaryChoice: boolean | null, optionId: string | null, cuCommitted: number }[]
+  commitments?: { binaryChoice?: boolean | null, optionId?: string | null, cuCommitted: number }[]
 }
 
 interface ExistingCommitment {
