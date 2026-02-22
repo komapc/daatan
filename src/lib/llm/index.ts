@@ -55,16 +55,33 @@ export function createBotLLMService(modelName: string): ResilientLLMService {
 
   // If model looks like a Google model and we have a direct key, try direct provider first
   if (modelName.toLowerCase().includes('gemini') && geminiApiKey) {
-    const directModelName = modelName.split(':').shift()?.split('/').pop() || 'gemini-1.5-flash'
+    // Extract base model name from OpenRouter slug
+    // e.g. "google/gemini-2.0-flash-exp:free" -> "gemini-2.0-flash-exp"
+    let directModelName = modelName.split(':').shift()?.split('/').pop() || 'gemini-1.5-flash'
+
+    // Ensure we handle known renames or experimental suffixes if needed
+    if (directModelName === 'gemini-2.0-flash-exp') {
+      // Sometimes just 'gemini-2.0-flash' is more stable
+      // But let's try the requested one first as we have resilience
+    }
+
+    log.info({ modelName, directModelName }, 'Trying direct Gemini provider for bot')
     providers.push(new GeminiProvider({ apiKey: geminiApiKey, modelName: directModelName }))
   }
 
   if (openrouterApiKey) {
+    log.info({ modelName }, 'Adding OpenRouter provider for bot')
     providers.push(new OpenRouterProvider({ apiKey: openrouterApiKey, modelName }))
   }
 
+  // Final fallback: direct stable Gemini if we have a key and requested model was Gemini
+  if (modelName.toLowerCase().includes('gemini') && geminiApiKey) {
+    log.info('Adding stable gemini-1.5-flash as final fallback')
+    providers.push(new GeminiProvider({ apiKey: geminiApiKey, modelName: 'gemini-1.5-flash' }))
+  }
+
   if (providers.length === 0) {
-    log.warn({ modelName }, 'No API keys available for bot LLM service')
+    log.warn({ modelName, hasOpenRouter: !!openrouterApiKey, hasGemini: !!geminiApiKey }, 'No LLM providers available for bot')
   }
 
   return new ResilientLLMService(providers)

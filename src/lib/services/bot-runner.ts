@@ -1,23 +1,23 @@
 /**
- * Bot runner service.
+  * Bot runner service.
  *
- * Called by /api/bots/run on a schedule (GitHub Actions every 5 minutes).
+ * Called by / api / bots / run on a schedule(GitHub Actions every 5 minutes).
  * For each active bot that is "due", it:
- *   1. Fetches RSS feeds configured for the bot
- *   2. Detects hot topics (appearing in multiple sources)
- *   3. Deduplicates against existing forecast titles (LLM-based)
- *   4. Generates and posts a new forecast (with 🤖 in title)
- *   5. Stakes on the forecast immediately
- *   6. Optionally votes on existing open forecasts
- *   7. Logs all actions to BotRunLog
- *
- * Extended params wired here (Stage 2):
- *   - activeHoursStart/End: UTC hour window gate at top of runBot()
- *   - canCreateForecasts / canVote: phase enable flags
- *   - tagFilter: prompt injection for creation; DB filter for voting
- *   - voteBias: soft prompt hint in vote decision
- *   - cuRefillAt / cuRefillAmount: ADMIN_GRANT auto top-up via ensureBotCU()
- */
+ * 1. Fetches RSS feeds configured for the bot
+  * 2. Detects hot topics(appearing in multiple sources)
+    * 3. Deduplicates against existing forecast titles(LLM - based)
+      * 4. Generates and posts a new forecast(with 🤖 in title)
+ * 5. Stakes on the forecast immediately
+  * 6. Optionally votes on existing open forecasts
+    * 7. Logs all actions to BotRunLog
+      *
+ * Extended params wired here(Stage 2):
+ * - activeHoursStart / End: UTC hour window gate at top of runBot()
+  * - canCreateForecasts / canVote: phase enable flags
+    * - tagFilter: prompt injection for creation; DB filter for voting
+      * - voteBias: soft prompt hint in vote decision
+        * - cuRefillAt / cuRefillAmount: ADMIN_GRANT auto top - up via ensureBotCU()
+          */
 
 import { prisma } from '@/lib/prisma'
 import { createBotLLMService } from '@/lib/llm'
@@ -25,7 +25,8 @@ import { fetchRssFeeds, detectHotTopics, type HotTopic } from '@/lib/services/rs
 import { createCommitment } from '@/lib/services/commitment'
 import { createLogger } from '@/lib/logger'
 import { slugify, generateUniqueSlug } from '@/lib/utils/slugify'
-import type { BotAction } from '@prisma/client'
+import { BotAction } from '@prisma/client'
+import { SchemaType, Schema } from '@google/generative-ai'
 
 const log = createLogger('bot-runner')
 
@@ -40,6 +41,30 @@ export interface BotRunSummary {
   hotTopics?: HotTopic[]
   fetchedCount?: number
   sampleItems?: string[]
+}
+
+const forecastBatchSchema: Schema = {
+  type: SchemaType.OBJECT,
+  properties: {
+    claimText: { type: SchemaType.STRING },
+    detailsText: { type: SchemaType.STRING },
+    outcomeType: { type: SchemaType.STRING },
+    resolveByDatetime: { type: SchemaType.STRING },
+    resolutionRules: { type: SchemaType.STRING },
+    tags: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+    skip: { type: SchemaType.BOOLEAN, description: "Set to true if the topic does not match the required tags" }
+  },
+  required: ['claimText', 'outcomeType', 'resolveByDatetime', 'resolutionRules'],
+}
+
+const voteDecisionSchema: Schema = {
+  type: SchemaType.OBJECT,
+  properties: {
+    shouldVote: { type: SchemaType.BOOLEAN },
+    binaryChoice: { type: SchemaType.BOOLEAN },
+    reason: { type: SchemaType.STRING }
+  },
+  required: ['shouldVote', 'binaryChoice'],
 }
 
 /**
@@ -65,7 +90,7 @@ export async function runDueBots(dryRun = false): Promise<BotRunSummary[]> {
       }
     }
 
-    const summary = await runBot(bot, dryRun)
+    const summary = await runBot(bot, dryRun, false)
     summaries.push(summary)
 
     // Only update lastRunAt if the bot actually ran (not skipped by active hours gate).
@@ -94,7 +119,7 @@ export async function runBotById(botId: string, dryRun = false): Promise<BotRunS
 
   if (!bot) throw new Error(`Bot not found: ${botId}`)
 
-  const summary = await runBot(bot, dryRun)
+  const summary = await runBot(bot, dryRun, true)
 
   if (!dryRun && summary.skipped !== -1) {
     await prisma.botConfig.update({
@@ -112,7 +137,7 @@ type BotWithUser = Awaited<ReturnType<typeof prisma.botConfig.findMany>>[number]
   user: { id: string; name: string | null; cuAvailable: number }
 }
 
-async function runBot(bot: BotWithUser, dryRun: boolean): Promise<BotRunSummary> {
+async function runBot(bot: BotWithUser, dryRun: boolean, isManual: boolean = false): Promise<BotRunSummary> {
   const summary: BotRunSummary = {
     botId: bot.id,
     botName: bot.user.name ?? bot.id,
@@ -126,7 +151,7 @@ async function runBot(bot: BotWithUser, dryRun: boolean): Promise<BotRunSummary>
   // ── Active hours gate ────────────────────────────────────────────────────
   // Skip (without updating lastRunAt) when outside the configured UTC window.
   // Overnight ranges are supported: start=22, end=6 → active 10pm–6am UTC.
-  if (bot.activeHoursStart != null && bot.activeHoursEnd != null) {
+  if (!isManual && bot.activeHoursStart != null && bot.activeHoursEnd != null) {
     const hour = new Date().getUTCHours()
     const inWindow =
       bot.activeHoursStart <= bot.activeHoursEnd
@@ -250,7 +275,7 @@ Does this topic already have a forecast? Reply with only "yes" or "no".`
     const tagFilter = bot.tagFilter as string[]
     const tagConstraint =
       tagFilter.length > 0
-        ? `\nConstraint: assign one of these tag slugs to this forecast: ${tagFilter.join(', ')}. If the news topic does not fit any of these tags, respond with exactly: {"skip": true}`
+        ? `\nConstraint: assign one of these tag slugs to this forecast: ${tagFilter.join(', ')}. If the news topic does not fit any of these tags, set "skip": true in the JSON.`
         : ''
 
     // Generate a forecast from this topic
@@ -279,7 +304,7 @@ Rules:
 - Use English
 - resolveByDatetime must be in the future${tagConstraint}`
 
-    const response = await llm.generateContent({ prompt: forecastPrompt, temperature: 0.7, schema: {} as any })
+    const response = await llm.generateContent({ prompt: forecastPrompt, temperature: 0.7, schema: forecastBatchSchema })
 
     // Check for tag-filter skip signal before full parse
     const rawText = response.text.trim()
@@ -383,10 +408,14 @@ Rules:
     // Auto-refill CU if balance is low, then stake on own forecast
     await ensureBotCU(bot, dryRun)
     const stakeAmount = randomInt(bot.stakeMin, bot.stakeMax)
-    await createCommitment(bot.userId, prediction.id, {
+    const result = await createCommitment(bot.userId, prediction.id, {
       cuCommitted: stakeAmount,
       binaryChoice: true, // Bot always votes "yes" on its own forecast
     })
+
+    if (!result.ok) {
+      log.warn({ botId: bot.id, predictionId: prediction.id, error: result.error }, 'Bot failed to stake on own forecast')
+    }
 
     await logBotAction(bot.id, 'CREATED_FORECAST', { title: topicTitle, urls: sourceUrls }, generatedText, null, false, prediction.id)
 
@@ -412,6 +441,7 @@ async function runVoting(
   const candidates = await prisma.prediction.findMany({
     where: {
       status: 'ACTIVE',
+      outcomeType: 'BINARY',
       authorId: { not: bot.userId },
       commitments: { none: { userId: bot.userId } },
       ...(tagFilter.length > 0 && {
@@ -448,7 +478,7 @@ Should this bot commit to this forecast? If yes, what is the binary choice (true
 
 Respond with JSON: { "shouldVote": true|false, "binaryChoice": true|false, "reason": "brief reason" }`
 
-      const response = await llm.generateContent({ prompt: votePrompt, temperature: 0.5, schema: true as never })
+      const response = await llm.generateContent({ prompt: votePrompt, temperature: 0.5, schema: voteDecisionSchema })
 
       let decision: { shouldVote: boolean; binaryChoice: boolean; reason?: string }
       try {
