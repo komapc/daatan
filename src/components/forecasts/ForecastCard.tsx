@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { createClientLogger } from '@/lib/client-logger'
+import { toast } from 'react-hot-toast'
 import {
   Calendar,
   Users,
@@ -85,12 +86,13 @@ export default function ForecastCard({
       })
       if (response.ok) {
         router.refresh()
+        toast.success('Forecast deleted successfully')
       } else {
-        alert('Failed to delete forecast')
+        toast.error('Failed to delete forecast')
       }
     } catch (error) {
       createClientLogger('ForecastCard').error({ err: error }, 'Error deleting forecast')
-      alert('Error deleting forecast')
+      toast.error('Error deleting forecast')
     }
   }
 

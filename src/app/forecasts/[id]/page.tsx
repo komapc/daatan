@@ -20,6 +20,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { toast } from 'react-hot-toast'
 import { ModeratorResolutionSection } from './ModeratorResolutionSection'
 import CommentThread from '@/components/comments/CommentThread'
 import CommitmentForm from '@/components/forecasts/CommitmentForm'
@@ -169,12 +170,13 @@ export default function PredictionDetailPage() {
       })
       if (response.ok) {
         router.push('/')
+        toast.success('Prediction deleted successfully')
       } else {
-        alert('Failed to delete prediction')
+        toast.error('Failed to delete prediction')
       }
     } catch (error) {
       log.error({ err: error }, 'Error deleting prediction')
-      alert('Error deleting prediction')
+      toast.error('Error deleting prediction')
     }
   }
 
@@ -463,17 +465,15 @@ export default function PredictionDetailPage() {
                 return (
                   <div
                     key={option.id}
-                    className={`relative rounded-xl border bg-white p-4 overflow-hidden transition-colors ${
-                      option.isCorrect
-                        ? 'border-green-400 ring-1 ring-green-200'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
+                    className={`relative rounded-xl border bg-white p-4 overflow-hidden transition-colors ${option.isCorrect
+                      ? 'border-green-400 ring-1 ring-green-200'
+                      : 'border-gray-200 hover:border-gray-300'
+                      }`}
                   >
                     {/* Background fill */}
                     <div
-                      className={`absolute inset-y-0 left-0 transition-all duration-500 ${
-                        option.isCorrect ? 'bg-green-50' : 'bg-gray-50'
-                      }`}
+                      className={`absolute inset-y-0 left-0 transition-all duration-500 ${option.isCorrect ? 'bg-green-50' : 'bg-gray-50'
+                        }`}
                       style={{ width: `${pct}%` }}
                     />
                     <div className="relative flex justify-between items-center">

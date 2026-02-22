@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Loader2, Search, Trash2 } from 'lucide-react'
 import { createClientLogger } from '@/lib/client-logger'
+import { toast } from 'react-hot-toast'
 
 const log = createClientLogger('CommentsTable')
 
@@ -39,12 +40,13 @@ export default function CommentsTable() {
       })
       if (res.ok) {
         setComments(comments.filter(c => c.id !== id))
+        toast.success('Comment deleted successfully')
       } else {
-        alert('Failed to delete comment')
+        toast.error('Failed to delete comment')
       }
     } catch (err) {
       log.error({ err }, 'Error loading comments')
-      alert('Error deleting comment')
+      toast.error('Error deleting comment')
     }
   }
 

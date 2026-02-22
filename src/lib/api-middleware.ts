@@ -3,6 +3,9 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { apiError, handleRouteError } from '@/lib/api-error'
 import type { UserRole } from '@prisma/client'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('api-middleware')
 
 /** Authenticated session user (from NextAuth JWT callback). */
 interface AuthUser {
@@ -46,8 +49,9 @@ export function withAuth(
   options?: WithAuthOptions,
 ) {
   return async (request: NextRequest, context: RouteContext) => {
+    let session: any = null
     try {
-      const session = await getServerSession(authOptions)
+      session = await getServerSession(authOptions)
 
       if (!session?.user?.id) {
         return apiError('Unauthorized', 401)
@@ -63,6 +67,11 @@ export function withAuth(
 
       return await handler(request, user, context)
     } catch (error) {
+      log.error({
+        err: error,
+        url: request.nextUrl.pathname,
+        userId: session?.user?.id,
+      }, 'API route error caught in withAuth middleware')
       return handleRouteError(error)
     }
   }

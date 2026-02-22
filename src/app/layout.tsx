@@ -8,6 +8,7 @@ import SessionWrapper from '@/components/SessionWrapper'
 import PwaInstaller from '@/components/PwaInstaller'
 import PushPermissionPrompt from '@/components/PushPermissionPrompt'
 import GoogleAnalytics from '@/components/GoogleAnalytics'
+import { Toaster } from 'react-hot-toast'
 import { isRtl } from '@/i18n/config'
 import type { Locale } from '@/i18n/config'
 
@@ -55,6 +56,7 @@ export default async function RootLayout({
             </div>
             <PwaInstaller />
             <PushPermissionPrompt />
+            <Toaster position="bottom-right" />
           </SessionWrapper>
         </NextIntlClientProvider>
       </body>

@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { Loader2, Search } from 'lucide-react'
+import { toast } from 'react-hot-toast'
 
 export default function UsersTable() {
   const [users, setUsers] = useState<any[]>([])
@@ -35,8 +36,10 @@ export default function UsersTable() {
     })
     if (res.ok) {
       setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u))
+      toast.success('User role updated successfully')
     } else {
-      alert('Failed to update role')
+      const error = await res.json().catch(() => ({}))
+      toast.error(error.error || 'Failed to update role')
     }
   }
 
@@ -97,8 +100,8 @@ export default function UsersTable() {
                         value={u.role}
                         onChange={(e) => updateRole(u.id, e.target.value)}
                         className={`border rounded p-1 text-sm outline-none focus:ring-2 focus:ring-blue-500 ${u.role === 'ADMIN' ? 'bg-purple-50 text-purple-800 border-purple-200' :
-                            u.role === 'RESOLVER' ? 'bg-blue-50 text-blue-800 border-blue-200' :
-                              'bg-white text-gray-900 border-gray-200'
+                          u.role === 'RESOLVER' ? 'bg-blue-50 text-blue-800 border-blue-200' :
+                            'bg-white text-gray-900 border-gray-200'
                           }`}
                       >
                         <option value="USER">User</option>

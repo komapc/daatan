@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Send } from 'lucide-react'
 import type { Comment } from './CommentThread'
 import { createClientLogger } from '@/lib/client-logger'
+import { toast } from 'react-hot-toast'
 
 const log = createClientLogger('CommentForm')
 
@@ -27,7 +28,7 @@ export default function CommentForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!text.trim() || isSubmitting) return
 
     setIsSubmitting(true)
@@ -49,11 +50,11 @@ export default function CommentForm({
         onCancel?.()
       } else {
         const error = await response.json()
-        alert(error.error || 'Failed to post comment')
+        toast.error(error.error || 'Failed to post comment')
       }
     } catch (error) {
-        log.error({ err: error }, 'Error posting comment')
-      alert('Failed to post comment')
+      log.error({ err: error }, 'Error posting comment')
+      toast.error('Failed to post comment')
     } finally {
       setIsSubmitting(false)
     }
