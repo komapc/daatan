@@ -3,6 +3,14 @@ import Sidebar from '../Sidebar'
 import { useSession } from 'next-auth/react'
 import { vi, describe, it, expect } from 'vitest'
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => {
+    if (key === 'signIn') return 'Sign In'
+    return key
+  },
+  useLocale: () => 'en'
+}))
+
 describe('Sidebar Component', () => {
   it('renders sign in button when unauthenticated', () => {
     vi.mocked(useSession).mockReturnValue({
