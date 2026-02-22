@@ -38,6 +38,8 @@ export interface BotRunSummary {
   errors: number
   dryRun: boolean
   hotTopics?: HotTopic[]
+  fetchedCount?: number
+  sampleItems?: string[]
 }
 
 /**
@@ -152,10 +154,19 @@ async function runBot(bot: BotWithUser, dryRun: boolean): Promise<BotRunSummary>
       const initialForecastCount = await countTodayActions(bot.id, 'CREATED_FORECAST')
       if (feedUrls.length > 0 && initialForecastCount < bot.maxForecastsPerDay) {
         const items = await fetchRssFeeds(feedUrls)
+        summary.fetchedCount = items.length
+        summary.sampleItems = items.slice(0, 5).map(i => i.title)
+
         const hotTopics = detectHotTopics(items, bot.hotnessMinSources, bot.hotnessWindowHours)
         summary.hotTopics = hotTopics
 
-        log.info({ botId: bot.id, hotCount: hotTopics.length }, 'Hot topics detected')
+        log.info({
+          botId: bot.id,
+          hotCount: hotTopics.length,
+          minSources: bot.hotnessMinSources,
+          windowHours: bot.hotnessWindowHours,
+          fetchedCount: items.length
+        }, 'Hot topics detection result')
 
         for (const topic of hotTopics) {
           // Atomic slot check: re-fetch count before each creation to prevent race conditions
@@ -172,7 +183,8 @@ async function runBot(bot: BotWithUser, dryRun: boolean): Promise<BotRunSummary>
         }
 
         if (hotTopics.length === 0) {
-          await logBotAction(bot.id, 'SKIPPED', null, null, null, dryRun)
+          log.info({ botId: bot.id, fetchedCount: items.length }, 'No hot topics detected from fetched items')
+          await logBotAction(bot.id, 'SKIPPED', { reason: 'No hot topics detected', fetchedCount: items.length }, null, null, dryRun)
           summary.skipped++
         }
       } else if (feedUrls.length === 0) {
@@ -296,9 +308,9 @@ Rules:
     try {
       const jsonMatch = rawText.match(/\{[\s\S]*\}/)
       forecast = JSON.parse(jsonMatch ? jsonMatch[0] : rawText)
-    } catch {
-      log.warn({ botId: bot.id, topic: topicTitle, raw: response.text }, 'Failed to parse LLM forecast JSON')
-      await logBotAction(bot.id, 'ERROR', { title: topicTitle }, null, 'JSON parse failed', dryRun)
+    } catch (err) {
+      log.warn({ botId: bot.id, topic: topicTitle, err, raw: response.text }, 'Failed to parse LLM forecast JSON')
+      await logBotAction(bot.id, 'ERROR', { title: topicTitle, reason: 'JSON parse failed', raw: response.text }, null, 'JSON parse failed', dryRun)
       return 'error'
     }
 

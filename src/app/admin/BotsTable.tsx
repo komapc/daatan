@@ -24,6 +24,8 @@ interface BotRunSummary {
   errors: number
   dryRun: boolean
   hotTopics?: HotTopic[]
+  fetchedCount?: number
+  sampleItems?: string[]
 }
 
 interface BotLog {
@@ -277,8 +279,28 @@ export default function BotsTable() {
                 </div>
               </div>
             ) : (
-              <div className="text-center py-4 text-sm text-gray-500 italic">
-                No hot topics detected in configured sources.
+              <div className="space-y-4">
+                <div className="text-center py-4 text-sm text-gray-500 italic border-b border-dashed pb-4">
+                  No hot topics detected in configured sources.
+                </div>
+                {runResult.fetchedCount !== undefined && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold text-gray-500 uppercase">
+                      Debug: Fetched headlines ({runResult.fetchedCount} total)
+                    </p>
+                    <div className="bg-white border rounded-lg p-3 text-xs text-gray-600 space-y-1 overflow-y-auto max-h-40">
+                      {(runResult.sampleItems ?? []).map((title, i) => (
+                        <div key={i} className="truncate">• {title}</div>
+                      ))}
+                      {runResult.fetchedCount > (runResult.sampleItems?.length ?? 0) && (
+                        <div className="text-[10px] text-gray-400 italic">...and {runResult.fetchedCount - (runResult.sampleItems?.length ?? 0)} more</div>
+                      )}
+                      {runResult.fetchedCount === 0 && (
+                        <div className="text-red-500">Warning: No items could be fetched from the news sources. Check your URLs.</div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
