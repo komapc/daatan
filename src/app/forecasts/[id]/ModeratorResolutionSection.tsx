@@ -8,11 +8,15 @@ import { useRouter } from 'next/navigation'
 interface ModeratorResolutionSectionProps {
   predictionId: string
   predictionStatus: string
+  outcomeType: string
+  options: Array<{ id: string; text: string }>
 }
 
 export function ModeratorResolutionSection({
   predictionId,
-  predictionStatus
+  predictionStatus,
+  outcomeType,
+  options
 }: ModeratorResolutionSectionProps) {
   const { data: session } = useSession()
   const router = useRouter()
@@ -38,6 +42,8 @@ export function ModeratorResolutionSection({
       </div>
       <ResolutionForm
         predictionId={predictionId}
+        outcomeType={outcomeType}
+        options={options}
         onResolved={() => router.refresh()}
       />
     </div>

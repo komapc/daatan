@@ -530,6 +530,8 @@ export default function PredictionDetailPage() {
       <ModeratorResolutionSection
         predictionId={prediction.id}
         predictionStatus={prediction.status}
+        outcomeType={prediction.outcomeType}
+        options={prediction.options}
       />
 
       {/* Commitments List */}

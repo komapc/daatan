@@ -31,7 +31,7 @@ describe('ModeratorResolutionSection', () => {
     } as never)
 
     const { container } = render(
-      <ModeratorResolutionSection predictionId="pred-1" predictionStatus="ACTIVE" />
+      <ModeratorResolutionSection predictionId="pred-1" predictionStatus="ACTIVE" outcomeType="BINARY" options={[]} />
     )
 
     expect(container.firstChild).toBeNull()
@@ -44,7 +44,7 @@ describe('ModeratorResolutionSection', () => {
     } as never)
 
     const { container } = render(
-      <ModeratorResolutionSection predictionId="pred-1" predictionStatus="ACTIVE" />
+      <ModeratorResolutionSection predictionId="pred-1" predictionStatus="ACTIVE" outcomeType="BINARY" options={[]} />
     )
 
     expect(container.firstChild).toBeNull()
@@ -57,7 +57,7 @@ describe('ModeratorResolutionSection', () => {
     } as never)
 
     const { container } = render(
-      <ModeratorResolutionSection predictionId="pred-1" predictionStatus="RESOLVED_CORRECT" />
+      <ModeratorResolutionSection predictionId="pred-1" predictionStatus="RESOLVED_CORRECT" outcomeType="BINARY" options={[]} />
     )
 
     expect(container.firstChild).toBeNull()
@@ -70,7 +70,7 @@ describe('ModeratorResolutionSection', () => {
     } as never)
 
     render(
-      <ModeratorResolutionSection predictionId="pred-1" predictionStatus="ACTIVE" />
+      <ModeratorResolutionSection predictionId="pred-1" predictionStatus="ACTIVE" outcomeType="BINARY" options={[]} />
     )
 
     expect(screen.getByText('Resolver Actions')).toBeInTheDocument()
@@ -85,7 +85,7 @@ describe('ModeratorResolutionSection', () => {
     } as never)
 
     render(
-      <ModeratorResolutionSection predictionId="pred-2" predictionStatus="ACTIVE" />
+      <ModeratorResolutionSection predictionId="pred-2" predictionStatus="ACTIVE" outcomeType="BINARY" options={[]} />
     )
 
     expect(screen.getByText('Resolver Actions')).toBeInTheDocument()
@@ -99,7 +99,7 @@ describe('ModeratorResolutionSection', () => {
     } as never)
 
     render(
-      <ModeratorResolutionSection predictionId="pred-3" predictionStatus="PENDING" />
+      <ModeratorResolutionSection predictionId="pred-3" predictionStatus="PENDING" outcomeType="BINARY" options={[]} />
     )
 
     expect(screen.getByText('Resolver Actions')).toBeInTheDocument()
