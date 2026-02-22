@@ -6,8 +6,18 @@ import { toast } from 'react-hot-toast'
 
 const log = createClientLogger('CommentsTable')
 
+type AdminComment = {
+  id: string
+  text: string
+  createdAt: string
+  deletedAt: string | null
+  author: { id: string; name: string | null; username: string | null; image: string | null }
+  prediction: { id: string; slug?: string; claimText: string } | null
+  _count: { replies: number; reactions: number }
+}
+
 export default function CommentsTable() {
-  const [comments, setComments] = useState<any[]>([])
+  const [comments, setComments] = useState<AdminComment[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)

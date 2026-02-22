@@ -22,7 +22,6 @@ export async function GET(request: NextRequest) {
     const query = listPredictionsQuerySchema.parse({
       status: searchParams.get('status') || undefined,
       authorId: searchParams.get('authorId') || undefined,
-      domain: searchParams.get('domain') || undefined,
       tags: searchParams.get('tags') || undefined,
       page: searchParams.get('page') || 1,
       limit: searchParams.get('limit') || 20,
@@ -41,7 +40,6 @@ export async function GET(request: NextRequest) {
     }
 
     if (query.authorId) where.authorId = query.authorId
-    if (query.domain) where.domain = query.domain
 
     // Filter by tags (comma-separated, match predictions that have ANY of the selected tags)
     if (query.tags) {
@@ -225,7 +223,6 @@ export const POST = withAuth(async (request, user) => {
           claimText: data.claimText,
           slug: uniqueSlug,
           detailsText: data.detailsText,
-          domain: data.domain,
           outcomeType: data.outcomeType,
           outcomePayload: outcomePayload as object,
           resolutionRules: data.resolutionRules,

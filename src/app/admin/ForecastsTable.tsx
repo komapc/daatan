@@ -1,10 +1,10 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { Loader2, Search } from 'lucide-react'
-import ForecastCard from '@/components/forecasts/ForecastCard'
+import ForecastCard, { Prediction } from '@/components/forecasts/ForecastCard'
 
 export default function ForecastsTable() {
-  const [predictions, setPredictions] = useState<any[]>([])
+  const [predictions, setPredictions] = useState<Prediction[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)

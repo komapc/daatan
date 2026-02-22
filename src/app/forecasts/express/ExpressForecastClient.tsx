@@ -15,7 +15,6 @@ interface GeneratedPrediction {
   claimText: string
   resolveByDatetime: string
   detailsText: string
-  domain: string
   tags: string[]
   resolutionRules: string
   outcomeType: 'BINARY' | 'MULTIPLE_CHOICE'
@@ -170,7 +169,6 @@ export default function ExpressForecastClient({ userId }: ExpressForecastClientP
         body: JSON.stringify({
           claimText: finalData.claimText,
           detailsText: finalData.detailsText,
-          domain: finalData.domain,
           resolveByDatetime: finalData.resolveByDatetime,
           outcomeType: finalData.outcomeType,
           outcomePayload: finalData.outcomeType === 'MULTIPLE_CHOICE' ? { options: finalData.options } : undefined,

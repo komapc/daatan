@@ -21,7 +21,6 @@ export default function FeedClient() {
 
   // Initialize state from URL search params
   const initialStatus = searchParams.get('status') as FilterStatus | null
-  const initialDomain = searchParams.get('domain') || ''
   const initialTags = searchParams.get('tags')?.split(',').filter(Boolean) || []
 
   const [predictions, setPredictions] = useState<Prediction[]>([])
@@ -30,15 +29,12 @@ export default function FeedClient() {
   const [filter, setFilter] = useState<FilterStatus>(
     initialStatus && VALID_STATUSES.includes(initialStatus) ? initialStatus : 'ACTIVE'
   )
-  const [domains, setDomains] = useState<string[]>([])
-  const [selectedDomain, setSelectedDomain] = useState<string>(initialDomain)
   const [selectedTags, setSelectedTags] = useState<string[]>(initialTags)
 
   // Sync state to URL search params
-  const syncToUrl = useCallback((status: FilterStatus, domain: string, tags: string[]) => {
+  const syncToUrl = useCallback((status: FilterStatus, tags: string[]) => {
     const params = new URLSearchParams()
     if (status !== 'ACTIVE') params.set('status', status)
-    if (domain) params.set('domain', domain)
     if (tags.length > 0) params.set('tags', tags.join(','))
     const qs = params.toString()
     router.replace(qs ? `?${qs}` : '/', { scroll: false })
@@ -46,12 +42,7 @@ export default function FeedClient() {
 
   const handleSetFilter = (newFilter: FilterStatus) => {
     setFilter(newFilter)
-    syncToUrl(newFilter, selectedDomain, selectedTags)
-  }
-
-  const handleSetDomain = (newDomain: string) => {
-    setSelectedDomain(newDomain)
-    syncToUrl(filter, newDomain, selectedTags)
+    syncToUrl(newFilter, selectedTags)
   }
 
   const handleToggleTag = (tag: string) => {
@@ -59,12 +50,12 @@ export default function FeedClient() {
       ? selectedTags.filter(t => t !== tag)
       : [...selectedTags, tag]
     setSelectedTags(newTags)
-    syncToUrl(filter, selectedDomain, newTags)
+    syncToUrl(filter, newTags)
   }
 
   const handleClearTags = () => {
     setSelectedTags([])
-    syncToUrl(filter, selectedDomain, [])
+    syncToUrl(filter, [])
   }
 
   useEffect(() => {
@@ -84,10 +75,6 @@ export default function FeedClient() {
           url += '&status=ACTIVE&closingSoon=true'
         }
 
-        if (selectedDomain) {
-          url += `&domain=${encodeURIComponent(selectedDomain)}`
-        }
-
         if (selectedTags.length > 0) {
           url += `&tags=${encodeURIComponent(selectedTags.join(','))}`
         }
@@ -101,10 +88,7 @@ export default function FeedClient() {
           const preds = data.predictions || []
           setPredictions(preds)
 
-          const uniqueDomains = Array.from(
-            new Set(preds.map((p: Prediction) => p.domain).filter(Boolean))
-          ) as string[]
-          setDomains(uniqueDomains.sort())
+          setPredictions(preds)
         } else {
           const errData = await response.json().catch(() => ({}))
           const baseMsg = errData?.error || `Failed to load predictions (${response.status})`
@@ -123,7 +107,7 @@ export default function FeedClient() {
     }
 
     fetchFeed()
-  }, [filter, selectedDomain, selectedTags])
+  }, [filter, selectedTags])
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -198,27 +182,6 @@ export default function FeedClient() {
           </button>
         </div>
 
-        {domains.length > 0 && (
-          <div className="flex items-center gap-2">
-            <label htmlFor="domain-filter" className="text-sm font-medium text-gray-700">
-              Category:
-            </label>
-            <select
-              id="domain-filter"
-              value={selectedDomain}
-              onChange={(e) => handleSetDomain(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All Categories</option>
-              {domains.map((domain) => (
-                <option key={domain} value={domain}>
-                  {domain}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
         {/* Tag Multi-Select Filter */}
         <div className="space-y-2">
           <div className="flex items-center gap-2">
@@ -244,8 +207,8 @@ export default function FeedClient() {
                   onClick={() => handleToggleTag(tag)}
                   aria-pressed={isSelected}
                   className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-150 ${isSelected
-                      ? 'bg-blue-600 text-white shadow-sm ring-1 ring-blue-600'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800'
+                    ? 'bg-blue-600 text-white shadow-sm ring-1 ring-blue-600'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800'
                     }`}
                 >
                   {tag}

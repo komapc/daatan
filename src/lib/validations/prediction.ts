@@ -11,7 +11,6 @@ export const createNewsAnchorSchema = z.object({
   publishedAt: z.string().datetime().optional(),
   snippet: z.string().max(1000).optional(),
   imageUrl: z.string().url().optional(),
-  domain: z.string().max(100).optional(),
 })
 
 // ============================================
@@ -44,7 +43,6 @@ export const createPredictionSchema = z.object({
   // Prediction content
   claimText: z.string().min(10, 'Claim must be at least 10 characters').max(500),
   detailsText: z.string().max(5000).optional(),
-  domain: z.string().max(100).optional(),
 
   // Outcome definition
   outcomeType: z.enum(['BINARY', 'MULTIPLE_CHOICE', 'NUMERIC_THRESHOLD']),
@@ -61,7 +59,6 @@ export const createPredictionSchema = z.object({
 export const updatePredictionSchema = z.object({
   claimText: z.string().min(10).max(500).optional(),
   detailsText: z.string().max(5000).optional().nullable(),
-  domain: z.string().max(100).optional().nullable(),
   outcomePayload: z.record(z.string(), z.unknown()).optional(),
   resolutionRules: z.string().max(2000).optional().nullable(),
   resolveByDatetime: z.string().datetime().optional(),
@@ -127,7 +124,6 @@ export const resolvePredictionSchema = z.object({
 export const listPredictionsQuerySchema = z.object({
   status: z.enum(['DRAFT', 'ACTIVE', 'PENDING', 'RESOLVED_CORRECT', 'RESOLVED_WRONG', 'VOID', 'UNRESOLVABLE']).optional(),
   authorId: z.string().cuid().optional(),
-  domain: z.string().max(100).optional(),
   tags: z.string().max(500).optional(), // Comma-separated tag names for filtering
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),

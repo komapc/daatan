@@ -14,7 +14,6 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
 
     const url = searchParams.get('url')
-    const domain = searchParams.get('domain')
     const search = searchParams.get('search')
     const limit = parseInt(searchParams.get('limit') || '20')
 
@@ -24,11 +23,6 @@ export async function GET(request: NextRequest) {
     if (url) {
       const urlHash = hashUrl(url)
       where.urlHash = urlHash
-    }
-
-    // Filter by domain
-    if (domain) {
-      where.domain = domain
     }
 
     // Search in title
@@ -88,7 +82,6 @@ export const POST = withAuth(async (request) => {
       publishedAt: data.publishedAt ? new Date(data.publishedAt) : null,
       snippet: data.snippet,
       imageUrl: data.imageUrl,
-      domain: data.domain,
     },
     include: {
       _count: {

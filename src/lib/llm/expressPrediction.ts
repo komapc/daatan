@@ -33,10 +33,6 @@ export const expressPredictionSchema: Schema = {
       type: SchemaType.STRING,
       description: "Specific criteria for resolution",
     },
-    domain: {
-      type: SchemaType.STRING,
-      description: "Category (DEPRECATED - just use 'General')",
-    },
     outcomeType: {
       type: SchemaType.STRING,
       description: "BINARY for yes/no predictions, MULTIPLE_CHOICE when multiple distinct outcomes are possible (e.g. 'who will win', 'which team')",
@@ -54,7 +50,6 @@ export interface ExpressPredictionResult {
   claimText: string
   resolveByDatetime: string
   detailsText: string
-  domain: string // Keep for backward compat
   tags: string[]
   resolutionRules: string
   outcomeType: 'BINARY' | 'MULTIPLE_CHOICE'
@@ -80,7 +75,6 @@ interface ParsedPrediction {
   detailsText: string
   tags: string[]
   resolutionRules: string
-  domain?: string
   outcomeType: 'BINARY' | 'MULTIPLE_CHOICE'
   options: string[]
 }
@@ -274,7 +268,6 @@ URL: ${article.url}
 
   return {
     ...prediction,
-    domain: prediction.domain ?? 'General',
     newsAnchor: {
       url: bestArticle.url,
       urlHash: hashUrl(bestArticle.url),

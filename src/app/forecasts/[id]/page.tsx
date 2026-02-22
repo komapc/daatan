@@ -35,7 +35,6 @@ type Prediction = {
   slug?: string
   claimText: string
   detailsText?: string
-  domain?: string
   outcomeType: 'BINARY' | 'MULTIPLE_CHOICE' | 'NUMERIC_THRESHOLD'
   outcomePayload?: Record<string, unknown>
   status: string
@@ -240,11 +239,6 @@ export default function PredictionDetailPage() {
             <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusBadge(prediction.status)}`}>
               {prediction.status.replace('_', ' ')}
             </span>
-            {prediction.domain && (
-              <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full capitalize">
-                {prediction.domain}
-              </span>
-            )}
           </div>
 
           {canAdminister && (
