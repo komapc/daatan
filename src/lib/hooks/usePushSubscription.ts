@@ -56,7 +56,7 @@ export function usePushSubscription() {
 
       const registration = await navigator.serviceWorker.ready
       const subscription = await registration.pushManager.subscribe({
-        userVisuallyOnly: true,
+        userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(vapidKey),
       } as PushSubscriptionOptionsInit)
 
