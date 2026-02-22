@@ -27,7 +27,6 @@ export type PredictionFormData = {
   claimText: string
   detailsText?: string
   tags: string[]
-  domain?: string // Deprecated
 
   // Step 3: Outcome
   outcomeType: 'BINARY' | 'MULTIPLE_CHOICE' | 'NUMERIC_THRESHOLD'
@@ -96,7 +95,6 @@ export const ForecastWizard = ({ isExpressFlow = false }: ForecastWizardProps) =
         claimText: data.claimText || '',
         detailsText: data.detailsText || '',
         tags: data.tags || [],
-        domain: data.domain || '',
         outcomeType,
         outcomeOptions,
         resolveByDatetime: resolveDate,
@@ -152,7 +150,6 @@ export const ForecastWizard = ({ isExpressFlow = false }: ForecastWizardProps) =
           claimText: formData.claimText,
           detailsText: formData.detailsText,
           tags: formData.tags, // Added tags
-          domain: formData.domain,
           outcomeType: formData.outcomeType,
           outcomePayload,
           resolutionRules: formData.resolutionRules,

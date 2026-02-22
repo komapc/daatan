@@ -28,7 +28,6 @@ describe('ForecastWizard', () => {
       claimText: 'Bitcoin will reach $100k',
       resolveByDatetime: '2026-12-31T23:59:59Z',
       detailsText: 'Bitcoin has been rising',
-      domain: 'economics',
       tags: ['Crypto', 'Finance'],
       resolutionRules: 'Resolved by CoinMarketCap',
       newsAnchor: {
@@ -80,7 +79,6 @@ describe('ForecastWizard', () => {
       claimText: 'Test prediction claim text',
       resolveByDatetime: '2026-12-31T23:59:59.000Z',
       detailsText: 'Some details',
-      domain: 'tech',
       tags: ['AI'],
       resolutionRules: 'Check official sources',
       newsAnchor: {

@@ -124,7 +124,6 @@ export const PATCH = withAuth(async (request, user, { params }) => {
   const updateData: Record<string, unknown> = {}
   if (data.claimText) updateData.claimText = data.claimText
   if (data.detailsText !== undefined) updateData.detailsText = data.detailsText
-  if (data.domain !== undefined) updateData.domain = data.domain
   if (data.outcomePayload) updateData.outcomePayload = data.outcomePayload
   if (data.resolutionRules !== undefined) updateData.resolutionRules = data.resolutionRules
   if (data.resolveByDatetime) updateData.resolveByDatetime = new Date(data.resolveByDatetime)

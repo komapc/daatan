@@ -3,8 +3,20 @@ import { useState, useEffect, useCallback } from 'react'
 import { Loader2, Search } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 
+type AdminUser = {
+  id: string
+  name: string | null
+  username: string | null
+  email: string
+  role: string
+  rs: number
+  cuAvailable: number
+  createdAt: string
+  image: string | null
+}
+
 export default function UsersTable() {
-  const [users, setUsers] = useState<any[]>([])
+  const [users, setUsers] = useState<AdminUser[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)

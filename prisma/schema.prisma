@@ -136,15 +136,11 @@ model NewsAnchor {
   snippet  String? @db.Text // First ~500 chars of article
   imageUrl String? @db.VarChar(2000)
 
-  // Metadata
-  domain    String?  @db.VarChar(100) // e.g., "politics", "tech", "sports"
   createdAt DateTime @default(now())
 
   // Relations
   predictions Prediction[]
 
-  @@index([urlHash])
-  @@index([domain])
   @@index([createdAt])
   @@map("news_anchors")
 }
@@ -199,7 +195,6 @@ model Prediction {
   claimText   String  @db.VarChar(500) // The testable statement
   slug        String? @unique // URL-friendly identifier (e.g., "bitcoin-100k-2026")
   detailsText String? @db.Text // Additional conditions/context
-  domain      String? @db.VarChar(100) // Category (Deprecated: use tags)
   tags        Tag[]
 
   // Outcome definition
@@ -240,7 +235,6 @@ model Prediction {
   @@index([authorId])
   @@index([newsAnchorId])
   @@index([resolveByDatetime])
-  @@index([domain])
   @@map("predictions")
 }
 

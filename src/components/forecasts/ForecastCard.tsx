@@ -26,7 +26,6 @@ export type Prediction = {
   id: string
   slug?: string | null
   claimText: string
-  domain?: string | null
   outcomeType: string
   status: string
   resolveByDatetime: string | Date
@@ -179,11 +178,6 @@ export default function ForecastCard({
               {badge.icon}
               {badge.label}
             </span>
-            {prediction.domain && (
-              <span className="px-2 py-0.5 bg-gray-50 text-gray-500 text-[10px] sm:text-xs font-medium rounded-full uppercase tracking-wider border border-gray-100">
-                {prediction.domain}
-              </span>
-            )}
             {prediction.tags && prediction.tags.length > 0 && prediction.tags.map((tag) => (
               <span
                 key={tag.name}
@@ -327,6 +321,6 @@ export default function ForecastCard({
           </div>
         </div>
       </div>
-    </Link>
+    </Link >
   )
 }

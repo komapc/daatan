@@ -59,15 +59,4 @@ describe('listPredictionsQuerySchema', () => {
     expect(result.tags).toBe('AI')
   })
 
-  it('allows domain and tags together', () => {
-    const result = listPredictionsQuerySchema.parse({
-      domain: 'Technology',
-      tags: 'AI,Crypto',
-      page: 1,
-      limit: 20,
-    })
-
-    expect(result.domain).toBe('Technology')
-    expect(result.tags).toBe('AI,Crypto')
-  })
 })

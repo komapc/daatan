@@ -15,7 +15,6 @@ interface GeneratedPrediction {
   claimText: string
   resolveByDatetime: string
   detailsText: string
-  domain: string
   tags: string[]
   resolutionRules: string
   outcomeType: 'BINARY' | 'MULTIPLE_CHOICE'
@@ -99,7 +98,6 @@ describe('ExpressForecastClient', () => {
       claimText: 'Bitcoin will reach $100k',
       resolveByDatetime: '2026-12-31T23:59:59Z',
       detailsText: 'Context about Bitcoin',
-      domain: 'economics',
       tags: ['Crypto', 'Finance'],
       resolutionRules: 'Resolved by CoinMarketCap',
       outcomeType: 'BINARY',

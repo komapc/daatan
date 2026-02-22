@@ -19,7 +19,6 @@ type PredictionData = {
   slug?: string
   claimText: string
   detailsText?: string | null
-  domain?: string | null
   outcomeType: string
   resolutionRules?: string | null
   resolveByDatetime: string
@@ -30,7 +29,6 @@ type PredictionData = {
 type EditFormData = {
   claimText: string
   detailsText: string
-  domain: string
   resolutionRules: string
   resolveByDatetime: string
 }
@@ -47,7 +45,6 @@ export default function EditForecastClient() {
   const [formData, setFormData] = useState<EditFormData>({
     claimText: '',
     detailsText: '',
-    domain: '',
     resolutionRules: '',
     resolveByDatetime: '',
   })
@@ -69,7 +66,6 @@ export default function EditForecastClient() {
         setFormData({
           claimText: data.claimText || '',
           detailsText: data.detailsText || '',
-          domain: data.domain || '',
           resolutionRules: data.resolutionRules || '',
           resolveByDatetime: localDatetime,
         })
@@ -108,9 +104,6 @@ export default function EditForecastClient() {
       if (formData.detailsText !== (prediction.detailsText || '')) {
         payload.detailsText = formData.detailsText || null
       }
-      if (formData.domain !== (prediction.domain || '')) {
-        payload.domain = formData.domain || null
-      }
       if (formData.resolutionRules !== (prediction.resolutionRules || '')) {
         payload.resolutionRules = formData.resolutionRules || null
       }
@@ -147,7 +140,6 @@ export default function EditForecastClient() {
       setFormData({
         claimText: updated.claimText || '',
         detailsText: updated.detailsText || '',
-        domain: updated.domain || '',
         resolutionRules: updated.resolutionRules || '',
         resolveByDatetime: resolveDate.toISOString().slice(0, 16),
       })
@@ -239,23 +231,6 @@ export default function EditForecastClient() {
             placeholder="Additional context or background..."
           />
           <p className="text-xs text-gray-400 mt-1 text-right">{formData.detailsText.length}/5000</p>
-        </div>
-
-        {/* Domain */}
-        <div>
-          <label htmlFor="domain" className="block text-sm font-medium text-gray-700 mb-2">
-            Category
-            <span className="text-gray-400 font-normal ml-2">(optional)</span>
-          </label>
-          <input
-            id="domain"
-            type="text"
-            value={formData.domain}
-            onChange={(e) => handleChange('domain', e.target.value)}
-            maxLength={100}
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="e.g. Technology, Politics, Sports..."
-          />
         </div>
 
         {/* Resolution Rules */}

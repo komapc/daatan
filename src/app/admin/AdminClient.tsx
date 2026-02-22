@@ -41,7 +41,6 @@ type AdminPrediction = {
   id: string
   claimText: string
   slug: string | null
-  domain: string | null
   status: string
   outcomeType: string
   resolveByDatetime: string
@@ -244,7 +243,6 @@ function ForecastsTab() {
                     <tr key={p.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3 max-w-xs">
                         <p className="font-medium text-gray-900 truncate">{p.claimText}</p>
-                        {p.domain && <span className="text-xs text-gray-400">{p.domain}</span>}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">

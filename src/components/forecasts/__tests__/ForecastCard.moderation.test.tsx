@@ -17,7 +17,6 @@ vi.mock('next/navigation', () => ({
 const basePrediction: Prediction = {
   id: 'pred-1',
   claimText: 'Test prediction',
-  domain: 'politics',
   outcomeType: 'BINARY',
   status: 'ACTIVE',
   resolveByDatetime: new Date().toISOString(),
