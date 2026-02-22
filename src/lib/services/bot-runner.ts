@@ -90,7 +90,7 @@ export async function runDueBots(dryRun = false): Promise<BotRunSummary[]> {
       }
     }
 
-    const summary = await runBot(bot, dryRun)
+    const summary = await runBot(bot, dryRun, false)
     summaries.push(summary)
 
     // Only update lastRunAt if the bot actually ran (not skipped by active hours gate).
@@ -119,7 +119,7 @@ export async function runBotById(botId: string, dryRun = false): Promise<BotRunS
 
   if (!bot) throw new Error(`Bot not found: ${botId}`)
 
-  const summary = await runBot(bot, dryRun)
+  const summary = await runBot(bot, dryRun, true)
 
   if (!dryRun && summary.skipped !== -1) {
     await prisma.botConfig.update({
@@ -137,7 +137,7 @@ type BotWithUser = Awaited<ReturnType<typeof prisma.botConfig.findMany>>[number]
   user: { id: string; name: string | null; cuAvailable: number }
 }
 
-async function runBot(bot: BotWithUser, dryRun: boolean): Promise<BotRunSummary> {
+async function runBot(bot: BotWithUser, dryRun: boolean, isManual: boolean = false): Promise<BotRunSummary> {
   const summary: BotRunSummary = {
     botId: bot.id,
     botName: bot.user.name ?? bot.id,
@@ -151,7 +151,7 @@ async function runBot(bot: BotWithUser, dryRun: boolean): Promise<BotRunSummary>
   // ── Active hours gate ────────────────────────────────────────────────────
   // Skip (without updating lastRunAt) when outside the configured UTC window.
   // Overnight ranges are supported: start=22, end=6 → active 10pm–6am UTC.
-  if (bot.activeHoursStart != null && bot.activeHoursEnd != null) {
+  if (!isManual && bot.activeHoursStart != null && bot.activeHoursEnd != null) {
     const hour = new Date().getUTCHours()
     const inWindow =
       bot.activeHoursStart <= bot.activeHoursEnd
@@ -275,7 +275,7 @@ Does this topic already have a forecast? Reply with only "yes" or "no".`
     const tagFilter = bot.tagFilter as string[]
     const tagConstraint =
       tagFilter.length > 0
-        ? `\nConstraint: assign one of these tag slugs to this forecast: ${tagFilter.join(', ')}. If the news topic does not fit any of these tags, respond with exactly: {"skip": true}`
+        ? `\nConstraint: assign one of these tag slugs to this forecast: ${tagFilter.join(', ')}. If the news topic does not fit any of these tags, set "skip": true in the JSON.`
         : ''
 
     // Generate a forecast from this topic
@@ -408,10 +408,14 @@ Rules:
     // Auto-refill CU if balance is low, then stake on own forecast
     await ensureBotCU(bot, dryRun)
     const stakeAmount = randomInt(bot.stakeMin, bot.stakeMax)
-    await createCommitment(bot.userId, prediction.id, {
+    const result = await createCommitment(bot.userId, prediction.id, {
       cuCommitted: stakeAmount,
       binaryChoice: true, // Bot always votes "yes" on its own forecast
     })
+
+    if (!result.ok) {
+      log.warn({ botId: bot.id, predictionId: prediction.id, error: result.error }, 'Bot failed to stake on own forecast')
+    }
 
     await logBotAction(bot.id, 'CREATED_FORECAST', { title: topicTitle, urls: sourceUrls }, generatedText, null, false, prediction.id)
 
@@ -437,6 +441,7 @@ async function runVoting(
   const candidates = await prisma.prediction.findMany({
     where: {
       status: 'ACTIVE',
+      outcomeType: 'BINARY',
       authorId: { not: bot.userId },
       commitments: { none: { userId: bot.userId } },
       ...(tagFilter.length > 0 && {
