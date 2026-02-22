@@ -1,23 +1,23 @@
 /**
- * Bot runner service.
+  * Bot runner service.
  *
- * Called by /api/bots/run on a schedule (GitHub Actions every 5 minutes).
+ * Called by / api / bots / run on a schedule(GitHub Actions every 5 minutes).
  * For each active bot that is "due", it:
- *   1. Fetches RSS feeds configured for the bot
- *   2. Detects hot topics (appearing in multiple sources)
- *   3. Deduplicates against existing forecast titles (LLM-based)
- *   4. Generates and posts a new forecast (with 🤖 in title)
- *   5. Stakes on the forecast immediately
- *   6. Optionally votes on existing open forecasts
- *   7. Logs all actions to BotRunLog
- *
- * Extended params wired here (Stage 2):
- *   - activeHoursStart/End: UTC hour window gate at top of runBot()
- *   - canCreateForecasts / canVote: phase enable flags
- *   - tagFilter: prompt injection for creation; DB filter for voting
- *   - voteBias: soft prompt hint in vote decision
- *   - cuRefillAt / cuRefillAmount: ADMIN_GRANT auto top-up via ensureBotCU()
- */
+ * 1. Fetches RSS feeds configured for the bot
+  * 2. Detects hot topics(appearing in multiple sources)
+    * 3. Deduplicates against existing forecast titles(LLM - based)
+      * 4. Generates and posts a new forecast(with 🤖 in title)
+ * 5. Stakes on the forecast immediately
+  * 6. Optionally votes on existing open forecasts
+    * 7. Logs all actions to BotRunLog
+      *
+ * Extended params wired here(Stage 2):
+ * - activeHoursStart / End: UTC hour window gate at top of runBot()
+  * - canCreateForecasts / canVote: phase enable flags
+    * - tagFilter: prompt injection for creation; DB filter for voting
+      * - voteBias: soft prompt hint in vote decision
+        * - cuRefillAt / cuRefillAmount: ADMIN_GRANT auto top - up via ensureBotCU()
+          */
 
 import { prisma } from '@/lib/prisma'
 import { createBotLLMService } from '@/lib/llm'
@@ -25,7 +25,8 @@ import { fetchRssFeeds, detectHotTopics, type HotTopic } from '@/lib/services/rs
 import { createCommitment } from '@/lib/services/commitment'
 import { createLogger } from '@/lib/logger'
 import { slugify, generateUniqueSlug } from '@/lib/utils/slugify'
-import type { BotAction } from '@prisma/client'
+import { BotAction } from '@prisma/client'
+import { SchemaType, Schema } from '@google/generative-ai'
 
 const log = createLogger('bot-runner')
 
@@ -40,6 +41,30 @@ export interface BotRunSummary {
   hotTopics?: HotTopic[]
   fetchedCount?: number
   sampleItems?: string[]
+}
+
+const forecastBatchSchema: Schema = {
+  type: SchemaType.OBJECT,
+  properties: {
+    claimText: { type: SchemaType.STRING },
+    detailsText: { type: SchemaType.STRING },
+    outcomeType: { type: SchemaType.STRING },
+    resolveByDatetime: { type: SchemaType.STRING },
+    resolutionRules: { type: SchemaType.STRING },
+    tags: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+    skip: { type: SchemaType.BOOLEAN, description: "Set to true if the topic does not match the required tags" }
+  },
+  required: ['claimText', 'outcomeType', 'resolveByDatetime', 'resolutionRules'],
+}
+
+const voteDecisionSchema: Schema = {
+  type: SchemaType.OBJECT,
+  properties: {
+    shouldVote: { type: SchemaType.BOOLEAN },
+    binaryChoice: { type: SchemaType.BOOLEAN },
+    reason: { type: SchemaType.STRING }
+  },
+  required: ['shouldVote', 'binaryChoice'],
 }
 
 /**
@@ -279,7 +304,7 @@ Rules:
 - Use English
 - resolveByDatetime must be in the future${tagConstraint}`
 
-    const response = await llm.generateContent({ prompt: forecastPrompt, temperature: 0.7, schema: {} as any })
+    const response = await llm.generateContent({ prompt: forecastPrompt, temperature: 0.7, schema: forecastBatchSchema })
 
     // Check for tag-filter skip signal before full parse
     const rawText = response.text.trim()
@@ -448,7 +473,7 @@ Should this bot commit to this forecast? If yes, what is the binary choice (true
 
 Respond with JSON: { "shouldVote": true|false, "binaryChoice": true|false, "reason": "brief reason" }`
 
-      const response = await llm.generateContent({ prompt: votePrompt, temperature: 0.5, schema: true as never })
+      const response = await llm.generateContent({ prompt: votePrompt, temperature: 0.5, schema: voteDecisionSchema })
 
       let decision: { shouldVote: boolean; binaryChoice: boolean; reason?: string }
       try {
