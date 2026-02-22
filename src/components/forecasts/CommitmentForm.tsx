@@ -53,11 +53,10 @@ export default function CommitmentForm({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // After lock: cannot increase CU; cap at current committed amount
+  // After lock: can change side or increase CU, but penalty applies.
+  // Always allow the full available balance (existing commitment is returned minus penalty).
   const maxCu = isUpdate
-    ? isLocked
-      ? existingCommitment.cuCommitted // locked: no increases allowed
-      : userCuAvailable + existingCommitment.cuCommitted
+    ? userCuAvailable + existingCommitment.cuCommitted // conservative: as if all refunded
     : userCuAvailable
 
   const submitOutcome = async (outcomeValue: string | boolean) => {
@@ -159,10 +158,10 @@ export default function CommitmentForm({
               <button
                 type="button"
                 onClick={() => submitOutcome(true)}
-                disabled={isSubmitting || (isUpdate && isLocked && !isCurrentOutcome(true))}
+                disabled={isSubmitting}
                 className={`flex-1 rounded-lg border px-4 py-2.5 text-sm font-semibold transition-all shadow-sm ${isCurrentOutcome(true)
-                    ? 'bg-green-600 text-white border-green-700 hover:bg-green-700'
-                    : 'bg-white text-gray-700 border-gray-300 hover:bg-green-50 hover:border-green-400 hover:text-green-700'
+                  ? 'bg-green-600 text-white border-green-700 hover:bg-green-700'
+                  : 'bg-white text-gray-700 border-gray-300 hover:bg-green-50 hover:border-green-400 hover:text-green-700'
                   } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 {isSubmitting ? '...' : isUpdate ? (isCurrentOutcome(true) ? 'Update' : 'Switch to Will Happen') : 'Will Happen'}
@@ -170,10 +169,10 @@ export default function CommitmentForm({
               <button
                 type="button"
                 onClick={() => submitOutcome(false)}
-                disabled={isSubmitting || (isUpdate && isLocked && !isCurrentOutcome(false))}
+                disabled={isSubmitting}
                 className={`flex-1 rounded-lg border px-4 py-2.5 text-sm font-semibold transition-all shadow-sm ${isCurrentOutcome(false)
-                    ? 'bg-red-500 text-white border-red-600 hover:bg-red-600'
-                    : 'bg-white text-gray-700 border-gray-300 hover:bg-red-50 hover:border-red-400 hover:text-red-700'
+                  ? 'bg-red-500 text-white border-red-600 hover:bg-red-600'
+                  : 'bg-white text-gray-700 border-gray-300 hover:bg-red-50 hover:border-red-400 hover:text-red-700'
                   } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 {isSubmitting ? '...' : isUpdate ? (isCurrentOutcome(false) ? 'Update' : 'Switch to Won\'t Happen') : 'Won\'t Happen'}
@@ -186,10 +185,10 @@ export default function CommitmentForm({
                   key={option.id}
                   type="button"
                   onClick={() => submitOutcome(option.id)}
-                  disabled={isSubmitting || (isUpdate && isLocked && !isCurrentOutcome(option.id))}
+                  disabled={isSubmitting}
                   className={`w-full text-left rounded-lg border px-4 py-3 text-sm font-medium transition-all shadow-sm flex items-center justify-between ${isCurrentOutcome(option.id)
-                      ? 'bg-blue-600 text-white border-blue-700 hover:bg-blue-700'
-                      : 'bg-white text-gray-900 border-gray-300 hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700'
+                    ? 'bg-blue-600 text-white border-blue-700 hover:bg-blue-700'
+                    : 'bg-white text-gray-900 border-gray-300 hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700'
                     } disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   <span>{option.text}</span>
@@ -205,12 +204,8 @@ export default function CommitmentForm({
 
       {isUpdate && isLocked && (
         <p className="mt-2 text-xs text-orange-600">
-          Prediction is locked — you can reduce your CU but not increase it or change your side.
-        </p>
-      )}
-      {!isUpdate && isLocked && (
-        <p className="mt-2 text-xs text-blue-600">
-          Prediction is locked for side changes after your first commitment. Choose your side carefully!
+          ⚠️ Prediction is locked — changing your side or increasing your CU will incur
+          an exit penalty (min 10%, based on pool share). Reducing CU on the same side is free.
         </p>
       )}
       {!isUpdate && !isLocked && Number(cuAmount || 0) > maxCu && (

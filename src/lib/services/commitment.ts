@@ -351,10 +351,11 @@ export async function removeCommitment(
 }
 
 /**
- * Update an existing commitment (CU amount only after lock).
- * Rules:
- * - Rule 1: Cannot increase CU after prediction is locked (lockedAt set)
- * - Rule 3: Cannot change side (binaryChoice/optionId) after lock — must exit and re-commit
+ * Update an existing commitment.
+ * - Before lock: change side or CU freely (no penalty).
+ * - After lock: changing side OR increasing CU applies an exit penalty on the old committed
+ *   amount (burns into winnersPoolBonus); the new amount is then locked fresh.
+ *   Decreasing CU after lock without a side change: simple refund, no penalty.
  */
 export async function updateCommitment(
   userId: string,
@@ -379,34 +380,107 @@ export async function updateCommitment(
     return { ok: false, error: 'Can only update commitments on active predictions', status: 400 }
   }
 
-  const isLocked = commitment.prediction.lockedAt !== null
-
-  // Rule 3: No side changes after lock
-  if (isLocked && (data.binaryChoice !== undefined || data.optionId !== undefined)) {
-    return {
-      ok: false,
-      error: 'Cannot change side after prediction is locked. Remove your commitment and create a new one.',
-      status: 400,
-    }
-  }
-
-  // Rule 1: No CU increases after lock
-  const newCuAmount = data.cuCommitted ?? commitment.cuCommitted
-  if (isLocked && newCuAmount > commitment.cuCommitted) {
-    return {
-      ok: false,
-      error: 'Cannot increase commitment after prediction is locked',
-      status: 400,
-    }
-  }
-
-  // Validate option if changing (before lock only)
+  // Validate option if changing
   if (data.optionId !== undefined) {
     const optionExists = commitment.prediction.options.some((o) => o.id === data.optionId)
     if (!optionExists) return { ok: false, error: 'Invalid option', status: 400 }
   }
 
-  // CU delta calculation
+  const isLocked = commitment.prediction.lockedAt !== null
+  const newCuAmount = data.cuCommitted ?? commitment.cuCommitted
+
+  // Detect a side change
+  const sideChanged =
+    (data.binaryChoice !== undefined && data.binaryChoice !== commitment.binaryChoice) ||
+    (data.optionId !== undefined && data.optionId !== commitment.optionId)
+
+  // After lock: side change OR CU increase triggers full penalty on old amount
+  const needsPenalty = isLocked && (sideChanged || newCuAmount > commitment.cuCommitted)
+
+  if (needsPenalty) {
+    // Compute exit penalty on old committed amount
+    const poolState = await computePoolState(predictionId, userId, commitment.binaryChoice, commitment.optionId)
+    const { cuBurned, cuRefunded, burnRate } = calculatePenalty(
+      commitment.cuCommitted,
+      poolState.yourSideCU,
+      poolState.totalPoolCU,
+    )
+
+    // After refund, user effectively has: cuAvailable + cuRefunded to lock into newCuAmount
+    const cuAvailableAfterRefund = user.cuAvailable + cuRefunded
+    if (cuAvailableAfterRefund < newCuAmount) {
+      return {
+        ok: false,
+        error: `Insufficient CU after ${burnRate}% switch penalty. You'd have ${cuAvailableAfterRefund} CU available, but requested ${newCuAmount} CU.`,
+        status: 400,
+      }
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Update commitment to new side + new amount
+      const updated = await tx.commitment.update({
+        where: { id: commitment.id },
+        data: {
+          cuCommitted: newCuAmount,
+          binaryChoice: data.binaryChoice !== undefined ? data.binaryChoice : commitment.binaryChoice,
+          optionId: data.optionId !== undefined ? data.optionId : commitment.optionId,
+          rsSnapshot: user.rs,
+        },
+        include: commitmentInclude,
+      })
+
+      // 2. Net CU change: unlock old, burn penalty, lock new
+      //    old locked freed: commitment.cuCommitted
+      //    new locked:       newCuAmount
+      //    available delta:  cuRefunded - newCuAmount  (can be negative)
+      const availableDelta = cuRefunded - newCuAmount
+
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          cuAvailable: { increment: availableDelta },
+          cuLocked: { decrement: commitment.cuCommitted - newCuAmount },
+        },
+      })
+
+      // 3. Burn penalty into winners pool
+      if (cuBurned > 0) {
+        await tx.prediction.update({
+          where: { id: predictionId },
+          data: { winnersPoolBonus: { increment: cuBurned } },
+        })
+        await tx.cuTransaction.create({
+          data: {
+            userId,
+            type: 'WITHDRAWAL_PENALTY',
+            amount: -cuBurned,
+            referenceId: commitment.id,
+            note: `Switch penalty (${burnRate}%) on: ${commitment.prediction.claimText.substring(0, 50)}...`,
+            balanceAfter: user.cuAvailable + availableDelta,
+          },
+        })
+      }
+
+      // 4. Ledger: side switch event
+      await tx.cuTransaction.create({
+        data: {
+          userId,
+          type: 'COMMITMENT_LOCK',
+          amount: -newCuAmount,
+          referenceId: commitment.id,
+          note: `Commitment switched${sideChanged ? ' side' : ''} (${burnRate}% penalty, ${cuBurned} CU burned): ${commitment.prediction.claimText.substring(0, 50)}...`,
+          balanceAfter: user.cuAvailable + availableDelta,
+        },
+      })
+
+      return updated
+    })
+
+    log.info({ userId, predictionId, cuBurned, cuRefunded, burnRate, sideChanged }, 'Commitment updated with switch penalty')
+    return { ok: true, data: result, status: 200 }
+  }
+
+  // No penalty path: simple amount change (decrease or no-lock same-side update)
   const cuDelta = newCuAmount - commitment.cuCommitted
 
   if (cuDelta > 0 && user.cuAvailable < cuDelta) {
