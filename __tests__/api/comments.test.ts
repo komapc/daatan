@@ -150,7 +150,7 @@ describe('Comments API', () => {
         method: 'POST',
         body: JSON.stringify({
           text: 'New comment',
-          predictionId: 'pred1',
+          predictionId: 'cm7g45u1l0001y999z999z99x', // valid cuid format
         }),
       })
 
@@ -170,7 +170,7 @@ describe('Comments API', () => {
         method: 'POST',
         body: JSON.stringify({
           text: 'New comment',
-          predictionId: 'pred1',
+          predictionId: 'cm7g45u1l0001y999z999z99x', // valid cuid format
         }),
       })
 

@@ -9,7 +9,8 @@ export const dynamic = 'force-dynamic'
 export const GET = withAuth(async (request, user) => {
   const { searchParams } = new URL(request.url)
   const page = parseInt(searchParams.get('page') || '1')
-  const limit = parseInt(searchParams.get('limit') || '20')
+  const rawLimit = parseInt(searchParams.get('limit') || '20')
+  const limit = Math.min(100, Math.max(1, rawLimit))
   const unreadOnly = searchParams.get('unreadOnly') === 'true'
 
   const where = {

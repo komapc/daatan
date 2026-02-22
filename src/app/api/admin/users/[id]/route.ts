@@ -16,18 +16,29 @@ export const PATCH = withAuth(async (req, user, { params }) => {
   }
 
   const body = await req.json()
-  
+
   const result = updateUserSchema.safeParse(body)
   if (!result.success) {
     return NextResponse.json({ error: result.error }, { status: 400 })
   }
-  
+
   const { role } = result.data
-  
+
   const updatedUser = await prisma.user.update({
     where: { id },
-    data: { role }
+    data: { role },
+    select: {
+      id: true,
+      name: true,
+      username: true,
+      emailNotifications: true,
+      isPublic: true,
+      role: true,
+      rs: true,
+      cuAvailable: true,
+      isBot: true,
+    }
   })
-  
+
   return NextResponse.json(updatedUser)
 }, { roles: ['ADMIN'] })

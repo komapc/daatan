@@ -39,6 +39,15 @@ export async function GET() {
   }
 }
 
+import { z } from 'zod'
+
+const createTagSchema = z.object({
+  name: z.string()
+    .min(1, 'Tag name is required')
+    .max(50, 'Tag name must be 50 characters or less')
+    .transform(s => s.trim())
+})
+
 // POST /api/tags - Create a new tag (admin only)
 export const POST = withAuth(async (request, user) => {
   // Only admins can create tags
@@ -48,15 +57,13 @@ export const POST = withAuth(async (request, user) => {
 
   try {
     const body = await request.json()
-    const { name } = body
+    const result = createTagSchema.safeParse(body)
 
-    if (!name || typeof name !== 'string' || name.trim().length === 0) {
-      return apiError('Tag name is required', 400)
+    if (!result.success) {
+      return apiError(result.error.issues[0].message, 400)
     }
 
-    if (name.length > 50) {
-      return apiError('Tag name must be 50 characters or less', 400)
-    }
+    const { name } = result.data
 
     // Import slugify utility
     const { slugify } = await import('@/lib/utils/slugify')

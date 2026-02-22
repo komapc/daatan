@@ -3,7 +3,7 @@ import { getExpressPredictionPrompt } from './prompts'
 import { llmService } from './index'
 import { searchArticles, type SearchResult } from '../utils/webSearch'
 import { fetchUrlContent } from '../utils/scraper'
-import crypto from 'crypto'
+import { hashUrl } from '../utils/hash'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('express-prediction')
@@ -277,7 +277,7 @@ URL: ${article.url}
     domain: prediction.domain ?? 'General',
     newsAnchor: {
       url: bestArticle.url,
-      urlHash: crypto.createHash('sha256').update(bestArticle.url).digest('hex'),
+      urlHash: hashUrl(bestArticle.url),
       title: bestArticle.title,
       snippet: bestArticle.snippet,
       source: bestArticle.source,
