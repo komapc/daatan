@@ -22,6 +22,8 @@
 
 - [x] **Bug: No JS errors in frontend's console** — ensure no client-side runtime errors or warnings trigger in the browser console during regular usage.
 
+- [ ] **Commitments: Simplify putting commitment** — make the UX for committing to a forecast simpler and more intuitive.
+
 - [x] **Infra: Make sure bots work, improve debugging** — ensure bot services are running correctly and enhance their logging visibility. (v1.6.22 fixed bot-related commitment block)
 
 - [x] **Privacy: Activity feed leaks `isPublic: false` users** — `/api/commitments/activity` returns RS and activity for all users with no `isPublic` filter. Inconsistent with leaderboard which correctly filters. Add `where: { user: { isPublic: true } }`.
