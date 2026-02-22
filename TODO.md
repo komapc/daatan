@@ -4,29 +4,29 @@
 
 ### P0 - Critical
 
-- [ ] **Security: Rate limiting** — no rate limiting on any API route. LLM routes (`/api/forecasts/express/generate`, AI extract) are expensive (Gemini API calls + Serper searches per request). Implement at Nginx level using `limit_req_zone`. Consider tiered limits: stricter for LLM routes (~5 req/min), standard for other API routes (~60 req/min).
+- [x] **Security: Rate limiting** — no rate limiting on any API route. LLM routes (`/api/forecasts/express/generate`, AI extract) are expensive (Gemini API calls + Serper searches per request). Implement at Nginx level using `limit_req_zone`. Consider tiered limits: stricter for LLM routes (~5 req/min), standard for other API routes (~60 req/min).
 
-- [ ] **Security: SSRF protection on URL fetching** — `fetchUrlContent()` in `src/lib/utils/scraper.ts` accepts arbitrary URLs with no validation. Any authenticated user can hit internal services (AWS IMDS `169.254.169.254`, localhost, Docker IPs). Fix: validate HTTPS-only, block RFC-1918/link-local ranges. Affects `/api/ai/extract` and express forecast URL flow.
+- [x] **Security: SSRF protection on URL fetching** — `fetchUrlContent()` in `src/lib/utils/scraper.ts` accepts arbitrary URLs with no validation. Any authenticated user can hit internal services (AWS IMDS `169.254.169.254`, localhost, Docker IPs). Fix: validate HTTPS-only, block RFC-1918/link-local ranges. Affects `/api/ai/extract` and express forecast URL flow.
 
 ### P1 - High Priority
 
 - [ ] **Commitments: Elaborate commitment/join forecast system** — define how users commit to forecasts, change commitments, what happens on resolution. Open design questions: can users update commitment after placing? Time-lock before resolution? CU refund policy on cancellation? How do "Other" option commitments resolve in multiple-choice?
 
-- [ ] **Code quality: URL hash inconsistency across 3 locations** — `news-anchors/route.ts` normalizes URL (lowercase, strip protocol/trailing slash) before hashing, but `forecasts/route.ts` and `expressPrediction.ts` hash the raw URL. Same URL produces different hashes → deduplication breaks. Extract a shared `hashUrl()` utility.
+- [x] **Code quality: URL hash inconsistency across 3 locations** — `news-anchors/route.ts` normalizes URL (lowercase, strip protocol/trailing slash) before hashing, but `forecasts/route.ts` and `expressPrediction.ts` hash the raw URL. Same URL produces different hashes → deduplication breaks. Extract a shared `hashUrl()` utility.
 
-- [ ] **Code quality: Admin routes use `where: any`** — `src/app/api/admin/forecasts/route.ts`, `users/route.ts`, `comments/route.ts` all use `where: any` instead of typed `Prisma.XxxWhereInput`. Typos in filter keys fail silently at runtime.
+- [x] **Code quality: Admin routes use `where: any`** — `src/app/api/admin/forecasts/route.ts`, `users/route.ts`, `comments/route.ts` all use `where: any` instead of typed `Prisma.XxxWhereInput`. Typos in filter keys fail silently at runtime.
 
 - [ ] **Forecasts: "Updated Context" feature** — "Analyze Context" button on forecast detail page. Re-runs Serper web search for latest articles, updates the prediction's context field. Claim text never changes, only context evolves. Requires: new API route, rate limit on re-analysis (once per day?), show "context last updated" timestamp, diff view of old vs new context.
 
 ### P2 - Medium Priority
 
-- [ ] **Bug: No JS errors in frontend's console** — ensure no client-side runtime errors or warnings trigger in the browser console during regular usage.
+- [x] **Bug: No JS errors in frontend's console** — ensure no client-side runtime errors or warnings trigger in the browser console during regular usage.
 
-- [ ] **Infra: Make sure bots work, improve debugging** — ensure bot services are running correctly and enhance their logging visibility.
+- [x] **Infra: Make sure bots work, improve debugging** — ensure bot services are running correctly and enhance their logging visibility.
 
-- [ ] **Privacy: Activity feed leaks `isPublic: false` users** — `/api/commitments/activity` returns RS and activity for all users with no `isPublic` filter. Inconsistent with leaderboard which correctly filters. Add `where: { user: { isPublic: true } }`.
+- [x] **Privacy: Activity feed leaks `isPublic: false` users** — `/api/commitments/activity` returns RS and activity for all users with no `isPublic` filter. Inconsistent with leaderboard which correctly filters. Add `where: { user: { isPublic: true } }`.
 
-- [ ] **Bug: Slug uniqueness TOCTOU race** — `POST /api/forecasts` does find-then-create for slugs (not atomic). Two concurrent requests with same `claimText` can produce duplicate slugs → unhandled P2002 error (500). Fix: catch P2002 and retry with incremented suffix.
+- [x] **Bug: Slug uniqueness TOCTOU race** — `POST /api/forecasts` does find-then-create for slugs (not atomic). Two concurrent requests with same `claimText` can produce duplicate slugs → unhandled P2002 error (500). Fix: catch P2002 and retry with incremented suffix.
 
 - [ ] **Code quality: Deprecate or remove `domain` field** — `Prediction.domain` is marked deprecated in schema, LLM prompt, and comments, but is still actively written everywhere. Either formally retire it (migration + remove from schemas) or un-deprecate.
 
