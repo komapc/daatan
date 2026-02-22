@@ -12,6 +12,7 @@ interface Prediction {
   outcomeType: string
   options?: PredictionOption[]
   lockedAt?: string | null
+  commitments?: { binaryChoice: boolean | null, optionId: string | null, cuCommitted: number }[]
 }
 
 interface ExistingCommitment {
@@ -53,13 +54,17 @@ export default function CommitmentForm({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Pending confirmation state for penalty
+  const [pendingOutcome, setPendingOutcome] = useState<string | boolean | null>(null)
+  const [penaltyInfo, setPenaltyInfo] = useState<{ cuBurned: number, cuRefunded: number, burnRate: number } | null>(null)
+
   // After lock: can change side or increase CU, but penalty applies.
   // Always allow the full available balance (existing commitment is returned minus penalty).
   const maxCu = isUpdate
     ? userCuAvailable + existingCommitment.cuCommitted // conservative: as if all refunded
     : userCuAvailable
 
-  const submitOutcome = async (outcomeValue: string | boolean) => {
+  const handleActionClick = (outcomeValue: string | boolean) => {
     setError(null)
     const numericCu = Number(cuAmount)
 
@@ -67,6 +72,50 @@ export default function CommitmentForm({
       setError(`Please enter a valid amount (1 - ${maxCu} CU)`)
       return
     }
+
+    const isSideChanged = isUpdate && !isCurrentOutcome(outcomeValue)
+    const isCuIncreased = isUpdate && isCurrentOutcome(outcomeValue) && numericCu > existingCommitment.cuCommitted
+
+    if (isUpdate && isLocked && (isSideChanged || isCuIncreased)) {
+      // Calculate penalty preview
+      const oldCu = existingCommitment.cuCommitted
+
+      let yourSideCU = 0
+      let totalPoolCU = 0
+
+      if (prediction.commitments) {
+        for (const c of prediction.commitments) {
+          if (c.binaryChoice !== null && c.binaryChoice !== undefined) {
+            if (c.binaryChoice === existingCommitment.binaryChoice) yourSideCU += c.cuCommitted
+            totalPoolCU += c.cuCommitted
+          } else if (c.optionId) {
+            if (c.optionId === existingCommitment.optionId) yourSideCU += c.cuCommitted
+            totalPoolCU += c.cuCommitted
+          }
+        }
+      } else {
+        // Fallback if not loaded
+        yourSideCU = oldCu
+        totalPoolCU = oldCu * 2
+      }
+
+      const poolShare = totalPoolCU > 0 ? yourSideCU / totalPoolCU : 0
+      const burnRate = Math.max(0.10, poolShare)
+      const cuBurned = Math.floor(oldCu * burnRate)
+      const cuRefunded = oldCu - cuBurned
+
+      setPenaltyInfo({ cuBurned, cuRefunded, burnRate: Math.round(burnRate * 100) })
+      setPendingOutcome(outcomeValue)
+      return
+    }
+
+    // Otherwise submit immediately
+    submitOutcome(outcomeValue)
+  }
+
+  const submitOutcome = async (outcomeValue: string | boolean) => {
+    setError(null)
+    const numericCu = Number(cuAmount)
 
     setIsSubmitting(true)
 
@@ -157,8 +206,8 @@ export default function CommitmentForm({
             <div className="flex gap-2 h-full">
               <button
                 type="button"
-                onClick={() => submitOutcome(true)}
-                disabled={isSubmitting}
+                onClick={() => handleActionClick(true)}
+                disabled={isSubmitting || pendingOutcome !== null}
                 className={`flex-1 rounded-lg border px-4 py-2.5 text-sm font-semibold transition-all shadow-sm ${isCurrentOutcome(true)
                   ? 'bg-green-600 text-white border-green-700 hover:bg-green-700'
                   : 'bg-white text-gray-700 border-gray-300 hover:bg-green-50 hover:border-green-400 hover:text-green-700'
@@ -168,8 +217,8 @@ export default function CommitmentForm({
               </button>
               <button
                 type="button"
-                onClick={() => submitOutcome(false)}
-                disabled={isSubmitting}
+                onClick={() => handleActionClick(false)}
+                disabled={isSubmitting || pendingOutcome !== null}
                 className={`flex-1 rounded-lg border px-4 py-2.5 text-sm font-semibold transition-all shadow-sm ${isCurrentOutcome(false)
                   ? 'bg-red-500 text-white border-red-600 hover:bg-red-600'
                   : 'bg-white text-gray-700 border-gray-300 hover:bg-red-50 hover:border-red-400 hover:text-red-700'
@@ -184,8 +233,8 @@ export default function CommitmentForm({
                 <button
                   key={option.id}
                   type="button"
-                  onClick={() => submitOutcome(option.id)}
-                  disabled={isSubmitting}
+                  onClick={() => handleActionClick(option.id)}
+                  disabled={isSubmitting || pendingOutcome !== null}
                   className={`w-full text-left rounded-lg border px-4 py-3 text-sm font-medium transition-all shadow-sm flex items-center justify-between ${isCurrentOutcome(option.id)
                     ? 'bg-blue-600 text-white border-blue-700 hover:bg-blue-700'
                     : 'bg-white text-gray-900 border-gray-300 hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700'
@@ -202,7 +251,42 @@ export default function CommitmentForm({
         </div>
       </div>
 
-      {isUpdate && isLocked && (
+      {pendingOutcome !== null && penaltyInfo && (
+        <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-lg shadow-sm">
+          <h4 className="text-sm font-semibold text-orange-800 mb-2">Confirm Exit Penalty</h4>
+          <p className="text-sm text-orange-700 mb-3">
+            Because this prediction is locked, changing your side or increasing your CU incurs a penalty.
+            The penalty burns a percentage of your original commitment based on your side's share of the pool.
+          </p>
+          <ul className="text-sm text-orange-800 space-y-1 mb-4">
+            <li>Original Commitment: <strong>{existingCommitment?.cuCommitted} CU</strong></li>
+            <li>Burn Rate: <strong>{penaltyInfo.burnRate}%</strong></li>
+            <li>Amount Burned: <strong>{penaltyInfo.cuBurned} CU</strong></li>
+            <li>Amount Refunded: <strong>{penaltyInfo.cuRefunded} CU</strong></li>
+          </ul>
+          <div className="flex gap-3">
+            <button
+              onClick={() => submitOutcome(pendingOutcome)}
+              disabled={isSubmitting}
+              className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-medium py-2 rounded-lg transition-colors disabled:opacity-50"
+            >
+              {isSubmitting ? 'Confirming...' : 'Accept Penalty & Continue'}
+            </button>
+            <button
+              onClick={() => {
+                setPendingOutcome(null)
+                setPenaltyInfo(null)
+              }}
+              disabled={isSubmitting}
+              className="flex-1 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium py-2 rounded-lg transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {isUpdate && isLocked && pendingOutcome === null && (
         <p className="mt-2 text-xs text-orange-600">
           ⚠️ Prediction is locked — changing your side or increasing your CU will incur
           an exit penalty (min 10%, based on pool share). Reducing CU on the same side is free.

@@ -3,6 +3,8 @@ import { withAuth } from '@/lib/api-middleware'
 import { prisma } from '@/lib/prisma'
 import { handleRouteError } from '@/lib/api-error'
 import { z } from 'zod'
+import { createBotLLMService } from '@/lib/llm'
+import { SchemaType, Schema } from '@google/generative-ai'
 
 export const dynamic = 'force-dynamic'
 
@@ -107,6 +109,46 @@ export const POST = withAuth(
       const existing = await prisma.user.findUnique({ where: { username } })
       if (existing) {
         return NextResponse.json({ error: `Username ${username} is already taken` }, { status: 400 })
+      }
+
+      // If prompts are default, dynamically generate them based on the bot's name
+      if (data.personaPrompt === DEFAULT_PERSONA) {
+        try {
+          const llm = createBotLLMService(data.modelPreference)
+          const prompt = `You are defining a new autonomous agent for a prediction market platform. 
+The bot's name is "${data.name}". 
+
+Based on this name, infer what kind of topics it cares about, its personality, and what news sources it should read.
+Generate a JSON object with:
+- personaPrompt: "You are [Name], a [description]. You track [topics]."
+- forecastPrompt: "Using the news topic, write a specific, verifiable forecast about [topics]. Avoid vague claims. Resolution window: 14-90 days."
+- votePrompt: "As a [role], commit to forecasts about [topics]. Vote yes when [conditions]."
+- newsSources: An array of 2-4 real world RSS feed URLs that fit this persona (e.g., https://feeds.bbci.co.uk/news/world/rss.xml, https://www.theverge.com/rss/index.xml, etc).
+
+Make the prompts highly specific, opinionated, and sharp. Do not be generic.`
+
+          const schema: Schema = {
+            type: SchemaType.OBJECT,
+            properties: {
+              personaPrompt: { type: SchemaType.STRING },
+              forecastPrompt: { type: SchemaType.STRING },
+              votePrompt: { type: SchemaType.STRING },
+              newsSources: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } }
+            },
+            required: ['personaPrompt', 'forecastPrompt', 'votePrompt', 'newsSources']
+          }
+
+          const response = await llm.generateContent({ prompt, temperature: 0.7, schema })
+          const generated = JSON.parse(response.text)
+
+          data.personaPrompt = generated.personaPrompt
+          data.forecastPrompt = generated.forecastPrompt
+          data.votePrompt = generated.votePrompt
+          data.newsSources = generated.newsSources
+        } catch (llmErr) {
+          // Fallback to defaults silently if generation fails
+          console.error('Failed to generate dynamic bot prompts:', llmErr)
+        }
       }
 
       // Create bot user + config in a transaction
