@@ -209,54 +209,83 @@ export const POST = withAuth(async (request, user) => {
     .map(p => p.slug)
     .filter((s): s is string => s !== null)
 
-  const uniqueSlug = generateUniqueSlug(baseSlug, existingSlugs)
+  let uniqueSlug = generateUniqueSlug(baseSlug, existingSlugs)
+  let prediction
+  let retryCount = 0
+  const maxRetries = 3
 
-  // Create prediction
-  const prediction = await prisma.prediction.create({
-    data: {
-      authorId: user.id,
-      newsAnchorId: newsAnchorId,
-      claimText: data.claimText,
-      slug: uniqueSlug,
-      detailsText: data.detailsText,
-      domain: data.domain,
-      outcomeType: data.outcomeType,
-      outcomePayload: outcomePayload as object,
-      resolutionRules: data.resolutionRules,
-      resolveByDatetime: new Date(data.resolveByDatetime),
-      status: 'DRAFT',
-      // Connect or create tags
-      tags: data.tags?.length
-        ? {
-          connectOrCreate: await Promise.all(
-            data.tags.map(async (tagName) => {
-              const tagSlug = slugify(tagName)
-              return {
-                where: { slug: tagSlug },
-                create: {
-                  name: tagName,
-                  slug: tagSlug,
-                },
-              }
-            })
-          ),
-        }
-        : undefined,
-    },
-    include: {
-      author: {
-        select: {
-          id: true,
-          name: true,
-          username: true,
-          image: true,
+  while (retryCount < maxRetries) {
+    try {
+      // Create prediction
+      prediction = await prisma.prediction.create({
+        data: {
+          authorId: user.id,
+          newsAnchorId: newsAnchorId,
+          claimText: data.claimText,
+          slug: uniqueSlug,
+          detailsText: data.detailsText,
+          domain: data.domain,
+          outcomeType: data.outcomeType,
+          outcomePayload: outcomePayload as object,
+          resolutionRules: data.resolutionRules,
+          resolveByDatetime: new Date(data.resolveByDatetime),
+          status: 'DRAFT',
+          // Connect or create tags
+          tags: data.tags?.length
+            ? {
+              connectOrCreate: await Promise.all(
+                data.tags.map(async (tagName) => {
+                  const tagSlug = slugify(tagName)
+                  return {
+                    where: { slug: tagSlug },
+                    create: {
+                      name: tagName,
+                      slug: tagSlug,
+                    },
+                  }
+                })
+              ),
+            }
+            : undefined,
         },
-      },
-      newsAnchor: true,
-      options: true,
-      tags: true,
-    },
-  })
+        include: {
+          author: {
+            select: {
+              id: true,
+              name: true,
+              username: true,
+              image: true,
+            },
+          },
+          newsAnchor: true,
+          options: true,
+          tags: true,
+        },
+      })
+
+      // If successful, break out of the retry loop
+      break
+    } catch (error: any) {
+      // Prisma P2002: Unique constraint failed
+      if (error.code === 'P2002' && error.meta?.target?.includes('slug')) {
+        retryCount++
+        if (retryCount >= maxRetries) {
+          return apiError('Failed to generate a unique URL slug after multiple attempts. Please try again.', 500)
+        }
+        // Generate a new slug with a random suffix for the next try
+        uniqueSlug = `${baseSlug}-${Math.random().toString(36).substring(2, 6)}`
+        continue
+      }
+
+      // For any other error, throw it so it is caught by withAuth and properly logged
+      throw error
+    }
+  }
+
+  // Safety check, shouldn't hit this due to throw/return above but TS needs it
+  if (!prediction) {
+    return apiError('Unexpected error during prediction creation', 500)
+  }
 
   // Create options for multiple choice
   if (data.outcomeType === 'MULTIPLE_CHOICE' && data.outcomePayload) {
