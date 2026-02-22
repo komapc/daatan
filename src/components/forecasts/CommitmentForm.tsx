@@ -256,7 +256,7 @@ export default function CommitmentForm({
           <h4 className="text-sm font-semibold text-orange-800 mb-2">Confirm Exit Penalty</h4>
           <p className="text-sm text-orange-700 mb-3">
             Because this prediction is locked, changing your side or increasing your CU incurs a penalty.
-            The penalty burns a percentage of your original commitment based on your side's share of the pool.
+            The penalty burns a percentage of your original commitment based on your side&apos;s share of the pool.
           </p>
           <ul className="text-sm text-orange-800 space-y-1 mb-4">
             <li>Original Commitment: <strong>{existingCommitment?.cuCommitted} CU</strong></li>
