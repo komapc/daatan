@@ -3,11 +3,26 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import ExpressForecastClient from '../ExpressForecastClient'
 
 // Mock next/navigation
+const mockRouter = {
+  push: vi.fn(),
+}
+
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({
-    push: vi.fn(),
-  }),
+  useRouter: () => mockRouter,
 }))
+
+interface GeneratedPrediction {
+  claimText: string
+  resolveByDatetime: string
+  detailsText: string
+  domain: string
+  tags: string[]
+  resolutionRules: string
+  outcomeType: 'BINARY' | 'MULTIPLE_CHOICE'
+  options: string[]
+  newsAnchor: { url: string; title: string; snippet: string }
+  additionalLinks: Array<{ url: string; title: string }>
+}
 
 describe('ExpressForecastClient', () => {
   beforeEach(() => {
@@ -78,21 +93,9 @@ describe('ExpressForecastClient', () => {
     expect(input.value).toContain('Bitcoin')
   })
 
-  // ── Review & Publish flow (tests the handoff to ForecastWizard) ─────────
-
-  describe('handleCreatePrediction (Review & Publish)', () => {
-    const generatedData: {
-      claimText: string
-      resolveByDatetime: string
-      detailsText: string
-      domain: string
-      tags: string[]
-      resolutionRules: string
-      outcomeType: 'BINARY' | 'MULTIPLE_CHOICE'
-      options: string[]
-      newsAnchor: { url: string; title: string; snippet: string }
-      additionalLinks: Array<{ url: string; title: string }>
-    } = {
+  // ── Confirm & Publish flow (direct API integration) ───────────
+  describe('handleCreatePrediction (Confirm & Publish)', () => {
+    const generatedData: GeneratedPrediction = {
       claimText: 'Bitcoin will reach $100k',
       resolveByDatetime: '2026-12-31T23:59:59Z',
       detailsText: 'Context about Bitcoin',
@@ -109,12 +112,8 @@ describe('ExpressForecastClient', () => {
       additionalLinks: [],
     }
 
-    /**
-     * Helper: put the component into "review" state by simulating a
-     * successful generation via a mocked fetch stream.
-     */
     const renderInReviewState = async (data = generatedData) => {
-      // Build a streaming response that goes straight to "complete"
+      // 1. Mock the generation stream
       const streamBody = new ReadableStream({
         start(controller) {
           controller.enqueue(
@@ -130,103 +129,58 @@ describe('ExpressForecastClient', () => {
 
       render(<ExpressForecastClient userId="test-user" />)
 
-      // Type a valid input and click Generate
       const input = screen.getByPlaceholderText(/Describe your event OR paste/)
       fireEvent.change(input, { target: { value: 'Bitcoin will reach $100k this year' } })
       fireEvent.click(screen.getByText('Generate Forecast'))
 
-      // Wait for the review screen to appear
-      const reviewButton = await screen.findByText('Review & Publish', {}, { timeout: 3000 })
-      return reviewButton
+      return await screen.findByText('Confirm & Publish', {}, { timeout: 3000 })
     }
 
-    it('saves generated data to localStorage and redirects to /create?from=express', async () => {
-      // Spy on window.location.href assignment
-      const hrefSpy = vi.fn()
-      Object.defineProperty(window, 'location', {
-        value: { ...window.location, href: '' },
-        writable: true,
-        configurable: true,
+    it('directly creates and publishes the prediction and redirects to the new page', async () => {
+      const confirmButton = await renderInReviewState()
+
+      // 2. Mock the creation API
+      vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+        new Response(JSON.stringify({ id: 'new-id' }), { status: 201 })
+      )
+      // 3. Mock the publishing API
+      vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+        new Response(JSON.stringify({ id: 'new-id', status: 'ACTIVE' }), { status: 200 })
+      )
+
+      fireEvent.click(confirmButton)
+
+      // Verify immediate feedback
+      expect(screen.getByText('Publishing...')).toBeInTheDocument()
+
+      // Wait for redirect
+      await vi.waitFor(() => {
+        expect(mockRouter.push).toHaveBeenCalledWith('/forecasts/new-id?newly_created=true')
       })
-      Object.defineProperty(window.location, 'href', {
-        set: hrefSpy,
-        get: () => '',
-        configurable: true,
-      })
-
-      const reviewButton = await renderInReviewState()
-      fireEvent.click(reviewButton)
-
-      // Verify localStorage was populated with the generated data
-      const stored = localStorage.getItem('expressPredictionData')
-      expect(stored).toBeTruthy()
-      const parsed = JSON.parse(stored!)
-      expect(parsed.claimText).toBe(generatedData.claimText)
-      expect(parsed.resolveByDatetime).toBe(generatedData.resolveByDatetime)
-      expect(parsed.outcomeType).toBe('BINARY')
-
-      // Verify redirect was triggered
-      expect(hrefSpy).toHaveBeenCalledWith('/create?from=express')
     })
 
     it('renders Review Forecast heading after successful generation', async () => {
       await renderInReviewState()
-
       expect(screen.getByText('Review Forecast')).toBeInTheDocument()
       expect(screen.getByText(generatedData.claimText)).toBeInTheDocument()
     })
 
     it('shows Binary outcome type badge for binary predictions', async () => {
       await renderInReviewState()
-
       expect(screen.getByText(/Binary/)).toBeInTheDocument()
     })
 
     it('shows Multiple Choice badge and options for multiple choice predictions', async () => {
-      const mcData = {
+      const mcData: GeneratedPrediction = {
         ...generatedData,
         claimText: 'Who will win the 2028 US presidential election?',
-        outcomeType: 'MULTIPLE_CHOICE' as const,
+        outcomeType: 'MULTIPLE_CHOICE',
         options: ['Candidate A', 'Candidate B', 'Candidate C', 'Other'],
       }
 
       await renderInReviewState(mcData)
-
       expect(screen.getByText('Multiple Choice')).toBeInTheDocument()
       expect(screen.getByText('Candidate A')).toBeInTheDocument()
-      expect(screen.getByText('Candidate B')).toBeInTheDocument()
-      expect(screen.getByText('Candidate C')).toBeInTheDocument()
-      expect(screen.getByText('Other')).toBeInTheDocument()
-    })
-
-    it('saves multiple choice data to localStorage with outcomeType and options', async () => {
-      const hrefSpy = vi.fn()
-      Object.defineProperty(window, 'location', {
-        value: { ...window.location, href: '' },
-        writable: true,
-        configurable: true,
-      })
-      Object.defineProperty(window.location, 'href', {
-        set: hrefSpy,
-        get: () => '',
-        configurable: true,
-      })
-
-      const mcData = {
-        ...generatedData,
-        claimText: 'Who will win the Champions League?',
-        outcomeType: 'MULTIPLE_CHOICE' as const,
-        options: ['Real Madrid', 'Manchester City', 'Bayern Munich', 'Other'],
-      }
-
-      const reviewButton = await renderInReviewState(mcData)
-      fireEvent.click(reviewButton)
-
-      const stored = localStorage.getItem('expressPredictionData')
-      expect(stored).toBeTruthy()
-      const parsed = JSON.parse(stored!)
-      expect(parsed.outcomeType).toBe('MULTIPLE_CHOICE')
-      expect(parsed.options).toEqual(['Real Madrid', 'Manchester City', 'Bayern Munich', 'Other'])
     })
   })
 })

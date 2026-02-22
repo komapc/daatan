@@ -27,7 +27,7 @@ if (geminiApiKey) {
 } else {
   log.warn(
     'GEMINI_API_KEY is not set; Gemini provider will be disabled. ' +
-      'Only fallback providers (e.g. Ollama) will be used.',
+    'Only fallback providers (e.g. Ollama) will be used.',
   )
 }
 
@@ -49,12 +49,23 @@ export const llmService = new ResilientLLMService(providers)
  */
 export function createBotLLMService(modelName: string): ResilientLLMService {
   const openrouterApiKey = process.env.OPENROUTER_API_KEY || ''
+  const geminiApiKey = process.env.GEMINI_API_KEY || ''
 
-  if (!openrouterApiKey) {
-    log.warn('OPENROUTER_API_KEY is not set; bot LLM calls will fail')
+  const providers: LLMProvider[] = []
+
+  // If model looks like a Google model and we have a direct key, try direct provider first
+  if (modelName.toLowerCase().includes('gemini') && geminiApiKey) {
+    const directModelName = modelName.split(':').shift()?.split('/').pop() || 'gemini-1.5-flash'
+    providers.push(new GeminiProvider({ apiKey: geminiApiKey, modelName: directModelName }))
   }
 
-  return new ResilientLLMService([
-    new OpenRouterProvider({ apiKey: openrouterApiKey, modelName }),
-  ])
+  if (openrouterApiKey) {
+    providers.push(new OpenRouterProvider({ apiKey: openrouterApiKey, modelName }))
+  }
+
+  if (providers.length === 0) {
+    log.warn({ modelName }, 'No API keys available for bot LLM service')
+  }
+
+  return new ResilientLLMService(providers)
 }

@@ -45,8 +45,8 @@ export default function ExpressForecastClient({ userId }: ExpressForecastClientP
   const [sourcesSummary, setSourcesSummary] = useState('')
   const [predictionPreview, setPredictionPreview] = useState<{ claim: string; resolveBy: string } | null>(null)
 
-  // Edit mode state
   const [isEditing, setIsEditing] = useState(false)
+  const [isPublishing, setIsPublishing] = useState(false)
   const [editForm, setEditForm] = useState<GeneratedPrediction | null>(null)
   const [newTag, setNewTag] = useState('')
 
@@ -156,16 +156,52 @@ export default function ExpressForecastClient({ userId }: ExpressForecastClientP
     setPredictionPreview(null)
   }
 
-  const handleCreatePrediction = () => {
+  const handleCreatePrediction = async () => {
     const finalData = isEditing ? editForm : generated
     if (!finalData) return
+    setIsPublishing(true)
+    setError('')
 
     try {
-      localStorage.setItem('expressPredictionData', JSON.stringify(finalData))
-      window.location.href = '/create?from=express'
-    } catch {
-      setError('Failed to prepare prediction data')
-      setStep('error')
+      // 1. Create the prediction (as draft)
+      const createResponse = await fetch('/api/forecasts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          claimText: finalData.claimText,
+          detailsText: finalData.detailsText,
+          domain: finalData.domain,
+          resolveByDatetime: finalData.resolveByDatetime,
+          outcomeType: finalData.outcomeType,
+          outcomePayload: finalData.outcomeType === 'MULTIPLE_CHOICE' ? { options: finalData.options } : undefined,
+          tags: finalData.tags,
+          newsAnchorUrl: finalData.newsAnchor.url,
+          newsAnchorTitle: finalData.newsAnchor.title,
+        }),
+      })
+
+      if (!createResponse.ok) {
+        const errData = await createResponse.json()
+        throw new Error(errData.error || 'Failed to create forecast')
+      }
+
+      const prediction = await createResponse.json()
+
+      // 2. Publish the prediction (DRAFT -> ACTIVE)
+      const publishResponse = await fetch(`/api/forecasts/${prediction.id}/publish`, {
+        method: 'POST',
+      })
+
+      if (!publishResponse.ok) {
+        const errData = await publishResponse.json()
+        throw new Error(errData.error || 'Created as draft, but failed to publish')
+      }
+
+      // Success: redirect to the new prediction page
+      router.push(`/forecasts/${prediction.id}?newly_created=true`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to publish prediction')
+      setIsPublishing(false)
     }
   }
 
@@ -387,7 +423,7 @@ export default function ExpressForecastClient({ userId }: ExpressForecastClientP
               {isEditing ? (
                 <textarea
                   value={editForm?.claimText}
-                  onChange={e => setEditForm(prev => prev ? ({ ...prev, claimText: e.target.value }) : null)}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditForm(prev => prev ? ({ ...prev, claimText: e.target.value }) : null)}
                   className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
                   rows={3}
                 />
@@ -403,7 +439,7 @@ export default function ExpressForecastClient({ userId }: ExpressForecastClientP
                 <input
                   type="datetime-local"
                   value={editForm?.resolveByDatetime?.slice(0, 16)} // Format for input
-                  onChange={e => setEditForm(prev => prev ? ({ ...prev, resolveByDatetime: new Date(e.target.value).toISOString() }) : null)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditForm(prev => prev ? ({ ...prev, resolveByDatetime: new Date(e.target.value).toISOString() }) : null)}
                   className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
               ) : (
@@ -417,7 +453,7 @@ export default function ExpressForecastClient({ userId }: ExpressForecastClientP
             <div>
               <h3 className="text-sm font-bold text-gray-700 mb-2">Tags</h3>
               <div className="flex flex-wrap gap-2">
-                {(isEditing ? editForm?.tags : generated.tags)?.map((tag, i) => (
+                {(isEditing ? editForm?.tags : generated.tags)?.map((tag: string, i: number) => (
                   <span key={i} className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
                     {tag}
                     {isEditing && (
@@ -465,7 +501,7 @@ export default function ExpressForecastClient({ userId }: ExpressForecastClientP
                   <h4 className="text-sm font-medium text-gray-600 mb-2">Options</h4>
                   {isEditing ? (
                     <div className="space-y-2">
-                      {(editForm?.options || []).map((option, index) => (
+                      {(editForm?.options || []).map((option: string, index: number) => (
                         <div key={index} className="flex gap-2">
                           <span className="flex items-center justify-center w-8 text-sm text-gray-400">
                             {index + 1}.
@@ -523,7 +559,7 @@ export default function ExpressForecastClient({ userId }: ExpressForecastClientP
               {isEditing ? (
                 <textarea
                   value={editForm?.detailsText}
-                  onChange={e => setEditForm(prev => prev ? ({ ...prev, detailsText: e.target.value }) : null)}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditForm(prev => prev ? ({ ...prev, detailsText: e.target.value }) : null)}
                   className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
                   rows={4}
                 />
@@ -538,7 +574,7 @@ export default function ExpressForecastClient({ userId }: ExpressForecastClientP
               {isEditing ? (
                 <textarea
                   value={editForm?.resolutionRules}
-                  onChange={e => setEditForm(prev => prev ? ({ ...prev, resolutionRules: e.target.value }) : null)}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditForm(prev => prev ? ({ ...prev, resolutionRules: e.target.value }) : null)}
                   className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
                   rows={2}
                 />
@@ -584,13 +620,25 @@ export default function ExpressForecastClient({ userId }: ExpressForecastClientP
               <>
                 <button
                   onClick={handleCreatePrediction}
-                  className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors"
+                  disabled={isPublishing}
+                  className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  Review & Publish
+                  {isPublishing ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Publishing...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-5 h-5" />
+                      Confirm & Publish
+                    </>
+                  )}
                 </button>
                 <button
-                  onClick={handleTryAgain} // Uses "Start Over" logic but maybe we want "Back"
-                  className="px-6 py-3 rounded-xl border border-gray-300 font-bold hover:bg-gray-50 transition-colors"
+                  onClick={handleTryAgain}
+                  disabled={isPublishing}
+                  className="px-6 py-3 rounded-xl border border-gray-300 font-bold hover:bg-gray-50 disabled:opacity-50 transition-colors"
                 >
                   <ArrowLeft className="w-5 h-5" />
                 </button>

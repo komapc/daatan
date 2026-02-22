@@ -48,7 +48,7 @@ async function fetchFeed(url: string): Promise<RssItem[]> {
       const feed = await parser.parseURL(targetUrl)
       const source = feed.title || new URL(targetUrl).hostname
 
-      return (feed.items ?? [])
+      const items = (feed.items ?? [])
         .filter((item) => item.title && item.link)
         .map((item) => ({
           title: item.title!.trim(),
@@ -57,6 +57,8 @@ async function fetchFeed(url: string): Promise<RssItem[]> {
           publishedAt: item.pubDate ? new Date(item.pubDate) : new Date(),
           snippet: item.contentSnippet?.slice(0, 500),
         }))
+      log.info({ url: targetUrl, itemCount: items.length }, 'Fetched feed successfully')
+      return items
     } catch (rssErr) {
       // If it's not a valid RSS, try a basic HTML scraping fallback
       // (only if it's a standard HTTP/HTTPS link)
