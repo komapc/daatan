@@ -11,6 +11,11 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 50)
 
     const recentCommitments = await prisma.commitment.findMany({
+      where: {
+        user: {
+          isPublic: true,
+        },
+      },
       include: {
         user: {
           select: {
