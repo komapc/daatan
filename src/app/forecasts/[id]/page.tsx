@@ -40,6 +40,7 @@ type Prediction = {
   outcomePayload?: Record<string, unknown>
   status: string
   resolveByDatetime: string
+  contextUpdatedAt?: string
   publishedAt?: string
   resolvedAt?: string
   resolutionOutcome?: string
@@ -269,7 +270,47 @@ export default function PredictionDetailPage() {
           {prediction.claimText}
         </h1>
         {prediction.detailsText && (
-          <p className="text-gray-600 mb-4">{prediction.detailsText}</p>
+          <div className="mb-4">
+            <p className="text-gray-600 whitespace-pre-wrap leading-relaxed">{prediction.detailsText}</p>
+            {prediction.contextUpdatedAt && (
+              <p className="text-xs text-gray-400 mt-2">
+                Context last updated: {new Date(prediction.contextUpdatedAt).toLocaleString()}
+              </p>
+            )}
+          </div>
+        )}
+        {(canAdminister || session?.user?.id === prediction.author.id) && prediction.status === 'ACTIVE' && (
+          <div className="mb-4">
+            <button
+              onClick={async () => {
+                const btn = document.getElementById('analyze-context-btn') as HTMLButtonElement
+                if (btn) btn.disabled = true
+                const orgText = btn ? btn.innerText : 'Analyze'
+                if (btn) btn.innerText = 'Analyzing...'
+                toast.loading('Analyzing latest news...', { id: 'analyze' })
+                try {
+                  const res = await fetch(`/api/forecasts/${prediction.id}/context`, {
+                    method: 'POST',
+                  })
+                  if (!res.ok) {
+                    const data = await res.json()
+                    throw new Error(data.error || 'Failed to analyze context')
+                  }
+                  toast.success('Context updated!', { id: 'analyze' })
+                  // Force a reload to get the new text
+                  window.location.reload()
+                } catch (e: any) {
+                  toast.error(e.message, { id: 'analyze' })
+                  if (btn) btn.disabled = false
+                  if (btn) btn.innerText = orgText
+                }
+              }}
+              id="analyze-context-btn"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors"
+            >
+              Analyze Context
+            </button>
+          </div>
         )}
         {prediction.resolutionRules && (
           <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-lg text-sm text-gray-700">
@@ -381,21 +422,11 @@ export default function PredictionDetailPage() {
               onCancel={() => setShowCommitmentForm(false)}
             />
           ) : (
-            showCommitmentForm ? (
-              <CommitmentForm
-                prediction={prediction}
-                userCuAvailable={session.user.cuAvailable || 0}
-                onSuccess={handleCommitmentSuccess}
-                onCancel={() => setShowCommitmentForm(false)}
-              />
-            ) : (
-              <button
-                onClick={() => setShowCommitmentForm(true)}
-                className="w-full py-3.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-sm hover:shadow-md"
-              >
-                Make Your Commitment
-              </button>
-            )
+            <CommitmentForm
+              prediction={prediction}
+              userCuAvailable={session.user.cuAvailable || 0}
+              onSuccess={handleCommitmentSuccess}
+            />
           )}
         </div>
       )}

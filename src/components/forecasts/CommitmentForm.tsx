@@ -49,12 +49,7 @@ export default function CommitmentForm({
   const isLocked = !!prediction.lockedAt
 
   // State
-  const [cuAmount, setCuAmount] = useState(existingCommitment?.cuCommitted || 10)
-  const [selectedOutcome, setSelectedOutcome] = useState<string | boolean | null>(
-    existingCommitment?.binaryChoice !== undefined
-      ? existingCommitment.binaryChoice
-      : existingCommitment?.optionId || null
-  )
+  const [cuAmount, setCuAmount] = useState<number | ''>(existingCommitment?.cuCommitted || 10)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -64,15 +59,13 @@ export default function CommitmentForm({
       ? existingCommitment.cuCommitted // locked: no increases allowed
       : userCuAvailable + existingCommitment.cuCommitted
     : userCuAvailable
-  const isValid = selectedOutcome !== null && cuAmount >= 1 && cuAmount <= maxCu
 
-  // Handle submission
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const submitOutcome = async (outcomeValue: string | boolean) => {
     setError(null)
+    const numericCu = Number(cuAmount)
 
-    if (!isValid) {
-      setError('Please select an outcome and enter a valid CU amount')
+    if (!numericCu || numericCu < 1 || numericCu > maxCu) {
+      setError(`Please enter a valid amount (1 - ${maxCu} CU)`)
       return
     }
 
@@ -83,13 +76,13 @@ export default function CommitmentForm({
       const method = isUpdate ? 'PATCH' : 'POST'
 
       const body: Record<string, unknown> = {
-        cuCommitted: cuAmount,
+        cuCommitted: numericCu,
       }
 
       if (prediction.outcomeType === 'BINARY') {
-        body.binaryChoice = selectedOutcome as boolean
+        body.binaryChoice = outcomeValue as boolean
       } else {
-        body.optionId = selectedOutcome as string
+        body.optionId = outcomeValue as string
       }
 
       const response = await fetch(endpoint, {
@@ -110,164 +103,127 @@ export default function CommitmentForm({
       onSuccess(result)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
-    } finally {
       setIsSubmitting(false)
     }
   }
 
+  // Helper to determine if a specific outcome outcome is the currently committed one
+  const isCurrentOutcome = (val: string | boolean) => {
+    if (!existingCommitment) return false
+    if (prediction.outcomeType === 'BINARY') return existingCommitment.binaryChoice === val
+    return existingCommitment.optionId === val
+  }
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 rounded-lg border border-gray-300 bg-white p-4 shadow-sm">
-      <div>
-        <h3 className="text-lg font-semibold text-gray-900">
-          {isUpdate ? 'Update Commitment' : 'Make a Commitment'}
+    <div className="space-y-4 rounded-xl border border-blue-200 bg-blue-50/30 p-4 shadow-sm">
+      <div className="flex items-center justify-between">
+        <h3 className="text-base font-semibold text-gray-900">
+          {isUpdate ? 'Update your commitment' : 'Make your commitment'}
         </h3>
-        <p className="mt-1 text-sm text-gray-500">
-          Available CU: <span className="font-medium">{userCuAvailable}</span>
-        </p>
-        {isUpdate && isLocked && (
-          <p className="mt-1 text-xs text-orange-600">
-            Prediction is locked — you can reduce your CU but not increase it or change your side.
-          </p>
-        )}
-        {!isUpdate && isLocked && (
-          <p className="mt-1 text-xs text-blue-600">
-            Prediction is locked for side changes after your first commitment. Choose your side carefully!
-          </p>
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isSubmitting}
+            className="text-sm font-medium text-gray-500 hover:text-gray-700 disabled:opacity-50"
+          >
+            Cancel
+          </button>
         )}
       </div>
 
-      {/* Outcome Selection - Enabled even if locked, unless updating an existing commitment */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Select Outcome</label>
-        <div className="mt-2 space-y-2">
-          {prediction.outcomeType === 'BINARY' ? (
-            // Binary toggle
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setSelectedOutcome(true)}
-                disabled={isUpdate && isLocked}
-                title={isUpdate && isLocked ? 'Cannot change side after prediction is locked' : undefined}
-                className={`flex-1 rounded-md border px-4 py-2 text-sm font-medium transition-colors ${selectedOutcome === true
-                  ? 'border-green-500 bg-green-50 text-green-700'
-                  : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-                  } ${isUpdate && isLocked ? 'opacity-60 cursor-not-allowed' : ''}`}
-              >
-                Will Happen
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedOutcome(false)}
-                disabled={isUpdate && isLocked}
-                title={isUpdate && isLocked ? 'Cannot change side after prediction is locked' : undefined}
-                className={`flex-1 rounded-md border px-4 py-2 text-sm font-medium transition-colors ${selectedOutcome === false
-                  ? 'border-red-500 bg-red-50 text-red-700'
-                  : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-                  } ${isUpdate && isLocked ? 'opacity-60 cursor-not-allowed' : ''}`}
-              >
-                Won&apos;t Happen
-              </button>
-            </div>
-          ) : (
-            // Multiple choice radio buttons
-            <div className="space-y-2">
-              {prediction.options?.map((option) => (
-                <label
-                  key={option.id}
-                  className={`flex items-center rounded-md border px-4 py-3 transition-colors ${selectedOutcome === option.id
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-300 bg-white hover:bg-gray-50'
-                    } ${isUpdate && isLocked ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
-                >
-                  <input
-                    type="radio"
-                    name="outcome"
-                    value={option.id}
-                    checked={selectedOutcome === option.id}
-                    onChange={(e) => setSelectedOutcome(e.target.value)}
-                    disabled={isUpdate && isLocked}
-                    className="h-4 w-4 text-blue-600"
-                  />
-                  <span className="ml-3 text-sm font-medium text-gray-900">{option.text}</span>
-                </label>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* CU Amount */}
-      <div>
-        <label htmlFor="cuAmount" className="block text-sm font-medium text-gray-700">
-          CU Amount
-        </label>
-        <div className="mt-2 space-y-2">
-          <input
-            type="range"
-            id="cuAmount"
-            min="1"
-            max={maxCu}
-            value={cuAmount}
-            onChange={(e) => setCuAmount(Number(e.target.value))}
-            className="w-full"
-          />
-          <div className="flex items-center justify-between">
-            <input
-              type="number"
-              min="1"
-              max={maxCu}
-              value={cuAmount}
-              onChange={(e) => setCuAmount(Number(e.target.value))}
-              className="w-24 rounded-md border border-gray-300 px-3 py-2 text-sm"
-            />
-            <span className="text-sm text-gray-500">
-              Max: {maxCu} CU
-            </span>
-          </div>
-        </div>
-        {cuAmount > userCuAvailable && isUpdate && (
-          <p className="mt-1 text-xs text-yellow-600">
-            Increasing by {cuAmount - (existingCommitment?.cuCommitted || 0)} CU
-          </p>
-        )}
-      </div>
-
-      {/* Error Message */}
       {error && (
         <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">
           {error}
         </div>
       )}
 
-      {/* Validation Feedback */}
-      {!isValid && (
-        <div className="text-sm text-gray-500">
-          {selectedOutcome === null && '• Please select an outcome'}
-          {cuAmount < 1 && '• CU amount must be at least 1'}
-          {cuAmount > maxCu && '• Insufficient CU available'}
+      <div className="flex flex-col sm:flex-row gap-4 sm:items-stretch">
+        {/* Simplified CU Input */}
+        <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-gray-300 shadow-sm w-fit self-start sm:self-auto">
+          <input
+            type="number"
+            min="1"
+            max={maxCu}
+            value={cuAmount}
+            onChange={(e) => setCuAmount(e.target.value === '' ? '' : Number(e.target.value))}
+            className="w-16 sm:w-20 text-lg font-bold text-gray-900 outline-none bg-transparent"
+          />
+          <span className="text-gray-500 font-medium">CU</span>
         </div>
-      )}
 
-      {/* Actions */}
-      <div className="flex gap-2">
-        <button
-          type="submit"
-          disabled={!isValid || isSubmitting}
-          className="flex-1 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isSubmitting ? 'Saving...' : isUpdate ? 'Update Commitment' : 'Commit CU'}
-        </button>
-        {onCancel && (
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={isSubmitting}
-            className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-          >
-            Cancel
-          </button>
-        )}
+        {/* Action Buttons */}
+        <div className="flex-1 space-y-2">
+          {prediction.outcomeType === 'BINARY' ? (
+            <div className="flex gap-2 h-full">
+              <button
+                type="button"
+                onClick={() => submitOutcome(true)}
+                disabled={isSubmitting || (isUpdate && isLocked && !isCurrentOutcome(true))}
+                className={`flex-1 rounded-lg border px-4 py-2.5 text-sm font-semibold transition-all shadow-sm ${isCurrentOutcome(true)
+                    ? 'bg-green-600 text-white border-green-700 hover:bg-green-700'
+                    : 'bg-white text-gray-700 border-gray-300 hover:bg-green-50 hover:border-green-400 hover:text-green-700'
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                {isSubmitting ? '...' : isUpdate ? (isCurrentOutcome(true) ? 'Update' : 'Switch to Will Happen') : 'Will Happen'}
+              </button>
+              <button
+                type="button"
+                onClick={() => submitOutcome(false)}
+                disabled={isSubmitting || (isUpdate && isLocked && !isCurrentOutcome(false))}
+                className={`flex-1 rounded-lg border px-4 py-2.5 text-sm font-semibold transition-all shadow-sm ${isCurrentOutcome(false)
+                    ? 'bg-red-500 text-white border-red-600 hover:bg-red-600'
+                    : 'bg-white text-gray-700 border-gray-300 hover:bg-red-50 hover:border-red-400 hover:text-red-700'
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                {isSubmitting ? '...' : isUpdate ? (isCurrentOutcome(false) ? 'Update' : 'Switch to Won\'t Happen') : 'Won\'t Happen'}
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {prediction.options?.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => submitOutcome(option.id)}
+                  disabled={isSubmitting || (isUpdate && isLocked && !isCurrentOutcome(option.id))}
+                  className={`w-full text-left rounded-lg border px-4 py-3 text-sm font-medium transition-all shadow-sm flex items-center justify-between ${isCurrentOutcome(option.id)
+                      ? 'bg-blue-600 text-white border-blue-700 hover:bg-blue-700'
+                      : 'bg-white text-gray-900 border-gray-300 hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700'
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  <span>{option.text}</span>
+                  <span className={`text-xs ${isCurrentOutcome(option.id) ? 'text-blue-100' : 'text-gray-400'}`}>
+                    {isSubmitting ? '...' : isCurrentOutcome(option.id) ? 'Update' : 'Select'}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-    </form>
+
+      {isUpdate && isLocked && (
+        <p className="mt-2 text-xs text-orange-600">
+          Prediction is locked — you can reduce your CU but not increase it or change your side.
+        </p>
+      )}
+      {!isUpdate && isLocked && (
+        <p className="mt-2 text-xs text-blue-600">
+          Prediction is locked for side changes after your first commitment. Choose your side carefully!
+        </p>
+      )}
+      {!isUpdate && !isLocked && Number(cuAmount || 0) > maxCu && (
+        <p className="mt-2 text-xs text-red-600">
+          You only have {maxCu} CU available.
+        </p>
+      )}
+      {isUpdate && !isLocked && Number(cuAmount || 0) > maxCu && (
+        <p className="mt-2 text-xs text-red-600">
+          You only have {maxCu} max CU available (including your previous commitment).
+        </p>
+      )}
+    </div>
   )
 }
+
