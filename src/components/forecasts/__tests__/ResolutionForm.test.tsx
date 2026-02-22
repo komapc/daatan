@@ -11,7 +11,7 @@ describe('ResolutionForm', () => {
   })
 
   it('renders outcome options and submit button', () => {
-    render(<ResolutionForm predictionId="pred-1" />)
+    render(<ResolutionForm predictionId="pred-1" outcomeType="BINARY" options={[]} />)
 
     expect(screen.getByText('Correct')).toBeInTheDocument()
     expect(screen.getByText('Wrong')).toBeInTheDocument()
@@ -24,7 +24,7 @@ describe('ResolutionForm', () => {
   it('calls resolve API on submit with correct outcome', async () => {
     mockFetch.mockResolvedValueOnce({ ok: true })
 
-    render(<ResolutionForm predictionId="pred-1" onResolved={vi.fn()} />)
+    render(<ResolutionForm predictionId="pred-1" outcomeType="BINARY" options={[]} onResolved={vi.fn()} />)
 
     fireEvent.click(screen.getByText('Correct'))
     const submitButton = screen.getAllByRole('button', { name: /Resolve Forecast/i })[0]
@@ -47,7 +47,7 @@ describe('ResolutionForm', () => {
     mockFetch.mockResolvedValueOnce({ ok: true })
     const onResolved = vi.fn()
 
-    render(<ResolutionForm predictionId="pred-1" onResolved={onResolved} />)
+    render(<ResolutionForm predictionId="pred-1" outcomeType="BINARY" options={[]} onResolved={onResolved} />)
 
     const submitButton = screen.getAllByRole('button', { name: /Resolve Forecast/i })[0]
     fireEvent.click(submitButton)
@@ -60,7 +60,7 @@ describe('ResolutionForm', () => {
   it('sends selected outcome when different option chosen', async () => {
     mockFetch.mockResolvedValueOnce({ ok: true })
 
-    render(<ResolutionForm predictionId="pred-1" />)
+    render(<ResolutionForm predictionId="pred-1" outcomeType="BINARY" options={[]} />)
 
     fireEvent.click(screen.getByText('Wrong'))
     const submitButton = screen.getAllByRole('button', { name: /Resolve Forecast/i })[0]
@@ -79,7 +79,7 @@ describe('ResolutionForm', () => {
       json: async () => ({ error: 'Prediction not found' }),
     })
 
-    render(<ResolutionForm predictionId="pred-1" />)
+    render(<ResolutionForm predictionId="pred-1" outcomeType="BINARY" options={[]} />)
 
     const submitButton = screen.getAllByRole('button', { name: /Resolve Forecast/i })[0]
     fireEvent.click(submitButton)
@@ -92,7 +92,7 @@ describe('ResolutionForm', () => {
   it('includes evidence links when provided', async () => {
     mockFetch.mockResolvedValueOnce({ ok: true })
 
-    render(<ResolutionForm predictionId="pred-1" />)
+    render(<ResolutionForm predictionId="pred-1" outcomeType="BINARY" options={[]} />)
 
     const evidenceTextarea = document.getElementById('evidence') as HTMLTextAreaElement
     fireEvent.change(evidenceTextarea, {
