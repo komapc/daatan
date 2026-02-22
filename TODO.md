@@ -30,9 +30,9 @@
 
 - [x] **Bug: Slug uniqueness TOCTOU race** — `POST /api/forecasts` does find-then-create for slugs (not atomic). Two concurrent requests with same `claimText` can produce duplicate slugs → unhandled P2002 error (500). Fix: catch P2002 and retry with incremented suffix.
 
-- [ ] **Code quality: Deprecate or remove `domain` field** — `Prediction.domain` is marked deprecated in schema, LLM prompt, and comments, but is still actively written everywhere. Either formally retire it (migration + remove from schemas) or un-deprecate.
+- [x] **Code quality: Deprecate or remove `domain` field** — `Prediction.domain` is marked deprecated in schema, LLM prompt, and comments, but is still actively written everywhere. Either formally retire it (migration + remove from schemas) or un-deprecate.
 
-- [ ] **Code quality: Remove `any` types in frontend components** — `src/app/admin/CommentsTable.tsx` and other UI components use `any` arrays for state (e.g., `useState<any[]>([])`). Define proper TypeScript interfaces corresponding to the API responses to ensure type safety.
+- [x] **Code quality: Remove `any` types in frontend components** — `src/app/admin/CommentsTable.tsx` and other UI components use `any` arrays for state (e.g., `useState<any[]>([])`). Define proper TypeScript interfaces corresponding to the API responses to ensure type safety.
 
 
 - [ ] **Notifications system** (unified) — Remaining:
@@ -40,7 +40,7 @@
   - [ ] Comment `@mentions`: parse `@username` in comment text, resolve to user, trigger `MENTION` notification
   - **Done:** Telegram channel notifications (v1.4.19), in-app triggers (comments, commitments, resolve), browser push (service worker + Web Push API + VAPID), settings UI, unread badge, notifications page (v1.5.0)
 
-- [ ] **i18n: Wire translations into all components** — `messages/en.json` and `messages/he.json` both exist with ~103 keys and matching structure. However, many components still use hardcoded English strings instead of `useTranslations()`. Need to audit all UI text and replace with translation keys. Priority: navigation, buttons, form labels, error messages.
+- [ ] **i18n: Wire translations into all components** — `messages/en.json` and `messages/he.json` both exist with ~103 keys and matching structure. However, many components still use hardcoded English strings instead of `useTranslations()`. Need to audit all UI text and replace with translation keys. Priority: navigation, buttons, form labels, error messages. *(✅ Nav and Settings wired. Still needs forms and error messages).*
 
 - [ ] **i18n: Auto-translate user content** — automatic translation of user-generated forecasts, comments. Requires: translation API (Google Translate / DeepL), caching translated content, language detection, UI toggle for original vs translated text.
 

@@ -91,9 +91,12 @@
   },
   "settings": {
     "title": "הגדרות",
+    "preferences": "העדפות",
+    "preferencesDescription": "נהל את הגדרות התצוגה והשפה שלך.",
     "language": "שפה",
     "languageDescription": "בחר את שפת התצוגה המועדפת עליך",
     "notifications": "התראות",
+    "notificationsDescription": "בחר אילו התראות תקבל וכיצד.",
     "saved": "ההגדרות נשמרו"
   },
   "profile": {

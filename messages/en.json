@@ -91,9 +91,12 @@
   },
   "settings": {
     "title": "Settings",
+    "preferences": "Preferences",
+    "preferencesDescription": "Manage your display and language settings.",
     "language": "Language",
     "languageDescription": "Choose your preferred display language",
     "notifications": "Notifications",
+    "notificationsDescription": "Choose which notifications you receive and how.",
     "saved": "Settings saved"
   },
   "profile": {
