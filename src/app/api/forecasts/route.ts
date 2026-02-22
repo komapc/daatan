@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import crypto from 'crypto'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { createPredictionSchema, listPredictionsQuerySchema } from '@/lib/validations/prediction'
@@ -270,8 +271,8 @@ export const POST = withAuth(async (request, user) => {
         if (retryCount >= maxRetries) {
           return apiError('Failed to generate a unique URL slug after multiple attempts. Please try again.', 500)
         }
-        // Generate a new slug with a random suffix for the next try
-        uniqueSlug = `${baseSlug}-${Math.random().toString(36).substring(2, 6)}`
+        // Generate a new slug with a secure random suffix for the next try
+        uniqueSlug = `${baseSlug}-${crypto.randomBytes(3).toString('hex')}`
         continue
       }
 

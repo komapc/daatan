@@ -12,13 +12,9 @@
 
 - [ ] **Commitments: Elaborate commitment/join forecast system** — define how users commit to forecasts, change commitments, what happens on resolution. Open design questions: can users update commitment after placing? Time-lock before resolution? CU refund policy on cancellation? How do "Other" option commitments resolve in multiple-choice?
 
-- [ ] **Security: Review `allowDangerousEmailAccountLinking`** — `src/lib/auth.ts:24` has `allowDangerousEmailAccountLinking: true` on Google OAuth. Attacker with a Google account matching a victim's email can hijack their daatan account. Disable unless there's a specific product requirement.
-
 - [ ] **Code quality: URL hash inconsistency across 3 locations** — `news-anchors/route.ts` normalizes URL (lowercase, strip protocol/trailing slash) before hashing, but `forecasts/route.ts` and `expressPrediction.ts` hash the raw URL. Same URL produces different hashes → deduplication breaks. Extract a shared `hashUrl()` utility.
 
 - [ ] **Code quality: Admin routes use `where: any`** — `src/app/api/admin/forecasts/route.ts`, `users/route.ts`, `comments/route.ts` all use `where: any` instead of typed `Prisma.XxxWhereInput`. Typos in filter keys fail silently at runtime.
-
-- [ ] **Code quality: Uncapped pagination in admin/notification routes** — `parseInt(searchParams.get('limit'))` with no cap. `limit=99999` loads entire table. Add Zod validation or `Math.min`/`Math.max` clamping. Affects: admin forecasts, users, comments, notifications routes.
 
 - [ ] **Forecasts: "Updated Context" feature** — "Analyze Context" button on forecast detail page. Re-runs Serper web search for latest articles, updates the prediction's context field. Claim text never changes, only context evolves. Requires: new API route, rate limit on re-analysis (once per day?), show "context last updated" timestamp, diff view of old vs new context.
 
@@ -32,9 +28,10 @@
 
 - [ ] **Bug: Slug uniqueness TOCTOU race** — `POST /api/forecasts` does find-then-create for slugs (not atomic). Two concurrent requests with same `claimText` can produce duplicate slugs → unhandled P2002 error (500). Fix: catch P2002 and retry with incremented suffix.
 
-- [ ] **Code quality: Improve `withAuth` error logging** — `src/lib/api-middleware.ts:65-67` catches errors but logs no request context (URL, user ID). Add request path and user ID to the log for production debugging.
-
 - [ ] **Code quality: Deprecate or remove `domain` field** — `Prediction.domain` is marked deprecated in schema, LLM prompt, and comments, but is still actively written everywhere. Either formally retire it (migration + remove from schemas) or un-deprecate.
+
+- [ ] **Code quality: Remove `any` types in frontend components** — `src/app/admin/CommentsTable.tsx` and other UI components use `any` arrays for state (e.g., `useState<any[]>([])`). Define proper TypeScript interfaces corresponding to the API responses to ensure type safety.
+
 
 - [ ] **Notifications system** (unified) — Remaining:
   - [ ] Email notifications (pick provider: SES, Resend, or Postmark)
