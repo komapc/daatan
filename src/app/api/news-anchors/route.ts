@@ -7,18 +7,13 @@ import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-// Generate URL hash for deduplication
-const hashUrl = (url: string): string => {
-  // Normalize URL before hashing
-  const normalized = url.toLowerCase().replace(/\/$/, '').replace(/^https?:\/\//, '')
-  return createHash('sha256').update(normalized).digest('hex')
-}
+import { hashUrl } from '@/lib/utils/hash'
 
 // GET /api/news-anchors - Search/list news anchors (public)
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    
+
     const url = searchParams.get('url')
     const domain = searchParams.get('domain')
     const search = searchParams.get('search')

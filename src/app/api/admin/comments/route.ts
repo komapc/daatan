@@ -1,14 +1,16 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-middleware'
 import { prisma } from '@/lib/prisma'
+import { type Prisma } from '@prisma/client'
 
 export const GET = withAuth(async (req) => {
   const { searchParams } = new URL(req.url)
   const page = parseInt(searchParams.get('page') || '1')
-  const limit = parseInt(searchParams.get('limit') || '20')
+  const rawLimit = parseInt(searchParams.get('limit') || '20')
+  const limit = Math.min(100, Math.max(1, rawLimit))
   const search = searchParams.get('search') || ''
-  
-  const where: any = {}
+
+  const where: Prisma.CommentWhereInput = {}
   if (search) {
     where.OR = [
       { text: { contains: search, mode: 'insensitive' } },

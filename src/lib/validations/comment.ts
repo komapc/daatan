@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 export const createCommentSchema = z.object({
   text: z.string().min(1, 'Comment cannot be empty').max(2000, 'Comment too long'),
-  predictionId: z.string().min(1, 'predictionId is required'),
+  predictionId: z.string().cuid('Invalid prediction ID'),
   parentId: z.string().optional(),
 })
 

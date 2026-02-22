@@ -57,6 +57,7 @@ async function fetchFeed(url: string): Promise<RssItem[]> {
           publishedAt: item.pubDate ? new Date(item.pubDate) : new Date(),
           snippet: item.contentSnippet?.slice(0, 500),
         }))
+        .slice(0, 30)
       log.info({ url: targetUrl, itemCount: items.length }, 'Fetched feed successfully')
       return items
     } catch (rssErr) {

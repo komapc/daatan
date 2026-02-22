@@ -6,6 +6,7 @@ import { apiError, handleRouteError } from '@/lib/api-error'
 import { withAuth } from '@/lib/api-middleware'
 import { prisma } from '@/lib/prisma'
 import { transitionExpiredPredictions } from '@/lib/services/prediction-lifecycle'
+import { hashUrl } from '@/lib/utils/hash'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,7 +17,7 @@ export async function GET(request: NextRequest) {
     await transitionExpiredPredictions()
 
     const { searchParams } = new URL(request.url)
-    
+
     const query = listPredictionsQuerySchema.parse({
       status: searchParams.get('status') || undefined,
       authorId: searchParams.get('authorId') || undefined,
@@ -30,14 +31,14 @@ export async function GET(request: NextRequest) {
     const closingSoon = searchParams.get('closingSoon') === 'true'
 
     const where: Record<string, unknown> = {}
-    
+
     // Handle resolved filter
     if (resolvedOnly) {
       where.status = { in: ['RESOLVED_CORRECT', 'RESOLVED_WRONG', 'VOID', 'UNRESOLVABLE'] }
     } else if (query.status) {
       where.status = query.status
     }
-    
+
     if (query.authorId) where.authorId = query.authorId
     if (query.domain) where.domain = query.domain
 
@@ -52,7 +53,7 @@ export async function GET(request: NextRequest) {
         }
       }
     }
-    
+
     // Don't show drafts unless filtering by authorId
     if (!query.authorId && !query.status && !resolvedOnly) {
       where.status = { not: 'DRAFT' }
@@ -107,8 +108,8 @@ export async function GET(request: NextRequest) {
             },
           },
         },
-        orderBy: closingSoon 
-          ? { resolveByDatetime: 'asc' } 
+        orderBy: closingSoon
+          ? { resolveByDatetime: 'asc' }
           : { createdAt: 'desc' },
         skip: (query.page - 1) * query.limit,
         take: query.limit,
@@ -168,9 +169,8 @@ export const POST = withAuth(async (request, user) => {
   // Auto-create news anchor from URL if no newsAnchorId provided
   let newsAnchorId = data.newsAnchorId
   if (!newsAnchorId && data.newsAnchorUrl) {
-    const crypto = await import('crypto')
-    const urlHash = crypto.createHash('sha256').update(data.newsAnchorUrl).digest('hex')
-    
+    const urlHash = hashUrl(data.newsAnchorUrl)
+
     // Upsert: find existing or create new
     const anchor = await prisma.newsAnchor.upsert({
       where: { urlHash },
@@ -194,7 +194,7 @@ export const POST = withAuth(async (request, user) => {
   // Generate slug from claim text
   const { slugify, generateUniqueSlug } = await import('@/lib/utils/slugify')
   const baseSlug = slugify(data.claimText)
-  
+
   // Check for existing slugs
   const existingPredictions = await prisma.prediction.findMany({
     where: {
@@ -204,11 +204,11 @@ export const POST = withAuth(async (request, user) => {
     },
     select: { slug: true },
   })
-  
+
   const existingSlugs = existingPredictions
     .map(p => p.slug)
     .filter((s): s is string => s !== null)
-  
+
   const uniqueSlug = generateUniqueSlug(baseSlug, existingSlugs)
 
   // Create prediction
@@ -228,19 +228,19 @@ export const POST = withAuth(async (request, user) => {
       // Connect or create tags
       tags: data.tags?.length
         ? {
-            connectOrCreate: await Promise.all(
-              data.tags.map(async (tagName) => {
-                const tagSlug = slugify(tagName)
-                return {
-                  where: { slug: tagSlug },
-                  create: {
-                    name: tagName,
-                    slug: tagSlug,
-                  },
-                }
-              })
-            ),
-          }
+          connectOrCreate: await Promise.all(
+            data.tags.map(async (tagName) => {
+              const tagSlug = slugify(tagName)
+              return {
+                where: { slug: tagSlug },
+                create: {
+                  name: tagName,
+                  slug: tagSlug,
+                },
+              }
+            })
+          ),
+        }
         : undefined,
     },
     include: {

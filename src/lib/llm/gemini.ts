@@ -39,14 +39,14 @@ export const predictionSchema: Schema = {
 
 export async function extractPrediction(text: string) {
   const prompt = getExtractPredictionPrompt(text)
-  
+
   try {
     const result = await llmService.generateContent({
       prompt,
       schema: predictionSchema,
       temperature: 0.1,
     })
-    
+
     try {
       return JSON.parse(result.text)
     } catch {
