@@ -26,23 +26,25 @@ import {
   BarChart3,
 } from 'lucide-react'
 
+import { useTranslations } from 'next-intl'
+
 type NavItem = {
   href: string
-  label: string
+  labelKey: string
   icon: React.ComponentType<{ className?: string }>
 }
 
 const navItems: NavItem[] = [
-  { href: '/', label: 'Feed', icon: Home },
-  { href: '/create', label: 'Create', icon: PlusCircle },
-  { href: '/notifications', label: 'Notifications', icon: Bell },
-  { href: '/commitments', label: 'My Commitments', icon: BarChart3 },
-  { href: '/activity', label: 'Activity', icon: Activity },
-  { href: '/leaderboard', label: 'Leaderboard', icon: Trophy },
-  { href: '/retroanalysis', label: 'Retroanalysis', icon: History },
-  { href: '/profile', label: 'Profile', icon: User },
-  { href: '/settings', label: 'Settings', icon: Settings },
-  { href: '/about', label: 'About', icon: Info },
+  { href: '/', labelKey: 'feed', icon: Home },
+  { href: '/create', labelKey: 'create', icon: PlusCircle },
+  { href: '/notifications', labelKey: 'notifications', icon: Bell },
+  { href: '/commitments', labelKey: 'commitments', icon: BarChart3 },
+  { href: '/activity', labelKey: 'activity', icon: Activity },
+  { href: '/leaderboard', labelKey: 'leaderboard', icon: Trophy },
+  { href: '/retroanalysis', labelKey: 'retroanalysis', icon: History },
+  { href: '/profile', labelKey: 'profile', icon: User },
+  { href: '/settings', labelKey: 'settings', icon: Settings },
+  { href: '/about', labelKey: 'about', icon: Info },
 ]
 
 const Sidebar = () => {
@@ -85,6 +87,9 @@ const Sidebar = () => {
     handleCloseMenu()
   }
 
+  const t = useTranslations('nav')
+  const c = useTranslations('common')
+
   const { count: unreadCount } = useUnreadCount()
 
   // Use "loading" state for SSR and pre-mount to ensure server/client HTML matches
@@ -105,14 +110,19 @@ const Sidebar = () => {
       return !authRequiredRoutes.includes(item.href)
     })
 
+  const navLinks = filteredNavItems.map(item => ({
+    ...item,
+    label: t(item.labelKey)
+  }))
+
   // Add admin link for admin/moderator users
   if (hasMounted && status === 'authenticated' && (session?.user?.role === 'ADMIN' || session?.user?.role === 'RESOLVER')) {
-    filteredNavItems.push({ href: '/admin', label: 'Admin', icon: Shield })
+    navLinks.push({ href: '/admin', labelKey: 'admin', label: t('admin'), icon: Shield })
   }
 
   // Add Sign In button to nav if unauthenticated (only after mount)
   if (hasMounted && status === 'unauthenticated') {
-    filteredNavItems.push({ href: '#', label: 'Sign In', icon: LogIn })
+    navLinks.push({ href: '#', labelKey: 'signIn', label: c('signIn'), icon: LogIn })
   }
 
   return (
@@ -189,7 +199,7 @@ const Sidebar = () => {
         {/* Navigation */}
         <nav className="flex-1 px-4 py-6 overflow-y-auto">
           <ul className="space-y-1">
-            {filteredNavItems.map((item) => {
+            {navLinks.map((item) => {
               const isActive = pathname === item.href
               const Icon = item.icon
 
@@ -197,7 +207,7 @@ const Sidebar = () => {
                 <li key={item.href}>
                   <Link
                     href={item.href}
-                    onClick={item.label === 'Sign In' ? handleSignIn : handleCloseMenu}
+                    onClick={item.labelKey === 'signIn' ? handleSignIn : handleCloseMenu}
                     className={`
                       flex items-center gap-3 px-4 py-3 rounded-lg transition-colors
                       ${isActive
@@ -266,7 +276,7 @@ const Sidebar = () => {
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors"
               >
                 <LogOut className="w-5 h-5" />
-                <span className="font-medium">Sign Out</span>
+                <span className="font-medium">{c('signOut')}</span>
               </button>
             </div>
           ) : (
