@@ -233,18 +233,16 @@ export const POST = withAuth(async (request, user) => {
           // Connect or create tags
           tags: data.tags?.length
             ? {
-              connectOrCreate: await Promise.all(
-                data.tags.map(async (tagName) => {
-                  const tagSlug = slugify(tagName)
-                  return {
-                    where: { slug: tagSlug },
-                    create: {
-                      name: tagName,
-                      slug: tagSlug,
-                    },
-                  }
-                })
-              ),
+              connectOrCreate: data.tags.map((tagName) => {
+                const tagSlug = slugify(tagName)
+                return {
+                  where: { slug: tagSlug },
+                  create: {
+                    name: tagName,
+                    slug: tagSlug,
+                  },
+                }
+              }),
             }
             : undefined,
         },

@@ -1,6 +1,6 @@
 {
   "name": "daatan",
-  "version": "1.6.17",
+  "version": "1.6.18",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -37,6 +37,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.71.1",
+    "react-hot-toast": "^2.6.0",
     "rss-parser": "^3.13.0",
     "sharp": "^0.34.5",
     "web-push": "^3.6.7",
