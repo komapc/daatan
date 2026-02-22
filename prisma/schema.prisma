@@ -214,13 +214,12 @@ model Prediction {
   source      String?          @db.VarChar(50)
 
   // Status & timestamps
-  status      PredictionStatus @default(DRAFT)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  publishedAt DateTime? // When status changed to ACTIVE
-  lockedAt    DateTime? // When first commitment was made
-
-  // Exit penalty pool (burned CU from early withdrawals, distributed to winners)
+  status           PredictionStatus @default(DRAFT)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  publishedAt      DateTime? // When status changed to ACTIVE
+  lockedAt         DateTime? // When first commitment was made
+  contextUpdatedAt DateTime? // When the detailsText was last updated via analyze context
   winnersPoolBonus Int @default(0) @map("winners_pool_bonus")
 
   // Resolution data (filled when resolved)
