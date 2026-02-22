@@ -253,14 +253,14 @@ async function processTopic(
     })
 
     const existingTitles = recentForecasts.map(f => f.claimText).join('\n- ')
-    const dedupPrompt = `You are checking if a news topic is already covered by an existing forecast.
+    const dedupPrompt = `You are a fact-checking assistant reviewing whether a news topic already has an active forecast.
 
-News topic: "${topicTitle}"
+Incoming topic: "${topicTitle}"
 
-Existing forecasts:
+Existing active forecasts:
 - ${existingTitles}
 
-Does this topic already have a forecast? Reply with only "yes" or "no".`
+Is this topic already substantially covered by one of the forecasts above? Reply with only "yes" or "no".`
 
     const dedupResult = await llm.generateContent({ prompt: dedupPrompt, temperature: 0 })
     const alreadyExists = dedupResult.text.trim().toLowerCase().startsWith('yes')
@@ -288,21 +288,21 @@ News topic: "${topicTitle}"
 Source URLs: ${sourceUrls.slice(0, 3).join(', ')}
 Today's date: ${now.toISOString().split('T')[0]}
 
-Generate a forecast as JSON with these fields:
+Create a concise, verifiable forecast as JSON with these exact fields:
 {
-  "claimText": "A testable prediction statement starting with 🤖, max 200 chars",
-  "detailsText": "Background context and resolution criteria, 2-4 sentences",
+  "claimText": "A testable prediction statement starting with 🤖 (max 200 chars)",
+  "detailsText": "2–4 sentences of background context and resolution criteria",
   "outcomeType": "BINARY",
-  "resolveByDatetime": "ISO date string, 30-180 days from now",
-  "resolutionRules": "How to determine if the forecast resolves correctly, 1-2 sentences",
+  "resolveByDatetime": "ISO 8601 date, e.g. 2026-09-15T00:00:00Z (30–180 days from today)",
+  "resolutionRules": "1–2 sentences describing exactly how to decide the outcome",
   "tags": ["tag1", "tag2"]
 }
 
-Rules:
-- claimText MUST start with "🤖 "
-- Be specific and verifiable
-- Use English
-- resolveByDatetime must be in the future${tagConstraint}`
+Requirements:
+- claimText MUST begin with "🤖 "
+- Be specific enough that a third party can verify the outcome objectively
+- Use English throughout
+- resolveByDatetime must be strictly in the future${tagConstraint}`
 
     const response = await llm.generateContent({ prompt: forecastPrompt, temperature: 0.7, schema: forecastBatchSchema })
 
@@ -472,11 +472,13 @@ async function runVoting(
 ${bot.votePrompt}
 
 Forecast: "${forecast.claimText}"
-Details: "${forecast.detailsText ?? 'None'}"
+Details: "${forecast.detailsText ?? 'No additional details provided'}"
 ${biasHint}
-Should this bot commit to this forecast? If yes, what is the binary choice (true = yes it will happen, false = no it won't)?
+Decide whether to commit CU to this forecast. If committing, also decide your position.
 
-Respond with JSON: { "shouldVote": true|false, "binaryChoice": true|false, "reason": "brief reason" }`
+Respond with JSON: { "shouldVote": true|false, "binaryChoice": true|false, "reason": "one sentence" }
+- shouldVote: true if you want to participate, false to skip
+- binaryChoice: true = "this will happen", false = "this won't happen"`
 
       const response = await llm.generateContent({ prompt: votePrompt, temperature: 0.5, schema: voteDecisionSchema })
 
