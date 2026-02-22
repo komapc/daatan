@@ -62,7 +62,7 @@
 
 - [ ] **Express Forecast: Advanced types** — order predictions (rank outcomes), date-based (when will X happen), conditional (if X then Y). Each requires LLM prompt engineering + UI + resolution logic. Low priority until core types are solid.
 
-- [ ] **Assisted Resolving** — implement LLM-assisted or automated resolving mechanism to help admins quickly and accurately determine the outcome of mature forecasts. This might involve an admin UI button that queries Serper + LLM to propose a resolution state based on current news.
+- [x] **Assisted Resolving** — implement LLM-assisted or automated resolving mechanism to help admins quickly and accurately determine the outcome of mature forecasts. This might involve an admin UI button that queries Serper + LLM to propose a resolution state based on current news.
 
 - [ ] **Security: Env var validation at startup** — `GEMINI_API_KEY` only logs a warning if missing at init (`src/lib/llm/index.ts` line 10), `SERPER_API_KEY` only checked at request time (`src/lib/utils/webSearch.ts`). Add a startup validation step (e.g., in `instrumentation.ts` or a custom server init) that fails fast if required env vars are missing.
 
