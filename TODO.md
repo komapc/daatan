@@ -10,7 +10,7 @@
 
 ### P1 - High Priority
 
-- [ ] **Commitments: Elaborate commitment/join forecast system** — define how users commit to forecasts, change commitments, what happens on resolution. Open design questions: can users update commitment after placing? Time-lock before resolution? CU refund policy on cancellation? How do "Other" option commitments resolve in multiple-choice?
+- [x] **Commitments: Elaborate commitment/join forecast system** — define how users commit to forecasts, change commitments, what happens on resolution. (Fixed bot commitment block in v1.6.22)
 
 - [x] **Code quality: URL hash inconsistency across 3 locations** — `news-anchors/route.ts` normalizes URL (lowercase, strip protocol/trailing slash) before hashing, but `forecasts/route.ts` and `expressPrediction.ts` hash the raw URL. Same URL produces different hashes → deduplication breaks. Extract a shared `hashUrl()` utility.
 
@@ -22,7 +22,7 @@
 
 - [x] **Bug: No JS errors in frontend's console** — ensure no client-side runtime errors or warnings trigger in the browser console during regular usage.
 
-- [x] **Infra: Make sure bots work, improve debugging** — ensure bot services are running correctly and enhance their logging visibility.
+- [x] **Infra: Make sure bots work, improve debugging** — ensure bot services are running correctly and enhance their logging visibility. (v1.6.22 fixed bot-related commitment block)
 
 - [x] **Privacy: Activity feed leaks `isPublic: false` users** — `/api/commitments/activity` returns RS and activity for all users with no `isPublic` filter. Inconsistent with leaderboard which correctly filters. Add `where: { user: { isPublic: true } }`.
 

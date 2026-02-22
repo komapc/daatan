@@ -13,11 +13,7 @@ type FilterStatus = 'ACTIVE' | 'PENDING' | 'RESOLVED' | 'CLOSING_SOON' | 'ALL'
 
 const VALID_STATUSES: FilterStatus[] = ['ACTIVE', 'PENDING', 'RESOLVED', 'CLOSING_SOON', 'ALL']
 
-const STANDARD_TAGS = [
-  "Politics", "Geopolitics", "Economy", "Technology", "AI", "Crypto", "Sports",
-  "Entertainment", "Science", "Climate", "Health", "Business", "Conflict",
-  "Elections", "US Politics", "Europe", "Middle East", "Asia", "Energy", "Space"
-]
+import { STANDARD_TAGS } from '@/lib/constants'
 
 export default function FeedClient() {
   const searchParams = useSearchParams()
@@ -247,11 +243,10 @@ export default function FeedClient() {
                   key={tag}
                   onClick={() => handleToggleTag(tag)}
                   aria-pressed={isSelected}
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-150 ${
-                    isSelected
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-150 ${isSelected
                       ? 'bg-blue-600 text-white shadow-sm ring-1 ring-blue-600'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800'
-                  }`}
+                    }`}
                 >
                   {tag}
                 </button>

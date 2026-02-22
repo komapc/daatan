@@ -11,11 +11,7 @@ interface TagSelectorProps {
     placeholder?: string
 }
 
-const STANDARD_TAGS = [
-    "Politics", "Geopolitics", "Economy", "Technology", "AI", "Crypto", "Sports",
-    "Entertainment", "Science", "Climate", "Health", "Business", "Conflict",
-    "Elections", "US Politics", "Europe", "Middle East", "Asia", "Energy", "Space"
-]
+import { STANDARD_TAGS } from '@/lib/constants'
 
 export function TagSelector({
     selectedTags,

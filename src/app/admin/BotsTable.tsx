@@ -1,6 +1,8 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { Loader2, Play, FlaskConical, Power, ChevronDown, ChevronUp, Plus, Pencil, X, Check } from 'lucide-react'
+import { STANDARD_TAGS } from '@/lib/constants'
+import { slugify } from '@/lib/utils/slugify'
 
 interface RssItem {
   title: string
@@ -603,7 +605,15 @@ function EditBotModal({ bot, allTags, onSave, onClose }: {
     })
   }
 
-  const filteredTags = allTags.filter(t =>
+  // Build suggestions merging DB tags and STANDARD_TAGS
+  const suggestions = [
+    ...allTags,
+    ...STANDARD_TAGS
+      .filter(name => !allTags.some(t => t.name.toLowerCase() === name.toLowerCase()))
+      .map(name => ({ id: `std-${name}`, name, slug: slugify(name) }))
+  ]
+
+  const filteredTags = suggestions.filter(t =>
     t.name.toLowerCase().includes(tagInput.toLowerCase()) ||
     t.slug.toLowerCase().includes(tagInput.toLowerCase())
   ).filter(t => !form.tagFilter.includes(t.slug)).slice(0, 5)

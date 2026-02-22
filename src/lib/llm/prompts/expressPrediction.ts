@@ -16,11 +16,7 @@ export interface ExpressPredictionPromptParams {
 /**
  * Builds the full prompt for the Express prediction LLM call.
  */
-const STANDARD_TAGS = [
-  "Politics", "Geopolitics", "Economy", "Technology", "AI", "Crypto", "Sports",
-  "Entertainment", "Science", "Climate", "Health", "Business", "Conflict",
-  "Elections", "US Politics", "Europe", "Middle East", "Asia", "Energy", "Space"
-]
+import { STANDARD_TAGS } from '@/lib/constants'
 
 export function getExpressPredictionPrompt(params: ExpressPredictionPromptParams): string {
   const { userInput, articlesText, endOfYear, endOfYearHuman, currentYear, currentDate } = params

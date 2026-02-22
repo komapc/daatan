@@ -129,9 +129,14 @@ export default function CommitmentForm({
             Prediction is locked — you can reduce your CU but not increase it or change your side.
           </p>
         )}
+        {!isUpdate && isLocked && (
+          <p className="mt-1 text-xs text-blue-600">
+            Prediction is locked for side changes after your first commitment. Choose your side carefully!
+          </p>
+        )}
       </div>
 
-      {/* Outcome Selection */}
+      {/* Outcome Selection - Enabled even if locked, unless updating an existing commitment */}
       <div>
         <label className="block text-sm font-medium text-gray-700">Select Outcome</label>
         <div className="mt-2 space-y-2">
@@ -140,24 +145,24 @@ export default function CommitmentForm({
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => !isLocked && setSelectedOutcome(true)}
+                onClick={() => setSelectedOutcome(true)}
                 disabled={isUpdate && isLocked}
                 title={isUpdate && isLocked ? 'Cannot change side after prediction is locked' : undefined}
                 className={`flex-1 rounded-md border px-4 py-2 text-sm font-medium transition-colors ${selectedOutcome === true
-                    ? 'border-green-500 bg-green-50 text-green-700'
-                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                  ? 'border-green-500 bg-green-50 text-green-700'
+                  : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
                   } ${isUpdate && isLocked ? 'opacity-60 cursor-not-allowed' : ''}`}
               >
                 Will Happen
               </button>
               <button
                 type="button"
-                onClick={() => !isLocked && setSelectedOutcome(false)}
+                onClick={() => setSelectedOutcome(false)}
                 disabled={isUpdate && isLocked}
                 title={isUpdate && isLocked ? 'Cannot change side after prediction is locked' : undefined}
                 className={`flex-1 rounded-md border px-4 py-2 text-sm font-medium transition-colors ${selectedOutcome === false
-                    ? 'border-red-500 bg-red-50 text-red-700'
-                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                  ? 'border-red-500 bg-red-50 text-red-700'
+                  : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
                   } ${isUpdate && isLocked ? 'opacity-60 cursor-not-allowed' : ''}`}
               >
                 Won&apos;t Happen
@@ -170,8 +175,8 @@ export default function CommitmentForm({
                 <label
                   key={option.id}
                   className={`flex items-center rounded-md border px-4 py-3 transition-colors ${selectedOutcome === option.id
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-300 bg-white hover:bg-gray-50'
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-300 bg-white hover:bg-gray-50'
                     } ${isUpdate && isLocked ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
                 >
                   <input
@@ -179,7 +184,7 @@ export default function CommitmentForm({
                     name="outcome"
                     value={option.id}
                     checked={selectedOutcome === option.id}
-                    onChange={(e) => !isLocked && setSelectedOutcome(e.target.value)}
+                    onChange={(e) => setSelectedOutcome(e.target.value)}
                     disabled={isUpdate && isLocked}
                     className="h-4 w-4 text-blue-600"
                   />

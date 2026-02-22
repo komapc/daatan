@@ -45,6 +45,7 @@ type Prediction = {
   resolutionOutcome?: string
   resolutionNote?: string
   evidenceLinks?: string[]
+  resolutionRules?: string | null
   author: {
     id: string
     name: string
@@ -268,7 +269,16 @@ export default function PredictionDetailPage() {
           {prediction.claimText}
         </h1>
         {prediction.detailsText && (
-          <p className="text-gray-600">{prediction.detailsText}</p>
+          <p className="text-gray-600 mb-4">{prediction.detailsText}</p>
+        )}
+        {prediction.resolutionRules && (
+          <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-lg text-sm text-gray-700">
+            <div className="font-semibold text-blue-900 mb-1 flex items-center gap-1.5">
+              <AlertCircle className="w-4 h-4" />
+              Resolution Rules
+            </div>
+            {prediction.resolutionRules}
+          </div>
         )}
       </div>
 
