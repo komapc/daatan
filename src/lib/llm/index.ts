@@ -60,9 +60,8 @@ export function createBotLLMService(modelName: string): ResilientLLMService {
     let directModelName = modelName.split(':').shift()?.split('/').pop() || 'gemini-1.5-flash'
 
     // Ensure we handle known renames or experimental suffixes if needed
-    if (directModelName === 'gemini-2.0-flash-exp') {
-      // Sometimes just 'gemini-2.0-flash' is more stable
-      // But let's try the requested one first as we have resilience
+    if (directModelName === 'gemini-2.0-flash-exp' || directModelName === 'gemini-1.5-flash' || directModelName === 'gemini-1.5-pro') {
+      directModelName = 'gemini-2.5-flash'
     }
 
     log.info({ modelName, directModelName }, 'Trying direct Gemini provider for bot')
@@ -76,8 +75,8 @@ export function createBotLLMService(modelName: string): ResilientLLMService {
 
   // Final fallback: direct stable Gemini if we have a key and requested model was Gemini
   if (modelName.toLowerCase().includes('gemini') && geminiApiKey) {
-    log.info('Adding stable gemini-1.5-flash as final fallback')
-    providers.push(new GeminiProvider({ apiKey: geminiApiKey, modelName: 'gemini-1.5-flash' }))
+    log.info('Adding stable gemini-2.5-flash as final fallback')
+    providers.push(new GeminiProvider({ apiKey: geminiApiKey, modelName: 'gemini-2.5-flash' }))
   }
 
   if (providers.length === 0) {
