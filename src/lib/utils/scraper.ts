@@ -15,18 +15,46 @@ function isPrivateIP(ip: string): boolean {
   // localhost / loopback
   if (ip === '::1' || ip.startsWith('127.')) return true
 
-  // private network ranges (RFC 1918)
-  if (ip.startsWith('10.')) return true
-  if (ip.startsWith('192.168.')) return true
+  // 0.0.0.0/8 (Current network)
+  if (ip.startsWith('0.')) return true
 
-  // 172.16.0.0 - 172.31.255.255
+  // private network ranges (RFC 1918)
+  // 10.0.0.0/8
+  if (ip.startsWith('10.')) return true
+  // 192.168.0.0/16
+  if (ip.startsWith('192.168.')) return true
+  // 172.16.0.0/12
   if (ip.startsWith('172.')) {
     const secondOctet = parseInt(ip.split('.')[1], 10)
     if (secondOctet >= 16 && secondOctet <= 31) return true
   }
 
-  // link local (AWS IMDS, etc)
+  // Carrier-grade NAT (100.64.0.0/10)
+  if (ip.startsWith('100.')) {
+    const secondOctet = parseInt(ip.split('.')[1], 10)
+    if (secondOctet >= 64 && secondOctet <= 127) return true
+  }
+
+  // IETF Protocol Assignments (192.0.0.0/24)
+  if (ip.startsWith('192.0.0.')) return true
+
+  // Test-Net / Documentation (RFC 5737)
+  if (ip.startsWith('192.0.2.')) return true // TEST-NET-1
+  if (ip.startsWith('198.51.100.')) return true // TEST-NET-2
+  if (ip.startsWith('203.0.113.')) return true // TEST-NET-3
+
+  // Benchmarking (198.18.0.0/15)
+  if (ip.startsWith('198.18.') || ip.startsWith('198.19.')) return true
+
+  // link local (AWS IMDS, etc) (169.254.0.0/16)
   if (ip.startsWith('169.254.')) return true
+
+  // Multicast (224.0.0.0/4)
+  const firstOctet = parseInt(ip.split('.')[0], 10)
+  if (firstOctet >= 224 && firstOctet <= 239) return true
+
+  // Reserved (240.0.0.0/4)
+  if (firstOctet >= 240) return true
 
   return false
 }

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createNewsAnchorSchema } from '@/lib/validations/prediction'
-import { createHash } from 'crypto'
 import { apiError, handleRouteError } from '@/lib/api-error'
 import { withAuth } from '@/lib/api-middleware'
 import { prisma } from '@/lib/prisma'

@@ -10,10 +10,16 @@ global.fetch = mockFetch
 vi.mock('dns', () => ({
     default: {
         resolve4: (hostname: string, callback: (err: NodeJS.ErrnoException | null, addresses: string[]) => void) => {
-            if (hostname === 'private.example.com') {
-                callback(null, ['192.168.1.100'])
-            } else if (hostname === 'public.example.com') {
-                callback(null, ['8.8.8.8'])
+            const mockIps: Record<string, string[]> = {
+                'private.example.com': ['192.168.1.100'],
+                'public.example.com': ['8.8.8.8'],
+                'cgnat.example.com': ['100.64.1.1'],
+                'multicast.example.com': ['224.0.0.1'],
+                'benchmark.example.com': ['198.18.0.1'],
+                'doc1.example.com': ['192.0.2.1'],
+            }
+            if (hostname in mockIps) {
+                callback(null, mockIps[hostname])
             } else {
                 callback(null, ['9.9.9.9'])
             }
@@ -55,8 +61,33 @@ describe('fetchUrlContent SSRF Protection', () => {
         expect(mockFetch).not.toHaveBeenCalled()
     })
 
-    it('rejects domains that resolve to private IPs', async () => {
+    it('rejects CG-NAT IP directamente', async () => {
+        await expect(fetchUrlContent('https://100.64.0.1/test')).rejects.toThrow('Fetching internal or private IPs is forbidden')
+        expect(mockFetch).not.toHaveBeenCalled()
+    })
+
+    it('rejects domains that resolve to RFC 1918 private IPs', async () => {
         await expect(fetchUrlContent('https://private.example.com/api')).rejects.toThrow('Resolved domain points to a private/internal IP')
+        expect(mockFetch).not.toHaveBeenCalled()
+    })
+
+    it('rejects domains that resolve to CG-NAT IPs', async () => {
+        await expect(fetchUrlContent('https://cgnat.example.com/api')).rejects.toThrow('Resolved domain points to a private/internal IP')
+        expect(mockFetch).not.toHaveBeenCalled()
+    })
+
+    it('rejects domains that resolve to Multicast IPs', async () => {
+        await expect(fetchUrlContent('https://multicast.example.com/api')).rejects.toThrow('Resolved domain points to a private/internal IP')
+        expect(mockFetch).not.toHaveBeenCalled()
+    })
+
+    it('rejects domains that resolve to Benchmarking IPs', async () => {
+        await expect(fetchUrlContent('https://benchmark.example.com/api')).rejects.toThrow('Resolved domain points to a private/internal IP')
+        expect(mockFetch).not.toHaveBeenCalled()
+    })
+
+    it('rejects domains that resolve to Documentation IPs', async () => {
+        await expect(fetchUrlContent('https://doc1.example.com/api')).rejects.toThrow('Resolved domain points to a private/internal IP')
         expect(mockFetch).not.toHaveBeenCalled()
     })
 
