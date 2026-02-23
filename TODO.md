@@ -4,11 +4,13 @@
 
 ### P0 - Critical
 
+- [ ] **Merge bot PRs and apply migration** — PR #325 (approver role) and PR #326 (approval queue UI + autoApprove + GA fix) need merge. Then run `npx prisma migrate deploy` on staging/production.
+
 ### P1 - High Priority
 
-- [ ] **Admin: Special tab "needs review" that appear only for admins**
+- [ ] **Implement "Scoring rule"** (e.g. Brier score)
 
-- [ ] **Admin: "bots" tab on admin panel do not appear on mobile**
+- [ ] **Bot: Prompt management** — move bot prompts from DB to Git-managed files (`src/agents/prompts/*.md`) for version history and PR reviews. See alternatives in [implementation_plan.md](file:///home/mark/.gemini/antigravity/brain/2a4b35f0-a61c-4ce7-b28c-937279c989b2/implementation_plan.md).
 
 ### P2 - Medium Priority
 
