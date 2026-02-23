@@ -20,11 +20,11 @@
 
 - [ ] **i18n: Auto-translate user content** — automatic translation of user-generated forecasts, comments. Requires: translation API (Google Translate / DeepL), caching translated content, language detection, UI toggle for original vs translated text.
 
-- [ ] **CI/CD: Add production approval gate** — `deploy-production` job in `deploy.yml` has no `environment:` protection rule. Add `environment: production` with required reviewers in GitHub repo settings. Neither staging nor production jobs use GitHub Environments currently.
+- [x] **CI/CD: Add production approval gate** — `deploy-production` job in `deploy.yml` has no `environment:` protection rule. Add `environment: production` with required reviewers in GitHub repo settings. Neither staging nor production jobs use GitHub Environments currently.
 
 - [ ] **Infra: Separate Terraform state per environment** — currently both prod and staging share the same backend key (`prod/terraform.tfstate` in `main.tf`). Running `terraform apply -var-file=staging.tfvars` operates against the prod state. Fix: use Terraform workspaces or separate backend keys per environment. Requires careful `terraform state` migration. Do in a dedicated session with no concurrent changes.
 
-- [ ] **CI/CD: Add version input for manual production deploys** — `workflow_dispatch` with `environment: production` currently deploys `staging-latest` tag with no version selection. Add a `version` input (string) so manual production deploys can target a specific tag. Update the image tag logic in `deploy-production` job.
+- [x] **CI/CD: Add version input for manual production deploys** — `workflow_dispatch` with `environment: production` currently deploys `staging-latest` tag with no version selection. Add a `version` input (string) so manual production deploys can target a specific tag. Update the image tag logic in `deploy-production` job.
 
 - [ ] **CI/CD: Create `version-bump.yml` workflow** — no workflow exists, but `.husky/pre-commit` references `./scripts/check-version-bump.sh`. Either create the workflow and script, or remove the stale husky reference.
 
@@ -60,9 +60,9 @@
 
 - [ ] **About Window** — add an "About" modal/page accessible from settings or sidebar. Show: app version (from `/api/health`), git commit, build date, credits/attribution, link to GitHub repo.
 
-- [ ] **Docs: Populate MEMORY.md lessons learned** — section is empty (placeholder text only: "Update this as we learn things"). Add entries for: Docker build gotchas, Next.js App Router pitfalls, blue-green deployment learnings, Prisma migration lessons.
+- [x] **Docs: Populate MEMORY.md lessons learned** — section is empty (placeholder text only: "Update this as we learn things"). Add entries for: Docker build gotchas, Next.js App Router pitfalls, blue-green deployment learnings, Prisma migration lessons.
 
-- [ ] **Docs: Update PRODUCT.md roadmap** — Phase 1 items still show as in-progress (🔄) from January 2026: "LLM-assisted prediction creation", "One-click prediction flow", "Coin economy basics", "Personal leaderboards". Update status to reflect current state (most are complete).
+- [x] **Docs: Update PRODUCT.md roadmap** — Phase 1 items still show as in-progress (🔄) from January 2026: "LLM-assisted prediction creation", "One-click prediction flow", "Coin economy basics", "Personal leaderboards". Update status to reflect current state (most are complete).
 
 ### Verify / Check Later
 

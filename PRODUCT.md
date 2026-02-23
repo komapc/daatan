@@ -142,10 +142,10 @@ The influence/strength of a specific prediction in scoring/visibility calculatio
 - ✅ User authentication (Google OAuth)
 - ✅ Basic prediction creation
 - ✅ Prediction feed
-- 🔄 LLM-assisted prediction creation
-- 🔄 One-click prediction flow
-- 🔄 Coin economy basics
-- 🔄 Personal leaderboards
+- ✅ LLM-assisted prediction creation
+- ✅ One-click prediction flow
+- ✅ Coin economy basics
+- ✅ Personal leaderboards
 
 ### Phase 2: Widget & Sharing (Weeks 5-8)
 - ⏳ Embeddable widget for publishers
