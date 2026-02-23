@@ -19,7 +19,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <h1 className="text-3xl font-bold mb-6 text-gray-900">Admin Dashboard</h1>
-      <AdminNav isAdmin={isAdmin} isApprover={session.user.role === 'APPROVER'} />
+      <AdminNav isAdmin={isAdmin} />
       {children}
     </div>
   )
