@@ -18,6 +18,8 @@
 
 - [x] **Forecasts: "Updated Context" feature** — "Analyze Context" button on forecast detail page. Re-runs Serper web search for latest articles, updates the prediction's context field. Claim text never changes, only context evolves. Requires: new API route, rate limit on re-analysis (once per day?), show "context last updated" timestamp, diff view of old vs new context.
 
+- [ ] **Admin: Special tab "needs review" that appear only for admins**
+
 ### P2 - Medium Priority
 
 - [x] **Bug: No JS errors in frontend's console** — ensure no client-side runtime errors or warnings trigger in the browser console during regular usage.

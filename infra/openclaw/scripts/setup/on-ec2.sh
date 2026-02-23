@@ -13,8 +13,8 @@ PROJECTS_DIR="$HOME/projects"
 # Configuration
 # =============================================================================
 
-readonly GITHUB_DAATAN="git@github.com:komapc/daatan.git"
-readonly GITHUB_YEAR_SHAPE="git@github.com:komapc/year-shape.git"
+readonly GITHUB_DAATAN="https://github.com/komapc/daatan.git"
+readonly GITHUB_YEAR_SHAPE="https://github.com/komapc/year-shape.git"
 readonly SSH_KEY="$HOME/.ssh/id_github"
 readonly ENV_FILE="$OPENCLAW_DIR/.env"
 
@@ -254,7 +254,7 @@ main() {
     echo ""
     
     # Run setup steps
-    setup_git_ssh
+    # setup_git_ssh
     clone_repos
     bootstrap_calendar_agent
     validate_env
