@@ -18,6 +18,7 @@ datasource db {
 enum UserRole {
   USER
   RESOLVER
+  APPROVER
   ADMIN
 }
 
@@ -174,6 +175,7 @@ enum PredictionStatus {
   DRAFT // Not yet published
   ACTIVE // Published, accepting commitments
   PENDING // Deadline passed, awaiting resolution
+  PENDING_APPROVAL // Bot created, awaiting human review
   RESOLVED_CORRECT // Resolved as correct
   RESOLVED_WRONG // Resolved as wrong
   VOID // Invalidated (canceled, rule issues, abuse)

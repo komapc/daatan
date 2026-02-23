@@ -9,7 +9,7 @@ const TABS = [
   { id: 'bots', label: 'Bots', adminOnly: true },
 ]
 
-export default function AdminNav({ isAdmin }: { isAdmin: boolean }) {
+export default function AdminNav({ isAdmin, isApprover }: { isAdmin: boolean, isApprover?: boolean }) {
   const pathname = usePathname()
 
   return (

@@ -116,7 +116,7 @@ const Sidebar = () => {
   }))
 
   // Add admin link for admin/moderator users
-  if (hasMounted && status === 'authenticated' && (session?.user?.role === 'ADMIN' || session?.user?.role === 'RESOLVER')) {
+  if (hasMounted && status === 'authenticated' && (session?.user?.role === 'ADMIN' || session?.user?.role === 'RESOLVER' || session?.user?.role === 'APPROVER')) {
     navLinks.push({ href: '/admin', labelKey: 'admin', label: t('admin'), icon: Shield })
   }
 
@@ -262,6 +262,9 @@ const Sidebar = () => {
                     )}
                     {session.user.role === 'RESOLVER' && (
                       <span className="inline-flex items-center justify-center w-4 h-4 text-[9px] font-bold text-blue-700 bg-blue-100 border border-blue-200 rounded-full shrink-0" title="Resolver" aria-label="Resolver">R</span>
+                    )}
+                    {session.user.role === 'APPROVER' && (
+                      <span className="inline-flex items-center justify-center w-4 h-4 text-[9px] font-bold text-purple-700 bg-purple-100 border border-purple-200 rounded-full shrink-0" title="Approver" aria-label="Approver">B</span>
                     )}
                   </div>
                   <p className="text-xs text-gray-400 truncate mb-1">{session.user.email}</p>
