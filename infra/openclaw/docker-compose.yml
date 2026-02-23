@@ -13,6 +13,7 @@ services:
       - /home/ubuntu/.ssh/id_github:/home/node/.ssh/id_ed25519:ro
       - /home/ubuntu/.ssh/id_github.pub:/home/node/.ssh/id_ed25519.pub:ro
       - ./backups:/home/node/.openclaw/backups:rw
+      - ./config/unified.json:/home/node/.openclaw/config.json:ro
     env_file:
       - .env
     environment:
@@ -22,7 +23,7 @@ services:
     ports:
       - "18789:18789"
     healthcheck:
-      test: ["CMD", "pgrep", "-f", "openclaw"]
+      test: [ "CMD", "pgrep", "-f", "openclaw" ]
       interval: 30s
       timeout: 10s
       retries: 3
