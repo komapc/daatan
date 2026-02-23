@@ -53,9 +53,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Don't show drafts unless filtering by authorId
+    // Don't show drafts or pending-approval forecasts in public feed
     if (!query.authorId && !query.status && !resolvedOnly) {
-      where.status = { not: 'DRAFT' }
+      where.status = { notIn: ['DRAFT', 'PENDING_APPROVAL'] }
     }
 
     // Handle "closing soon" filter (within 7 days)

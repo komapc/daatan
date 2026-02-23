@@ -116,14 +116,14 @@ describe('GET /api/forecasts - Status Filters', () => {
     )
   })
 
-  it('returns all non-DRAFT predictions when no filter specified', async () => {
+  it('returns all non-DRAFT/PENDING_APPROVAL predictions when no filter specified', async () => {
     const request = new NextRequest('http://localhost/api/forecasts')
     await GET(request)
 
     expect(mockFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          status: { not: 'DRAFT' },
+          status: { notIn: ['DRAFT', 'PENDING_APPROVAL'] },
         }),
       })
     )

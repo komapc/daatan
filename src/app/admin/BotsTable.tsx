@@ -65,6 +65,7 @@ interface Bot {
   cuRefillAmount: number
   canCreateForecasts: boolean
   canVote: boolean
+  autoApprove: boolean
   // Computed
   lastRunAt: string | null
   nextRunAt: string | null
@@ -328,6 +329,11 @@ export default function BotsTable() {
                         }`}>
                         {bot.isActive ? 'Active' : 'Disabled'}
                       </span>
+                      {bot.autoApprove && (
+                        <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-emerald-100 text-emerald-700">
+                          Auto-approve
+                        </span>
+                      )}
                     </div>
 
                     <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-gray-600">
@@ -558,6 +564,7 @@ function EditBotModal({ bot, allTags, onSave, onClose }: {
     cuRefillAmount: bot.cuRefillAmount ?? 50,
     canCreateForecasts: bot.canCreateForecasts ?? true,
     canVote: bot.canVote ?? true,
+    autoApprove: bot.autoApprove ?? false,
   })
   const [saving, setSaving] = useState(false)
   const [tagInput, setTagInput] = useState('')
@@ -591,6 +598,7 @@ function EditBotModal({ bot, allTags, onSave, onClose }: {
       cuRefillAmount: form.cuRefillAmount,
       canCreateForecasts: form.canCreateForecasts,
       canVote: form.canVote,
+      autoApprove: form.autoApprove,
     }
     onSave(updates)
     setSaving(false)
@@ -717,6 +725,16 @@ function EditBotModal({ bot, allTags, onSave, onClose }: {
                   className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
                 Vote on forecasts
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={form.autoApprove}
+                  onChange={(e) => setForm({ ...form, autoApprove: e.target.checked })}
+                  className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                />
+                Auto-approve forecasts
+                <span className="text-xs text-gray-400 font-normal">(skip approval queue)</span>
               </label>
             </div>
             <div className="max-w-xs">
