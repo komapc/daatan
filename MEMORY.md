@@ -34,4 +34,7 @@
 - Git commands need `GIT_PAGER=cat` to avoid hanging
 
 ## Lessons Learned
-(Update this as we learn things)
+- **Docker build gotchas**: Next.js standalone build can struggle with NextAuth if `transpilePackages: ['next-auth']` is omitted. Ensure required environment variables like `NEXTAUTH_URL` and dummy secrets are provided during the build phase even if skipped locally. 
+- **Next.js App Router pitfalls**: `export const dynamic = 'force-dynamic'` works ONLY in Server Components. Client components combining `useSearchParams` need a `<Suspense>` boundary to prevent de-optimizing the entire route.
+- **Blue-green deployment**: Zero-downtime deployment is achieved by bringing up the new container alongside the old, updating the Nginx upstream path, and executing `nginx -s reload` without stopping Nginx, before taking down the old container.
+- **Prisma migration lessons**: Rollbacks require using `npx prisma migrate resolve --rolled-back <migration-name>` to correct the shadow database state before re-deploying a fixed migration.

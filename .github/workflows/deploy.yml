@@ -22,6 +22,10 @@ on:
         options:
           - staging
           - production
+      version:
+        description: 'Target version tag (e.g. v1.1.1) for manual production deploy (optional)'
+        required: false
+        type: string
 
 jobs:
   # Build and test (runs on all pushes and PRs)
@@ -258,6 +262,7 @@ jobs:
     name: Deploy to Production
     needs: build
     runs-on: ubuntu-latest
+    environment: production
     permissions:
       id-token: write
       contents: read
@@ -279,11 +284,14 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: eu-central-1
 
-      - name: Get version from tag
+      - name: Get version from tag or input
         id: version
         run: |
           if [[ "${{ github.ref }}" == refs/tags/* ]]; then
             VERSION=${GITHUB_REF#refs/tags/}
+            echo "version=${VERSION#v}" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ github.event.inputs.version }}" ]]; then
+            VERSION=${{ github.event.inputs.version }}
             echo "version=${VERSION#v}" >> $GITHUB_OUTPUT
           else
             echo "version=manual" >> $GITHUB_OUTPUT
