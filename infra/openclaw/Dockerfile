@@ -15,9 +15,9 @@ cd /app
 
 # Check if we should bind to LAN
 if [ "$OPENCLAW_GATEWAY_BIND" = "lan" ]; then
-  exec node openclaw.mjs gateway --config /app/config.json --bind lan
+  exec node openclaw.mjs gateway --bind lan
 else
-  exec node openclaw.mjs gateway --config /app/config.json
+  exec node openclaw.mjs gateway
 fi
 EOF
 RUN chmod +x /usr/local/bin/start-gateway.sh
