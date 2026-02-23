@@ -20,7 +20,7 @@ else
   exec node openclaw.mjs gateway --allow-unconfigured
 fi
 EOF
-    chmod +x /usr/local/bin/start-gateway.sh
+RUN chmod +x /usr/local/bin/start-gateway.sh
 
 USER node
 WORKDIR /app

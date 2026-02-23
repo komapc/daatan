@@ -167,7 +167,7 @@ AUTH_SUCCESS_PAGE = '''
             </p>
         </div>
         
-        <a href="/mission/" class="btn">🚀 Open Mission Control</a>
+        <a href="/" class="btn">🚀 Open Mission Control</a>
         
         <p style="margin-top: 20px; font-size: 12px; color: #666;">
             You will be redirected in <span id="countdown">3</span> seconds...
@@ -180,7 +180,7 @@ AUTH_SUCCESS_PAGE = '''
             document.getElementById('countdown').textContent = count;
             if (count <= 0) {
                 clearInterval(countdown);
-                window.location.href = '/mission/';
+                window.location.href = '/';
             }
         }, 1000);
     </script>
@@ -355,18 +355,6 @@ def logout():
     logger.info(f"🚪 User logged out")
     return redirect('/login')
 
-@app.route('/mission/')
-def mission_proxy():
-    """Proxy to actual Mission Control (OpenClaw Gateway)"""
-    if 'email' not in session:
-        return redirect('/login')
-    
-    session_key = f"session:{session.get('session_id')}"
-    if not redis_client.exists(session_key):
-        session.clear()
-        return redirect('/login')
-    
-    return redirect('http://127.0.0.1:18789')
 
 @app.route('/health')
 def health():
