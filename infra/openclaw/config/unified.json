@@ -3,7 +3,8 @@
   "gateway": {
     "mode": "local",
     "auth": {
-      "mode": "none"
+      "mode": "token",
+      "token": "internal-daatan-gateway-token"
     }
   },
   "agents": {
