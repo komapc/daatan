@@ -1,7 +1,6 @@
 {
   "$schema": "https://openclaw.ai/schema/v2.json",
   "gateway": {
-    "bind": "lan:18789",
     "mode": "local",
     "auth": {
       "mode": "password"
