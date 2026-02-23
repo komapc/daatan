@@ -17,9 +17,9 @@ export default function Speedometer({
   const clampedPercentage = Math.min(100, Math.max(0, percentage))
 
   const sizes = {
-    sm: { width: 80, height: 50, strokeWidth: 6, fontSize: 'text-sm' },
-    md: { width: 120, height: 70, strokeWidth: 8, fontSize: 'text-lg' },
-    lg: { width: 160, height: 90, strokeWidth: 10, fontSize: 'text-xl' },
+    sm: { width: 60, height: 40, strokeWidth: 4, fontSize: 'text-xs' },
+    md: { width: 80, height: 50, strokeWidth: 5, fontSize: 'text-sm' },
+    lg: { width: 100, height: 65, strokeWidth: 6, fontSize: 'text-base' },
   }
 
   const { width, height, strokeWidth, fontSize } = sizes[size]
@@ -116,7 +116,7 @@ export default function Speedometer({
           y={height / 2 + strokeWidth}
           textAnchor="middle"
           className={`${fontSize} font-bold fill-gray-700`}
-          style={{ fontSize: size === 'sm' ? '14px' : size === 'md' ? '18px' : '24px' }}
+          style={{ fontSize: size === 'sm' ? '11px' : size === 'md' ? '13px' : '15px' }}
         >
           {Math.round(clampedPercentage)}%
         </text>

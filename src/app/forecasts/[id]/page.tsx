@@ -462,7 +462,7 @@ export default function PredictionDetailPage() {
                     percentage={yesPct}
                     label="Will Happen"
                     color="green"
-                    size="md"
+                    size="sm"
                   />
                   <p className="mt-2 text-sm text-gray-500">
                     <span className="font-semibold text-gray-700">{yesCount}</span> commitment{yesCount !== 1 ? 's' : ''}
@@ -475,7 +475,7 @@ export default function PredictionDetailPage() {
                     percentage={noPct}
                     label="Won't Happen"
                     color="red"
-                    size="md"
+                    size="sm"
                   />
                   <p className="mt-2 text-sm text-gray-500">
                     <span className="font-semibold text-gray-700">{noCount}</span> commitment{noCount !== 1 ? 's' : ''}
