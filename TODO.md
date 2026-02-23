@@ -8,6 +8,8 @@
 
 - [ ] **Admin: Special tab "needs review" that appear only for admins**
 
+- [ ] **Admin: "bots" tab on admin panel do not appear on mobile**
+
 ### P2 - Medium Priority
 
 - [ ] **Notifications system** (unified) — Remaining:
