@@ -13,11 +13,12 @@ services:
       - /home/ubuntu/.ssh/id_github:/home/node/.ssh/id_ed25519:ro
       - /home/ubuntu/.ssh/id_github.pub:/home/node/.ssh/id_ed25519.pub:ro
       - ./backups:/home/node/.openclaw/backups:rw
-      - ./config/unified.json:/app/config.json:ro
+      - ./config/unified.json:/app/openclaw.json:ro
     env_file:
       - .env
     environment:
       - OPENCLAW_GATEWAY_BIND=lan
+      - OPENCLAW_GATEWAY_MODE=local
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
