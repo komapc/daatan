@@ -4,7 +4,8 @@
 
 ### P0 - Critical
 
-- [ ] **Merge bot PRs and apply migration** — PR #325 (approver role) and PR #326 (approval queue UI + autoApprove + GA fix) need merge. Then run `npx prisma migrate deploy` on staging/production.
+- [x] **Merge bot PRs** — PR #325, #326, #327, #328 merged.
+- [ ] **Apply migrations on production** — run `npx prisma migrate deploy` on production server.
 
 ### P1 - High Priority
 
