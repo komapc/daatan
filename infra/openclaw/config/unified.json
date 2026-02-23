@@ -3,7 +3,7 @@
   "gateway": {
     "mode": "local",
     "auth": {
-      "mode": "password"
+      "mode": "none"
     }
   },
   "agents": {
