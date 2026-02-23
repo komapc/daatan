@@ -4,45 +4,17 @@
 
 ### P0 - Critical
 
-- [x] **Security: Rate limiting** — no rate limiting on any API route. LLM routes (`/api/forecasts/express/generate`, AI extract) are expensive (Gemini API calls + Serper searches per request). Implement at Nginx level using `limit_req_zone`. Consider tiered limits: stricter for LLM routes (~5 req/min), standard for other API routes (~60 req/min).
-
-- [x] **Security: SSRF protection on URL fetching** — `fetchUrlContent()` in `src/lib/utils/scraper.ts` accepts arbitrary URLs with no validation. Any authenticated user can hit internal services (AWS IMDS `169.254.169.254`, localhost, Docker IPs). Fix: validate HTTPS-only, block RFC-1918/link-local ranges. Affects `/api/ai/extract` and express forecast URL flow.
-
 ### P1 - High Priority
-
-- [x] **Commitments: Elaborate commitment/join forecast system** — define how users commit to forecasts, change commitments, what happens on resolution. (Fixed bot commitment block in v1.6.22)
-
-- [x] **Code quality: URL hash inconsistency across 3 locations** — `news-anchors/route.ts` normalizes URL (lowercase, strip protocol/trailing slash) before hashing, but `forecasts/route.ts` and `expressPrediction.ts` hash the raw URL. Same URL produces different hashes → deduplication breaks. Extract a shared `hashUrl()` utility.
-
-- [x] **Code quality: Admin routes use `where: any`** — `src/app/api/admin/forecasts/route.ts`, `users/route.ts`, `comments/route.ts` all use `where: any` instead of typed `Prisma.XxxWhereInput`. Typos in filter keys fail silently at runtime.
-
-- [x] **Forecasts: "Updated Context" feature** — "Analyze Context" button on forecast detail page. Re-runs Serper web search for latest articles, updates the prediction's context field. Claim text never changes, only context evolves. Requires: new API route, rate limit on re-analysis (once per day?), show "context last updated" timestamp, diff view of old vs new context.
 
 - [ ] **Admin: Special tab "needs review" that appear only for admins**
 
-- [ ] **Admin: "bots" tab on admin panel do not appear on mobile**
+- [x] **Admin: "bots" tab on admin panel do not appear on mobile**
 
 ### P2 - Medium Priority
-
-- [x] **Bug: No JS errors in frontend's console** — ensure no client-side runtime errors or warnings trigger in the browser console during regular usage.
-
-- [x] **Commitments: Simplify putting commitment** — make the UX for committing to a forecast simpler and more intuitive.
-
-- [x] **Infra: Make sure bots work, improve debugging** — ensure bot services are running correctly and enhance their logging visibility. (v1.6.22 fixed bot-related commitment block)
-
-- [x] **Privacy: Activity feed leaks `isPublic: false` users** — `/api/commitments/activity` returns RS and activity for all users with no `isPublic` filter. Inconsistent with leaderboard which correctly filters. Add `where: { user: { isPublic: true } }`.
-
-- [x] **Bug: Slug uniqueness TOCTOU race** — `POST /api/forecasts` does find-then-create for slugs (not atomic). Two concurrent requests with same `claimText` can produce duplicate slugs → unhandled P2002 error (500). Fix: catch P2002 and retry with incremented suffix.
-
-- [x] **Code quality: Deprecate or remove `domain` field** — `Prediction.domain` is marked deprecated in schema, LLM prompt, and comments, but is still actively written everywhere. Either formally retire it (migration + remove from schemas) or un-deprecate.
-
-- [x] **Code quality: Remove `any` types in frontend components** — `src/app/admin/CommentsTable.tsx` and other UI components use `any` arrays for state (e.g., `useState<any[]>([])`). Define proper TypeScript interfaces corresponding to the API responses to ensure type safety.
-
 
 - [ ] **Notifications system** (unified) — Remaining:
   - [ ] Email notifications (pick provider: SES, Resend, or Postmark)
   - [ ] Comment `@mentions`: parse `@username` in comment text, resolve to user, trigger `MENTION` notification
-  - **Done:** Telegram channel notifications (v1.4.19), in-app triggers (comments, commitments, resolve), browser push (service worker + Web Push API + VAPID), settings UI, unread badge, notifications page (v1.5.0)
 
 - [ ] **i18n: Wire translations into all components** — `messages/en.json` and `messages/he.json` both exist with ~103 keys and matching structure. However, many components still use hardcoded English strings instead of `useTranslations()`. Need to audit all UI text and replace with translation keys. Priority: navigation, buttons, form labels, error messages. *(✅ Nav and Settings wired. Still needs forms and error messages).*
 
@@ -67,8 +39,6 @@
 - [ ] **Express Forecast: Numeric threshold support** — e.g., "Bitcoin price above $100K by end of year". LLM generates numeric threshold options (ranges/buckets). Requires: `NUMERIC_THRESHOLD` outcome type handling in prompt, option generation, and resolution logic.
 
 - [ ] **Express Forecast: Advanced types** — order predictions (rank outcomes), date-based (when will X happen), conditional (if X then Y). Each requires LLM prompt engineering + UI + resolution logic. Low priority until core types are solid.
-
-- [x] **Assisted Resolving** — implement LLM-assisted or automated resolving mechanism to help admins quickly and accurately determine the outcome of mature forecasts. This might involve an admin UI button that queries Serper + LLM to propose a resolution state based on current news.
 
 - [ ] **Security: Env var validation at startup** — `GEMINI_API_KEY` only logs a warning if missing at init (`src/lib/llm/index.ts` line 10), `SERPER_API_KEY` only checked at request time (`src/lib/utils/webSearch.ts`). Add a startup validation step (e.g., in `instrumentation.ts` or a custom server init) that fails fast if required env vars are missing.
 
