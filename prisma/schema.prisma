@@ -602,6 +602,9 @@ model BotConfig {
   canCreateForecasts Boolean @default(true)
   canVote            Boolean @default(true)
 
+  // Auto-approve: if true, bot forecasts go directly to ACTIVE (skip PENDING_APPROVAL).
+  autoApprove Boolean @default(false)
+
   isActive  Boolean   @default(true)
   lastRunAt DateTime?
   createdAt DateTime  @default(now())
