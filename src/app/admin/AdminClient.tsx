@@ -29,7 +29,7 @@ type AdminUser = {
   email: string
   username: string | null
   image: string | null
-  role: 'USER' | 'RESOLVER' | 'ADMIN'
+  role: 'USER' | 'RESOLVER' | 'APPROVER' | 'ADMIN'
   rs: number
   cuAvailable: number
   cuLocked: number
@@ -72,7 +72,7 @@ export default function AdminClient() {
 
   // Redirect non-admin/moderator users
   useEffect(() => {
-    if (status === 'authenticated' && session?.user?.role !== 'ADMIN' && session?.user?.role !== 'RESOLVER') {
+    if (status === 'authenticated' && session?.user?.role !== 'ADMIN' && session?.user?.role !== 'RESOLVER' && session?.user?.role !== 'APPROVER') {
       router.push('/')
     }
   }, [status, session, router])
@@ -85,7 +85,7 @@ export default function AdminClient() {
     )
   }
 
-  if (session?.user?.role !== 'ADMIN' && session?.user?.role !== 'RESOLVER') {
+  if (session?.user?.role !== 'ADMIN' && session?.user?.role !== 'RESOLVER' && session?.user?.role !== 'APPROVER') {
     return null
   }
 
@@ -180,6 +180,7 @@ function ForecastsTab() {
     DRAFT: 'bg-gray-100 text-gray-700',
     ACTIVE: 'bg-green-100 text-green-700',
     PENDING: 'bg-yellow-100 text-yellow-700',
+    PENDING_APPROVAL: 'bg-amber-100 text-amber-700',
     RESOLVED_CORRECT: 'bg-blue-100 text-blue-700',
     RESOLVED_WRONG: 'bg-red-100 text-red-700',
     VOID: 'bg-gray-100 text-gray-500',
@@ -210,6 +211,7 @@ function ForecastsTab() {
           <option value="DRAFT">Draft</option>
           <option value="ACTIVE">Active</option>
           <option value="PENDING">Pending</option>
+          <option value="PENDING_APPROVAL">Pending Approval</option>
           <option value="RESOLVED_CORRECT">Resolved (Correct)</option>
           <option value="RESOLVED_WRONG">Resolved (Wrong)</option>
           <option value="VOID">Void</option>
@@ -473,7 +475,7 @@ function UsersTab() {
 
   useEffect(() => { fetchUsers() }, [fetchUsers])
 
-  const updateRole = async (userId: string, newRole: 'USER' | 'RESOLVER' | 'ADMIN') => {
+  const updateRole = async (userId: string, newRole: 'USER' | 'RESOLVER' | 'APPROVER' | 'ADMIN') => {
     setUpdatingId(userId)
     try {
       const res = await fetch(`/api/admin/users/${userId}/role`, {
@@ -564,6 +566,11 @@ function UsersTab() {
                           {u.role === 'USER' && (
                             <span className="text-xs text-gray-400">User</span>
                           )}
+                          {u.role === 'APPROVER' && (
+                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                              <ShieldCheck className="w-3 h-3" /> Approver
+                            </span>
+                          )}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-center font-medium text-gray-700">{u.rs.toFixed(1)}</td>
@@ -587,6 +594,7 @@ function UsersTab() {
                         >
                           <option value="USER">User</option>
                           <option value="RESOLVER">Resolver</option>
+                          <option value="APPROVER">Approver</option>
                           <option value="ADMIN">Admin</option>
                         </select>
                       </td>
