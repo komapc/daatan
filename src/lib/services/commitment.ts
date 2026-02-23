@@ -113,8 +113,11 @@ function validateCommitEligibility(
   prediction: CommitmentPrediction,
   userId: string,
 ): ServiceResult<never> | null {
-  if (prediction.status !== 'ACTIVE') {
-    return { ok: false, error: 'Can only commit to active predictions', status: 400 }
+  if (prediction.status !== 'ACTIVE' && prediction.status !== 'PENDING_APPROVAL') {
+    return { ok: false, error: 'Can only commit to active or pending approval predictions', status: 400 }
+  }
+  if (prediction.status === 'PENDING_APPROVAL' && prediction.authorId !== userId) {
+    return { ok: false, error: 'Only the author can stake on a forecast pending approval', status: 403 }
   }
   return null
 }

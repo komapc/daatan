@@ -399,10 +399,10 @@ Requirements:
       },
     })
 
-    // Publish (DRAFT → ACTIVE)
+    // Publish (DRAFT → PENDING_APPROVAL)
     await prisma.prediction.update({
       where: { id: prediction.id },
-      data: { status: 'ACTIVE', publishedAt: new Date() },
+      data: { status: 'PENDING_APPROVAL', publishedAt: new Date() },
     })
 
     // Auto-refill CU if balance is low, then stake on own forecast

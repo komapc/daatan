@@ -1,4 +1,4 @@
-type Role = 'USER' | 'RESOLVER' | 'ADMIN' | null | undefined
+type Role = 'USER' | 'RESOLVER' | 'APPROVER' | 'ADMIN' | null | undefined
 
 interface RoleBadgeProps {
   role: Role
@@ -6,19 +6,21 @@ interface RoleBadgeProps {
 }
 
 export const RoleBadge = ({ role, size = 'sm' }: RoleBadgeProps) => {
-  if (role !== 'ADMIN' && role !== 'RESOLVER') return null
+  if (role !== 'ADMIN' && role !== 'RESOLVER' && role !== 'APPROVER') return null
 
   const sizeClasses =
     size === 'sm'
       ? 'w-4 h-4 text-[9px]'
       : 'w-5 h-5 text-[11px]'
 
-  const label = role === 'ADMIN' ? 'A' : 'R'
-  const title = role === 'ADMIN' ? 'Admin' : 'Resolver'
+  const label = role === 'ADMIN' ? 'A' : role === 'APPROVER' ? 'B' : 'R'
+  const title = role === 'ADMIN' ? 'Admin' : role === 'APPROVER' ? 'Approver' : 'Resolver'
   const colorClasses =
     role === 'ADMIN'
       ? 'bg-red-100 text-red-700 border-red-200'
-      : 'bg-blue-100 text-blue-700 border-blue-200'
+      : role === 'APPROVER'
+        ? 'bg-purple-100 text-purple-700 border-purple-200'
+        : 'bg-blue-100 text-blue-700 border-blue-200'
 
   return (
     <span
