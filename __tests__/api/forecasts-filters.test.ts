@@ -150,4 +150,62 @@ describe('GET /api/forecasts - Status Filters', () => {
       })
     )
   })
+
+  describe('Security / Auth', () => {
+    it('allows Admin to fetch PENDING_APPROVAL forecasts', async () => {
+      mockGetServerSession.mockResolvedValue({ user: { role: 'ADMIN' } })
+      const request = new NextRequest('http://localhost/api/forecasts?status=PENDING_APPROVAL')
+      await GET(request)
+
+      expect(mockFindMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            status: 'PENDING_APPROVAL',
+          }),
+        })
+      )
+    })
+
+    it('allows Approver to fetch PENDING_APPROVAL forecasts', async () => {
+      mockGetServerSession.mockResolvedValue({ user: { role: 'APPROVER' } })
+      const request = new NextRequest('http://localhost/api/forecasts?status=PENDING_APPROVAL')
+      await GET(request)
+
+      expect(mockFindMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            status: 'PENDING_APPROVAL',
+          }),
+        })
+      )
+    })
+
+    it('falls back to ACTIVE for regular users requesting PENDING_APPROVAL', async () => {
+      mockGetServerSession.mockResolvedValue({ user: { role: 'USER' } })
+      const request = new NextRequest('http://localhost/api/forecasts?status=PENDING_APPROVAL')
+      await GET(request)
+
+      expect(mockFindMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            status: 'ACTIVE',
+          }),
+        })
+      )
+    })
+
+    it('falls back to ACTIVE for guests requesting PENDING_APPROVAL', async () => {
+      mockGetServerSession.mockResolvedValue(null)
+      const request = new NextRequest('http://localhost/api/forecasts?status=PENDING_APPROVAL')
+      await GET(request)
+
+      expect(mockFindMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            status: 'ACTIVE',
+          }),
+        })
+      )
+    })
+  })
 })

@@ -4,20 +4,23 @@ import { useEffect, useState, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Home, Loader2, TrendingUp, Plus, Filter, Tag, X } from 'lucide-react'
+import { useSession } from 'next-auth/react'
 import ForecastCard, { Prediction } from '@/components/forecasts/ForecastCard'
 import { createClientLogger } from '@/lib/client-logger'
 
 const log = createClientLogger('FeedClient')
 
-type FilterStatus = 'ACTIVE' | 'PENDING' | 'RESOLVED' | 'CLOSING_SOON' | 'ALL'
+type FilterStatus = 'ACTIVE' | 'PENDING' | 'RESOLVED' | 'CLOSING_SOON' | 'NEEDS_REVIEW' | 'ALL'
 
-const VALID_STATUSES: FilterStatus[] = ['ACTIVE', 'PENDING', 'RESOLVED', 'CLOSING_SOON', 'ALL']
+const VALID_STATUSES: FilterStatus[] = ['ACTIVE', 'PENDING', 'RESOLVED', 'CLOSING_SOON', 'NEEDS_REVIEW', 'ALL']
 
 import { STANDARD_TAGS } from '@/lib/constants'
 
 export default function FeedClient() {
   const searchParams = useSearchParams()
   const router = useRouter()
+  const { data: session } = useSession()
+  const isAdminOrApprover = session?.user?.role === 'ADMIN' || session?.user?.role === 'APPROVER'
 
   // Initialize state from URL search params
   const initialStatus = searchParams.get('status') as FilterStatus | null
@@ -73,6 +76,8 @@ export default function FeedClient() {
           url += '&resolvedOnly=true'
         } else if (filter === 'CLOSING_SOON') {
           url += '&status=ACTIVE&closingSoon=true'
+        } else if (filter === 'NEEDS_REVIEW') {
+          url += '&status=PENDING_APPROVAL'
         }
 
         if (selectedTags.length > 0) {
@@ -162,6 +167,17 @@ export default function FeedClient() {
           >
             Awaiting Resolution
           </button>
+          {isAdminOrApprover && (
+            <button
+              onClick={() => handleSetFilter('NEEDS_REVIEW')}
+              className={`px-4 py-2 rounded-lg font-medium transition-all ${filter === 'NEEDS_REVIEW'
+                ? 'bg-purple-600 text-white shadow-sm'
+                : 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-100'
+                }`}
+            >
+              Needs Review
+            </button>
+          )}
           <button
             onClick={() => handleSetFilter('RESOLVED')}
             className={`px-4 py-2 rounded-lg font-medium transition-all ${filter === 'RESOLVED'
@@ -247,6 +263,7 @@ export default function FeedClient() {
               {filter === 'ACTIVE' && 'Open Forecasts'}
               {filter === 'CLOSING_SOON' && 'Closing Soon'}
               {filter === 'PENDING' && 'Awaiting Resolution'}
+              {filter === 'NEEDS_REVIEW' && 'Needs Review (Admin)'}
               {filter === 'RESOLVED' && 'Resolved Forecasts'}
               {filter === 'ALL' && 'All Forecasts'}
             </h2>
