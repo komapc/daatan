@@ -1,14 +1,12 @@
 {
   "$schema": "https://openclaw.ai/schema/v2.json",
   "version": "2026.2",
-  
   "meta": {
     "description": "OpenClaw unified gateway: Daatan + Calendar agents, two Telegram bots",
     "deployment": "EC2 t4g.medium",
     "updated": "2026-02-18",
     "budget": "$5/month OpenRouter"
   },
-
   "gateway": {
     "bind": "0.0.0.0:18789",
     "auth": {
@@ -18,7 +16,6 @@
       "mode": "off"
     }
   },
-
   "agents": {
     "defaults": {
       "workspace": "/workspace",
@@ -26,9 +23,9 @@
         "mode": "non-main"
       },
       "model": {
-        "primary": "routing.primary",
-        "fallback": "routing.fallback",
-        "localFallback": "routing.localFallback"
+        "primary": "google/gemini-1.5-pro",
+        "fallback": "openrouter/qwen/qwen-2.5-7b-instruct",
+        "localFallback": "ollama/qwen2.5:1.5b"
       }
     },
     "list": [
@@ -43,8 +40,15 @@
           "emoji": "🔮"
         },
         "skills": {
-          "managed": ["docker", "terraform", "github-actions", "nextjs"],
-          "workspace": ["daatan-deploy"]
+          "managed": [
+            "docker",
+            "terraform",
+            "github-actions",
+            "nextjs"
+          ],
+          "workspace": [
+            "daatan-deploy"
+          ]
         },
         "model": {
           "primary": "google/gemini-1.5-pro",
@@ -62,7 +66,12 @@
           "emoji": "📅"
         },
         "skills": {
-          "managed": ["vite", "typescript", "cloudflare-pages", "tailwind"]
+          "managed": [
+            "vite",
+            "typescript",
+            "cloudflare-pages",
+            "tailwind"
+          ]
         },
         "model": {
           "primary": "google/gemini-1.5-pro",
@@ -72,12 +81,22 @@
       }
     ]
   },
-
   "bindings": [
-    { "agentId": "daatan", "match": { "channel": "telegram", "accountId": "daatan" } },
-    { "agentId": "calendar", "match": { "channel": "telegram", "accountId": "calendar" } }
+    {
+      "agentId": "daatan",
+      "match": {
+        "channel": "telegram",
+        "accountId": "daatan"
+      }
+    },
+    {
+      "agentId": "calendar",
+      "match": {
+        "channel": "telegram",
+        "accountId": "calendar"
+      }
+    }
   ],
-
   "models": {
     "providers": {
       "google": {
@@ -102,14 +121,21 @@
             "name": "Qwen 2.5 1.5B",
             "contextWindow": 32768,
             "maxOutput": 2048,
-            "useFor": ["qa", "health-checks", "simple-tasks"]
+            "useFor": [
+              "qa",
+              "health-checks",
+              "simple-tasks"
+            ]
           },
           {
             "id": "qwen2.5:3b",
             "name": "Qwen 2.5 3B",
             "contextWindow": 32768,
             "maxOutput": 4096,
-            "useFor": ["fallback", "code-assistance"]
+            "useFor": [
+              "fallback",
+              "code-assistance"
+            ]
           }
         ]
       }
@@ -127,7 +153,6 @@
       }
     }
   },
-
   "channels": {
     "telegram": {
       "enabled": true,
@@ -146,13 +171,11 @@
       }
     }
   },
-
   "browser": {
     "enabled": true,
     "headless": true,
     "maxConcurrent": 2
   },
-
   "security": {
     "sandbox": {
       "enabled": true,
@@ -160,17 +183,23 @@
       "dockerSocket": "/var/run/docker.sock"
     }
   },
-
   "plugins": {
     "entries": {
-      "telegram": { "enabled": true }
+      "telegram": {
+        "enabled": true
+      }
     }
   },
-
   "auth": {
     "profiles": {
-      "google:default": { "provider": "google", "mode": "api_key" },
-      "openrouter:default": { "provider": "openrouter", "mode": "api_key" }
+      "google:default": {
+        "provider": "google",
+        "mode": "api_key"
+      },
+      "openrouter:default": {
+        "provider": "openrouter",
+        "mode": "api_key"
+      }
     }
   }
 }

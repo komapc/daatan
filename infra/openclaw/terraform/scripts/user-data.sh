@@ -76,13 +76,25 @@ cat > /home/ubuntu/projects/openclaw/.env << EOF
 # OpenClaw .env (generated from AWS Secrets Manager)
 # Generated: $(date -Iseconds)
 
-GEMINI_API_KEY=$(get_secret "openclaw/gemini-api-key")
-OPENROUTER_API_KEY=$(get_secret "openclaw/openrouter-api-key")
-ANTHROPIC_API_KEY=$(get_secret "openclaw/anthropic-api-key")
-TELEGRAM_BOT_TOKEN_DAATAN=$(get_secret "openclaw/telegram-bot-token-daatan")
-TELEGRAM_BOT_TOKEN_CALENDAR=$(get_secret "openclaw/telegram-bot-token-calendar")
-TELEGRAM_CHAT_ID=
 EOF
+
+# Function to append secret to .env if not empty
+append_secret() {
+    local key="$1"
+    local secret_name="$2"
+    local val
+    val=$(get_secret "$secret_name")
+    if [[ -n "$val" ]]; then
+        echo "$key=$val" >> /home/ubuntu/projects/openclaw/.env
+    fi
+}
+
+append_secret "GEMINI_API_KEY" "openclaw/gemini-api-key"
+append_secret "OPENROUTER_API_KEY" "openclaw/openrouter-api-key"
+append_secret "ANTHROPIC_API_KEY" "openclaw/anthropic-api-key"
+append_secret "TELEGRAM_BOT_TOKEN_DAATAN" "openclaw/telegram-bot-token-daatan"
+append_secret "TELEGRAM_BOT_TOKEN_CALENDAR" "openclaw/telegram-bot-token-calendar"
+echo "TELEGRAM_CHAT_ID=" >> /home/ubuntu/projects/openclaw/.env
 
 chmod 600 /home/ubuntu/projects/openclaw/.env
 
