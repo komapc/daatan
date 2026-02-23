@@ -20,6 +20,8 @@
 
 - [ ] **Admin: Special tab "needs review" that appear only for admins**
 
+- [ ] **Admin: "bots" tab on admin panel do not appear on mobile**
+
 ### P2 - Medium Priority
 
 - [x] **Bug: No JS errors in frontend's console** — ensure no client-side runtime errors or warnings trigger in the browser console during regular usage.
