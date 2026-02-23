@@ -10,7 +10,10 @@
 
 - [ ] **Implement "Scoring rule"** (e.g. Brier score)
 
-- [ ] **Bot: Prompt management** — move bot prompts from DB to Git-managed files (`src/agents/prompts/*.md`) for version history and PR reviews. See alternatives in [implementation_plan.md](file:///home/mark/.gemini/antigravity/brain/2a4b35f0-a61c-4ce7-b28c-937279c989b2/implementation_plan.md).
+- [ ] **Bot: Prompt management & Staging-to-Prod Transfer (Option 2)** — define bots in code (`src/agents/bots/*.json` or `.ts`) as the ultimate source of truth. Server syncs DB from code on startup.  
+  1. Admin UI is still a testing sandbox.
+  2. Overrides in UI become easily exportable via an "Export as Code" button.
+  3. Transferring to production means committing that JSON export to Git, getting PR review/history, and letting CI/CD sync the prod DB automatically.
 
 ### P2 - Medium Priority
 

@@ -18,6 +18,8 @@ export async function GET(request: NextRequest) {
     await transitionExpiredPredictions()
 
     const { searchParams } = new URL(request.url)
+    const session = await getServerSession(authOptions)
+    const isAdminOrApprover = session?.user?.role === 'ADMIN' || session?.user?.role === 'APPROVER'
 
     const query = listPredictionsQuerySchema.parse({
       status: searchParams.get('status') || undefined,
@@ -36,7 +38,13 @@ export async function GET(request: NextRequest) {
     if (resolvedOnly) {
       where.status = { in: ['RESOLVED_CORRECT', 'RESOLVED_WRONG', 'VOID', 'UNRESOLVABLE'] }
     } else if (query.status) {
-      where.status = query.status
+      // Security check: Only admins/approvers can list DRAFT or PENDING_APPROVAL
+      if (['DRAFT', 'PENDING_APPROVAL'].includes(query.status) && !isAdminOrApprover) {
+        // Fallback or error? Let's fallback to ACTIVE to avoid 403 breakage in public UI
+        where.status = 'ACTIVE'
+      } else {
+        where.status = query.status
+      }
     }
 
     if (query.authorId) where.authorId = query.authorId

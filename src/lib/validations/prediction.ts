@@ -122,7 +122,7 @@ export const resolvePredictionSchema = z.object({
 // ============================================
 
 export const listPredictionsQuerySchema = z.object({
-  status: z.enum(['DRAFT', 'ACTIVE', 'PENDING', 'RESOLVED_CORRECT', 'RESOLVED_WRONG', 'VOID', 'UNRESOLVABLE']).optional(),
+  status: z.enum(['DRAFT', 'ACTIVE', 'PENDING', 'PENDING_APPROVAL', 'RESOLVED_CORRECT', 'RESOLVED_WRONG', 'VOID', 'UNRESOLVABLE']).optional(),
   authorId: z.string().cuid().optional(),
   tags: z.string().max(500).optional(), // Comma-separated tag names for filtering
   page: z.coerce.number().int().min(1).default(1),
