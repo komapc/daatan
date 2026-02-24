@@ -17,36 +17,35 @@ export default function Speedometer({
   const clampedPercentage = Math.min(100, Math.max(0, percentage))
 
   const sizes = {
-    sm: { width: 80, height: 55, strokeWidth: 5, fontSize: '12px', needleBase: 4 },
-    md: { width: 120, height: 85, strokeWidth: 7, fontSize: '15px', needleBase: 5 },
-    lg: { width: 160, height: 110, strokeWidth: 9, fontSize: '18px', needleBase: 6 },
-    xl: { width: 220, height: 150, strokeWidth: 12, fontSize: '24px', needleBase: 8 },
+    sm: { width: 120, height: 75, strokeWidth: 5, fontSize: '12px', needleBase: 5, pivotRadius: 3.5 },
+    md: { width: 160, height: 100, strokeWidth: 7, fontSize: '15px', needleBase: 6, pivotRadius: 4.5 },
+    lg: { width: 220, height: 140, strokeWidth: 9, fontSize: '18px', needleBase: 8, pivotRadius: 6 },
+    xl: { width: 280, height: 180, strokeWidth: 11, fontSize: '24px', needleBase: 10, pivotRadius: 7.5 },
   }
 
-  const { width, height, strokeWidth, fontSize, needleBase } = sizes[size]
+  const { width, height, strokeWidth, fontSize, needleBase, pivotRadius } = sizes[size]
 
-  // Calculate the arc path for the speedometer
-  const radius = (width - strokeWidth) / 2
-  // Move center slightly higher from bottom to give labels room
-  const center = { x: width / 2, y: height - (strokeWidth + (size === 'sm' ? 4 : 12)) }
+  // Center positioned so arc fits within viewBox with room for labels below
+  const radius = Math.min((width / 2) - strokeWidth - 4, height - strokeWidth - 20)
+  const center = { x: width / 2, y: height - (strokeWidth + 8) }
 
-  // Needle angle (0% = 180°, 100% = 360°)
-  const needleAngle = 180 + (clampedPercentage / 100) * 180
-  const needleAngleRad = (needleAngle * Math.PI) / 180
-  const needleLength = radius - 2 // Leave a tiny gap at the end
+  // Standard speedometer: 0% at 180° (9 o'clock), 100% at 0° (3 o'clock)
+  // angle = 180 - (percentage / 100) * 180
+  const needleAngleDeg = 180 - (clampedPercentage / 100) * 180
+  const needleAngleRad = (needleAngleDeg * Math.PI) / 180
+  const needleLength = radius - 2
 
-  // Tapered needle calculation
-  // Base of the needle is at the center pivot
-  const needleAngleLeftRad = ((needleAngle - 90) * Math.PI) / 180
-  const needleAngleRightRad = ((needleAngle + 90) * Math.PI) / 180
+  // Tapered needle: perpendicular offsets from the needle angle
+  const perpAngleLeft = ((needleAngleDeg + 90) * Math.PI) / 180
+  const perpAngleRight = ((needleAngleDeg - 90) * Math.PI) / 180
 
   const baseLeft = {
-    x: center.x + (needleBase / 2) * Math.cos(needleAngleLeftRad),
-    y: center.y + (needleBase / 2) * Math.sin(needleAngleLeftRad),
+    x: center.x + (needleBase / 2) * Math.cos(perpAngleLeft),
+    y: center.y + (needleBase / 2) * Math.sin(perpAngleLeft),
   }
   const baseRight = {
-    x: center.x + (needleBase / 2) * Math.cos(needleAngleRightRad),
-    y: center.y + (needleBase / 2) * Math.sin(needleAngleRightRad),
+    x: center.x + (needleBase / 2) * Math.cos(perpAngleRight),
+    y: center.y + (needleBase / 2) * Math.sin(perpAngleRight),
   }
   const tip = {
     x: center.x + needleLength * Math.cos(needleAngleRad),
@@ -71,8 +70,10 @@ export default function Speedometer({
     }
   }, [color, size])
 
-  const backgroundArc = createArcPath(center, radius, 180, 360)
-  const coloredArc = createArcPath(center, radius, 180, 180 + clampedPercentage * 1.8)
+  // Arc from 180° (9 o'clock) to 0° (3 o'clock)
+  const backgroundArc = createArcPath(center, radius, 180, 0)
+  // Colored arc from 180° down to the needle position
+  const coloredArc = createArcPath(center, radius, 180, needleAngleDeg)
 
   return (
     <div className="flex flex-col items-center">
@@ -80,30 +81,31 @@ export default function Speedometer({
         width={width}
         height={height}
         viewBox={`0 0 ${width} ${height}`}
-        className="overflow-visible"
+        className="overflow-hidden"
         aria-label={`${label}: ${clampedPercentage}%`}
       >
         <defs>
-          {/* Main arc gradient - 3 stops for depth */}
-          <linearGradient id={theme.gradientId} x1="0%" y1="50%" x2="100%" y2="50%">
+          {/* Main arc gradient - 3 stops for depth (left to right across arc) */}
+          <linearGradient id={theme.gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor={theme.startColor} />
             <stop offset="50%" stopColor={theme.middleColor} />
             <stop offset="100%" stopColor={theme.endColor} />
           </linearGradient>
 
-          {/* Pivot metallic gradient */}
-          <radialGradient id={theme.pivotGradientId} cx="30%" cy="30%" r="50%">
-            <stop offset="0%" stopColor="#ffffff66" />
+          {/* Pivot metallic gradient - scales with needleBase */}
+          <radialGradient id={theme.pivotGradientId} cx="35%" cy="35%" r="65%">
+            <stop offset="0%" stopColor="#ffffff88" />
+            <stop offset="70%" stopColor="#ffffff33" />
             <stop offset="100%" stopColor={theme.needle} />
           </radialGradient>
 
           {/* Depth filter */}
-          <filter id={theme.shadowId} x="-20%" y="-20%" width="140%" height="140%">
-            <feDropShadow dx="0" dy="1" stdDeviation="0.5" floodOpacity="0.2" />
+          <filter id={theme.shadowId} x="-30%" y="-30%" width="160%" height="160%">
+            <feDropShadow dx="0" dy="1" stdDeviation="0.5" floodOpacity="0.25" />
           </filter>
         </defs>
 
-        {/* Gray Track */}
+        {/* Gray Background Track (9 o'clock to 3 o'clock) */}
         <path
           d={backgroundArc}
           fill="none"
@@ -112,7 +114,7 @@ export default function Speedometer({
           strokeLinecap="round"
         />
 
-        {/* Progress Arc */}
+        {/* Colored Progress Arc */}
         <path
           d={coloredArc}
           fill="none"
@@ -128,71 +130,91 @@ export default function Speedometer({
           d={needlePath}
           fill={theme.needle}
           filter={`url(#${theme.shadowId})`}
-          className="transition-all duration-700 ease-in-out origin-center"
-          style={{ transformOrigin: `${center.x}px ${center.y}px` }}
+          className="transition-all duration-700 ease-in-out"
         />
 
-        {/* Pivot Point */}
+        {/* Pivot Point (metallic 3D effect) */}
         <circle
           cx={center.x}
           cy={center.y}
-          r={needleBase / 1.5}
+          r={pivotRadius}
           fill={`url(#${theme.pivotGradientId})`}
           stroke={theme.needle}
           strokeWidth="0.5"
         />
 
-        {/* Value Display - Higher up inside the arc */}
+        {/* Value Display - Centered in the gauge */}
         <text
           x={center.x}
-          y={center.y - radius * 0.55}
+          y={center.y - radius * 0.35}
           textAnchor="middle"
-          className="font-black fill-slate-900 transition-all duration-500"
+          className="font-black transition-all duration-500"
           style={{
             fontSize,
+            fill: theme.text,
             fontVariantNumeric: 'tabular-nums',
             letterSpacing: '-0.03em',
-            textShadow: '0px 1px 1px rgba(255,255,255,0.8)'
+            textShadow: '0px 1px 2px rgba(255,255,255,0.9)',
           }}
         >
           {Math.round(clampedPercentage)}%
         </text>
       </svg>
 
-      {/* Label - Properly spaced below */}
-      <span className="mt-2 text-[10px] sm:text-[11px] md:text-xs font-bold uppercase tracking-[0.15em] text-slate-500 text-center px-4 leading-tight">
+      {/* Label - Properly spaced below with adequate padding */}
+      <span className="mt-3 text-[10px] sm:text-[11px] md:text-xs font-bold uppercase tracking-[0.15em] text-slate-500 text-center px-4 leading-tight">
         {label}
       </span>
     </div>
   )
 }
 
+/**
+ * Create an SVG arc path from startAngle to endAngle
+ * Angles in degrees: 0° = right (3 o'clock), 90° = down, 180° = left (9 o'clock), 270° = up
+ * Arc is drawn clockwise from start to end
+ */
 function createArcPath(
   center: { x: number; y: number },
   radius: number,
   startAngle: number,
   endAngle: number
 ): string {
-  const start = polarToCartesian(center.x, center.y, radius, endAngle)
-  const end = polarToCartesian(center.x, center.y, radius, startAngle)
-  const largeArcFlag = endAngle - startAngle <= 180 ? 0 : 1
+  const start = polarToCartesian(center.x, center.y, radius, startAngle)
+  const end = polarToCartesian(center.x, center.y, radius, endAngle)
+
+  // Calculate the angular sweep
+  let angleDiff = endAngle - startAngle
+
+  // Normalize to -180 to 180 range for cleaner arc calculation
+  if (angleDiff > 180) {
+    angleDiff -= 360
+  } else if (angleDiff < -180) {
+    angleDiff += 360
+  }
+
+  // largeArcFlag: 1 if arc > 180°, 0 if arc ≤ 180°
+  const largeArcFlag = Math.abs(angleDiff) > 180 ? 1 : 0
+  // sweepFlag: 1 for clockwise, 0 for counter-clockwise
+  const sweepFlag = angleDiff < 0 ? 1 : 0
 
   return [
     'M', start.x, start.y,
-    'A', radius, radius, 0, largeArcFlag, 0, end.x, end.y
+    'A', radius, radius, 0, largeArcFlag, sweepFlag, end.x, end.y
   ].join(' ')
 }
 
+/**
+ * Convert polar coordinates (angle in degrees) to Cartesian (x, y)
+ * Standard SVG coordinates: 0° = right (3 o'clock), 90° = down, 180° = left, 270° = up
+ */
 function polarToCartesian(
   centerX: number,
   centerY: number,
   radius: number,
   angleInDegrees: number
 ): { x: number; y: number } {
-  // SVG 0 degrees is 3 o'clock. We want 0% to be 9 o'clock (180 deg) and 100% to be 3 o'clock (0 deg).
-  // Our logic uses 180 deg as 0% and 360 deg as 100%.
-  // In our polarToCartesian, we subtract 90 from degrees which is a common convention but let's adjust for our specific arc:
-  const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180
+  const angleInRadians = (angleInDegrees * Math.PI) / 180
   return {
     x: centerX + radius * Math.cos(angleInRadians),
     y: centerY + radius * Math.sin(angleInRadians),
