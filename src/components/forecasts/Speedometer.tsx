@@ -205,9 +205,10 @@ function createArcPath(
   const end = polarToCartesian(center.x, center.y, radius, endAngle)
 
   const angleDiff = endAngle - startAngle
-  // For angles in [180°, 360°]: angleDiff is always positive (0–180°), so sweepFlag=0 (CCW = ∩)
+  // sweepFlag=1 = positive-angle / clockwise on screen (SVG Y-down flips CCW↔CW).
+  // For [180°,360°]: increasing θ goes 180°→270°(UP)→360° = ∩ shape.
   const largeArcFlag = Math.abs(angleDiff) > 180 ? 1 : 0
-  const sweepFlag = angleDiff > 0 ? 0 : 1
+  const sweepFlag = angleDiff > 0 ? 1 : 0
 
   return ['M', start.x, start.y, 'A', radius, radius, 0, largeArcFlag, sweepFlag, end.x, end.y].join(' ')
 }
