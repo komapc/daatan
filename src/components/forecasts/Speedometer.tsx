@@ -55,25 +55,35 @@ export default function Speedometer({
   const needlePath = `M ${baseLeft.x} ${baseLeft.y} L ${tip.x} ${tip.y} L ${baseRight.x} ${baseRight.y} Z`
 
   // Theme configuration using HSL for vibrant gradients
+  // Always use green+red split, regardless of color prop
   const theme = useMemo(() => {
-    const isGreen = color === 'green'
     return {
-      gradientId: `arc-gradient-${color}-${size}`,
-      shadowId: `arc-shadow-${color}-${size}`,
-      pivotGradientId: `pivot-gradient-${color}-${size}`,
-      startColor: isGreen ? 'hsl(142, 70%, 55%)' : 'hsl(0, 70%, 65%)',
-      middleColor: isGreen ? 'hsl(142, 72%, 45%)' : 'hsl(0, 72%, 55%)',
-      endColor: isGreen ? 'hsl(142, 76%, 36%)' : 'hsl(0, 84%, 44%)',
-      background: isGreen ? 'hsl(142, 30%, 94%)' : 'hsl(0, 30%, 96%)',
-      needle: isGreen ? 'hsl(142, 76%, 30%)' : 'hsl(0, 84%, 40%)',
+      greenGradientId: `arc-gradient-green-${size}`,
+      redGradientId: `arc-gradient-red-${size}`,
+      shadowId: `arc-shadow-${size}`,
+      pivotGradientId: `pivot-gradient-${size}`,
+      // Green (Yes/Will Happen)
+      greenStart: 'hsl(142, 70%, 55%)',
+      greenMiddle: 'hsl(142, 72%, 45%)',
+      greenEnd: 'hsl(142, 76%, 36%)',
+      // Red (No/Won't Happen)
+      redStart: 'hsl(0, 70%, 65%)',
+      redMiddle: 'hsl(0, 72%, 55%)',
+      redEnd: 'hsl(0, 84%, 44%)',
+      // Backgrounds
+      grayBackground: 'hsl(210, 10%, 88%)',
+      // Needle: dark neutral color for visibility against both green and red
+      needle: '#1e293b',
       text: 'hsl(215, 25%, 20%)',
     }
-  }, [color, size])
+  }, [size])
 
   // Arc from 180° (9 o'clock) to 0° (3 o'clock)
   const backgroundArc = createArcPath(center, radius, 180, 0)
-  // Colored arc from 180° down to the needle position
-  const coloredArc = createArcPath(center, radius, 180, needleAngleDeg)
+  // Green arc: 180° to needle (yes region)
+  const greenArc = createArcPath(center, radius, 180, needleAngleDeg)
+  // Red arc: needle to 0° (no region)
+  const redArc = createArcPath(center, radius, needleAngleDeg, 0)
 
   return (
     <div className="flex flex-col items-center">
@@ -85,11 +95,18 @@ export default function Speedometer({
         aria-label={`${label}: ${clampedPercentage}%`}
       >
         <defs>
-          {/* Main arc gradient - 3 stops for depth (left to right across arc) */}
-          <linearGradient id={theme.gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor={theme.startColor} />
-            <stop offset="50%" stopColor={theme.middleColor} />
-            <stop offset="100%" stopColor={theme.endColor} />
+          {/* Green gradient - Yes region (left side) */}
+          <linearGradient id={theme.greenGradientId} x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor={theme.greenStart} />
+            <stop offset="50%" stopColor={theme.greenMiddle} />
+            <stop offset="100%" stopColor={theme.greenEnd} />
+          </linearGradient>
+
+          {/* Red gradient - No region (right side) */}
+          <linearGradient id={theme.redGradientId} x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor={theme.redStart} />
+            <stop offset="50%" stopColor={theme.redMiddle} />
+            <stop offset="100%" stopColor={theme.redEnd} />
           </linearGradient>
 
           {/* Pivot metallic gradient - scales with needleBase */}
@@ -109,16 +126,27 @@ export default function Speedometer({
         <path
           d={backgroundArc}
           fill="none"
-          stroke={theme.background}
+          stroke={theme.grayBackground}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
         />
 
-        {/* Colored Progress Arc */}
+        {/* Green Arc - Yes/Will Happen region (needle splits green from red) */}
         <path
-          d={coloredArc}
+          d={greenArc}
           fill="none"
-          stroke={`url(#${theme.gradientId})`}
+          stroke={`url(#${theme.greenGradientId})`}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          filter={`url(#${theme.shadowId})`}
+          className="transition-all duration-700 ease-in-out"
+        />
+
+        {/* Red Arc - No/Won't Happen region */}
+        <path
+          d={redArc}
+          fill="none"
+          stroke={`url(#${theme.redGradientId})`}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           filter={`url(#${theme.shadowId})`}
