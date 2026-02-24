@@ -229,9 +229,9 @@ function createArcPath(
   const sweepFlag = angleDiff > 0 ? 0 : 1
 
   return [
-    'M', Math.round(start.x * 100) / 100, Math.round(start.y * 100) / 100,
+    'M', start.x, start.y,
     'A', radius, radius, 0, largeArcFlag, sweepFlag,
-    Math.round(end.x * 100) / 100, Math.round(end.y * 100) / 100
+    end.x, end.y
   ].join(' ')
 }
 
