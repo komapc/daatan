@@ -160,7 +160,12 @@ daatan/
 src/
 ├── app/                        # Next.js App Router
 │   ├── api/                    # API routes
+│   │   ├── admin/              # Admin-only endpoints (role: ADMIN)
+│   │   │   └── bots/           # Bot CRUD + run trigger
+│   │   │       └── [id]/       # Per-bot: PATCH, DELETE, run, logs
 │   │   ├── auth/               # NextAuth.js endpoints
+│   │   ├── bots/               # Public bot runner endpoint (cron)
+│   │   │   └── run/            # POST — triggered by GitHub Actions
 │   │   ├── comments/           # Comment CRUD + reactions
 │   │   ├── commitments/        # User commitment listing
 │   │   ├── forecasts/          # Forecast CRUD (new system)
@@ -171,6 +176,8 @@ src/
 │   │   ├── profile/            # User profile update
 │   │   ├── top-reputation/     # Leaderboard endpoint
 │   │   └── version/            # Version endpoint
+│   ├── admin/                  # Admin UI pages (role: ADMIN)
+│   │   └── bots/               # Bot management dashboard (BotsTable.tsx)
 │   ├── auth/                   # Auth pages
 │   │   ├── signin/             # Sign in page
 │   │   │   ├── page.tsx        # Server Component wrapper
@@ -190,6 +197,7 @@ src/
 ├── components/                 # React components
 │   ├── comments/               # Comment thread components
 │   ├── forecasts/              # Forecast-related components
+│   │   └── Speedometer.tsx     # SVG probability gauge (∩-shape, green/red arcs)
 │   ├── profile/                # Profile edit form
 │   ├── Sidebar.tsx             # Navigation sidebar
 │   └── SessionWrapper.tsx      # Auth session provider
@@ -360,6 +368,14 @@ aws_subnet.public_a           # Public subnet
 
 ### GitHub Actions Workflows
 
+#### Bot Runner Workflow (cron)
+
+A scheduled workflow runs every 5 minutes and calls `POST /api/bots/run` with the `x-bot-runner-secret` header. This triggers `runDueBots()` which checks all active bots and runs any that are due.
+
+**Required secret:** `BOT_RUNNER_SECRET` — must match the value of the `BOT_RUNNER_SECRET` environment variable in the running app.
+
+See [docs/bots.md](./docs/bots.md) for full bot system documentation.
+
 #### Deploy Workflow (`deploy.yml`)
 
 **Triggers:**
@@ -407,6 +423,7 @@ aws_subnet.public_a           # Public subnet
 | `GOOGLE_CLIENT_ID` | OAuth client ID |
 | `GOOGLE_CLIENT_SECRET` | OAuth client secret |
 | `GEMINI_API_KEY` | AI API key |
+| `BOT_RUNNER_SECRET` | Shared secret for `POST /api/bots/run` (cron endpoint) |
 
 ---
 
@@ -417,34 +434,34 @@ aws_subnet.public_a           # Public subnet
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                         User                                    │
-│  - id, email, name, image                                       │
+│  - id, email, name, image, isBot                                │
 │  - rs (Reputation Score), cuAvailable, cuLocked                 │
 └─────────────────────────────────────────────────────────────────┘
-         │                    │                    │
-         │ creates            │ commits            │ resolves
-         ▼                    ▼                    ▼
-┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
-│   Prediction    │  │   Commitment    │  │  CuTransaction  │
-│  - claimText    │  │  - cuCommitted  │  │  - type, amount │
-│  - outcomeType  │  │  - rsSnapshot   │  │  - balanceAfter │
-│  - status       │  │  - binaryChoice │  │                 │
-└─────────────────┘  └─────────────────┘  └─────────────────┘
-         │
-         │ linked to
-         ▼
-┌─────────────────┐
-│   NewsAnchor    │
-│  - url, title   │
-│  - source       │
-│  - publishedAt  │
-└─────────────────┘
+         │                    │                    │           │
+         │ creates            │ commits            │ resolves  │ 1:1
+         ▼                    ▼                    ▼           ▼
+┌─────────────────┐  ┌─────────────────┐  ┌──────────────┐  ┌──────────────────┐
+│   Prediction    │  │   Commitment    │  │ CuTransaction│  │   BotConfig      │
+│  - claimText    │  │  - cuCommitted  │  │ - type,amount│  │  - personaPrompt │
+│  - outcomeType  │  │  - rsSnapshot   │  │ - balanceAfter│  │  - intervalMins  │
+│  - status       │  │  - binaryChoice │  │              │  │  - autoApprove   │
+└─────────────────┘  └─────────────────┘  └──────────────┘  └────────┬─────────┘
+         │                                                            │ 1:many
+         │ linked to                                                  ▼
+         ▼                                                  ┌──────────────────┐
+┌─────────────────┐                                         │   BotRunLog      │
+│   NewsAnchor    │                                         │  - action (enum) │
+│  - url, title   │                                         │  - isDryRun      │
+│  - source       │                                         │  - generatedText │
+│  - publishedAt  │                                         │  - error         │
+└─────────────────┘                                         └──────────────────┘
 ```
 
 ### Key Models
 
 | Model | Purpose | Key Fields |
 |-------|---------|------------|
-| User | User accounts | rs, cuAvailable, cuLocked |
+| User | User accounts | rs, cuAvailable, cuLocked, isBot |
 | Prediction | Forecast statements | claimText, outcomeType, status |
 | PredictionOption | Options for multiple choice | text, predictionId |
 | Commitment | CU stakes | cuCommitted, rsSnapshot |
@@ -452,6 +469,8 @@ aws_subnet.public_a           # Public subnet
 | CuTransaction | CU ledger | type, amount, balanceAfter |
 | Notification | User notifications | type, message, read |
 | Tag | Prediction categories | name, slug |
+| BotConfig | Autonomous bot configuration | personaPrompt, intervalMinutes, autoApprove, tagFilter, voteBias |
+| BotRunLog | Audit log of bot actions | action (CREATED_FORECAST, VOTED, SKIPPED, ERROR), isDryRun, generatedText |
 
 ### Legacy Models (Deprecated)
 
@@ -685,6 +704,7 @@ GOOGLE_CLIENT_ID=<google-oauth-client-id>
 GOOGLE_CLIENT_SECRET=<google-oauth-client-secret>
 POSTGRES_PASSWORD=<secure-password>
 GEMINI_API_KEY=<gemini-api-key>
+BOT_RUNNER_SECRET=<shared-secret-for-cron-endpoint>
 ```
 
 ### Git Hooks (Husky)
