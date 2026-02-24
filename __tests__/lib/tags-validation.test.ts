@@ -49,14 +49,14 @@ describe('Tags Validation', () => {
       expect(result.success).toBe(false)
     })
 
-    it('rejects empty tags array', () => {
-      const invalidData = {
+    it('accepts empty tags array', () => {
+      const validData = {
         ...basePrediction,
         tags: [],
       }
 
-      const result = createPredictionSchema.safeParse(invalidData)
-      expect(result.success).toBe(false)
+      const result = createPredictionSchema.safeParse(validData)
+      expect(result.success).toBe(true)
     })
 
     it('accepts prediction without tags (optional field)', () => {
@@ -146,13 +146,13 @@ describe('Tags Validation', () => {
       expect(result.success).toBe(false)
     })
 
-    it('rejects empty tags array for update', () => {
-      const invalidData = {
+    it('accepts empty tags array for update', () => {
+      const validData = {
         tags: [],
       }
 
-      const result = updatePredictionSchema.safeParse(invalidData)
-      expect(result.success).toBe(false)
+      const result = updatePredictionSchema.safeParse(validData)
+      expect(result.success).toBe(true)
     })
 
     it('accepts update without tags field', () => {

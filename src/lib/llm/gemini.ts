@@ -1,10 +1,23 @@
 import { SchemaType, type Schema } from '@google/generative-ai'
-import { getExtractPredictionPrompt } from './prompts'
+import { getExtractPredictionPrompt, getSuggestTagsPrompt } from './prompts'
 import { llmService } from './index'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('llm-gemini')
 
+
+export const suggestTagsSchema: Schema = {
+  description: "Suggested tags for a prediction",
+  type: SchemaType.OBJECT,
+  properties: {
+    tags: {
+      type: SchemaType.ARRAY,
+      items: { type: SchemaType.STRING },
+      description: "List of 1-3 relevant tags",
+    }
+  },
+  required: ["tags"],
+}
 
 export const predictionSchema: Schema = {
   description: "Structured prediction data extracted from text or URL",
@@ -35,6 +48,29 @@ export const predictionSchema: Schema = {
     }
   },
   required: ["claim", "author", "resolutionDate", "outcomeOptions"],
+}
+
+export async function suggestTags(claim: string, details?: string) {
+  const prompt = getSuggestTagsPrompt(claim, details)
+
+  try {
+    const result = await llmService.generateContent({
+      prompt,
+      schema: suggestTagsSchema,
+      temperature: 0.1,
+    })
+
+    try {
+      const parsed = JSON.parse(result.text)
+      return parsed.tags as string[]
+    } catch {
+      log.error({ text: result.text }, 'Failed to parse tag suggestion response')
+      return []
+    }
+  } catch (error) {
+    log.error({ err: error }, 'Failed to suggest tags')
+    return []
+  }
 }
 
 export async function extractPrediction(text: string) {

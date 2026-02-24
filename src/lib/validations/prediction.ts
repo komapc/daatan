@@ -52,8 +52,8 @@ export const createPredictionSchema = z.object({
   resolutionRules: z.string().max(2000).optional(),
   resolveByDatetime: z.string().datetime(),
 
-  // Tags (1-5 tags from STANDARD_TAGS)
-  tags: z.array(z.string().min(1).max(50)).min(1).max(5).optional(),
+  // Tags (0-5 tags from STANDARD_TAGS)
+  tags: z.array(z.string().min(1).max(50)).max(5).optional(),
 })
 
 export const updatePredictionSchema = z.object({
@@ -62,7 +62,7 @@ export const updatePredictionSchema = z.object({
   outcomePayload: z.record(z.string(), z.unknown()).optional(),
   resolutionRules: z.string().max(2000).optional().nullable(),
   resolveByDatetime: z.string().datetime().optional(),
-  tags: z.array(z.string().min(1).max(50)).min(1).max(5).optional(),
+  tags: z.array(z.string().min(1).max(50)).max(5).optional(),
 })
 
 // ============================================
