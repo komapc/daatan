@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link as LinkIcon, Search, X, ExternalLink, Loader2, Wand2 } from 'lucide-react'
 import type { PredictionFormData } from '../ForecastWizard'
 import { createClientLogger } from '@/lib/client-logger'
@@ -30,6 +30,18 @@ export const StepNewsAnchor = ({ formData, updateFormData }: Props) => {
   const [selectedAnchor, setSelectedAnchor] = useState<NewsAnchor | null>(null)
 
   const isUrl = /^https?:\/\/[^\s]+$/i.test(url.trim())
+
+  const handleSelectAnchor = useCallback((anchor: NewsAnchor) => {
+    setSelectedAnchor(anchor)
+    setUrl(anchor.url)
+    setTitle(anchor.title)
+    updateFormData({
+      newsAnchorId: anchor.id,
+      newsAnchorUrl: anchor.url,
+      newsAnchorTitle: anchor.title,
+    })
+    setSearchResults([])
+  }, [updateFormData])
 
   // Auto-fetch title when URL is pasted
   useEffect(() => {
@@ -72,7 +84,7 @@ export const StepNewsAnchor = ({ formData, updateFormData }: Props) => {
 
     const timer = setTimeout(fetchTitle, 500)
     return () => clearTimeout(timer)
-  }, [url, isUrl, title, isSearching, isExtracting])
+  }, [url, isUrl, title, isSearching, isExtracting, handleSelectAnchor])
 
   const handleUrlSubmit = async () => {
     if (!url) return
@@ -170,17 +182,6 @@ export const StepNewsAnchor = ({ formData, updateFormData }: Props) => {
     }
   }
 
-  const handleSelectAnchor = (anchor: NewsAnchor) => {
-    setSelectedAnchor(anchor)
-    setUrl(anchor.url)
-    setTitle(anchor.title)
-    updateFormData({
-      newsAnchorId: anchor.id,
-      newsAnchorUrl: anchor.url,
-      newsAnchorTitle: anchor.title,
-    })
-    setSearchResults([])
-  }
 
   const handleClear = () => {
     setSelectedAnchor(null)

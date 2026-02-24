@@ -288,14 +288,21 @@ export default function PredictionDetailPage() {
                     method: 'POST',
                   })
                   if (!res.ok) {
-                    const data = await res.json()
-                    throw new Error(data.error || 'Failed to analyze context')
+                    const errorData = await res.json().catch(() => ({}))
+                    throw new Error(errorData.error || `Failed to analyze context (${res.status})`)
                   }
-                  toast.success('Context updated!', { id: 'analyze' })
-                  // Force a reload to get the new text
-                  window.location.reload()
+                  const data = await res.json()
+                  toast.success(`Context updated! "${data.newContext}"`, { id: 'analyze', duration: 4000 })
+                  log.info({ context: data.newContext }, 'Context updated successfully')
+                  // Refetch prediction instead of full reload
+                  const response = await fetch(`/api/forecasts/${params.id}`)
+                  if (response.ok) {
+                    const updatedData = await response.json()
+                    setPrediction(updatedData)
+                  }
                 } catch (e: any) {
-                  toast.error(e.message, { id: 'analyze' })
+                  log.error({ err: e }, 'Failed to analyze context')
+                  toast.error(e.message || 'Failed to analyze context', { id: 'analyze' })
                   if (btn) btn.disabled = false
                   if (btn) btn.innerText = orgText
                 }

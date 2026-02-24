@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     }
     const result = listPredictionsQuerySchema.safeParse(queryData)
     if (!result.success) {
-      return apiError('Validation failed', 400)
+      return handleRouteError(result.error)
     }
     const query = result.data
 
