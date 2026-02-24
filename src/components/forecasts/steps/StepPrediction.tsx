@@ -1,8 +1,10 @@
-'use client'
-
-import { AlertCircle } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { AlertCircle, Loader2 } from 'lucide-react'
 import type { PredictionFormData } from '../ForecastWizard'
 import { TagSelector } from '@/components/ui/TagSelector'
+import { createClientLogger } from '@/lib/client-logger'
+
+const log = createClientLogger('StepPrediction')
 
 type Props = {
   formData: PredictionFormData
@@ -10,9 +12,46 @@ type Props = {
 }
 
 export const StepPrediction = ({ formData, updateFormData }: Props) => {
+  const [isSuggesting, setIsSuggesting] = useState(false)
+  const lastSuggestedClaim = useRef('')
+
   const claimLength = formData.claimText?.length || 0
-  const detailsLength = formData.detailsText?.length || 0
+  const detailsLength = formData.detailsText || '' ? String(formData.detailsText).length : 0
   const isClaimTooShort = claimLength > 0 && claimLength < 10
+
+  // Auto-suggest tags when user types a meaningful claim
+  useEffect(() => {
+    const claim = formData.claimText?.trim() || ''
+
+    // Trigger if claim is substantial (e.g. > 20 chars) and has changed since last suggestion
+    if (claim.length >= 20 && claim !== lastSuggestedClaim.current && !isSuggesting) {
+      const timer = setTimeout(async () => {
+        setIsSuggesting(true)
+        lastSuggestedClaim.current = claim
+        try {
+          const res = await fetch('/api/ai/suggest-tags', {
+            method: 'POST',
+            body: JSON.stringify({ claim, details: formData.detailsText })
+          })
+          if (res.ok) {
+            const data = await res.json()
+            if (data.tags?.length > 0) {
+              // Combine existing and new tags, unikified, max 5
+              const currentTags = formData.tags || []
+              const combined = Array.from(new Set([...currentTags, ...data.tags])).slice(0, 5)
+              updateFormData({ tags: combined })
+            }
+          }
+        } catch (error) {
+          log.warn({ err: error }, 'Failed to auto-suggest tags')
+        } finally {
+          setIsSuggesting(false)
+        }
+      }, 1500) // 1.5s debounce
+
+      return () => clearTimeout(timer)
+    }
+  }, [formData.claimText, formData.detailsText, formData.tags, updateFormData, isSuggesting])
 
   return (
     <div className="space-y-6">
@@ -72,39 +111,16 @@ export const StepPrediction = ({ formData, updateFormData }: Props) => {
       {/* Tags */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
             Tags
-            <span className="text-gray-400 font-normal ml-2">(optional, max 5)</span>
+            <span className="text-gray-400 font-normal ml-1">(optional, max 5)</span>
+            {isSuggesting && (
+              <span className="flex items-center gap-1.5 text-blue-600 text-xs font-bold animate-pulse ml-2 px-2 py-0.5 bg-blue-50 rounded-full border border-blue-100">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                AI is categorizing...
+              </span>
+            )}
           </label>
-          <button
-            type="button"
-            onClick={async () => {
-              if (!formData.claimText || formData.claimText.length < 10) return
-              const btn = document.getElementById('suggest-tags-btn')
-              if (btn) btn.innerHTML = '<span class="animate-spin mr-1">⏳</span> Suggesting...'
-              try {
-                const res = await fetch('/api/ai/suggest-tags', {
-                  method: 'POST',
-                  body: JSON.stringify({ claim: formData.claimText, details: formData.detailsText })
-                })
-                if (res.ok) {
-                  const data = await res.json()
-                  if (data.tags?.length > 0) {
-                    // Combine existing and new tags, unikified, max 5
-                    const combined = Array.from(new Set([...(formData.tags || []), ...data.tags])).slice(0, 5)
-                    updateFormData({ tags: combined })
-                  }
-                }
-              } finally {
-                if (btn) btn.innerHTML = '✨ Suggest Tags'
-              }
-            }}
-            id="suggest-tags-btn"
-            disabled={!formData.claimText || formData.claimText.length < 10}
-            className="text-xs font-semibold text-blue-600 hover:text-blue-700 disabled:text-gray-300 disabled:cursor-not-allowed flex items-center transition-colors"
-          >
-            ✨ Suggest Tags
-          </button>
         </div>
         <TagSelector
           selectedTags={formData.tags || []}
