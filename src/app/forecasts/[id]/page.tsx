@@ -462,31 +462,22 @@ export default function PredictionDetailPage() {
 
           return (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                {/* YES Speedometer */}
-                <div className="relative rounded-xl border border-gray-200 bg-white p-4 flex flex-col items-center justify-center hover:border-green-300 transition-colors">
+              <div className="flex justify-center">
+                <div className="w-full max-w-sm relative rounded-xl border border-gray-200 bg-white p-6 flex flex-col items-center justify-center hover:border-green-300 transition-colors shadow-sm">
                   <Speedometer
                     percentage={yesPct}
-                    label="Will Happen"
+                    label="Community Forecast: Will Happen"
                     color="green"
-                    size="sm"
+                    size="lg"
                   />
-                  <p className="mt-2 text-sm text-gray-500">
-                    <span className="font-semibold text-gray-700">{yesCount}</span> commitment{yesCount !== 1 ? 's' : ''}
-                  </p>
-                </div>
-
-                {/* NO Speedometer */}
-                <div className="relative rounded-xl border border-gray-200 bg-white p-4 flex flex-col items-center justify-center hover:border-red-300 transition-colors">
-                  <Speedometer
-                    percentage={noPct}
-                    label="Won't Happen"
-                    color="red"
-                    size="sm"
-                  />
-                  <p className="mt-2 text-sm text-gray-500">
-                    <span className="font-semibold text-gray-700">{noCount}</span> commitment{noCount !== 1 ? 's' : ''}
-                  </p>
+                  <div className="mt-4 flex flex-col items-center gap-1">
+                    <p className="text-sm font-semibold text-gray-900">
+                      {yesCount} YES &middot; {noCount} NO
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Based on {total} total commitment{total !== 1 ? 's' : ''}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -495,31 +486,42 @@ export default function PredictionDetailPage() {
 
         {prediction.outcomeType === 'MULTIPLE_CHOICE' && prediction.options.length > 0 && (() => {
           const totalCommits = prediction.commitments.length
+          const optionsWithStats = prediction.options.map(opt => ({
+            ...opt,
+            commitCount: prediction.commitments.filter(c => c.option?.id === opt.id).length,
+            pct: totalCommits > 0 ? Math.round((prediction.commitments.filter(c => c.option?.id === opt.id).length / totalCommits) * 100) : 0
+          })).sort((a, b) => b.commitCount - a.commitCount)
+
+          const leadingOption = optionsWithStats[0]
+          const otherOptions = optionsWithStats.slice(1)
+
           return (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {prediction.options.map((option) => {
-                const commitCount = prediction.commitments.filter(c => c.option?.id === option.id).length
-                const pct = totalCommits > 0 ? Math.round((commitCount / totalCommits) * 100) : 0
-                return (
-                  <div
-                    key={option.id}
-                    className={`relative rounded-xl border bg-white p-4 flex flex-col items-center justify-center overflow-hidden transition-colors ${option.isCorrect
-                      ? 'border-green-400 ring-1 ring-green-200'
-                      : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                  >
-                    <Speedometer
-                      percentage={pct}
-                      label={option.text}
-                      color={option.isCorrect ? 'green' : 'red'}
-                      size="sm"
-                    />
-                    <p className="mt-2 text-xs text-gray-500">
-                      <span className="font-semibold text-gray-700">{commitCount}</span> commitment{commitCount !== 1 ? 's' : ''}
-                    </p>
+            <div className="flex flex-col items-center">
+              <div className="w-full max-w-sm relative rounded-xl border border-gray-200 bg-white p-6 flex flex-col items-center justify-center hover:border-blue-300 transition-colors shadow-sm mb-6">
+                <Speedometer
+                  percentage={leadingOption.pct}
+                  label={`Leading: ${leadingOption.text}`}
+                  color={leadingOption.isCorrect ? 'green' : 'green'} // Keep leading as green for "leading" context
+                  size="lg"
+                />
+                <p className="mt-4 text-sm text-gray-500">
+                  <span className="font-semibold text-gray-900">{leadingOption.commitCount}</span> commitment{leadingOption.commitCount !== 1 ? 's' : ''} ({leadingOption.pct}%)
+                </p>
+              </div>
+
+              {otherOptions.length > 0 && (
+                <div className="w-full max-w-sm space-y-2">
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest text-center mb-3">Other Options</h4>
+                  <div className="bg-gray-50/50 rounded-xl border border-gray-100 p-3 divide-y divide-gray-100">
+                    {otherOptions.map(option => (
+                      <div key={option.id} className="flex items-center justify-between py-2 text-sm">
+                        <span className="text-gray-700 font-medium truncate pr-4">{option.text}</span>
+                        <span className="text-gray-500 shrink-0 font-mono">{option.pct}%</span>
+                      </div>
+                    ))}
                   </div>
-                )
-              })}
+                </div>
+              )}
             </div>
           )
         })()}

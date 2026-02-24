@@ -6,3 +6,4 @@
 export { getExpressPredictionPrompt, type ExpressPredictionPromptParams } from './expressPrediction'
 export { getExtractPredictionPrompt } from './extractPrediction'
 export { getContextUpdatePrompt } from './updateContext'
+export { getSuggestTagsPrompt } from './suggestTags'

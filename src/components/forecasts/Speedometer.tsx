@@ -141,7 +141,7 @@ export default function Speedometer({
         {/* Value Display */}
         <text
           x={center.x}
-          y={center.y - strokeWidth - 2}
+          y={center.y - radius * 0.45}
           textAnchor="middle"
           className="font-black fill-slate-800 transition-all duration-500"
           style={{
