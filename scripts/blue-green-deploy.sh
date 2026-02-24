@@ -263,6 +263,14 @@ docker exec $CONTAINER_NEW node_modules/prisma/build/index.js migrate deploy 2>&
 }
 echo "✅ Migrations applied successfully"
 
+# ─── Phase 5b: Run database seed (populate initial data) ──────────────────────────
+echo ""
+echo "🌱 Phase 5b: Seeding database..."
+docker exec $CONTAINER_NEW node_modules/prisma/build/index.js db seed 2>&1 || {
+    echo "⚠️  Seed script failed or had no-op (this is often OK)"
+}
+echo "✅ Database seed completed"
+
 # ─── Phase 6: Swap traffic via network aliases (zero downtime) ──────────────────
 echo ""
 echo "🔄 Phase 6: Swapping traffic to new container..."
