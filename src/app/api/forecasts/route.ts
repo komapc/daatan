@@ -21,13 +21,18 @@ export async function GET(request: NextRequest) {
     const session = await getServerSession(authOptions)
     const isAdminOrApprover = session?.user?.role === 'ADMIN' || session?.user?.role === 'APPROVER'
 
-    const query = listPredictionsQuerySchema.parse({
+    const queryData = {
       status: searchParams.get('status') || undefined,
       authorId: searchParams.get('authorId') || undefined,
       tags: searchParams.get('tags') || undefined,
       page: searchParams.get('page') || 1,
       limit: searchParams.get('limit') || 20,
-    })
+    }
+    const result = listPredictionsQuerySchema.safeParse(queryData)
+    if (!result.success) {
+      return apiError('Validation failed', 400)
+    }
+    const query = result.data
 
     const resolvedOnly = searchParams.get('resolvedOnly') === 'true'
     const closingSoon = searchParams.get('closingSoon') === 'true'
@@ -137,21 +142,21 @@ export async function GET(request: NextRequest) {
 
     // Transform predictions to include totalCuCommitted, userHasCommitted, and aggregate counts for speedometers
     const enrichedPredictions = predictions.map(({ commitments, ...pred }) => {
-      const totalCuCommitted = commitments.reduce((sum, c) => sum + c.cuCommitted, 0)
-      const userHasCommitted = userId ? commitments.some(c => c.userId === userId) : false
+      const totalCuCommitted = commitments ? commitments.reduce((sum: number, c: any) => sum + c.cuCommitted, 0) : 0
+      const userHasCommitted = (userId && commitments) ? commitments.some((c: any) => c.userId === userId) : false
 
       // Calculate aggregate choice counts for speedometers
       let yesCount = 0
       let noCount = 0
-      if (pred.outcomeType === 'BINARY') {
+      if (pred.outcomeType === 'BINARY' && commitments) {
         yesCount = commitments.filter(c => c.binaryChoice === true).length
         noCount = commitments.filter(c => c.binaryChoice === false).length
       }
 
-      const options = pred.options.map(opt => ({
+      const options = (pred as any).options?.map((opt: any) => ({
         ...opt,
-        commitmentsCount: commitments.filter(c => c.optionId === opt.id).length,
-      }))
+        commitmentsCount: commitments ? commitments.filter((c: any) => c.optionId === opt.id).length : 0,
+      })) || []
 
       return {
         ...pred,
