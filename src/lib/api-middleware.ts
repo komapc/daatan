@@ -54,6 +54,8 @@ export function withAuth(
       session = await getServerSession(authOptions)
 
       if (!session?.user?.id) {
+        const pathname = request.nextUrl.pathname
+        log.warn({ pathname, hasCookie: !!request.cookies.has('next-auth.session-token') }, 'Missing session in withAuth')
         return apiError('Unauthorized', 401)
       }
 
