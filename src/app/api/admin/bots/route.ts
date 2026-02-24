@@ -136,7 +136,8 @@ export const GET = withAuth(
       return NextResponse.json({ bots: enriched })
     } catch (err) {
       console.error('Bot list error:', err)
-      return handleRouteError(err, 'Failed to list bots')
+      const msg = err instanceof Error ? err.message : String(err)
+      return NextResponse.json({ error: 'Failed to list bots', details: msg }, { status: 500 })
     }
   },
   { roles: ['ADMIN'] },
