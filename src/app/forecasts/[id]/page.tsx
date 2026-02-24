@@ -26,6 +26,7 @@ import CommentThread from '@/components/comments/CommentThread'
 import CommitmentForm from '@/components/forecasts/CommitmentForm'
 import CommitmentDisplay from '@/components/forecasts/CommitmentDisplay'
 import CUBalanceIndicator from '@/components/forecasts/CUBalanceIndicator'
+import Speedometer from '@/components/forecasts/Speedometer'
 import { RoleBadge } from '@/components/RoleBadge'
 
 const log = createClientLogger('ForecastDetail')
@@ -453,36 +454,31 @@ export default function PredictionDetailPage() {
           const noPct = total > 0 ? 100 - yesPct : 50
 
           return (
-            <div className="space-y-3">
-              {/* Distribution bar */}
-              {total > 0 && (
-                <div className="rounded-full h-3 overflow-hidden flex bg-gray-100">
-                  <div
-                    className="bg-green-500 transition-all duration-500"
-                    style={{ width: `${yesPct}%` }}
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                {/* YES Speedometer */}
+                <div className="relative rounded-xl border border-gray-200 bg-white p-4 flex flex-col items-center justify-center hover:border-green-300 transition-colors">
+                  <Speedometer
+                    percentage={yesPct}
+                    label="Will Happen"
+                    color="green"
+                    size="sm"
                   />
-                  <div
-                    className="bg-red-400 transition-all duration-500"
-                    style={{ width: `${noPct}%` }}
-                  />
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="relative rounded-xl border border-gray-200 bg-white p-4 text-center overflow-hidden group hover:border-green-300 transition-colors">
-                  <div className="absolute inset-x-0 bottom-0 h-1 bg-green-500" />
-                  <p className="text-lg font-bold text-green-600">Will Happen</p>
-                  <p className="mt-1 text-sm text-gray-500">
+                  <p className="mt-2 text-sm text-gray-500">
                     <span className="font-semibold text-gray-700">{yesCount}</span> commitment{yesCount !== 1 ? 's' : ''}
-                    {total > 0 && <span className="ml-1 text-green-600 font-medium">({yesPct}%)</span>}
                   </p>
                 </div>
-                <div className="relative rounded-xl border border-gray-200 bg-white p-4 text-center overflow-hidden group hover:border-red-300 transition-colors">
-                  <div className="absolute inset-x-0 bottom-0 h-1 bg-red-400" />
-                  <p className="text-lg font-bold text-red-500">Won&apos;t Happen</p>
-                  <p className="mt-1 text-sm text-gray-500">
+
+                {/* NO Speedometer */}
+                <div className="relative rounded-xl border border-gray-200 bg-white p-4 flex flex-col items-center justify-center hover:border-red-300 transition-colors">
+                  <Speedometer
+                    percentage={noPct}
+                    label="Won't Happen"
+                    color="red"
+                    size="sm"
+                  />
+                  <p className="mt-2 text-sm text-gray-500">
                     <span className="font-semibold text-gray-700">{noCount}</span> commitment{noCount !== 1 ? 's' : ''}
-                    {total > 0 && <span className="ml-1 text-red-500 font-medium">({noPct}%)</span>}
                   </p>
                 </div>
               </div>
@@ -493,33 +489,27 @@ export default function PredictionDetailPage() {
         {prediction.outcomeType === 'MULTIPLE_CHOICE' && prediction.options.length > 0 && (() => {
           const totalCommits = prediction.commitments.length
           return (
-            <div className="space-y-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               {prediction.options.map((option) => {
                 const commitCount = prediction.commitments.filter(c => c.option?.id === option.id).length
                 const pct = totalCommits > 0 ? Math.round((commitCount / totalCommits) * 100) : 0
                 return (
                   <div
                     key={option.id}
-                    className={`relative rounded-xl border bg-white p-4 overflow-hidden transition-colors ${option.isCorrect
+                    className={`relative rounded-xl border bg-white p-4 flex flex-col items-center justify-center overflow-hidden transition-colors ${option.isCorrect
                       ? 'border-green-400 ring-1 ring-green-200'
                       : 'border-gray-200 hover:border-gray-300'
                       }`}
                   >
-                    {/* Background fill */}
-                    <div
-                      className={`absolute inset-y-0 left-0 transition-all duration-500 ${option.isCorrect ? 'bg-green-50' : 'bg-gray-50'
-                        }`}
-                      style={{ width: `${pct}%` }}
+                    <Speedometer
+                      percentage={pct}
+                      label={option.text}
+                      color={option.isCorrect ? 'green' : 'red'}
+                      size="sm"
                     />
-                    <div className="relative flex justify-between items-center">
-                      <span className={`font-medium ${option.isCorrect ? 'text-green-700' : 'text-gray-800'}`}>
-                        {option.text}
-                      </span>
-                      <span className="text-sm text-gray-500 tabular-nums">
-                        {commitCount} commitment{commitCount !== 1 ? 's' : ''}
-                        {totalCommits > 0 && <span className="ml-1 font-medium">({pct}%)</span>}
-                      </span>
-                    </div>
+                    <p className="mt-2 text-xs text-gray-500">
+                      <span className="font-semibold text-gray-700">{commitCount}</span> commitment{commitCount !== 1 ? 's' : ''}
+                    </p>
                   </div>
                 )
               })}

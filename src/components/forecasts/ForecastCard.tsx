@@ -19,8 +19,10 @@ import {
   Trash2,
   Edit2,
   Gavel,
+  Lock,
 } from 'lucide-react'
 import { RoleBadge } from '@/components/RoleBadge'
+import Speedometer from './Speedometer'
 
 export type Prediction = {
   id: string
@@ -28,6 +30,7 @@ export type Prediction = {
   claimText: string
   outcomeType: string
   status: string
+  lockedAt?: string | Date | null
   resolveByDatetime: string | Date
   author: {
     id: string
@@ -44,11 +47,19 @@ export type Prediction = {
     imageUrl?: string | null
   } | null
   tags?: { name: string }[]
+  options?: Array<{
+    id: string
+    text: string
+    isCorrect?: boolean | null
+    commitmentsCount?: number
+  }>
   _count: {
     commitments: number
   }
   totalCuCommitted?: number
   userHasCommitted?: boolean
+  yesCount?: number
+  noCount?: number
 }
 
 interface ForecastCardProps {
@@ -69,10 +80,13 @@ export default function ForecastCard({
     showModerationControls &&
     (session?.user?.role === 'RESOLVER' || session?.user?.role === 'ADMIN') &&
     (prediction.status === 'ACTIVE' || prediction.status === 'PENDING')
+
+  const isLocked = !!prediction.lockedAt
   const isEditable =
-    prediction.status === 'DRAFT' ||
-    prediction.status === 'ACTIVE' ||
-    prediction.status === 'PENDING'
+    (prediction.status === 'DRAFT' ||
+      prediction.status === 'ACTIVE' ||
+      prediction.status === 'PENDING') &&
+    (!isLocked || session?.user?.role === 'ADMIN')
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.preventDefault()
@@ -170,7 +184,38 @@ export default function ForecastCard({
       href={`/forecasts/${prediction.slug || prediction.id}`}
       className="group block p-4 sm:p-5 bg-white border border-gray-200 rounded-xl hover:border-blue-300 hover:shadow-md transition-all duration-200"
     >
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-center justify-between gap-4">
+        {/* Speedometer Gauges (Desktop-only on side) */}
+        {prediction.status === 'ACTIVE' && (
+          <div className="hidden sm:block flex-shrink-0">
+            {prediction.outcomeType === 'BINARY' ? (
+              <Speedometer
+                percentage={
+                  (prediction.yesCount || 0) + (prediction.noCount || 0) > 0
+                    ? Math.round(((prediction.yesCount || 0) / ((prediction.yesCount || 0) + (prediction.noCount || 0))) * 100)
+                    : 50
+                }
+                label="Will Happen"
+                color="green"
+                size="sm"
+              />
+            ) : prediction.outcomeType === 'MULTIPLE_CHOICE' && prediction.options && prediction.options.length > 0 ? (() => {
+              const sortedOptions = [...prediction.options].sort((a, b) => (b.commitmentsCount || 0) - (a.commitmentsCount || 0))
+              const topOption = sortedOptions[0]
+              const total = prediction._count.commitments
+              const pct = total > 0 ? Math.round(((topOption.commitmentsCount || 0) / total) * 100) : 0
+              return (
+                <Speedometer
+                  percentage={pct}
+                  label={topOption.text}
+                  color="green"
+                  size="sm"
+                />
+              )
+            })() : null}
+          </div>
+        )}
+
         <div className="flex-1 min-w-0">
           {/* Header: Status & Category */}
           <div className="flex items-center flex-wrap gap-2 mb-3">
@@ -186,6 +231,12 @@ export default function ForecastCard({
                 {tag.name}
               </span>
             ))}
+            {isLocked && (
+              <span className="flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-700 text-[10px] sm:text-xs font-bold uppercase tracking-wider rounded-full border border-amber-100" title="This forecast is locked and its content cannot be changed.">
+                <Lock className="w-3 h-3" />
+                Locked
+              </span>
+            )}
           </div>
 
           {/* Claim Text */}
