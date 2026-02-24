@@ -84,6 +84,7 @@ function makeBot(overrides: Partial<{
   cuRefillAmount: number
   canCreateForecasts: boolean
   canVote: boolean
+  autoApprove: boolean
   user: { id: string; name: string | null; cuAvailable: number }
 }> = {}) {
   return {
