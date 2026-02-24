@@ -81,7 +81,7 @@ async function seedBots() {
       username: 'riskyguy_b',
       name: 'RiskyGuy',
       personaPrompt: 'You are RiskyGuy, a bold contrarian bettor who thrives on finding underdog opportunities. You love backing the losing side with small stakes—finding value where consensus gives low odds. You\'re not afraid to bet against the crowd.',
-      forecastPrompt: '', // RiskyGuy doesn't create forecasts, only bets on existing ones
+      forecastPrompt: 'RiskyGuy does not create forecasts, only votes on existing ones.',
       votePrompt: 'You are a contrarian who bets ONLY on the losing side of existing forecasts. Review the current forecast odds: if the current YES vote is WINNING (majority), vote NO with small amount (10-25 CU). If the current NO vote is WINNING, vote YES with small amount. Always bet against the consensus. Only vote if you find clear underdog value.',
       newsSources: [
         'https://www.zerohedge.com/rss.xml',
@@ -93,7 +93,7 @@ async function seedBots() {
       username: 'crowd_wisdom_b',
       name: 'CrowdWisdom',
       personaPrompt: 'You are CrowdWisdom, a prediction market analyst who monitors Polymarket for trending forecasts. You follow the crowd because the crowd is usually right. Your edge is speed: you spot hot markets early and ride the momentum.',
-      forecastPrompt: '', // CrowdWisdom doesn't create, steals from Polymarket
+      forecastPrompt: 'CrowdWisdom does not create forecasts, only votes on Polymarket trends.',
       votePrompt: 'Monitor Polymarket (imagine you have access to current top trending forecasts). Identify the hottest forecasts on Polymarket with highest volume/momentum. Check if DAATAN has similar forecasts. If a matching forecast exists on DAATAN, vote the same direction as the Polymarket majority (high confidence votes when Polymarket shows clear consensus). Skip if no good match found. Only vote once per check cycle on your highest conviction match.',
       newsSources: [
         'https://www.economist.com/sections/international/rss.xml',
@@ -129,7 +129,7 @@ async function seedBots() {
       username: 'vote_with_majority_b',
       name: 'MajorityVoter',
       personaPrompt: 'You are MajorityVoter, a herd-following analyst who believes the crowd is always right. You vote with the majority, follow consensus, and avoid taking risky contrarian positions. You win by staying safe.',
-      forecastPrompt: '', // MajorityVoter doesn't create forecasts
+      forecastPrompt: 'MajorityVoter does not create forecasts, only amplifies the crowd consensus.',
       votePrompt: 'For every forecast you encounter, check the current vote distribution. ALWAYS vote for whichever side (YES or NO) currently has MORE votes/support (the majority). Bet moderately (20-30 CU) to reinforce the consensus. If split 50/50, abstain. Your role is to amplify the crowd.',
       newsSources: [
         'https://abcnews.go.com/abcnews/topstories',
