@@ -17,17 +17,17 @@ export default function Speedometer({
   const clampedPercentage = Math.min(100, Math.max(0, percentage))
 
   const sizes = {
-    sm: { width: 120, height: 75, strokeWidth: 5, fontSize: '12px', needleBase: 5, pivotRadius: 3.5 },
-    md: { width: 160, height: 100, strokeWidth: 7, fontSize: '15px', needleBase: 6, pivotRadius: 4.5 },
-    lg: { width: 220, height: 140, strokeWidth: 9, fontSize: '18px', needleBase: 8, pivotRadius: 6 },
-    xl: { width: 280, height: 180, strokeWidth: 11, fontSize: '24px', needleBase: 10, pivotRadius: 7.5 },
+    sm: { width: 120, height: 110, strokeWidth: 5, fontSize: '12px', needleBase: 5, pivotRadius: 3.5 },
+    md: { width: 160, height: 150, strokeWidth: 7, fontSize: '15px', needleBase: 6, pivotRadius: 4.5 },
+    lg: { width: 220, height: 200, strokeWidth: 9, fontSize: '18px', needleBase: 8, pivotRadius: 6 },
+    xl: { width: 280, height: 260, strokeWidth: 11, fontSize: '24px', needleBase: 10, pivotRadius: 7.5 },
   }
 
   const { width, height, strokeWidth, fontSize, needleBase, pivotRadius } = sizes[size]
 
   // Center positioned so arc fits within viewBox with room for labels below
-  const radius = Math.min((width / 2) - strokeWidth - 4, height - strokeWidth - 20)
-  const center = { x: width / 2, y: height - (strokeWidth + 8) }
+  const radius = Math.min((width / 2) - strokeWidth - 4, (height - strokeWidth - 20) / 2)
+  const center = { x: width / 2, y: height - radius - (strokeWidth + 20) }
 
   // Standard speedometer: 0% at 180° (9 o'clock), 100% at 0° (3 o'clock)
   // angle = 180 - (percentage / 100) * 180
@@ -200,7 +200,7 @@ export default function Speedometer({
 /**
  * Create an SVG arc path from startAngle to endAngle
  * Angles in degrees: 0° = right (3 o'clock), 90° = down, 180° = left (9 o'clock), 270° = up
- * Arc is drawn clockwise from start to end
+ * Always draws the SHORT arc between angles
  */
 function createArcPath(
   center: { x: number; y: number },
@@ -211,24 +211,27 @@ function createArcPath(
   const start = polarToCartesian(center.x, center.y, radius, startAngle)
   const end = polarToCartesian(center.x, center.y, radius, endAngle)
 
-  // Calculate the angular sweep
-  let angleDiff = endAngle - startAngle
-
-  // Normalize to -180 to 180 range for cleaner arc calculation
-  if (angleDiff > 180) {
-    angleDiff -= 360
-  } else if (angleDiff < -180) {
-    angleDiff += 360
+  // Ensure start and end are different (avoid degenerate arcs)
+  if (Math.abs(startAngle - endAngle) < 0.5) {
+    return ''
   }
 
-  // largeArcFlag: 1 if arc > 180°, 0 if arc ≤ 180°
+  // Always use the short arc between the two angles
+  let angleDiff = endAngle - startAngle
+
+  // Normalize to -180 to 180 range
+  while (angleDiff > 180) angleDiff -= 360
+  while (angleDiff < -180) angleDiff += 360
+
+  // largeArcFlag: 1 if arc span > 180°, 0 otherwise
   const largeArcFlag = Math.abs(angleDiff) > 180 ? 1 : 0
-  // sweepFlag: 1 for clockwise, 0 for counter-clockwise
-  const sweepFlag = angleDiff < 0 ? 1 : 0
+  // sweepFlag: 1 if going clockwise (positive angle in SVG), 0 if counter-clockwise
+  const sweepFlag = angleDiff > 0 ? 0 : 1
 
   return [
-    'M', start.x, start.y,
-    'A', radius, radius, 0, largeArcFlag, sweepFlag, end.x, end.y
+    'M', Math.round(start.x * 100) / 100, Math.round(start.y * 100) / 100,
+    'A', radius, radius, 0, largeArcFlag, sweepFlag,
+    Math.round(end.x * 100) / 100, Math.round(end.y * 100) / 100
   ].join(' ')
 }
 

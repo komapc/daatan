@@ -49,7 +49,7 @@ export const GET = withAuth(
       const bots = await prisma.botConfig.findMany({
         include: {
           user: { select: { id: true, name: true, username: true, image: true, cuAvailable: true, cuLocked: true } },
-          _count: { select: { runLogs: true } },
+          runLogs: { orderBy: { runAt: 'desc' }, take: 1, select: { runAt: true, action: true, error: true } },
         },
         orderBy: { createdAt: 'asc' },
       })
@@ -60,17 +60,12 @@ export const GET = withAuth(
 
       const enriched = await Promise.all(
         bots.map(async (bot) => {
-          const [forecastsToday, votesToday, lastLog] = await Promise.all([
+          const [forecastsToday, votesToday] = await Promise.all([
             prisma.botRunLog.count({
               where: { botId: bot.id, action: 'CREATED_FORECAST', isDryRun: false, runAt: { gte: startOfDay } },
             }),
             prisma.botRunLog.count({
               where: { botId: bot.id, action: 'VOTED', isDryRun: false, runAt: { gte: startOfDay } },
-            }),
-            prisma.botRunLog.findFirst({
-              where: { botId: bot.id },
-              orderBy: { runAt: 'desc' },
-              select: { runAt: true, action: true, error: true },
             }),
           ])
 
@@ -78,12 +73,43 @@ export const GET = withAuth(
             ? new Date(bot.lastRunAt.getTime() + bot.intervalMinutes * 60 * 1000)
             : null
 
-          return { ...bot, forecastsToday, votesToday, lastLog, nextRunAt }
+          return {
+            id: bot.id,
+            isActive: bot.isActive,
+            intervalMinutes: bot.intervalMinutes,
+            maxForecastsPerDay: bot.maxForecastsPerDay,
+            maxVotesPerDay: bot.maxVotesPerDay,
+            stakeMin: bot.stakeMin,
+            stakeMax: bot.stakeMax,
+            modelPreference: bot.modelPreference,
+            hotnessMinSources: bot.hotnessMinSources,
+            hotnessWindowHours: bot.hotnessWindowHours,
+            personaPrompt: bot.personaPrompt,
+            forecastPrompt: bot.forecastPrompt,
+            votePrompt: bot.votePrompt,
+            newsSources: bot.newsSources,
+            activeHoursStart: bot.activeHoursStart,
+            activeHoursEnd: bot.activeHoursEnd,
+            tagFilter: bot.tagFilter,
+            voteBias: bot.voteBias,
+            cuRefillAt: bot.cuRefillAt,
+            cuRefillAmount: bot.cuRefillAmount,
+            canCreateForecasts: bot.canCreateForecasts,
+            canVote: bot.canVote,
+            autoApprove: bot.autoApprove,
+            lastRunAt: bot.lastRunAt,
+            nextRunAt,
+            forecastsToday,
+            votesToday,
+            lastLog: bot.runLogs[0] || null,
+            user: bot.user,
+          }
         }),
       )
 
       return NextResponse.json({ bots: enriched })
     } catch (err) {
+      console.error('Bot list error:', err)
       return handleRouteError(err, 'Failed to list bots')
     }
   },
