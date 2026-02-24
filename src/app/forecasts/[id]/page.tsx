@@ -468,7 +468,7 @@ export default function PredictionDetailPage() {
                     percentage={yesPct}
                     label="Community Forecast: Will Happen"
                     color="green"
-                    size="lg"
+                    size="xl"
                   />
                   <div className="mt-4 flex flex-col items-center gap-1">
                     <p className="text-sm font-semibold text-gray-900">

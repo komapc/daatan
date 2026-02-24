@@ -197,7 +197,7 @@ export default function ForecastCard({
                 }
                 label="Will Happen"
                 color="green"
-                size="sm"
+                size="md"
               />
             ) : prediction.outcomeType === 'MULTIPLE_CHOICE' && prediction.options && prediction.options.length > 0 ? (() => {
               const sortedOptions = [...prediction.options].sort((a, b) => (b.commitmentsCount || 0) - (a.commitmentsCount || 0))
@@ -209,7 +209,7 @@ export default function ForecastCard({
                   percentage={pct}
                   label={topOption.text}
                   color="green"
-                  size="sm"
+                  size="md"
                 />
               )
             })() : null}

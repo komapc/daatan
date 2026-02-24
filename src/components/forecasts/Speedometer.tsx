@@ -4,7 +4,7 @@ interface SpeedometerProps {
   percentage: number
   label: string
   color: 'green' | 'red'
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'sm' | 'md' | 'lg' | 'xl'
 }
 
 export default function Speedometer({
@@ -17,16 +17,18 @@ export default function Speedometer({
   const clampedPercentage = Math.min(100, Math.max(0, percentage))
 
   const sizes = {
-    sm: { width: 60, height: 40, strokeWidth: 4, fontSize: '11px', needleBase: 3 },
-    md: { width: 80, height: 50, strokeWidth: 5, fontSize: '13px', needleBase: 4 },
-    lg: { width: 100, height: 65, strokeWidth: 6, fontSize: '15px', needleBase: 5 },
+    sm: { width: 80, height: 55, strokeWidth: 5, fontSize: '12px', needleBase: 4 },
+    md: { width: 120, height: 85, strokeWidth: 7, fontSize: '15px', needleBase: 5 },
+    lg: { width: 160, height: 110, strokeWidth: 9, fontSize: '18px', needleBase: 6 },
+    xl: { width: 220, height: 150, strokeWidth: 12, fontSize: '24px', needleBase: 8 },
   }
 
   const { width, height, strokeWidth, fontSize, needleBase } = sizes[size]
 
   // Calculate the arc path for the speedometer
   const radius = (width - strokeWidth) / 2
-  const center = { x: width / 2, y: height - strokeWidth / 2 }
+  // Move center slightly higher from bottom to give labels room
+  const center = { x: width / 2, y: height - (strokeWidth + (size === 'sm' ? 4 : 12)) }
 
   // Needle angle (0% = 180°, 100% = 360°)
   const needleAngle = 180 + (clampedPercentage / 100) * 180
@@ -57,16 +59,17 @@ export default function Speedometer({
   const theme = useMemo(() => {
     const isGreen = color === 'green'
     return {
-      gradientId: `arc-gradient-${color}`,
-      shadowId: `arc-shadow-${color}`,
-      pivotGradientId: `pivot-gradient-${color}`,
-      startColor: isGreen ? 'hsl(142, 70%, 45%)' : 'hsl(0, 70%, 55%)',
+      gradientId: `arc-gradient-${color}-${size}`,
+      shadowId: `arc-shadow-${color}-${size}`,
+      pivotGradientId: `pivot-gradient-${color}-${size}`,
+      startColor: isGreen ? 'hsl(142, 70%, 55%)' : 'hsl(0, 70%, 65%)',
+      middleColor: isGreen ? 'hsl(142, 72%, 45%)' : 'hsl(0, 72%, 55%)',
       endColor: isGreen ? 'hsl(142, 76%, 36%)' : 'hsl(0, 84%, 44%)',
-      background: isGreen ? 'hsl(142, 70%, 95%)' : 'hsl(0, 70%, 97%)',
+      background: isGreen ? 'hsl(142, 30%, 94%)' : 'hsl(0, 30%, 96%)',
       needle: isGreen ? 'hsl(142, 76%, 30%)' : 'hsl(0, 84%, 40%)',
-      text: 'hsl(215, 25%, 27%)', // Slate-800 for readability
+      text: 'hsl(215, 25%, 20%)',
     }
-  }, [color])
+  }, [color, size])
 
   const backgroundArc = createArcPath(center, radius, 180, 360)
   const coloredArc = createArcPath(center, radius, 180, 180 + clampedPercentage * 1.8)
@@ -81,9 +84,10 @@ export default function Speedometer({
         aria-label={`${label}: ${clampedPercentage}%`}
       >
         <defs>
-          {/* Main arc gradient */}
+          {/* Main arc gradient - 3 stops for depth */}
           <linearGradient id={theme.gradientId} x1="0%" y1="50%" x2="100%" y2="50%">
             <stop offset="0%" stopColor={theme.startColor} />
+            <stop offset="50%" stopColor={theme.middleColor} />
             <stop offset="100%" stopColor={theme.endColor} />
           </linearGradient>
 
@@ -138,24 +142,25 @@ export default function Speedometer({
           strokeWidth="0.5"
         />
 
-        {/* Value Display */}
+        {/* Value Display - Higher up inside the arc */}
         <text
           x={center.x}
-          y={center.y - radius * 0.45}
+          y={center.y - radius * 0.55}
           textAnchor="middle"
-          className="font-black fill-slate-800 transition-all duration-500"
+          className="font-black fill-slate-900 transition-all duration-500"
           style={{
             fontSize,
             fontVariantNumeric: 'tabular-nums',
-            letterSpacing: '-0.02em'
+            letterSpacing: '-0.03em',
+            textShadow: '0px 1px 1px rgba(255,255,255,0.8)'
           }}
         >
           {Math.round(clampedPercentage)}%
         </text>
       </svg>
 
-      {/* Label */}
-      <span className="mt-1.5 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500/80">
+      {/* Label - Properly spaced below */}
+      <span className="mt-2 text-[10px] sm:text-[11px] md:text-xs font-bold uppercase tracking-[0.15em] text-slate-500 text-center px-4 leading-tight">
         {label}
       </span>
     </div>
