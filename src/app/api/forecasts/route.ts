@@ -112,6 +112,8 @@ export async function GET(request: NextRequest) {
             select: {
               cuCommitted: true,
               userId: true,
+              binaryChoice: true,
+              optionId: true,
             },
           },
         },
@@ -133,12 +135,33 @@ export async function GET(request: NextRequest) {
       userId = undefined
     }
 
-    // Transform predictions to include totalCuCommitted and userHasCommitted
-    const enrichedPredictions = predictions.map(({ commitments, ...pred }) => ({
-      ...pred,
-      totalCuCommitted: commitments.reduce((sum, c) => sum + c.cuCommitted, 0),
-      userHasCommitted: userId ? commitments.some(c => c.userId === userId) : false,
-    }))
+    // Transform predictions to include totalCuCommitted, userHasCommitted, and aggregate counts for speedometers
+    const enrichedPredictions = predictions.map(({ commitments, ...pred }) => {
+      const totalCuCommitted = commitments.reduce((sum, c) => sum + c.cuCommitted, 0)
+      const userHasCommitted = userId ? commitments.some(c => c.userId === userId) : false
+
+      // Calculate aggregate choice counts for speedometers
+      let yesCount = 0
+      let noCount = 0
+      if (pred.outcomeType === 'BINARY') {
+        yesCount = commitments.filter(c => c.binaryChoice === true).length
+        noCount = commitments.filter(c => c.binaryChoice === false).length
+      }
+
+      const options = pred.options.map(opt => ({
+        ...opt,
+        commitmentsCount: commitments.filter(c => c.optionId === opt.id).length,
+      }))
+
+      return {
+        ...pred,
+        totalCuCommitted,
+        userHasCommitted,
+        yesCount,
+        noCount,
+        options,
+      }
+    })
 
     return NextResponse.json({
       predictions: enrichedPredictions,

@@ -96,7 +96,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 export const PATCH = withAuth(async (request, user, { params }) => {
   const prediction = await prisma.prediction.findUnique({
     where: { id: params.id },
-    select: { authorId: true, status: true },
+    select: { authorId: true, status: true, lockedAt: true },
   })
 
   if (!prediction) {
@@ -114,6 +114,16 @@ export const PATCH = withAuth(async (request, user, { params }) => {
   }
 
   const body = await request.json()
+
+  // Enforce immutability for locked forecasts
+  if (prediction.lockedAt && user.role !== 'ADMIN') {
+    const restrictedFields = ['claimText', 'detailsText', 'outcomePayload']
+    const attemptedRestrictedUpdates = Object.keys(body).filter(key => restrictedFields.includes(key))
+    if (attemptedRestrictedUpdates.length > 0) {
+      return apiError(`Cannot update restricted fields (${attemptedRestrictedUpdates.join(', ')}) on a locked forecast`, 400)
+    }
+  }
+
   const data = updatePredictionSchema.parse(body)
 
   // Validate resolve-by if provided

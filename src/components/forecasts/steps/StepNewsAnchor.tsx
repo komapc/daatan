@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link as LinkIcon, Search, X, ExternalLink, Loader2, Wand2 } from 'lucide-react'
 import type { PredictionFormData } from '../ForecastWizard'
 import { createClientLogger } from '@/lib/client-logger'
@@ -29,6 +29,51 @@ export const StepNewsAnchor = ({ formData, updateFormData }: Props) => {
   const [searchResults, setSearchResults] = useState<NewsAnchor[]>([])
   const [selectedAnchor, setSelectedAnchor] = useState<NewsAnchor | null>(null)
 
+  const isUrl = /^https?:\/\/[^\s]+$/i.test(url.trim())
+
+  // Auto-fetch title when URL is pasted
+  useEffect(() => {
+    const fetchTitle = async () => {
+      if (isUrl && !title && !isSearching && !isExtracting) {
+        setIsSearching(true)
+        try {
+          const response = await fetch(`/api/news-anchors?url=${encodeURIComponent(url.trim())}`)
+          if (response.ok) {
+            const data = await response.json()
+            const existingAnchor = data.anchors?.[0]
+            if (existingAnchor) {
+              setTitle(existingAnchor.title)
+              handleSelectAnchor(existingAnchor)
+            } else if (!title) {
+              // Extract a basic title from the URL path as a last resort
+              try {
+                const urlObj = new URL(url.trim())
+                const pathParts = urlObj.pathname.split('/').filter(Boolean)
+                if (pathParts.length > 0) {
+                  const lastPart = pathParts[pathParts.length - 1]
+                  const readableTitle = lastPart
+                    .replace(/[-_]/g, ' ')
+                    .replace(/\.[^/.]+$/, '') // remove extension
+                    .replace(/\b\w/g, l => l.toUpperCase()) // capitalize
+                  if (readableTitle.length > 5) setTitle(readableTitle)
+                }
+              } catch {
+                // ignore
+              }
+            }
+          }
+        } catch (error) {
+          log.warn({ err: error }, 'Failed to fetch article title')
+        } finally {
+          setIsSearching(false)
+        }
+      }
+    }
+
+    const timer = setTimeout(fetchTitle, 500)
+    return () => clearTimeout(timer)
+  }, [url, isUrl, title, isSearching, isExtracting])
+
   const handleUrlSubmit = async () => {
     if (!url) return
 
@@ -54,7 +99,7 @@ export const StepNewsAnchor = ({ formData, updateFormData }: Props) => {
         })
       }
     } catch (error) {
-        log.error({ err: error }, 'Error creating news anchor')
+      log.error({ err: error }, 'Error creating news anchor')
     } finally {
       setIsSearching(false)
     }
@@ -102,7 +147,7 @@ export const StepNewsAnchor = ({ formData, updateFormData }: Props) => {
         })
       }
     } catch (error) {
-        log.error({ err: error }, 'Magic extract error')
+      log.error({ err: error }, 'Magic extract error')
     } finally {
       setIsExtracting(false)
     }
@@ -121,7 +166,7 @@ export const StepNewsAnchor = ({ formData, updateFormData }: Props) => {
         setSearchResults(data.anchors)
       }
     } catch (error) {
-        log.error({ err: error }, 'Error searching news anchors')
+      log.error({ err: error }, 'Error searching news anchors')
     }
   }
 
@@ -164,9 +209,9 @@ export const StepNewsAnchor = ({ formData, updateFormData }: Props) => {
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <h3 className="font-medium text-gray-900">{selectedAnchor.title}</h3>
-              <a 
-                href={selectedAnchor.url} 
-                target="_blank" 
+              <a
+                href={selectedAnchor.url}
+                target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-blue-600 hover:underline flex items-center gap-1 mt-1"
               >
@@ -241,51 +286,53 @@ export const StepNewsAnchor = ({ formData, updateFormData }: Props) => {
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   placeholder="https://example.com/article"
-                  className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className={`w-full pl-10 pr-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${isUrl ? 'border-blue-300 bg-blue-50/30' : 'border-gray-200'}`}
                 />
               </div>
             </div>
 
-            <div>
+            <div className={`transition-all duration-300 origin-top ${isUrl ? 'opacity-100 max-h-40' : 'opacity-0 max-h-0 overflow-hidden'}`}>
               <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
                 Article Title
               </label>
-              <input
-                type="text"
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Enter the article headline"
-                className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  id="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder={isSearching ? 'Fetching title...' : 'Enter article headline'}
+                  disabled={isSearching}
+                  className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50"
+                />
+                {isSearching && (
+                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-blue-500" />
+                )}
+              </div>
             </div>
 
-            <div className="flex gap-2">
-              <button
-                onClick={handleUrlSubmit}
-                disabled={!url || !title || isSearching || isExtracting}
-                className="flex-1 py-3 px-6 rounded-lg bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {isSearching ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  'Add Article'
-                )}
-              </button>
-
+            <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={handleMagicExtract}
-                disabled={!url || isSearching || isExtracting}
-                className="flex-1 py-3 px-6 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm"
+                disabled={!isUrl || isSearching || isExtracting}
+                className="flex-[2] py-3.5 px-6 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm hover:shadow-md active:scale-[0.98]"
               >
                 {isExtracting ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
                   <>
                     <Wand2 className="w-5 h-5" />
-                    Magic Extract
+                    <span>AI Magic Extract</span>
                   </>
                 )}
+              </button>
+
+              <button
+                onClick={handleUrlSubmit}
+                disabled={!isUrl || !title || isSearching || isExtracting}
+                className="flex-1 py-3.5 px-6 rounded-xl bg-white text-gray-700 font-semibold border-2 border-gray-100 hover:bg-gray-50 hover:border-gray-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                Add Manually
               </button>
             </div>
           </div>
