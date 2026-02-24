@@ -23,8 +23,12 @@ interface ApiErrorBody {
 }
 
 /** Return a standardised JSON error response. */
-export function apiError(message: string, status: number): NextResponse<ApiErrorBody> {
-  return NextResponse.json({ error: message }, { status })
+export function apiError(
+  message: string,
+  status: number,
+  details?: ValidationDetail[]
+): NextResponse<ApiErrorBody> {
+  return NextResponse.json({ error: message, details }, { status })
 }
 
 /**
@@ -38,13 +42,23 @@ export function handleRouteError(
   fallbackMessage = 'Internal server error',
 ): NextResponse<ApiErrorBody> {
   if (error instanceof z.ZodError) {
+    const details = error.issues.map((i) => ({
+      path: i.path,
+      message: i.message,
+    }))
+
+    // Create a more descriptive error message: "Validation failed: path (message)"
+    const firstIssue = details[0]
+    let detailedMessage = 'Validation failed'
+    if (firstIssue) {
+      const pathStr = firstIssue.path.join('.')
+      detailedMessage = `Validation failed: ${pathStr ? pathStr + ' ' : ''}(${firstIssue.message})`
+    }
+
     return NextResponse.json(
       {
-        error: 'Validation failed',
-        details: error.issues.map((i) => ({
-          path: i.path,
-          message: i.message,
-        })),
+        error: detailedMessage,
+        details,
       },
       { status: 400 },
     )
