@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Link as LinkIcon, Search, X, ExternalLink, Loader2, Wand2 } from 'lucide-react'
+import { Link as LinkIcon, X, ExternalLink, Loader2, Wand2 } from 'lucide-react'
 import type { PredictionFormData } from '../ForecastWizard'
 import { createClientLogger } from '@/lib/client-logger'
 
@@ -26,7 +26,6 @@ export const StepNewsAnchor = ({ formData, updateFormData }: Props) => {
   const [title, setTitle] = useState(formData.newsAnchorTitle || '')
   const [isSearching, setIsSearching] = useState(false)
   const [isExtracting, setIsExtracting] = useState(false)
-  const [searchResults, setSearchResults] = useState<NewsAnchor[]>([])
   const [selectedAnchor, setSelectedAnchor] = useState<NewsAnchor | null>(null)
 
   const isUrl = /^https?:\/\/[^\s]+$/i.test(url.trim())
@@ -40,7 +39,6 @@ export const StepNewsAnchor = ({ formData, updateFormData }: Props) => {
       newsAnchorUrl: anchor.url,
       newsAnchorTitle: anchor.title,
     })
-    setSearchResults([])
   }, [updateFormData])
 
   // Auto-fetch title when URL is pasted
@@ -165,24 +163,6 @@ export const StepNewsAnchor = ({ formData, updateFormData }: Props) => {
     }
   }
 
-  const handleSearch = async (query: string) => {
-    if (!query || query.length < 3) {
-      setSearchResults([])
-      return
-    }
-
-    try {
-      const response = await fetch(`/api/news-anchors?search=${encodeURIComponent(query)}&limit=5`)
-      if (response.ok) {
-        const data = await response.json()
-        setSearchResults(data.anchors)
-      }
-    } catch (error) {
-      log.error({ err: error }, 'Error searching news anchors')
-    }
-  }
-
-
   const handleClear = () => {
     setSelectedAnchor(null)
     setUrl('')
@@ -235,109 +215,72 @@ export const StepNewsAnchor = ({ formData, updateFormData }: Props) => {
           </div>
         </div>
       ) : (
-        <>
-          {/* Search existing anchors */}
+        <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Search existing articles
+            <label htmlFor="url" className="block text-sm font-medium text-gray-700 mb-2">
+              Article URL
             </label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
-                type="text"
-                placeholder="Search by title..."
-                onChange={(e) => handleSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                type="url"
+                id="url"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="https://example.com/article"
+                className={`w-full pl-10 pr-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${isUrl ? 'border-blue-300 bg-blue-50/30' : 'border-gray-200'}`}
               />
             </div>
-            {searchResults.length > 0 && (
-              <ul className="mt-2 border border-gray-200 rounded-lg divide-y divide-gray-100">
-                {searchResults.map((anchor) => (
-                  <li key={anchor.id}>
-                    <button
-                      onClick={() => handleSelectAnchor(anchor)}
-                      className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors"
-                    >
-                      <div className="font-medium text-gray-900">{anchor.title}</div>
-                      <div className="text-sm text-gray-500">{anchor.source || new URL(anchor.url).hostname}</div>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="flex-1 border-t border-gray-200" />
-            <span className="text-sm text-gray-400">or add new</span>
-            <div className="flex-1 border-t border-gray-200" />
+          <div className={`transition-all duration-300 origin-top ${isUrl ? 'opacity-100 max-h-40' : 'opacity-0 max-h-0 overflow-hidden'}`}>
+            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+              Article Title
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder={isSearching ? 'Fetching title...' : 'Enter article headline'}
+                disabled={isSearching}
+                className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50"
+              />
+              {isSearching && (
+                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-blue-500" />
+              )}
+            </div>
           </div>
 
-          {/* Add new anchor */}
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="url" className="block text-sm font-medium text-gray-700 mb-2">
-                Article URL
-              </label>
-              <div className="relative">
-                <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="url"
-                  id="url"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  placeholder="https://example.com/article"
-                  className={`w-full pl-10 pr-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${isUrl ? 'border-blue-300 bg-blue-50/30' : 'border-gray-200'}`}
-                />
-              </div>
-            </div>
-
-            <div className={`transition-all duration-300 origin-top ${isUrl ? 'opacity-100 max-h-40' : 'opacity-0 max-h-0 overflow-hidden'}`}>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-                Article Title
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  id="title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder={isSearching ? 'Fetching title...' : 'Enter article headline'}
-                  disabled={isSearching}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50"
-                />
-                {isSearching && (
-                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-blue-500" />
-                )}
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-3">
-              <button
-                onClick={handleMagicExtract}
-                disabled={!isUrl || isSearching || isExtracting}
-                className="flex-[2] py-3.5 px-6 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm hover:shadow-md active:scale-[0.98]"
-              >
-                {isExtracting ? (
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={handleMagicExtract}
+              disabled={!isUrl || isSearching || isExtracting}
+              className="flex-[2] py-3.5 px-6 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm hover:shadow-md active:scale-[0.98]"
+            >
+              {isExtracting ? (
+                <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <>
-                    <Wand2 className="w-5 h-5" />
-                    <span>AI Magic Extract</span>
-                  </>
-                )}
-              </button>
+                  <span>AI is working its magic...</span>
+                </>
+              ) : (
+                <>
+                  <Wand2 className="w-5 h-5" />
+                  <span>AI Magic Extract</span>
+                </>
+              )}
+            </button>
 
-              <button
-                onClick={handleUrlSubmit}
-                disabled={!isUrl || !title || isSearching || isExtracting}
-                className="flex-1 py-3.5 px-6 rounded-xl bg-white text-gray-700 font-semibold border-2 border-gray-100 hover:bg-gray-50 hover:border-gray-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                Add Manually
-              </button>
-            </div>
+            <button
+              onClick={handleUrlSubmit}
+              disabled={!isUrl || !title || isSearching || isExtracting}
+              className="flex-1 py-3.5 px-6 rounded-xl bg-white text-gray-700 font-semibold border-2 border-gray-100 hover:bg-gray-50 hover:border-gray-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              Add Manually
+            </button>
           </div>
-        </>
+        </div>
       )}
 
       <div className="p-4 bg-blue-50 border border-blue-100 rounded-lg flex items-start gap-3">
@@ -354,4 +297,3 @@ export const StepNewsAnchor = ({ formData, updateFormData }: Props) => {
     </div>
   )
 }
-
