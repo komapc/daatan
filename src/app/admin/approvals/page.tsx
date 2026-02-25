@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { Loader2, CheckCircle, XCircle, ExternalLink, Bot } from 'lucide-react'
+import { toast } from 'react-hot-toast'
 import Link from 'next/link'
 import Image from 'next/image'
 
@@ -28,6 +29,7 @@ export default function ApprovalsPage() {
     const [total, setTotal] = useState(0)
     const [isLoading, setIsLoading] = useState(true)
     const [actioningId, setActioningId] = useState<string | null>(null)
+    const [resolvedIds, setResolvedIds] = useState<Record<string, 'approved' | 'rejected'>>({})
 
     const fetchPending = useCallback(async () => {
         setIsLoading(true)
@@ -56,11 +58,19 @@ export default function ApprovalsPage() {
                 body: JSON.stringify({ status: 'ACTIVE' }),
             })
             if (res.ok) {
-                setPredictions((prev) => prev.filter((p) => p.id !== id))
+                setResolvedIds((prev) => ({ ...prev, [id]: 'approved' }))
                 setTotal((prev) => prev - 1)
+                toast.success('Forecast approved')
+                // Remove from list after a brief delay so user sees the green state
+                setTimeout(() => {
+                    setPredictions((prev) => prev.filter((p) => p.id !== id))
+                }, 800)
+            } else {
+                const data = await res.json().catch(() => ({}))
+                toast.error(data.error || 'Failed to approve forecast')
             }
         } catch {
-            // silent
+            toast.error('Network error — failed to approve')
         } finally {
             setActioningId(null)
         }
@@ -76,11 +86,18 @@ export default function ApprovalsPage() {
                 body: JSON.stringify({ status: 'VOID' }),
             })
             if (res.ok) {
-                setPredictions((prev) => prev.filter((p) => p.id !== id))
+                setResolvedIds((prev) => ({ ...prev, [id]: 'rejected' }))
                 setTotal((prev) => prev - 1)
+                toast.success('Forecast rejected')
+                setTimeout(() => {
+                    setPredictions((prev) => prev.filter((p) => p.id !== id))
+                }, 800)
+            } else {
+                const data = await res.json().catch(() => ({}))
+                toast.error(data.error || 'Failed to reject forecast')
             }
         } catch {
-            // silent
+            toast.error('Network error — failed to reject')
         } finally {
             setActioningId(null)
         }
@@ -126,11 +143,35 @@ export default function ApprovalsPage() {
                 </div>
             ) : (
                 <div className="space-y-3">
-                    {predictions.map((p) => (
+                    {predictions.map((p) => {
+                        const resolved = resolvedIds[p.id]
+                        const isApproved = resolved === 'approved'
+                        const isRejected = resolved === 'rejected'
+
+                        return (
                         <div
                             key={p.id}
-                            className="bg-white border border-amber-200 rounded-xl p-4 hover:border-amber-300 transition-colors shadow-sm"
+                            className={`rounded-xl p-4 transition-all shadow-sm ${
+                                isApproved
+                                    ? 'bg-green-50 border-2 border-green-400 opacity-75'
+                                    : isRejected
+                                    ? 'bg-red-50 border-2 border-red-300 opacity-75'
+                                    : 'bg-white border border-amber-200 hover:border-amber-300'
+                            }`}
                         >
+                            {/* Approved / Rejected banner */}
+                            {resolved && (
+                                <div className={`flex items-center gap-2 mb-3 px-3 py-2 rounded-lg text-sm font-semibold ${
+                                    isApproved ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                }`}>
+                                    {isApproved ? (
+                                        <><CheckCircle className="w-5 h-5" /> Approved — now ACTIVE</>
+                                    ) : (
+                                        <><XCircle className="w-5 h-5" /> Rejected — moved to VOID</>
+                                    )}
+                                </div>
+                            )}
+
                             <div className="flex items-start justify-between gap-4">
                                 {/* Content */}
                                 <div className="flex-1 min-w-0">
@@ -163,16 +204,19 @@ export default function ApprovalsPage() {
                                     </Link>
 
                                     <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
-                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-medium">
-                                            ⏳ Pending Approval
-                                        </span>
+                                        {!resolved && (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-medium">
+                                                Pending Approval
+                                            </span>
+                                        )}
                                         <span>{p._count.commitments} stakes</span>
                                         <span>{p._count.comments} comments</span>
                                         <span>Resolves: {new Date(p.resolveByDatetime).toLocaleDateString()}</span>
                                     </div>
                                 </div>
 
-                                {/* Actions */}
+                                {/* Actions — hidden once resolved */}
+                                {!resolved && (
                                 <div className="flex items-center gap-2 shrink-0">
                                     <Link
                                         href={`/forecasts/${p.slug || p.id}`}
@@ -204,9 +248,11 @@ export default function ApprovalsPage() {
                                         Reject
                                     </button>
                                 </div>
+                                )}
                             </div>
                         </div>
-                    ))}
+                        )
+                    })}
 
                     <p className="text-xs text-gray-400 text-center pt-2">
                         {total} forecast{total !== 1 ? 's' : ''} pending approval
