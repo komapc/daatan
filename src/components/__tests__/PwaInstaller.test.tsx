@@ -19,8 +19,10 @@ function makeInstallPromptEvent() {
     userChoice: Promise<{ outcome: string; platform: string }>
     preventDefault: ReturnType<typeof vi.fn>
   }
-  event.preventDefault = vi.fn()
-  event.prompt = vi.fn().mockResolvedValue(undefined)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  event.preventDefault = vi.fn() as any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  event.prompt = vi.fn().mockResolvedValue(undefined) as any
   event.userChoice = Promise.resolve({ outcome: 'dismissed', platform: '' })
   return event
 }
@@ -42,7 +44,7 @@ describe('PwaInstaller — beforeinstallprompt handling', () => {
     localStorage.clear()
     // Suppress service worker registration noise
     Object.defineProperty(navigator, 'serviceWorker', {
-      value: { register: vi.fn().mockResolvedValue({}) },
+      value: { register: () => Promise.resolve({} as ServiceWorkerRegistration) } as unknown as ServiceWorkerContainer,
       configurable: true,
       writable: true,
     })

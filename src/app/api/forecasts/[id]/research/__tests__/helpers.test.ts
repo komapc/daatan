@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { extractKeyTerms, hasRelevantResults } from '../route'
+import { extractKeyTerms, hasRelevantResults } from '../helpers'
 import type { SearchResult } from '@/lib/utils/webSearch'
 
 // ---------------------------------------------------------------------------
