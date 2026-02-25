@@ -25,7 +25,11 @@ interface SerperResponse {
   news?: SerperSearchResult[]
 }
 
-export async function searchArticles(query: string, limit: number = 5): Promise<SearchResult[]> {
+export async function searchArticles(
+  query: string,
+  limit: number = 10,
+  options?: { dateFrom?: Date; dateTo?: Date }
+): Promise<SearchResult[]> {
   const apiKey = process.env.SERPER_API_KEY
 
   if (!apiKey) {
@@ -34,19 +38,19 @@ export async function searchArticles(query: string, limit: number = 5): Promise<
   }
 
   try {
-    // Add "news" to query to prioritize recent articles
-    const searchQuery = `${query} news`
+    const body: Record<string, unknown> = { q: query, num: limit }
 
-    const response = await fetch('https://google.serper.dev/search', {
+    if (options?.dateFrom && options?.dateTo) {
+      body.tbs = `cdr:1,cd_min:${formatSerperDate(options.dateFrom)},cd_max:${formatSerperDate(options.dateTo)}`
+    }
+
+    const response = await fetch('https://google.serper.dev/news', {
       method: 'POST',
       headers: {
         'X-API-KEY': apiKey,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        q: searchQuery,
-        num: limit
-      })
+      body: JSON.stringify(body)
     })
 
     if (!response.ok) {
@@ -54,9 +58,9 @@ export async function searchArticles(query: string, limit: number = 5): Promise<
     }
 
     const data: SerperResponse = await response.json()
-
-    // Prefer news results if available, otherwise use organic results
-    const results = data.news || data.organic || []
+    // Prefer news results; fall back to organic only when news is absent or empty
+    const news = data.news ?? []
+    const results = news.length > 0 ? news : (data.organic ?? [])
 
     if (results.length === 0) {
       return []
@@ -73,6 +77,10 @@ export async function searchArticles(query: string, limit: number = 5): Promise<
     log.error({ err: error }, 'Search error')
     throw error
   }
+}
+
+function formatSerperDate(date: Date): string {
+  return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`
 }
 
 function extractDomain(url: string): string {

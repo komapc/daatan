@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { VERSION } from '@/lib/version'
 import { createClientLogger } from '@/lib/client-logger'
@@ -18,6 +18,7 @@ const PwaInstaller = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [isInstalled, setIsInstalled] = useState(false)
   const [isDismissed, setIsDismissed] = useState(false)
+  const isDismissedRef = useRef(false)
 
   // On mount, check if user already dismissed for this version
   useEffect(() => {
@@ -25,6 +26,7 @@ const PwaInstaller = () => {
     try {
       const dismissedVersion = localStorage.getItem(DISMISS_KEY)
       if (dismissedVersion === VERSION) {
+        isDismissedRef.current = true
         setIsDismissed(true)
       }
     } catch {
@@ -38,6 +40,7 @@ const PwaInstaller = () => {
     }
 
     const handleBeforeInstallPrompt = (event: Event) => {
+      if (isDismissedRef.current) return
       event.preventDefault()
       setDeferredPrompt(event as BeforeInstallPromptEvent)
     }
@@ -87,6 +90,7 @@ const PwaInstaller = () => {
   }
 
   const handleDismiss = () => {
+    isDismissedRef.current = true
     setIsDismissed(true)
     try {
       localStorage.setItem(DISMISS_KEY, VERSION)
