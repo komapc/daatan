@@ -31,6 +31,25 @@ async function main() {
     console.log(`✅ User ${user.email} → role=${user.role} (id=${user.id}, name=${user.name})`)
   }
 
+  // Also promote known user IDs that may have been created via OAuth
+  // with a different email mapping (duplicate account edge case)
+  const adminUserIds = [
+    'cml6p9bqz0000jnyvw6tx5uzq', // Mark Janwuf (prod)
+    'cml7r4krc0000fjmqkxz3rrwg', // Marik marik (prod)
+  ]
+
+  for (const id of adminUserIds) {
+    try {
+      const user = await prisma.user.update({
+        where: { id },
+        data: { role: 'ADMIN' },
+      })
+      console.log(`✅ User by ID ${id} → role=ADMIN (name=${user.name})`)
+    } catch {
+      // User ID doesn't exist on this environment (e.g., staging) — skip
+    }
+  }
+
   // Verify: list all ADMIN/APPROVER users
   const privileged = await prisma.user.findMany({
     where: { role: { in: ['ADMIN', 'APPROVER', 'RESOLVER'] } },
