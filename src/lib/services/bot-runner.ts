@@ -271,11 +271,13 @@ Is this topic already substantially covered by one of the forecasts above? Reply
       return 'skipped'
     }
 
-    // Build tag constraint for prompt injection when tagFilter is set
+    // Build tag constraint for prompt injection when tagFilter is set.
+    // Sanitize each tag to slug-safe chars only to prevent prompt injection.
     const tagFilter = bot.tagFilter as string[]
+    const safeTags = tagFilter.map(t => t.replace(/[^a-z0-9_-]/g, '').trim()).filter(Boolean)
     const tagConstraint =
-      tagFilter.length > 0
-        ? `\nConstraint: assign one of these tag slugs to this forecast: ${tagFilter.join(', ')}. If the news topic does not fit any of these tags, set "skip": true in the JSON.`
+      safeTags.length > 0
+        ? `\nConstraint: assign one of these tag slugs to this forecast: ${safeTags.join(', ')}. If the news topic does not fit any of these tags, set "skip": true in the JSON.`
         : `\nIf this news topic does not match your area of expertise or persona, set "skip": true in the JSON instead of generating a forecast.`
 
     // Generate a forecast from this topic

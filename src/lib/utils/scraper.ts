@@ -6,7 +6,7 @@ const log = createLogger('scraper')
 const resolve4 = util.promisify(dns.resolve4)
 
 // Check if an IP address is in a private/local range
-function isPrivateIP(ip: string): boolean {
+export function isPrivateIP(ip: string): boolean {
   // IPv4 mapped IPv6 addresses
   if (ip.startsWith('::ffff:')) {
     ip = ip.substring(7)

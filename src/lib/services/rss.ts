@@ -1,5 +1,6 @@
 import Parser from 'rss-parser'
 import { createLogger } from '@/lib/logger'
+import { isPrivateIP } from '@/lib/utils/scraper'
 
 const log = createLogger('rss')
 
@@ -33,6 +34,17 @@ export async function fetchRssFeeds(feedUrls: string[]): Promise<RssItem[]> {
   return items
 }
 
+/** Returns true if the hostname string looks like a private/internal address. */
+function isPrivateHostname(hostname: string): boolean {
+  // Direct IP literals
+  if (isPrivateIP(hostname)) return true
+  // Loopback names
+  if (hostname === 'localhost' || hostname.endsWith('.localhost')) return true
+  // Internal TLDs
+  if (hostname.endsWith('.internal') || hostname.endsWith('.local')) return true
+  return false
+}
+
 async function fetchFeed(url: string): Promise<RssItem[]> {
   try {
     let targetUrl = url.trim()
@@ -41,6 +53,23 @@ async function fetchFeed(url: string): Promise<RssItem[]> {
     if (targetUrl.toLowerCase().startsWith('search:')) {
       const query = targetUrl.slice(7).trim()
       targetUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-US&gl=US&ceid=US:en`
+    }
+
+    // SSRF protection: only allow HTTPS URLs and block private/internal hostnames
+    let parsedUrl: URL
+    try {
+      parsedUrl = new URL(targetUrl)
+    } catch {
+      log.warn({ url: targetUrl }, 'Invalid RSS feed URL, skipping')
+      return []
+    }
+    if (parsedUrl.protocol !== 'https:') {
+      log.warn({ url: targetUrl, protocol: parsedUrl.protocol }, 'Non-HTTPS RSS feed URL rejected')
+      return []
+    }
+    if (isPrivateHostname(parsedUrl.hostname)) {
+      log.warn({ url: targetUrl, hostname: parsedUrl.hostname }, 'Private/internal RSS feed hostname rejected')
+      return []
     }
 
     // Try parsing as RSS first
