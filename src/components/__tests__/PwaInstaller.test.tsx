@@ -19,9 +19,7 @@ function makeInstallPromptEvent() {
     userChoice: Promise<{ outcome: string; platform: string }>
     preventDefault: ReturnType<typeof vi.fn>
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   event.preventDefault = vi.fn() as any
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   event.prompt = vi.fn().mockResolvedValue(undefined) as any
   event.userChoice = Promise.resolve({ outcome: 'dismissed', platform: '' })
   return event
