@@ -38,6 +38,9 @@ COPY . .
 RUN npx prisma generate
 RUN npm run build 2>&1 || (echo "Build failed!" && cat .next/build-error.log 2>/dev/null && exit 1)
 
+# Compile seed.ts → seed.js so it can run in the slim production image (tsx is a devDep)
+RUN npx esbuild prisma/seed.ts --bundle --platform=node --outfile=prisma/seed.js --packages=external
+
 # Production stage
 FROM node:20-bookworm-slim AS runner
 
