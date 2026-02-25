@@ -350,6 +350,40 @@ Requirements:
       forecast.claimText = `🤖 ${forecast.claimText}`
     }
 
+    // ── Quality gate ─────────────────────────────────────────────────────
+    // Ask LLM to validate forecast quality before saving
+    const qualityPrompt = `You are a forecast quality validator. Review this forecast for issues.
+
+Claim: "${forecast.claimText}"
+Details: "${forecast.detailsText || 'None'}"
+Resolve By: "${forecast.resolveByDatetime}"
+Resolution Rules: "${forecast.resolutionRules || 'None'}"
+Original Topic: "${topicTitle}"
+
+Check:
+1. Is the claim specific and testable (not vague or tautological)?
+2. Does the claim relate to the original topic?
+3. Is resolveByDatetime a valid future date with a reasonable timeframe (30-365 days)?
+4. Do the resolution rules clearly explain how to decide the outcome?
+
+Respond ONLY with JSON: { "pass": true|false, "reason": "one sentence if failed" }`
+
+    try {
+      const qualityResult = await llm.generateContent({ prompt: qualityPrompt, temperature: 0 })
+      const qText = qualityResult.text.trim()
+      const qMatch = qText.match(/\{[\s\S]*\}/)
+      const qualityCheck = JSON.parse(qMatch ? qMatch[0] : qText)
+
+      if (!qualityCheck.pass) {
+        log.info({ botId: bot.id, topic: topicTitle, reason: qualityCheck.reason }, 'Forecast failed quality gate')
+        await logBotAction(bot.id, 'SKIPPED', { title: topicTitle, urls: sourceUrls, qualityReason: qualityCheck.reason }, null, null, dryRun)
+        return 'skipped'
+      }
+    } catch (err) {
+      log.warn({ botId: bot.id, topic: topicTitle, err }, 'Quality gate check failed to parse, allowing forecast')
+      // On parse failure, allow the forecast through (fail open) to avoid blocking all forecasts
+    }
+
     const generatedText = JSON.stringify(forecast, null, 2)
 
     if (dryRun) {
@@ -360,9 +394,20 @@ Requirements:
 
     // Create the prediction in the DB
     const resolveBy = new Date(forecast.resolveByDatetime)
-    if (isNaN(resolveBy.getTime()) || resolveBy <= new Date()) {
-      // Default to 90 days if LLM gave bad date
-      resolveBy.setTime(Date.now() + 90 * 24 * 60 * 60 * 1000)
+    if (isNaN(resolveBy.getTime())) {
+      log.warn({ botId: bot.id, topic: topicTitle, provided: forecast.resolveByDatetime }, 'Invalid resolveByDatetime format')
+      await logBotAction(bot.id, 'ERROR', { title: topicTitle }, null, 'Invalid date format', dryRun)
+      return 'error'
+    }
+    if (resolveBy <= new Date()) {
+      log.warn({ botId: bot.id, topic: topicTitle, provided: resolveBy.toISOString() }, 'resolveByDatetime is in the past')
+      await logBotAction(bot.id, 'ERROR', { title: topicTitle }, null, 'Past resolution date', dryRun)
+      return 'error'
+    }
+    // Cap at 1 year from now
+    const maxDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+    if (resolveBy > maxDate) {
+      resolveBy.setTime(maxDate.getTime())
     }
 
     const baseSlug = slugify(forecast.claimText)

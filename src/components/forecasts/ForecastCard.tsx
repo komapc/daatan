@@ -80,6 +80,10 @@ export default function ForecastCard({
     showModerationControls &&
     (session?.user?.role === 'RESOLVER' || session?.user?.role === 'ADMIN') &&
     (prediction.status === 'ACTIVE' || prediction.status === 'PENDING')
+  const canApprove =
+    showModerationControls &&
+    prediction.status === 'PENDING_APPROVAL' &&
+    (session?.user?.role === 'ADMIN' || session?.user?.role === 'APPROVER')
 
   const isLocked = !!prediction.lockedAt
   const isEditable =
@@ -121,6 +125,49 @@ export default function ForecastCard({
     router.push(`/forecasts/${prediction.slug || prediction.id}`)
   }
 
+  const handleApprove = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    try {
+      const response = await fetch(`/api/admin/forecasts/${prediction.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'ACTIVE' }),
+      })
+      if (response.ok) {
+        router.refresh()
+        toast.success('Forecast approved')
+      } else {
+        toast.error('Failed to approve forecast')
+      }
+    } catch (error) {
+      createClientLogger('ForecastCard').error({ err: error }, 'Error approving forecast')
+      toast.error('Error approving forecast')
+    }
+  }
+
+  const handleReject = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!confirm('Reject this forecast? It will be moved to VOID status.')) return
+    try {
+      const response = await fetch(`/api/admin/forecasts/${prediction.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'VOID' }),
+      })
+      if (response.ok) {
+        router.refresh()
+        toast.success('Forecast rejected')
+      } else {
+        toast.error('Failed to reject forecast')
+      }
+    } catch (error) {
+      createClientLogger('ForecastCard').error({ err: error }, 'Error rejecting forecast')
+      toast.error('Error rejecting forecast')
+    }
+  }
+
   const formatDate = (date: string | Date) => {
     return new Date(date).toLocaleDateString('en-US', {
       month: 'short',
@@ -148,6 +195,12 @@ export default function ForecastCard({
           icon: <AlertCircle className="w-3 h-3" />,
           className: 'bg-yellow-100 text-yellow-700',
           label: 'Pending'
+        }
+      case 'PENDING_APPROVAL':
+        return {
+          icon: <Clock className="w-3 h-3" />,
+          className: 'bg-amber-100 text-amber-700',
+          label: 'Pending Approval'
         }
       case 'RESOLVED_CORRECT':
         return {
@@ -329,8 +382,30 @@ export default function ForecastCard({
           </div>
         </div>
 
-        {(canAdminister || canResolve) && (
+        {(canAdminister || canResolve || canApprove) && (
           <div className="flex-shrink-0 flex gap-2 self-start mt-1">
+            {canApprove && (
+              <>
+                <button
+                  onClick={handleApprove}
+                  className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
+                  title="Approve forecast"
+                  aria-label="Approve forecast"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  Approve
+                </button>
+                <button
+                  onClick={handleReject}
+                  className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-red-600 border border-red-200 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Reject forecast"
+                  aria-label="Reject forecast"
+                >
+                  <XCircle className="w-3.5 h-3.5" />
+                  Reject
+                </button>
+              </>
+            )}
             {canResolve && (
               <button
                 onClick={handleResolve}
