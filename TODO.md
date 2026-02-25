@@ -6,9 +6,17 @@
 
 - [x] **Merge bot PRs** — PR #325, #326, #327, #328 merged.
 - [ ] **Apply migrations on production** — run `npx prisma migrate deploy` on production server.
+- [ ] **Security: Upgrade Next.js to ≥14.2.35** — current `14.2.21` has a critical CVE: Authorization Bypass in Next.js Middleware (GHSA-f82v-jwr5-mffw) which directly affects `/admin` route protection. Also patches SSRF via middleware redirects, cache poisoning, DoS. Patch-only bump, no breaking changes.
+- [ ] **Security: Fix unprotected JSON.parse on LLM output** — `src/app/api/admin/bots/route.ts:193` parses LLM response without Zod validation; `src/lib/services/bot-runner.ts:313,335,375` parse LLM JSON inside try-catch but with no type validation after parse. Add a Zod schema (`z.object({...})`) after each parse so silently wrong types (e.g. number where string expected) are caught before writing to DB.
+- [ ] **Security: Sanitize tagFilter before LLM prompt injection** — `src/lib/services/bot-runner.ts:278` interpolates `tagFilter.join(', ')` directly into the LLM system prompt. An admin can inject arbitrary instructions via a tag value containing `\n`. Fix: strip non-slug characters (`[^a-z0-9-_]`) from each tag before interpolation.
+- [ ] **Security: SSRF on newsSources / RSS feeds** — `src/lib/services/rss.ts:fetchFeed` accepts any string URL (including `file://`, `http://localhost`, `http://169.254.169.254`). The SSRF check in `scraper.ts` is not applied to RSS fetches. Fix: enforce HTTPS protocol + private-IP hostname block before calling `rss-parser` or `fetch`.
 
 ### P1 - High Priority
 
+- [ ] **Security: Deleted users retain active sessions** — `src/lib/auth.ts` session callback returns stale session data when the DB user record is missing (deleted/suspended). Fix: return `null` from the session callback to force re-login, or add an `isActive` boolean field on `User`.
+- [ ] **Security: IPv6 SSRF gap in scraper** — `src/lib/utils/scraper.ts:isPrivateIP` blocks IPv4 private ranges but misses IPv6 link-local (`fe80::/10`) and unique-local (`fc00::/7`) addresses. Add checks for these ranges alongside the existing `::1` check.
+- [ ] **Perf: Fix N+1 in bot list endpoint** — `src/app/api/admin/bots/route.ts:87` executes 2 × N `botRunLog.count` queries (one per bot). Replace with a single `prisma.botRunLog.groupBy({ by: ['botId', 'action'], _count: true })` query then map results in memory.
+- [ ] **Perf: Optimize leaderboard query** — `src/app/api/leaderboard/route.ts` loads all commitments for all public users into memory and filters/aggregates in JS. Replace with `commitment.groupBy` for CU sums and `commitment.findMany` filtered to resolved-only for accuracy stats.
 - [ ] **Implement "Scoring rule"** (e.g. Brier score)
 
 - [ ] **Bot: Prompt management & Staging-to-Prod Transfer (Option 2)** — define bots in code (`src/agents/bots/*.json` or `.ts`) as the ultimate source of truth. Server syncs DB from code on startup.  
@@ -42,9 +50,18 @@
 
 - [ ] **Express Forecast: Advanced types** — order predictions (rank outcomes), date-based (when will X happen), conditional (if X then Y). Each requires LLM prompt engineering + UI + resolution logic. Low priority until core types are solid.
 
+- [ ] **Security: Add missing DB indexes** — `BotRunLog` is queried by `[botId, action, isDryRun, runAt]` but only has a `[botId]` index; `Commitment` leaderboard query benefits from a compound `[userId, cuReturned]` index. Add via Prisma `@@index`.
+- [ ] **Security: outcomePayload has no schema** — `src/lib/validations/prediction.ts` accepts `z.record(z.string(), z.unknown())` for `outcomePayload`. MULTIPLE_CHOICE forecasts assume an `options` array that's never validated at creation time, causing silent type confusion on resolution. Add per-outcomeType Zod discriminated unions.
+- [ ] **Security: Rate-limit context updates per user** — `src/app/api/forecasts/[id]/context/route.ts` throttles one update per 24h per forecast, but a user can spam parallel context updates on N forecasts simultaneously, driving unbounded LLM cost. Add a user-level rate limit (e.g. max 10 context updates/day across all forecasts).
+- [ ] **Security: No bot-count limit** — `POST /api/admin/bots` has no cap on total bots. An admin can create 1000s of bots each auto-granted 100 CU. Add a configurable max-bot guard (e.g. 50).
+- [ ] **Code: Replace console.error with logger in bots/route.ts** — `src/app/api/admin/bots/route.ts:201` uses `console.error()` instead of the pino `log.error()`. In a Docker container, console output is not structured and may be missed by log aggregators.
+- [ ] **Code: Refactor inline LLM schemas to shared module** — `src/lib/services/bot-runner.ts:46-68` defines `forecastBatchSchema` and `voteDecisionSchema` inline. These should live in `src/lib/llm/schemas/` and be reused across `bot-runner.ts` and `bots/route.ts` to avoid drift.
+- [ ] **Code: Cache session user in JWT** — `src/lib/auth.ts` session callback hits the DB on every authenticated request. Cache key user fields (role, cuAvailable, rs) in the JWT token with a short TTL (e.g. 5 min) to reduce DB load.
+- [ ] **Code: Cap ?limit param in comments route** — `src/app/api/comments/route.ts` defaults limit to 50 but has no max cap; `?limit=10000` would load all comments. Add `Math.min(limit, 100)` consistent with other routes.
 - [ ] **Security: Env var validation at startup** — `GEMINI_API_KEY` only logs a warning if missing at init (`src/lib/llm/index.ts` line 10), `SERPER_API_KEY` only checked at request time (`src/lib/utils/webSearch.ts`). Add a startup validation step (e.g., in `instrumentation.ts` or a custom server init) that fails fast if required env vars are missing.
 
-- [ ] **Security: Enforce CSP headers** — CSP is currently `Content-Security-Policy-Report-Only` on staging/prod. Review browser console for violations, then change to `Content-Security-Policy` in `nginx-ssl.conf` and `nginx-staging-ssl.conf`. Tests exist in `__tests__/config/nginx-security-headers.test.ts`.
+- [x] **Security: Enforce CSP headers on staging** — switched `Content-Security-Policy-Report-Only` → `Content-Security-Policy` for the staging block in `nginx-ssl.conf` (PR #356). Production block still report-only; enforce once staging proves stable.
+- [ ] **Security: Enforce CSP headers on production** — flip prod block in `nginx-ssl.conf` from `Content-Security-Policy-Report-Only` to `Content-Security-Policy` once staging monitoring confirms no violations.
 
 - [ ] **Infra: Optimize CI/CD Deployment Pipeline** — SSM polling timeouts (10min) and pre-deployment health checks already exist. Remaining:
   - [ ] Decouple Staging/Production deployments where safe (currently sequential via `needs: build`)

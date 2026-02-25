@@ -4,7 +4,10 @@ import { prisma } from '@/lib/prisma'
 import { handleRouteError } from '@/lib/api-error'
 import { z } from 'zod'
 import { createBotLLMService } from '@/lib/llm'
+import { createLogger } from '@/lib/logger'
 import { SchemaType, Schema } from '@google/generative-ai'
+
+const log = createLogger('admin-bots')
 
 export const dynamic = 'force-dynamic'
 
@@ -189,16 +192,25 @@ Make the prompts highly specific, opinionated, and sharp. Do not be generic.`
             required: ['personaPrompt', 'forecastPrompt', 'votePrompt', 'newsSources']
           }
 
-          const response = await llm.generateContent({ prompt, temperature: 0.7, schema })
-          const generated = JSON.parse(response.text)
+          const generatedSchema = z.object({
+            personaPrompt: z.string().min(10),
+            forecastPrompt: z.string().min(10),
+            votePrompt: z.string().min(10),
+            newsSources: z.array(z.string()).default([]),
+          })
 
-          data.personaPrompt = generated.personaPrompt
-          data.forecastPrompt = generated.forecastPrompt
-          data.votePrompt = generated.votePrompt
-          data.newsSources = generated.newsSources
+          const response = await llm.generateContent({ prompt, temperature: 0.7, schema })
+          const parsed = generatedSchema.safeParse(JSON.parse(response.text))
+          if (parsed.success) {
+            data.personaPrompt = parsed.data.personaPrompt
+            data.forecastPrompt = parsed.data.forecastPrompt
+            data.votePrompt = parsed.data.votePrompt
+            data.newsSources = parsed.data.newsSources
+          } else {
+            log.warn({ issues: parsed.error.issues }, 'LLM-generated bot config failed validation, using defaults')
+          }
         } catch (llmErr) {
-          // Fallback to defaults silently if generation fails
-          console.error('Failed to generate dynamic bot prompts:', llmErr)
+          log.error({ err: llmErr }, 'Failed to generate dynamic bot prompts, using defaults')
         }
       }
 
