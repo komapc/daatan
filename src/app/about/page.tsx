@@ -85,10 +85,10 @@ export default function AboutPage() {
             <div>
               <p className="font-medium text-gray-900">Get in Touch</p>
               <a
-                href="mailto:support@daatan.com"
+                href="mailto:office@daatan.com"
                 className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
               >
-                support@daatan.com
+                office@daatan.com
               </a>
             </div>
           </div>

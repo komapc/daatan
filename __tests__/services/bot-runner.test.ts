@@ -129,6 +129,9 @@ const VALID_FORECAST_JSON = JSON.stringify({
   tags: ['crypto', 'bitcoin'],
 })
 
+/** Quality gate pass response. */
+const QUALITY_PASS_JSON = JSON.stringify({ pass: true })
+
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe('runDueBots', () => {
@@ -352,10 +355,11 @@ describe('runDueBots — maxForecastsPerDay cap', () => {
       { title: 'Topic C', items: [], sourceCount: 2 },
     ] as any)
 
-    // LLM: dedup check → "no" (topic not already covered); forecast generation returns valid JSON
+    // LLM: dedup check → "no" (topic not already covered); forecast generation returns valid JSON; quality gate passes
     mockGenerateContent
       .mockResolvedValueOnce({ text: 'no' }) // dedup check for topic A
       .mockResolvedValueOnce({ text: VALID_FORECAST_JSON }) // forecast generation for topic A
+      .mockResolvedValueOnce({ text: QUALITY_PASS_JSON }) // quality gate for topic A
 
     vi.mocked(prisma.prediction.findMany).mockResolvedValue([])
     vi.mocked(prisma.prediction.create).mockResolvedValue({ id: 'pred-new' } as any)
@@ -372,8 +376,8 @@ describe('runDueBots — maxForecastsPerDay cap', () => {
 
     // Only 1 forecast should have been created (1 slot remaining)
     expect(summaries[0].forecastsCreated).toBe(1)
-    // LLM should have been called exactly twice: once for dedup, once for generation
-    expect(mockGenerateContent).toHaveBeenCalledTimes(2)
+    // LLM should have been called 3 times: dedup, generation, quality gate
+    expect(mockGenerateContent).toHaveBeenCalledTimes(3)
   })
 
   it('increments forecastsCreated in summary for each successfully created forecast', async () => {
@@ -391,12 +395,14 @@ describe('runDueBots — maxForecastsPerDay cap', () => {
       { title: 'Topic B', items: [], sourceCount: 2 },
     ] as any)
 
-    // Both topics: dedup → "no", then generate valid JSON
+    // Both topics: dedup → "no", generate valid JSON, quality gate passes
     mockGenerateContent
       .mockResolvedValueOnce({ text: 'no' })
       .mockResolvedValueOnce({ text: VALID_FORECAST_JSON })
+      .mockResolvedValueOnce({ text: QUALITY_PASS_JSON })
       .mockResolvedValueOnce({ text: 'no' })
       .mockResolvedValueOnce({ text: VALID_FORECAST_JSON })
+      .mockResolvedValueOnce({ text: QUALITY_PASS_JSON })
 
     vi.mocked(prisma.prediction.findMany).mockResolvedValue([])
     vi.mocked(prisma.prediction.create).mockResolvedValue({ id: 'pred-x' } as any)
@@ -580,6 +586,7 @@ describe('runBotById', () => {
     mockGenerateContent
       .mockResolvedValueOnce({ text: 'no' }) // dedup
       .mockResolvedValueOnce({ text: VALID_FORECAST_JSON }) // generation
+      .mockResolvedValueOnce({ text: QUALITY_PASS_JSON }) // quality gate
 
     vi.mocked(prisma.prediction.findMany).mockResolvedValue([])
     vi.mocked(prisma.botRunLog.create).mockResolvedValue({} as any)
@@ -815,6 +822,7 @@ describe('runDueBots — autoApprove', () => {
     mockGenerateContent
       .mockResolvedValueOnce({ text: 'no' })
       .mockResolvedValueOnce({ text: VALID_FORECAST_JSON })
+      .mockResolvedValueOnce({ text: QUALITY_PASS_JSON })
     vi.mocked(prisma.prediction.findMany).mockResolvedValue([])
     vi.mocked(prisma.prediction.create).mockResolvedValue({ id: 'pred-auto' } as any)
     vi.mocked(prisma.prediction.update).mockResolvedValue({} as any)
@@ -848,6 +856,7 @@ describe('runDueBots — autoApprove', () => {
     mockGenerateContent
       .mockResolvedValueOnce({ text: 'no' })
       .mockResolvedValueOnce({ text: VALID_FORECAST_JSON })
+      .mockResolvedValueOnce({ text: QUALITY_PASS_JSON })
     vi.mocked(prisma.prediction.findMany).mockResolvedValue([])
     vi.mocked(prisma.prediction.create).mockResolvedValue({ id: 'pred-pending' } as any)
     vi.mocked(prisma.prediction.update).mockResolvedValue({} as any)
@@ -863,6 +872,82 @@ describe('runDueBots — autoApprove', () => {
         data: expect.objectContaining({ status: 'PENDING_APPROVAL' }),
       }),
     )
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// quality gate
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('runDueBots — quality gate', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-02-20T12:00:00Z'))
+  })
+
+  afterEach(() => vi.useRealTimers())
+
+  it('skips forecast when quality gate returns pass=false', async () => {
+    const { prisma } = await import('@/lib/prisma')
+    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/rss')
+    const { runDueBots } = await import('@/lib/services/bot-runner')
+
+    const bot = makeBot({ maxVotesPerDay: 0 })
+    vi.mocked(prisma.botConfig.findMany).mockResolvedValue([bot] as any)
+    vi.mocked(prisma.botRunLog.count).mockResolvedValue(0)
+    vi.mocked(fetchRssFeeds).mockResolvedValue([])
+    vi.mocked(detectHotTopics).mockReturnValue([
+      { title: 'Low quality topic', items: [], sourceCount: 3 },
+    ] as any)
+
+    mockGenerateContent
+      .mockResolvedValueOnce({ text: 'no' }) // dedup
+      .mockResolvedValueOnce({ text: VALID_FORECAST_JSON }) // generation
+      .mockResolvedValueOnce({ text: JSON.stringify({ pass: false, reason: 'Claim is too vague' }) }) // quality gate fails
+
+    vi.mocked(prisma.prediction.findMany).mockResolvedValue([])
+    vi.mocked(prisma.botRunLog.create).mockResolvedValue({} as any)
+    vi.mocked(prisma.botConfig.update).mockResolvedValue({} as any)
+
+    const summaries = await runDueBots()
+
+    expect(summaries[0].forecastsCreated).toBe(0)
+    expect(summaries[0].skipped).toBe(1)
+    // prediction.create should NOT be called since quality gate failed
+    expect(prisma.prediction.create).not.toHaveBeenCalled()
+  })
+
+  it('allows forecast when quality gate returns pass=true', async () => {
+    const { prisma } = await import('@/lib/prisma')
+    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/rss')
+    const { createCommitment } = await import('@/lib/services/commitment')
+    const { runDueBots } = await import('@/lib/services/bot-runner')
+
+    const bot = makeBot({ maxVotesPerDay: 0 })
+    vi.mocked(prisma.botConfig.findMany).mockResolvedValue([bot] as any)
+    vi.mocked(prisma.botRunLog.count).mockResolvedValue(0)
+    vi.mocked(fetchRssFeeds).mockResolvedValue([])
+    vi.mocked(detectHotTopics).mockReturnValue([
+      { title: 'High quality topic', items: [], sourceCount: 3 },
+    ] as any)
+
+    mockGenerateContent
+      .mockResolvedValueOnce({ text: 'no' }) // dedup
+      .mockResolvedValueOnce({ text: VALID_FORECAST_JSON }) // generation
+      .mockResolvedValueOnce({ text: QUALITY_PASS_JSON }) // quality gate passes
+
+    vi.mocked(prisma.prediction.findMany).mockResolvedValue([])
+    vi.mocked(prisma.prediction.create).mockResolvedValue({ id: 'pred-quality' } as any)
+    vi.mocked(prisma.prediction.update).mockResolvedValue({} as any)
+    vi.mocked(createCommitment).mockResolvedValue({ ok: true } as any)
+    vi.mocked(prisma.botRunLog.create).mockResolvedValue({} as any)
+    vi.mocked(prisma.botConfig.update).mockResolvedValue({} as any)
+
+    const summaries = await runDueBots()
+
+    expect(summaries[0].forecastsCreated).toBe(1)
+    expect(prisma.prediction.create).toHaveBeenCalled()
   })
 })
 
@@ -1110,6 +1195,7 @@ describe('runDueBots — CU auto-refill (ensureBotCU)', () => {
     mockGenerateContent
       .mockResolvedValueOnce({ text: 'no' })
       .mockResolvedValueOnce({ text: VALID_FORECAST_JSON })
+      .mockResolvedValueOnce({ text: QUALITY_PASS_JSON })
     vi.mocked(prisma.prediction.findMany).mockResolvedValue([])
     vi.mocked(createCommitment).mockResolvedValue({ ok: true } as any)
     vi.mocked(prisma.botRunLog.create).mockResolvedValue({} as any)
@@ -1137,6 +1223,7 @@ describe('runDueBots — CU auto-refill (ensureBotCU)', () => {
     mockGenerateContent
       .mockResolvedValueOnce({ text: 'no' })
       .mockResolvedValueOnce({ text: VALID_FORECAST_JSON })
+      .mockResolvedValueOnce({ text: QUALITY_PASS_JSON })
     vi.mocked(prisma.prediction.findMany).mockResolvedValue([])
     vi.mocked(prisma.prediction.create).mockResolvedValue({ id: 'pred-x' } as any)
     vi.mocked(prisma.prediction.update).mockResolvedValue({} as any)
@@ -1167,6 +1254,7 @@ describe('runDueBots — CU auto-refill (ensureBotCU)', () => {
     mockGenerateContent
       .mockResolvedValueOnce({ text: 'no' })
       .mockResolvedValueOnce({ text: VALID_FORECAST_JSON })
+      .mockResolvedValueOnce({ text: QUALITY_PASS_JSON })
     vi.mocked(prisma.prediction.findMany).mockResolvedValue([])
     vi.mocked(prisma.prediction.create).mockResolvedValue({ id: 'pred-refill' } as any)
     vi.mocked(prisma.prediction.update).mockResolvedValue({} as any)
@@ -1203,6 +1291,7 @@ describe('runDueBots — CU auto-refill (ensureBotCU)', () => {
     mockGenerateContent
       .mockResolvedValueOnce({ text: 'no' })
       .mockResolvedValueOnce({ text: VALID_FORECAST_JSON })
+      .mockResolvedValueOnce({ text: QUALITY_PASS_JSON })
     vi.mocked(prisma.prediction.findMany).mockResolvedValue([])
     vi.mocked(prisma.prediction.create).mockResolvedValue({ id: 'pred-rich' } as any)
     vi.mocked(prisma.prediction.update).mockResolvedValue({} as any)
