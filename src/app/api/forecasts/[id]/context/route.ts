@@ -12,15 +12,41 @@ type RouteParams = {
     params: Record<string, string>
 }
 
+// GET — public endpoint returning context timeline
+export async function GET(request: NextRequest, { params }: RouteParams) {
+    try {
+        const prediction = await prisma.prediction.findUnique({
+            where: { id: params.id },
+            select: {
+                id: true,
+                detailsText: true,
+                contextUpdatedAt: true,
+                contextSnapshots: {
+                    orderBy: { createdAt: 'desc' },
+                },
+            },
+        })
+
+        if (!prediction) {
+            return apiError('Prediction not found', 404)
+        }
+
+        return NextResponse.json({
+            currentContext: prediction.detailsText,
+            contextUpdatedAt: prediction.contextUpdatedAt,
+            snapshots: prediction.contextSnapshots,
+        })
+    } catch (error) {
+        return handleRouteError(error, 'Failed to fetch context timeline')
+    }
+}
+
 export const POST = withAuth(async (request: NextRequest, user, { params }: RouteParams) => {
     try {
-        const predictionRaw = await prisma.prediction.findUnique({
+        const prediction = await prisma.prediction.findUnique({
             where: { id: params.id },
             include: { newsAnchor: true }
         })
-
-        // Typecast to any to avoid ts errors since prisma generate hasn't run yet
-        const prediction: any = predictionRaw
 
         if (!prediction) {
             return apiError('Prediction not found', 404)
@@ -44,14 +70,21 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
             }
         }
 
-        // 1. Determine Search Query
-        // We try to use the original NewsAnchor topic (title) if applicable, otherwise use claim text
+        // 1. Search for recent articles
         const searchQuery = prediction.newsAnchor?.title || prediction.claimText
         const searchResults = await searchArticles(searchQuery, 4)
 
         if (searchResults.length === 0) {
             return apiError('Failed to find recent context. No articles found.', 404)
         }
+
+        // Build sources array
+        const sources = searchResults.map((article: any) => ({
+            title: article.title,
+            url: article.url,
+            source: article.source || null,
+            publishedDate: article.publishedDate || null,
+        }))
 
         const articlesText = searchResults
             .map((article: any, i: number) => {
@@ -61,7 +94,12 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
 
         // 2. Query LLM to summarize new context
         const currentYear = new Date().getFullYear()
-        const prompt = getContextUpdatePrompt(prediction.claimText, articlesText, currentYear)
+        const prompt = getContextUpdatePrompt(
+            prediction.claimText,
+            articlesText,
+            currentYear,
+            prediction.detailsText
+        )
 
         const result = await llmService.generateContent({
             prompt,
@@ -69,18 +107,39 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
         })
 
         const newContextSummary = result.text.trim()
+        const now = new Date()
 
-        // 3. Save new Context and Update Timestamp
-        // Typecast to any to avoid prisma type mismatch before generation
-        await prisma.prediction.update({
-            where: { id: prediction.id },
-            data: {
-                detailsText: newContextSummary,
-                contextUpdatedAt: new Date(),
-            } as any
+        // 3. Create snapshot + update prediction in a transaction
+        const [snapshot] = await prisma.$transaction([
+            prisma.contextSnapshot.create({
+                data: {
+                    predictionId: prediction.id,
+                    summary: newContextSummary,
+                    sources,
+                },
+            }),
+            prisma.prediction.update({
+                where: { id: prediction.id },
+                data: {
+                    detailsText: newContextSummary,
+                    contextUpdatedAt: now,
+                },
+            }),
+        ])
+
+        // Fetch full timeline
+        const snapshots = await prisma.contextSnapshot.findMany({
+            where: { predictionId: prediction.id },
+            orderBy: { createdAt: 'desc' },
         })
 
-        return NextResponse.json({ success: true, newContext: newContextSummary, contextUpdatedAt: new Date() })
+        return NextResponse.json({
+            success: true,
+            newContext: newContextSummary,
+            contextUpdatedAt: now,
+            snapshot,
+            timeline: snapshots,
+        })
 
     } catch (error) {
         return handleRouteError(error, 'Failed to update prediction context')

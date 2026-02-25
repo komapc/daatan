@@ -228,16 +228,35 @@ model Prediction {
   resolutionNote    String?   @db.Text
 
   // Relations
-  options      PredictionOption[]
-  commitments  Commitment[]
-  withdrawals  CommitmentWithdrawal[]
-  comments     Comment[]
+  options          PredictionOption[]
+  commitments      Commitment[]
+  withdrawals      CommitmentWithdrawal[]
+  comments         Comment[]
+  contextSnapshots ContextSnapshot[]
 
   @@index([status])
   @@index([authorId])
   @@index([newsAnchorId])
   @@index([resolveByDatetime])
   @@map("predictions")
+}
+
+// ============================================
+// CONTEXT SNAPSHOTS (Timeline of context updates)
+// ============================================
+
+model ContextSnapshot {
+  id           String   @id @default(cuid())
+  predictionId String
+  prediction   Prediction @relation(fields: [predictionId], references: [id], onDelete: Cascade)
+
+  summary String @db.Text
+  sources Json   // Array of { title, url, source, publishedDate }
+
+  createdAt DateTime @default(now())
+
+  @@index([predictionId, createdAt])
+  @@map("context_snapshots")
 }
 
 // ============================================
