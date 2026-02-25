@@ -266,7 +266,8 @@ echo "✅ Migrations applied successfully"
 # ─── Phase 5b: Run database seed (populate initial data) ──────────────────────────
 echo ""
 echo "🌱 Phase 5b: Seeding database..."
-docker exec $CONTAINER_NEW node_modules/prisma/build/index.js db seed 2>&1 || {
+# seed.ts is compiled to seed.js during Docker build (tsx is a devDep, not in prod image)
+docker exec $CONTAINER_NEW node prisma/seed.js 2>&1 || {
     echo "⚠️  Seed script failed or had no-op (this is often OK)"
 }
 echo "✅ Database seed completed"
