@@ -276,7 +276,7 @@ Is this topic already substantially covered by one of the forecasts above? Reply
     const tagConstraint =
       tagFilter.length > 0
         ? `\nConstraint: assign one of these tag slugs to this forecast: ${tagFilter.join(', ')}. If the news topic does not fit any of these tags, set "skip": true in the JSON.`
-        : ''
+        : `\nIf this news topic does not match your area of expertise or persona, set "skip": true in the JSON instead of generating a forecast.`
 
     // Generate a forecast from this topic
     const now = new Date()
@@ -306,13 +306,13 @@ Requirements:
 
     const response = await llm.generateContent({ prompt: forecastPrompt, temperature: 0.7, schema: forecastBatchSchema })
 
-    // Check for tag-filter skip signal before full parse
+    // Check for skip signal before full parse (LLM can set skip:true when topic is out of scope)
     const rawText = response.text.trim()
-    if (tagFilter.length > 0 && rawText.includes('"skip"') && rawText.includes('true')) {
+    if (rawText.includes('"skip"') && rawText.includes('true')) {
       try {
         const skipCheck = JSON.parse(rawText.match(/\{[\s\S]*\}/)?.[0] ?? rawText)
         if (skipCheck?.skip === true) {
-          log.info({ botId: bot.id, topic: topicTitle, tagFilter }, 'Topic does not match tag filter, skipping')
+          log.info({ botId: bot.id, topic: topicTitle, tagFilter }, 'Topic out of scope, skipping')
           await logBotAction(bot.id, 'SKIPPED', { title: topicTitle, urls: sourceUrls }, null, null, dryRun)
           return 'skipped'
         }
