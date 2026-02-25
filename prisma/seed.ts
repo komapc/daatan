@@ -11,6 +11,13 @@ async function main() {
   console.log('Start seeding admins...')
 
   for (const email of adminEmails) {
+    const existing = await prisma.user.findUnique({ where: { email } })
+    if (existing) {
+      console.log(`Found user ${email} (id=${existing.id}, current role=${existing.role})`)
+    } else {
+      console.log(`User ${email} not found — will create`)
+    }
+
     const user = await prisma.user.upsert({
       where: { email },
       update: { role: 'ADMIN' },
@@ -21,8 +28,15 @@ async function main() {
         username: email.split('@')[0], // Fallback username
       },
     })
-    console.log(`Updated user ${user.email} to ADMIN role`)
+    console.log(`✅ User ${user.email} → role=${user.role} (id=${user.id}, name=${user.name})`)
   }
+
+  // Verify: list all ADMIN/APPROVER users
+  const privileged = await prisma.user.findMany({
+    where: { role: { in: ['ADMIN', 'APPROVER', 'RESOLVER'] } },
+    select: { id: true, email: true, name: true, role: true },
+  })
+  console.log(`Privileged users on this environment: ${JSON.stringify(privileged)}`)
 
   console.log('Seeding predictions...')
   const admin = await prisma.user.findFirst({ where: { role: 'ADMIN' } })
