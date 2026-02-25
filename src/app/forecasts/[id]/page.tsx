@@ -27,6 +27,7 @@ import CommitmentForm from '@/components/forecasts/CommitmentForm'
 import CommitmentDisplay from '@/components/forecasts/CommitmentDisplay'
 import CUBalanceIndicator from '@/components/forecasts/CUBalanceIndicator'
 import Speedometer from '@/components/forecasts/Speedometer'
+import ContextTimeline from '@/components/forecasts/ContextTimeline'
 import { RoleBadge } from '@/components/RoleBadge'
 
 const log = createClientLogger('ForecastDetail')
@@ -290,56 +291,12 @@ export default function PredictionDetailPage() {
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">
           {prediction.claimText}
         </h1>
-        {prediction.detailsText && (
-          <div className="mb-4">
-            <p className="text-gray-600 whitespace-pre-wrap leading-relaxed">{prediction.detailsText}</p>
-            {prediction.contextUpdatedAt && (
-              <p className="text-xs text-gray-400 mt-2">
-                Context last updated: {new Date(prediction.contextUpdatedAt).toLocaleString()}
-              </p>
-            )}
-          </div>
-        )}
-        {(canAdminister || session?.user?.id === prediction.author.id) && prediction.status === 'ACTIVE' && (
-          <div className="mb-4">
-            <button
-              onClick={async () => {
-                const btn = document.getElementById('analyze-context-btn') as HTMLButtonElement
-                if (btn) btn.disabled = true
-                const orgText = btn ? btn.innerText : 'Analyze'
-                if (btn) btn.innerText = 'Analyzing...'
-                toast.loading('Analyzing latest news...', { id: 'analyze' })
-                try {
-                  const res = await fetch(`/api/forecasts/${prediction.id}/context`, {
-                    method: 'POST',
-                  })
-                  if (!res.ok) {
-                    const errorData = await res.json().catch(() => ({}))
-                    throw new Error(errorData.error || `Failed to analyze context (${res.status})`)
-                  }
-                  const data = await res.json()
-                  toast.success(`Context updated! "${data.newContext}"`, { id: 'analyze', duration: 4000 })
-                  log.info({ context: data.newContext }, 'Context updated successfully')
-                  // Refetch prediction instead of full reload
-                  const response = await fetch(`/api/forecasts/${params.id}`)
-                  if (response.ok) {
-                    const updatedData = await response.json()
-                    setPrediction(updatedData)
-                  }
-                } catch (e: any) {
-                  log.error({ err: e }, 'Failed to analyze context')
-                  toast.error(e.message || 'Failed to analyze context', { id: 'analyze' })
-                  if (btn) btn.disabled = false
-                  if (btn) btn.innerText = orgText
-                }
-              }}
-              id="analyze-context-btn"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors"
-            >
-              Analyze Context
-            </button>
-          </div>
-        )}
+        <ContextTimeline
+          predictionId={prediction.id}
+          initialContext={prediction.detailsText}
+          initialContextUpdatedAt={prediction.contextUpdatedAt}
+          canAnalyze={!!((canAdminister || session?.user?.id === prediction.author.id) && prediction.status === 'ACTIVE')}
+        />
         {prediction.resolutionRules && (
           <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-lg text-sm text-gray-700">
             <div className="font-semibold text-blue-900 mb-1 flex items-center gap-1.5">
