@@ -311,6 +311,127 @@ describe('POST /api/admin/bots', () => {
 
     expect(res.status).toBe(400)
   })
+
+  // ── LLM-generated prompt validation ──────────────────────────────────────
+
+  // The DEFAULT_PERSONA triggers LLM generation (omitting personaPrompt → Zod default)
+  const DEFAULT_PERSONA = 'You are a curious analyst who follows world news and enjoys making predictions about future events.'
+
+  function makeLlmPostRequest(name = 'CryptoBot') {
+    // Omit personaPrompt so Zod applies the default, triggering LLM generation
+    return new NextRequest('http://localhost/api/admin/bots', {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    })
+  }
+
+  function makeTransactionMock(prisma: any, captureRef: { data: any }) {
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => {
+      const tx = {
+        user: { create: vi.fn().mockResolvedValue({ id: 'llm-user-id', name: 'CryptoBot', username: 'cryptobot_b' }) },
+        botConfig: {
+          create: vi.fn().mockImplementation(async ({ data }: any) => {
+            captureRef.data = data
+            return { id: 'llm-bot-id', ...data, user: { id: 'llm-user-id' } }
+          }),
+        },
+      }
+      return fn(tx)
+    })
+  }
+
+  it('uses LLM-generated prompts when response passes Zod validation', async () => {
+    const { POST } = await import('@/app/api/admin/bots/route')
+    const { prisma } = await import('@/lib/prisma')
+    mockGetServerSession.mockResolvedValue(ADMIN_SESSION)
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
+
+    const generated = {
+      personaPrompt: 'You are a crypto analyst who tracks digital asset markets closely.',
+      forecastPrompt: 'Based on on-chain data and market trends, forecast the next major crypto move.',
+      votePrompt: 'Vote on forecasts that touch DeFi, Layer-2, or macro crypto themes.',
+      newsSources: ['https://coindesk.com/arc/outboundfeeds/rss/'],
+    }
+    mockGenerateContent.mockResolvedValue({ text: JSON.stringify(generated) })
+
+    const captureRef = { data: null as any }
+    makeTransactionMock(prisma, captureRef)
+
+    const res = await POST(makeLlmPostRequest(), { params: {} })
+
+    expect(res.status).toBe(201)
+    expect(captureRef.data?.personaPrompt).toBe(generated.personaPrompt)
+    expect(captureRef.data?.forecastPrompt).toBe(generated.forecastPrompt)
+    expect(captureRef.data?.newsSources).toEqual(generated.newsSources)
+  })
+
+  it('falls back to default prompts when LLM response fails Zod validation', async () => {
+    const { POST } = await import('@/app/api/admin/bots/route')
+    const { prisma } = await import('@/lib/prisma')
+    mockGetServerSession.mockResolvedValue(ADMIN_SESSION)
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
+
+    // Strings are too short (< 10 chars) → Zod validation fails
+    mockGenerateContent.mockResolvedValue({
+      text: JSON.stringify({ personaPrompt: 'short', forecastPrompt: 'nope', votePrompt: 'no', newsSources: [] }),
+    })
+
+    const captureRef = { data: null as any }
+    makeTransactionMock(prisma, captureRef)
+
+    const res = await POST(makeLlmPostRequest(), { params: {} })
+
+    expect(res.status).toBe(201)
+    // Falls back to the Zod default (DEFAULT_PERSONA)
+    expect(captureRef.data?.personaPrompt).toBe(DEFAULT_PERSONA)
+  })
+
+  it('falls back to default prompts when LLM throws an error', async () => {
+    const { POST } = await import('@/app/api/admin/bots/route')
+    const { prisma } = await import('@/lib/prisma')
+    mockGetServerSession.mockResolvedValue(ADMIN_SESSION)
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
+
+    mockGenerateContent.mockRejectedValue(new Error('LLM service unavailable'))
+
+    const captureRef = { data: null as any }
+    makeTransactionMock(prisma, captureRef)
+
+    const res = await POST(makeLlmPostRequest(), { params: {} })
+
+    // Bot should still be created with default prompts, not a 500 error
+    expect(res.status).toBe(201)
+    expect(captureRef.data?.personaPrompt).toBe(DEFAULT_PERSONA)
+  })
+
+  it('skips LLM generation when personaPrompt is provided explicitly', async () => {
+    const { POST } = await import('@/app/api/admin/bots/route')
+    const { prisma } = await import('@/lib/prisma')
+    mockGetServerSession.mockResolvedValue(ADMIN_SESSION)
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
+
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => {
+      const tx = {
+        user: { create: vi.fn().mockResolvedValue({ id: 'u2', name: 'CustomBot', username: 'custombot_b' }) },
+        botConfig: { create: vi.fn().mockResolvedValue({ id: 'b2', user: { id: 'u2' } }) },
+      }
+      return fn(tx)
+    })
+
+    const req = new NextRequest('http://localhost/api/admin/bots', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: 'CustomBot',
+        personaPrompt: 'A custom persona prompt that is long enough to pass validation.',
+        forecastPrompt: 'A custom forecast prompt that is long enough to pass validation.',
+        votePrompt: 'A custom vote prompt that is long enough to pass validation.',
+      }),
+    })
+
+    await POST(req, { params: {} })
+
+    expect(mockGenerateContent).not.toHaveBeenCalled()
+  })
 })
 
 // ─── PATCH /api/admin/bots/[id] ──────────────────────────────────────────────

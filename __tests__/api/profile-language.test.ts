@@ -9,6 +9,10 @@ const { mockGetServerSession } = vi.hoisted(() => ({
 vi.mock('next-auth', () => ({ getServerSession: mockGetServerSession }))
 vi.mock('next-auth/next', () => ({ getServerSession: mockGetServerSession }))
 
+vi.mock('@/lib/logger', () => ({
+  createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
+}))
+
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     user: {

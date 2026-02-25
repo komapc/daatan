@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import ContextTimeline from '../ContextTimeline'
 
 const mockFetch = vi.fn()
@@ -16,17 +16,23 @@ describe('ContextTimeline', () => {
   })
 
   it('renders section header', async () => {
-    render(<ContextTimeline predictionId="p1" canAnalyze={true} />)
+    await act(async () => {
+      render(<ContextTimeline predictionId="p1" canAnalyze={true} />)
+    })
     expect(screen.getByText('Situation Context')).toBeInTheDocument()
   })
 
-  it('shows analyze button when canAnalyze is true', () => {
-    render(<ContextTimeline predictionId="p1" canAnalyze={true} />)
+  it('shows analyze button when canAnalyze is true', async () => {
+    await act(async () => {
+      render(<ContextTimeline predictionId="p1" canAnalyze={true} />)
+    })
     expect(screen.getByText('Analyze Situation')).toBeInTheDocument()
   })
 
-  it('hides analyze button when canAnalyze is false', () => {
-    render(<ContextTimeline predictionId="p1" canAnalyze={false} />)
+  it('hides analyze button when canAnalyze is false', async () => {
+    await act(async () => {
+      render(<ContextTimeline predictionId="p1" canAnalyze={false} />)
+    })
     expect(screen.queryByText('Analyze Situation')).not.toBeInTheDocument()
   })
 
@@ -40,13 +46,15 @@ describe('ContextTimeline', () => {
       }),
     })
 
-    render(
-      <ContextTimeline
-        predictionId="p1"
-        initialContext="Current situation summary"
-        canAnalyze={false}
-      />
-    )
+    await act(async () => {
+      render(
+        <ContextTimeline
+          predictionId="p1"
+          initialContext="Current situation summary"
+          canAnalyze={false}
+        />
+      )
+    })
 
     expect(screen.getByText('Current situation summary')).toBeInTheDocument()
   })

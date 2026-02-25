@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { fetchUrlContent } from '@/lib/utils/scraper'
+import { fetchUrlContent, isPrivateIP } from '@/lib/utils/scraper'
 import dns from 'dns'
 
 // Mock fetch
@@ -97,4 +97,57 @@ describe('fetchUrlContent SSRF Protection', () => {
         expect(mockFetch).toHaveBeenCalledTimes(1)
         expect(mockFetch).toHaveBeenCalledWith('https://public.example.com/test', expect.any(Object))
     })
+})
+
+describe('isPrivateIP (exported)', () => {
+  it('returns true for loopback 127.0.0.1', () => {
+    expect(isPrivateIP('127.0.0.1')).toBe(true)
+  })
+
+  it('returns true for ::1 IPv6 loopback', () => {
+    expect(isPrivateIP('::1')).toBe(true)
+  })
+
+  it('returns true for RFC 1918 10.x.x.x', () => {
+    expect(isPrivateIP('10.0.0.1')).toBe(true)
+    expect(isPrivateIP('10.255.255.255')).toBe(true)
+  })
+
+  it('returns true for RFC 1918 192.168.x.x', () => {
+    expect(isPrivateIP('192.168.1.1')).toBe(true)
+    expect(isPrivateIP('192.168.0.0')).toBe(true)
+  })
+
+  it('returns true for RFC 1918 172.16-31.x.x', () => {
+    expect(isPrivateIP('172.16.0.1')).toBe(true)
+    expect(isPrivateIP('172.31.255.255')).toBe(true)
+    expect(isPrivateIP('172.15.0.1')).toBe(false) // 172.15 is NOT private
+    expect(isPrivateIP('172.32.0.1')).toBe(false) // 172.32 is NOT private
+  })
+
+  it('returns true for link-local 169.254.x.x (AWS IMDS)', () => {
+    expect(isPrivateIP('169.254.169.254')).toBe(true)
+  })
+
+  it('returns true for CG-NAT 100.64-127.x.x', () => {
+    expect(isPrivateIP('100.64.0.1')).toBe(true)
+    expect(isPrivateIP('100.127.255.255')).toBe(true)
+    expect(isPrivateIP('100.63.0.1')).toBe(false) // just outside range
+  })
+
+  it('returns true for multicast 224-239.x.x.x', () => {
+    expect(isPrivateIP('224.0.0.1')).toBe(true)
+    expect(isPrivateIP('239.255.255.255')).toBe(true)
+  })
+
+  it('returns true for IPv4-mapped IPv6 with private address', () => {
+    expect(isPrivateIP('::ffff:192.168.1.1')).toBe(true)
+    expect(isPrivateIP('::ffff:127.0.0.1')).toBe(true)
+  })
+
+  it('returns false for well-known public IPs', () => {
+    expect(isPrivateIP('8.8.8.8')).toBe(false)
+    expect(isPrivateIP('1.1.1.1')).toBe(false)
+    expect(isPrivateIP('9.9.9.9')).toBe(false)
+  })
 })
