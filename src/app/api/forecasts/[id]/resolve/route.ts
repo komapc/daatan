@@ -82,6 +82,8 @@ export const POST = withAuth(async (request, user, { params }) => {
     }
 
     const isVoidOutcome = outcome === 'void' || outcome === 'unresolvable'
+    // Numeric outcome for Brier score: 1 if event happened (correct), 0 if not (wrong)
+    const outcomeNumeric = outcome === 'correct' ? 1 : 0
 
     // Collect winner commitments for bonus pool distribution
     const winnerCommitments: typeof prediction.commitments = []
@@ -119,12 +121,18 @@ export const POST = withAuth(async (request, user, { params }) => {
         }
       }
 
+      // Brier score: (probability - outcome)² — only if probability was stated and not void
+      const brierScore = (!isVoidOutcome && commitment.probability != null)
+        ? Math.pow(commitment.probability - outcomeNumeric, 2)
+        : null
+
       // Update commitment
       await tx.commitment.update({
         where: { id: commitment.id },
         data: {
           cuReturned,
           rsChange,
+          ...(brierScore !== null && { brierScore }),
         },
       })
 

@@ -16,7 +16,7 @@
 
 - [x] **Perf: Fix N+1 in bot list endpoint** — `GET /api/admin/bots` fires 2 × N `botRunLog.count` queries (one CREATED_FORECAST + one VOTED per bot); replace with a single `groupBy([botId, action])` then map in memory.
 
-- [ ] **Implement scoring rule (Brier score)** — add a computed `brierScore` per commitment and surface it on the leaderboard and profile; Brier = (probability − outcome)²; requires storing the numeric probability at commit time.
+- [x] **Implement scoring rule (Brier score)** — `probability Float?` and `brierScore Float?` added to Commitment; probability captured via `% yes` input in CommitmentForm; `brierScore = (probability − outcome)²` computed at resolution; avgBrierScore surfaced on leaderboard (sortable) and profile page.
 
 - [ ] **Bot: Prompt management & Staging-to-Prod Transfer** — define bots in code (`src/agents/bots/*.ts`) as source of truth; server upserts DB on startup so prod bots are version-controlled, PR-reviewed, and deployed via CI rather than manual UI copy-paste.
 
@@ -24,7 +24,7 @@
 
 - [x] **Notifications: In-app system** — Prisma models, API routes, service layer, browser push service, service worker, frontend list + unread badge are all complete.
 
-- [ ] **Infra: Generate and configure VAPID keys for browser push** — run `npx web-push generate-vapid-keys` and add `NEXT_PUBLIC_VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY` to all environment configs; without these the push service silently no-ops. Users must also click "Connect" in Settings → Notifications to subscribe.
+- [x] **Infra: Generate and configure VAPID keys for browser push** — keys already present on server (`NEXT_PUBLIC_VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY`). Verified 2026-02-26.
 
 - [ ] **Notifications: Email + `@mentions`** — pick a transactional email provider (SES / Resend / Postmark), wire it into the existing notification service, and add `@username` mention parsing in comments that triggers a `MENTION` notification to the mentioned user.
 
@@ -34,7 +34,7 @@
 
 - [ ] **Infra: Separate Terraform state per environment** — prod and staging share `prod/terraform.tfstate`; applying staging vars modifies prod state. Fix: use workspaces or separate backend keys; requires a `terraform state` migration in a dedicated session with no concurrent deploys.
 
-- [ ] **CI/CD: Create `version-bump.yml` workflow** — `.husky/pre-commit` calls `./scripts/check-version-bump.sh` which doesn't exist; either implement the script + workflow that enforces a version bump on `fix/` and `feat/` branches, or remove the stale hook reference.
+- [x] **CI/CD: Create `version-bump.yml` workflow** — `scripts/check-version-bump.sh` already exists and is wired into `.husky/pre-commit`. Verified 2026-02-26.
 
 ### P3 - Low Priority
 

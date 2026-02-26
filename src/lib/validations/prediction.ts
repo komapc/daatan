@@ -75,6 +75,8 @@ export const createCommitmentSchema = z.object({
   binaryChoice: z.boolean().optional(),
   // For multiple choice / numeric
   optionId: z.string().cuid().optional(),
+  // Optional: P(YES outcome), 0.01-0.99; used to compute Brier score at resolution
+  probability: z.number().min(0.01).max(0.99).optional(),
 }).refine(
   (data) => data.binaryChoice !== undefined || data.optionId !== undefined,
   { message: 'Must specify either binaryChoice or optionId' }
@@ -84,6 +86,7 @@ export const updateCommitmentSchema = z.object({
   cuCommitted: z.number().int().min(1).max(1000).optional(),
   binaryChoice: z.boolean().optional(),
   optionId: z.string().cuid().optional(),
+  probability: z.number().min(0.01).max(0.99).optional(),
 }).refine(
   (data) => Object.keys(data).length > 0,
   { message: 'Must provide at least one field to update' }

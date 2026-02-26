@@ -31,6 +31,7 @@ interface CreateCommitmentData {
   cuCommitted: number
   binaryChoice?: boolean
   optionId?: string
+  probability?: number
 }
 
 /** Data validated by updateCommitmentSchema. */
@@ -38,6 +39,7 @@ interface UpdateCommitmentData {
   cuCommitted?: number
   binaryChoice?: boolean
   optionId?: string
+  probability?: number
 }
 
 /** Standard result from a service operation. */
@@ -210,6 +212,7 @@ export async function createCommitment(
         binaryChoice: data.binaryChoice,
         cuCommitted: data.cuCommitted,
         rsSnapshot: user.rs,
+        probability: data.probability,
       },
       include: commitmentInclude,
     })
@@ -428,6 +431,7 @@ export async function updateCommitment(
           binaryChoice: data.binaryChoice !== undefined ? data.binaryChoice : commitment.binaryChoice,
           optionId: data.optionId !== undefined ? data.optionId : commitment.optionId,
           rsSnapshot: user.rs,
+          probability: data.probability !== undefined ? data.probability : commitment.probability,
         },
         include: commitmentInclude,
       })
@@ -498,6 +502,7 @@ export async function updateCommitment(
         binaryChoice: data.binaryChoice !== undefined ? data.binaryChoice : commitment.binaryChoice,
         optionId: data.optionId !== undefined ? data.optionId : commitment.optionId,
         rsSnapshot: user.rs,
+        probability: data.probability !== undefined ? data.probability : commitment.probability,
       },
       include: commitmentInclude,
     })
