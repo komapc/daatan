@@ -62,16 +62,21 @@ export const authOptions: NextAuthOptions = {
             }
           })
 
-          if (user) {
-            // Always use DB name/image so profile edits are reflected in session
-            if (user.name) session.user.name = user.name
-            if (user.image) session.user.image = user.image
-            session.user.cuAvailable = user.cuAvailable
-            session.user.cuLocked = user.cuLocked
-            session.user.username = user.username
-            session.user.rs = user.rs
-            session.user.role = user.role
+          if (!user) {
+            // User was deleted — invalidate the session so the client is forced to re-login
+            log.warn({ userId: token.sub }, 'Session user not found in DB — invalidating session')
+            session.expires = new Date(0).toISOString()
+            return session
           }
+
+          // Always use DB name/image so profile edits are reflected in session
+          if (user.name) session.user.name = user.name
+          if (user.image) session.user.image = user.image
+          session.user.cuAvailable = user.cuAvailable
+          session.user.cuLocked = user.cuLocked
+          session.user.username = user.username
+          session.user.rs = user.rs
+          session.user.role = user.role
         } catch (error) {
           log.error({ err: error }, 'Error fetching user stats for session')
         }
