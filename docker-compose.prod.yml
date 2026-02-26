@@ -54,6 +54,7 @@ services:
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
       - BOT_RUNNER_SECRET=${BOT_RUNNER_SECRET}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY}
       - APP_VERSION=${APP_VERSION:-0.1.19}
     depends_on:
       postgres:
@@ -101,6 +102,7 @@ services:
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
       - BOT_RUNNER_SECRET=${BOT_RUNNER_SECRET}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY}
       - APP_VERSION=${APP_VERSION:-0.1.19}
     depends_on:
       postgres-staging:

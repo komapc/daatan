@@ -58,16 +58,34 @@ export default function NotificationList({
   const handleClick = useCallback(async (notification: Notification) => {
     // Mark as read
     if (!notification.read) {
+      // Optimistic update
       setNotifications((prev) =>
         prev.map((n) => (n.id === notification.id ? { ...n, read: true } : n)),
       )
       setUnreadCount((prev) => Math.max(0, prev - 1))
 
-      fetch(`/api/notifications/${notification.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ read: true }),
-      })
+      try {
+        const res = await fetch(`/api/notifications/${notification.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ read: true }),
+        })
+        if (res.ok) {
+          router.refresh() // invalidate router cache so next visit shows updated state
+        } else {
+          // Rollback
+          setNotifications((prev) =>
+            prev.map((n) => (n.id === notification.id ? { ...n, read: false } : n)),
+          )
+          setUnreadCount((prev) => prev + 1)
+        }
+      } catch {
+        // Rollback on network error
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === notification.id ? { ...n, read: false } : n)),
+        )
+        setUnreadCount((prev) => prev + 1)
+      }
     }
 
     // Navigate to link
@@ -83,13 +101,14 @@ export default function NotificationList({
       if (res.ok) {
         setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
         setUnreadCount(0)
+        router.refresh() // invalidate router cache so next visit shows updated state
       }
     } catch {
       // Silently fail
     } finally {
       setMarkingAllRead(false)
     }
-  }, [])
+  }, [router])
 
   const handleLoadMore = useCallback(async () => {
     setLoadingMore(true)

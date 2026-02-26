@@ -22,6 +22,10 @@
 
 ### P2 - Medium Priority
 
+- [x] **Notifications: In-app system** — Prisma models, API routes, service layer, browser push service, service worker, frontend list + unread badge are all complete.
+
+- [ ] **Infra: Generate and configure VAPID keys for browser push** — run `npx web-push generate-vapid-keys` and add `NEXT_PUBLIC_VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY` to all environment configs; without these the push service silently no-ops. Users must also click "Connect" in Settings → Notifications to subscribe.
+
 - [ ] **Notifications: Email + `@mentions`** — pick a transactional email provider (SES / Resend / Postmark), wire it into the existing notification service, and add `@username` mention parsing in comments that triggers a `MENTION` notification to the mentioned user.
 
 - [ ] **i18n: Wire translations into all components** — `messages/en.json` and `messages/he.json` exist with ~103 keys but most components still use hardcoded English; audit all UI text and replace with `useTranslations()` calls (nav and settings already done; forms and error messages remain).
@@ -65,6 +69,10 @@
 - [ ] **Testing: E2E tests (Playwright)** — no E2E tests exist; priority flows: login, create forecast (express + manual), commit, comment, admin resolution; needs Playwright config, CI integration, and a seeded test DB.
 
 - [ ] **About page** — modal or page accessible from settings/sidebar showing app version (from `/api/health`), git commit SHA, build date, and link to repo.
+
+- [ ] **Notifications: Deduplicate** — `predictionId`, `commentId`, and `actorId` fields exist on the `Notification` model but deduplication logic is not implemented; duplicate notifications can accumulate for the same actor+event.
+
+- [ ] **Notifications: Cleanup/archival** — notifications grow unbounded; add a cron/job to delete notifications older than 90 days.
 
 ### Verify / Check Later
 
