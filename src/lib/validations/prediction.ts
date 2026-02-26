@@ -130,6 +130,7 @@ export const listPredictionsQuerySchema = z.object({
   tags: z.string().max(500).optional(), // Comma-separated tag names for filtering
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
+  sortBy: z.enum(['newest', 'deadline', 'cu']).default('newest'),
 })
 
 // ============================================

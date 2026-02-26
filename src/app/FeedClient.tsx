@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Home, Loader2, TrendingUp, Plus, Filter, Tag, X } from 'lucide-react'
+import { Home, Loader2, TrendingUp, Plus, Filter, Tag, X, ArrowDownUp } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import ForecastCard, { Prediction } from '@/components/forecasts/ForecastCard'
 import { createClientLogger } from '@/lib/client-logger'
@@ -11,6 +11,7 @@ import { createClientLogger } from '@/lib/client-logger'
 const log = createClientLogger('FeedClient')
 
 type FilterStatus = 'ACTIVE' | 'PENDING' | 'RESOLVED' | 'CLOSING_SOON' | 'NEEDS_REVIEW' | 'ALL'
+type SortBy = 'newest' | 'deadline' | 'cu'
 
 const VALID_STATUSES: FilterStatus[] = ['ACTIVE', 'PENDING', 'RESOLVED', 'CLOSING_SOON', 'NEEDS_REVIEW', 'ALL']
 
@@ -25,6 +26,7 @@ export default function FeedClient() {
   // Initialize state from URL search params
   const initialStatus = searchParams.get('status') as FilterStatus | null
   const initialTags = searchParams.get('tags')?.split(',').filter(Boolean) || []
+  const initialSort = (searchParams.get('sortBy') as SortBy | null) || 'newest'
 
   const [predictions, setPredictions] = useState<Prediction[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -33,19 +35,26 @@ export default function FeedClient() {
     initialStatus && VALID_STATUSES.includes(initialStatus) ? initialStatus : 'ACTIVE'
   )
   const [selectedTags, setSelectedTags] = useState<string[]>(initialTags)
+  const [sortBy, setSortBy] = useState<SortBy>(initialSort)
 
   // Sync state to URL search params
-  const syncToUrl = useCallback((status: FilterStatus, tags: string[]) => {
+  const syncToUrl = useCallback((status: FilterStatus, tags: string[], sort: SortBy) => {
     const params = new URLSearchParams()
     if (status !== 'ACTIVE') params.set('status', status)
     if (tags.length > 0) params.set('tags', tags.join(','))
+    if (sort !== 'newest') params.set('sortBy', sort)
     const qs = params.toString()
     router.replace(qs ? `?${qs}` : '/', { scroll: false })
   }, [router])
 
   const handleSetFilter = (newFilter: FilterStatus) => {
     setFilter(newFilter)
-    syncToUrl(newFilter, selectedTags)
+    syncToUrl(newFilter, selectedTags, sortBy)
+  }
+
+  const handleSetSort = (newSort: SortBy) => {
+    setSortBy(newSort)
+    syncToUrl(filter, selectedTags, newSort)
   }
 
   const handleToggleTag = (tag: string) => {
@@ -53,12 +62,12 @@ export default function FeedClient() {
       ? selectedTags.filter(t => t !== tag)
       : [...selectedTags, tag]
     setSelectedTags(newTags)
-    syncToUrl(filter, newTags)
+    syncToUrl(filter, newTags, sortBy)
   }
 
   const handleClearTags = () => {
     setSelectedTags([])
-    syncToUrl(filter, [])
+    syncToUrl(filter, [], sortBy)
   }
 
   useEffect(() => {
@@ -82,6 +91,11 @@ export default function FeedClient() {
 
         if (selectedTags.length > 0) {
           url += `&tags=${encodeURIComponent(selectedTags.join(','))}`
+        }
+
+        // Don't send sortBy for CLOSING_SOON — that filter has its own implicit ordering
+        if (filter !== 'CLOSING_SOON' && sortBy !== 'newest') {
+          url += `&sortBy=${sortBy}`
         }
 
         const response = await fetch(url, {
@@ -112,7 +126,7 @@ export default function FeedClient() {
     }
 
     fetchFeed()
-  }, [filter, selectedTags])
+  }, [filter, selectedTags, sortBy])
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -197,6 +211,29 @@ export default function FeedClient() {
             All
           </button>
         </div>
+
+        {/* Sort Row — hidden for Closing Soon (has its own implicit ordering) */}
+        {filter !== 'CLOSING_SOON' && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <ArrowDownUp className="w-4 h-4 text-gray-400" />
+            {([
+              { value: 'newest', label: 'Newest' },
+              { value: 'deadline', label: 'By Deadline' },
+              { value: 'cu', label: 'Most Staked' },
+            ] as { value: SortBy; label: string }[]).map(({ value, label }) => (
+              <button
+                key={value}
+                onClick={() => handleSetSort(value)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${sortBy === value
+                  ? 'bg-gray-800 text-white shadow-sm'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Tag Multi-Select Filter */}
         <div className="space-y-2">
