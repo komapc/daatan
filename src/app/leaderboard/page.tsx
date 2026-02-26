@@ -7,7 +7,7 @@ import { createClientLogger } from '@/lib/client-logger'
 
 const log = createClientLogger('Leaderboard')
 
-type SortBy = 'rs' | 'accuracy' | 'totalCorrect' | 'cuCommitted'
+type SortBy = 'rs' | 'accuracy' | 'totalCorrect' | 'cuCommitted' | 'brierScore'
 
 type LeaderboardUser = {
   id: string
@@ -23,6 +23,8 @@ type LeaderboardUser = {
   accuracy: number | null
   totalCuCommitted: number
   totalRsGained: number
+  avgBrierScore: number | null
+  brierCount: number
 }
 
 const SORT_OPTIONS: { value: SortBy; label: string; icon: typeof TrendingUp }[] = [
@@ -30,6 +32,7 @@ const SORT_OPTIONS: { value: SortBy; label: string; icon: typeof TrendingUp }[] 
   { value: 'accuracy', label: 'Accuracy', icon: Target },
   { value: 'totalCorrect', label: 'Most Correct', icon: BarChart3 },
   { value: 'cuCommitted', label: 'Most CU Committed', icon: Wallet },
+  { value: 'brierScore', label: 'Brier Score', icon: Target },
 ]
 
 export default function LeaderboardPage() {
@@ -77,6 +80,8 @@ export default function LeaderboardPage() {
         return `${user.totalCorrect}`
       case 'cuCommitted':
         return `${user.totalCuCommitted}`
+      case 'brierScore':
+        return user.avgBrierScore !== null ? user.avgBrierScore.toFixed(3) : '—'
       default:
         return user.rs.toFixed(1)
     }
@@ -87,6 +92,7 @@ export default function LeaderboardPage() {
       case 'accuracy': return 'Accuracy'
       case 'totalCorrect': return 'Correct'
       case 'cuCommitted': return 'CU Committed'
+      case 'brierScore': return 'Brier Score ↓'
       default: return 'Reputation'
     }
   }
@@ -203,7 +209,7 @@ export default function LeaderboardPage() {
       )}
 
       {/* Legend */}
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
           <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-green-500" />
@@ -220,6 +226,15 @@ export default function LeaderboardPage() {
           </h3>
           <p className="text-xs text-gray-500 leading-relaxed">
             Confidence Units (CU) are the currency used to place stakes. You get 100 CU when you join. When you win a prediction, you get your CU back plus a bonus based on your performance.
+          </p>
+        </div>
+        <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+          <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
+            <Target className="w-4 h-4 text-purple-500" />
+            What is Brier Score?
+          </h3>
+          <p className="text-xs text-gray-500 leading-relaxed">
+            Brier Score = (probability − outcome)². Lower is better: 0 is perfect, 1 is worst. Only computed when you enter a probability estimate (% yes) at stake time.
           </p>
         </div>
       </div>

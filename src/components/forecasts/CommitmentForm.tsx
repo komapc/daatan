@@ -51,6 +51,7 @@ export default function CommitmentForm({
 
   // State
   const [cuAmount, setCuAmount] = useState<number | ''>(existingCommitment?.cuCommitted || 10)
+  const [probability, setProbability] = useState<number | ''>('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -133,6 +134,10 @@ export default function CommitmentForm({
         body.optionId = outcomeValue as string
       }
 
+      if (probability !== '') {
+        body.probability = Number(probability) / 100
+      }
+
       const response = await fetch(endpoint, {
         method,
         headers: {
@@ -187,17 +192,31 @@ export default function CommitmentForm({
       )}
 
       <div className="flex flex-col sm:flex-row gap-4 sm:items-stretch">
-        {/* Simplified CU Input */}
-        <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-gray-300 shadow-sm w-fit self-start sm:self-auto">
-          <input
-            type="number"
-            min="1"
-            max={maxCu}
-            value={cuAmount}
-            onChange={(e) => setCuAmount(e.target.value === '' ? '' : Number(e.target.value))}
-            className="w-16 sm:w-20 text-lg font-bold text-gray-900 outline-none bg-transparent"
-          />
-          <span className="text-gray-500 font-medium">CU</span>
+        {/* CU + Probability inputs */}
+        <div className="flex flex-col gap-2 self-start sm:self-auto">
+          <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-gray-300 shadow-sm w-fit">
+            <input
+              type="number"
+              min="1"
+              max={maxCu}
+              value={cuAmount}
+              onChange={(e) => setCuAmount(e.target.value === '' ? '' : Number(e.target.value))}
+              className="w-16 sm:w-20 text-lg font-bold text-gray-900 outline-none bg-transparent"
+            />
+            <span className="text-gray-500 font-medium">CU</span>
+          </div>
+          <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-gray-200 w-fit" title="Your probability estimate that this forecast will happen (1–99%). Used to compute your Brier score.">
+            <input
+              type="number"
+              min="1"
+              max="99"
+              placeholder="—"
+              value={probability}
+              onChange={(e) => setProbability(e.target.value === '' ? '' : Number(e.target.value))}
+              className="w-10 text-sm font-medium text-gray-700 outline-none bg-transparent"
+            />
+            <span className="text-gray-400 text-xs">% yes</span>
+          </div>
         </div>
 
         {/* Action Buttons */}

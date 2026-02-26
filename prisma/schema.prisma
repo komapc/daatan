@@ -314,9 +314,13 @@ model Commitment {
   // Timestamps
   createdAt DateTime @default(now())
 
+  // Probability stated at commit time (0.0-1.0), representing P(YES outcome)
+  probability Float?
+
   // Result (calculated after resolution)
   cuReturned Int? // CU returned after resolution
   rsChange   Float? // RS delta after resolution
+  brierScore Float? // (probability - outcome)² computed at resolution
 
   // Each user can only commit once per prediction
   @@unique([userId, predictionId])

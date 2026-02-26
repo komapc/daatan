@@ -36,6 +36,11 @@ export const GET = withAuth(async (_request, user) => {
 
   const netCu = totalCuReturned - totalCuCommitted
 
+  const brierScored = commitments.filter(c => c.brierScore != null)
+  const avgBrierScore = brierScored.length > 0
+    ? Math.round(brierScored.reduce((sum, c) => sum + c.brierScore!, 0) / brierScored.length * 1000) / 1000
+    : null
+
   return NextResponse.json({
     total,
     resolved: resolved.length,
@@ -47,5 +52,7 @@ export const GET = withAuth(async (_request, user) => {
     totalCuReturned,
     netCu,
     totalRsChange: Math.round(totalRsChange * 100) / 100,
+    avgBrierScore,
+    brierCount: brierScored.length,
   })
 })

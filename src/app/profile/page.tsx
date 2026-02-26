@@ -56,6 +56,16 @@ export default async function ProfilePage() {
       redirect('/')
     }
 
+    // Fetch Brier score stats
+    const brierStats = await prisma.commitment.aggregate({
+      where: { userId: user.id, brierScore: { not: null } },
+      _avg: { brierScore: true },
+      _count: { brierScore: true },
+    })
+    const avgBrierScore = brierStats._count.brierScore > 0 && brierStats._avg.brierScore != null
+      ? Math.round(brierStats._avg.brierScore * 1000) / 1000
+      : null
+
     // Fetch recent commitments (stakes)
     const commitments = await prisma.commitment.findMany({
       where: { userId: user.id },
@@ -181,6 +191,13 @@ export default async function ProfilePage() {
                   <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block">Predictions</span>
                   <span className="text-sm font-bold text-gray-700">{user._count.predictions} created</span>
                 </div>
+                {avgBrierScore !== null && (
+                  <div className="px-4 py-2 bg-gray-50 rounded-xl border border-gray-100" title="Brier Score = (probability − outcome)². Lower is better. Only computed when you enter a % yes estimate at stake time.">
+                    <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block">Brier Score</span>
+                    <span className="text-sm font-bold text-purple-700">{avgBrierScore.toFixed(3)}</span>
+                    <span className="text-[10px] text-gray-400 block">{brierStats._count.brierScore} scored</span>
+                  </div>
+                )}
               </div>
             </div>
 

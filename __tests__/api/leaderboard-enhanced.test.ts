@@ -55,10 +55,11 @@ describe('GET /api/leaderboard (enhanced)', () => {
   beforeEach(async () => {
     vi.clearAllMocks()
     const { prisma } = await import('@/lib/prisma')
-    // Default: groupBy called twice (cuSums first, rsGainSums second) + findMany for resolved
+    // Default: groupBy called three times (cuSums, rsGainSums, brierScoreSums) + findMany for resolved
     vi.mocked(prisma.commitment.groupBy)
       .mockResolvedValueOnce(mockCuSums as any)
-      .mockResolvedValue(mockRsGainSums as any)
+      .mockResolvedValueOnce(mockRsGainSums as any)
+      .mockResolvedValue([] as any) // brierScoreSums — no brier data by default
     vi.mocked(prisma.commitment.findMany).mockResolvedValue(mockResolvedCommitments as any)
   })
 
