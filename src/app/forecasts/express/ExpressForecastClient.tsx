@@ -158,6 +158,12 @@ export default function ExpressForecastClient({ userId }: ExpressForecastClientP
   const handleCreatePrediction = async () => {
     const finalData = isEditing ? editForm : generated
     if (!finalData) return
+
+    if (new Date(finalData.resolveByDatetime) <= new Date()) {
+      setError('Resolution date must be in the future')
+      return
+    }
+
     setIsPublishing(true)
     setError('')
 
@@ -437,8 +443,9 @@ export default function ExpressForecastClient({ userId }: ExpressForecastClientP
                 <input
                   type="datetime-local"
                   value={editForm?.resolveByDatetime?.slice(0, 16)} // Format for input
+                  min={new Date(Date.now() + 60000).toISOString().slice(0, 16)}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditForm(prev => prev ? ({ ...prev, resolveByDatetime: new Date(e.target.value).toISOString() }) : null)}
-                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 ${editForm?.resolveByDatetime && new Date(editForm.resolveByDatetime) <= new Date() ? 'border-red-500' : ''}`}
                 />
               ) : (
                 <p className="text-gray-900">
