@@ -1,14 +1,151 @@
 {
-  "auth": {"profiles": {"openrouter:default": {"provider": "openrouter", "mode": "api_key"}}},
+  "$schema": "https://openclaw.ai/schema/v2.json",
+  "gateway": {
+    "mode": "local",
+    "auth": {
+      "mode": "token",
+      "token": "your-gateway-token-here"
+    },
+    "trustedProxies": ["172.18.0.1", "127.0.0.1"]
+  },
+  "agents": {
+    "defaults": {
+      "workspace": "/workspace",
+      "sandbox": {
+        "mode": "non-main"
+      },
+      "model": "openrouter/meta-llama/llama-3.3-70b-instruct:free"
+    },
+    "list": [
+      {
+        "id": "daatan",
+        "default": true,
+        "name": "Corvus",
+        "workspace": "/workspace/daatan",
+        "identity": {
+          "name": "Corvus",
+          "theme": "DAATAN forecasting platform",
+          "emoji": "🔮"
+        },
+        "skills": [
+          "docker",
+          "terraform",
+          "github-actions",
+          "nextjs",
+          "daatan-deploy"
+        ],
+        "model": "openrouter/qwen/qwen3-coder:free"
+      },
+      {
+        "id": "calendar",
+        "name": "Calendar Agent",
+        "workspace": "/workspace/year-shape",
+        "identity": {
+          "name": "Calendar Agent",
+          "theme": "YearWheel (Vite, TypeScript, Tailwind)",
+          "emoji": "📅"
+        },
+        "skills": [
+          "vite",
+          "typescript",
+          "cloudflare-pages",
+          "tailwind"
+        ],
+        "model": "openrouter/qwen/qwen3-coder:free"
+      }
+    ]
+  },
+  "bindings": [
+    {
+      "agentId": "daatan",
+      "match": {
+        "channel": "telegram",
+        "accountId": "daatan"
+      }
+    },
+    {
+      "agentId": "calendar",
+      "match": {
+        "channel": "telegram",
+        "accountId": "calendar"
+      }
+    }
+  ],
   "models": {
     "providers": {
-      "openrouter": {"baseUrl": "https://openrouter.ai/api/v1", "apiKey": "${OPENCLAW_OPENROUTER_API_KEY}", "models": [{"id": "qwen/qwen-2.5-7b-instruct", "name": "Qwen 2.5 7B"}]},
-      "ollama": {"baseUrl": "http://host.docker.internal:11434/v1", "apiKey": "ollama-local", "api": "openai-responses", "models": []}
+      "openrouter": {
+        "apiKey": "${OPENROUTER_API_KEY}",
+        "baseUrl": "https://openrouter.ai/api/v1",
+        "models": [
+          {
+            "id": "qwen/qwen3-coder:free",
+            "name": "Qwen3 Coder 480B (free)"
+          },
+          {
+            "id": "qwen/qwen3-next-80b-a3b-instruct:free",
+            "name": "Qwen3 80B (free)"
+          },
+          {
+            "id": "nousresearch/hermes-3-llama-3.1-405b:free",
+            "name": "Hermes 3 405B (free)"
+          },
+          {
+            "id": "meta-llama/llama-3.3-70b-instruct:free",
+            "name": "Llama 3.3 70B (free)"
+          },
+          {
+            "id": "openai/gpt-oss-120b:free",
+            "name": "GPT OSS 120B (free)"
+          }
+        ]
+      },
+      "ollama": {
+        "baseUrl": "http://host.docker.internal:11434/v1",
+        "apiKey": "ollama-local",
+        "api": "openai-responses",
+        "models": [
+          {
+            "id": "qwen2.5:1.5b",
+            "name": "Qwen 2.5 1.5B"
+          }
+        ]
+      }
     }
   },
-  "agents": {"defaults": {"workspace": "/workspace"}, "list": [{"id": "daatan", "default": true, "name": "Corvus", "workspace": "/workspace/daatan", "model": {"primary": "openrouter/qwen/qwen-2.5-7b-instruct"}}, {"id": "calendar", "name": "Calendar Agent", "workspace": "/workspace/year-shape", "model": {"primary": "openrouter/qwen/qwen-2.5-7b-instruct"}}]},
-  "bindings": [{"agentId": "daatan", "match": {"channel": "telegram", "accountId": "daatan"}}, {"agentId": "calendar", "match": {"channel": "telegram", "accountId": "calendar"}}],
-  "channels": {"telegram": {"enabled": true, "dmPolicy": "open", "allowFrom": ["*"], "accounts": {"daatan": {"name": "Daatan", "botToken": "${TELEGRAM_DAATAN_BOT_TOKEN}", "dmPolicy": "open", "allowFrom": ["*"]}, "calendar": {"name": "Calendar", "botToken": "${TELEGRAM_CALENDAR_BOT_TOKEN}", "dmPolicy": "open", "allowFrom": ["*"]}}}},
-  "gateway": {"auth": {"mode": "token", "token": "${OPENCLAW_GATEWAY_TOKEN}"}},
-  "plugins": {"entries": {"telegram": {"enabled": true}}}
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "dmPolicy": "pairing",
+      "streamMode": "partial",
+      "accounts": {
+        "daatan": {
+          "name": "Daatan",
+          "botToken": "${TELEGRAM_BOT_TOKEN_DAATAN}"
+        },
+        "calendar": {
+          "name": "Calendar",
+          "botToken": "${TELEGRAM_BOT_TOKEN_CALENDAR}"
+        }
+      }
+    }
+  },
+  "browser": {
+    "enabled": true,
+    "headless": true
+  },
+  "plugins": {
+    "entries": {
+      "telegram": {
+        "enabled": true
+      }
+    }
+  },
+  "auth": {
+    "profiles": {
+      "openrouter:default": {
+        "provider": "openrouter",
+        "mode": "api_key"
+      }
+    }
+  }
 }

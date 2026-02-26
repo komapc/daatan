@@ -7,9 +7,9 @@ Deploy OpenClaw AI agents on AWS EC2 with Telegram integration.
 ### Prerequisites
 
 - AWS account with EC2 access
-- OpenRouter API key (https://openrouter.ai/keys)
+- OpenRouter API key (https://openrouter.ai/keys) — free tier sufficient
 - Telegram Bot tokens (from @BotFather)
-- SSH key configured in AWS EC2
+- SSH key configured in AWS EC2 (default: `daatan-key`)
 
 ### One-Command Deploy
 
@@ -21,7 +21,7 @@ cp terraform.tfvars.example terraform.tfvars
 # Edit terraform.tfvars: set allowed_ssh_cidr to your IP
 
 cp .env.example .env
-# Edit .env: add OPENROUTER_API_KEY and TELEGRAM_BOT_TOKEN_*
+# Edit .env: add OPENROUTER_API_KEY (free tier works) and TELEGRAM_BOT_TOKEN_*
 
 # 2. Deploy
 ./scripts/provision/deploy-all.sh
@@ -37,20 +37,32 @@ cp .env.example .env
 ```
 ┌─────────────────┐
 │   Telegram      │
-│     Bot         │
+│  (2 bots)       │
 └────────┬────────┘
          │
          ▼
-┌─────────────────┐     ┌──────────────────┐
-│   EC2 Instance  │────▶│  OpenClaw        │
-│   (t4g.medium)  │     │  Container       │
-└─────────────────┘     └────────┬─────────┘
-         │                       │
-         ▼                       ▼
-┌─────────────────┐     ┌──────────────────┐
-│  Ollama (local) │     │  OpenRouter API  │
-│  qwen2.5:1.5b   │     │  qwen-2.5-7b     │
-└─────────────────┘     └──────────────────┘
+┌──────────────────────────────────────────┐
+│   EC2 Instance  63.182.142.184           │
+│   t4g.medium · eu-central-1 · arm64      │
+│                                          │
+│   ┌──────────────────────────────────┐   │
+│   │  openclaw-daatan:local           │   │
+│   │  port 18789  ←→  mission.daatan.com  │
+│   │                                  │   │
+│   │  agents:                         │   │
+│   │    daatan   → /workspace/daatan  │   │
+│   │    calendar → /workspace/year-shape  │
+│   └──────────────────────────────────┘   │
+└──────────────────────────┬───────────────┘
+                           │
+              ┌────────────┴────────────┐
+              ▼                         ▼
+     ┌──────────────────┐      ┌──────────────┐
+     │ OpenRouter (free)│      │ Ollama       │
+     │ qwen3-coder 480B │      │ (local)      │
+     │ llama-3.3-70b    │      │ qwen2.5:1.5b │
+     │ + 3 more models  │      │              │
+     └──────────────────┘      └──────────────┘
 ```
 
 ---
@@ -76,7 +88,9 @@ infra/openclaw/
 │   ├── vpc.tf
 │   └── variables.tf
 ├── config/              # OpenClaw configuration
-│   └── unified.json
+│   ├── unified.json         # Active config (v2 schema) — deployed to EC2
+│   ├── openclaw.json        # DEPRECATED: old v1 format, superseded by unified.json
+│   └── openclaw.json.example # Template based on unified.json (v2 format)
 ├── docs/                # Documentation
 │   ├── RUNBOOK.md
 │   ├── SECRETS_MANAGER.md
@@ -92,10 +106,20 @@ infra/openclaw/
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `OPENROUTER_API_KEY` | OpenRouter API key | `sk-or-v1-...` |
+| `OPENROUTER_API_KEY` | OpenRouter API key (free tier works) | `sk-or-v1-...` |
 | `TELEGRAM_BOT_TOKEN_DAATAN` | Daatan bot token | `123456:ABC...` |
 | `TELEGRAM_BOT_TOKEN_CALENDAR` | Calendar bot token | `789012:DEF...` |
 | `TELEGRAM_CHAT_ID` | Your Telegram ID | `188323801` |
+
+### Models (via OpenRouter free tier)
+
+| Role | Model | Notes |
+|------|-------|-------|
+| Agent (daatan, calendar) | `qwen/qwen3-coder:free` | 480B coding-specialized, 262k ctx |
+| Gateway default (compaction) | `meta-llama/llama-3.3-70b-instruct:free` | 70B, 128k ctx |
+| Available alternates | Qwen3 80B, Hermes 3 405B, GPT OSS 120B | selectable in UI |
+
+All models are free via OpenRouter. No Gemini or Anthropic API key required.
 
 ### Terraform Variables (terraform.tfvars)
 
@@ -144,7 +168,7 @@ infra/openclaw/
 
 ```bash
 # SSH to instance
-ssh -i ~/.ssh/daatan-key.pem ubuntu@<INSTANCE_IP>
+ssh -i ~/.ssh/daatan-key.pem ubuntu@63.182.142.184
 
 # Check container
 docker compose ps
@@ -169,16 +193,22 @@ docker compose logs 2>&1 | grep -i error
 ### Update Configuration
 
 ```bash
-# Edit .env
-nano ~/projects/openclaw/.env
+# Edit agent config — hot-reloads automatically (no restart needed)
+nano ~/projects/openclaw/config/unified.json
 
-# Restart container (REQUIRED for env changes)
-docker compose down
-docker compose up -d
+# Edit .env (API keys) — requires restart
+nano ~/projects/openclaw/.env
+cd ~/projects/openclaw && docker compose down && docker compose up -d
 
 # Verify
 docker exec openclaw env | grep OPENROUTER
 ```
+
+### Access the UI Panel
+
+https://mission.daatan.com (nginx → port 18789, SSL)
+
+Enter the gateway token from `unified.json → gateway.auth.token` in the Control UI settings on first visit.
 
 ### Backup
 
@@ -213,8 +243,8 @@ See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) for common issues and sol
 | EC2 t4g.medium | ~$24 |
 | EIP (if not attached) | ~$3 |
 | 30GB GP3 volume | ~$3 |
-| OpenRouter API | ~$5 (budget limit) |
-| **Total** | **~$35/month** |
+| OpenRouter API | $0 (free models only) |
+| **Total** | **~$30/month** |
 
 ---
 
