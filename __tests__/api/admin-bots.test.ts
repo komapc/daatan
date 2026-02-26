@@ -31,6 +31,7 @@ vi.mock('@/lib/prisma', () => ({
     },
     botRunLog: {
       count: vi.fn(),
+      groupBy: vi.fn(),
       findMany: vi.fn(),
     },
     user: {
@@ -149,9 +150,10 @@ describe('GET /api/admin/bots', () => {
     vi.mocked(prisma.botConfig.findMany).mockResolvedValue([
       makeBotRecord({ lastRunAt, intervalMinutes: 60 }),
     ] as any)
-    vi.mocked(prisma.botRunLog.count)
-      .mockResolvedValueOnce(3) // forecastsToday
-      .mockResolvedValueOnce(7) // votesToday
+    vi.mocked(prisma.botRunLog.groupBy).mockResolvedValue([
+      { botId: 'bot-1', action: 'CREATED_FORECAST', _count: { _all: 3 } },
+      { botId: 'bot-1', action: 'VOTED', _count: { _all: 7 } },
+    ] as any)
 
     const req = new NextRequest('http://localhost/api/admin/bots')
     const res = await GET(req, { params: {} })
@@ -172,7 +174,7 @@ describe('GET /api/admin/bots', () => {
     mockGetServerSession.mockResolvedValue(ADMIN_SESSION)
 
     vi.mocked(prisma.botConfig.findMany).mockResolvedValue([makeBotRecord({ lastRunAt: null })] as any)
-    vi.mocked(prisma.botRunLog.count).mockResolvedValue(0)
+    vi.mocked(prisma.botRunLog.groupBy).mockResolvedValue([])
 
     const req = new NextRequest('http://localhost/api/admin/bots')
     const res = await GET(req, { params: {} })

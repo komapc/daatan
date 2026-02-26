@@ -83,20 +83,32 @@ export const GET = withAuth(
         orderBy: { createdAt: 'asc' },
       })
 
-      // Attach today's action counts
+      // Attach today's action counts — single groupBy instead of 2×N count queries
       const startOfDay = new Date()
       startOfDay.setHours(0, 0, 0, 0)
 
-      const enriched = await Promise.all(
-        bots.map(async (bot) => {
-          const [forecastsToday, votesToday] = await Promise.all([
-            prisma.botRunLog.count({
-              where: { botId: bot.id, action: 'CREATED_FORECAST', isDryRun: false, runAt: { gte: startOfDay } },
-            }),
-            prisma.botRunLog.count({
-              where: { botId: bot.id, action: 'VOTED', isDryRun: false, runAt: { gte: startOfDay } },
-            }),
-          ])
+      const botIds = bots.map(b => b.id)
+      const todayCounts = await prisma.botRunLog.groupBy({
+        by: ['botId', 'action'],
+        where: {
+          botId: { in: botIds },
+          action: { in: ['CREATED_FORECAST', 'VOTED'] },
+          isDryRun: false,
+          runAt: { gte: startOfDay },
+        },
+        _count: { _all: true },
+      })
+
+      const countsByBot = new Map<string, { forecastsToday: number; votesToday: number }>()
+      for (const row of todayCounts) {
+        const entry = countsByBot.get(row.botId) ?? { forecastsToday: 0, votesToday: 0 }
+        if (row.action === 'CREATED_FORECAST') entry.forecastsToday = row._count._all
+        if (row.action === 'VOTED') entry.votesToday = row._count._all
+        countsByBot.set(row.botId, entry)
+      }
+
+      const enriched = bots.map((bot) => {
+          const { forecastsToday, votesToday } = countsByBot.get(bot.id) ?? { forecastsToday: 0, votesToday: 0 }
 
           const nextRunAt = bot.lastRunAt
             ? new Date(bot.lastRunAt.getTime() + bot.intervalMinutes * 60 * 1000)
@@ -133,8 +145,7 @@ export const GET = withAuth(
             lastLog: bot.runLogs[0] || null,
             user: bot.user,
           }
-        }),
-      )
+        })
 
       return NextResponse.json({ bots: enriched })
     } catch (err) {
