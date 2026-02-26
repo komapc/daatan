@@ -108,7 +108,7 @@ export default function NotificationList({
     } finally {
       setMarkingAllRead(false)
     }
-  }, [])
+  }, [router])
 
   const handleLoadMore = useCallback(async () => {
     setLoadingMore(true)
