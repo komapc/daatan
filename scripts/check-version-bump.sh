@@ -11,6 +11,11 @@ if [ "$BRANCH" = "main" ]; then
   exit 0
 fi
 
+# Skip check on merge commits (conflicts already resolved; version bumped in prior commit)
+if [ -f .git/MERGE_HEAD ]; then
+  exit 0
+fi
+
 # Check if version.ts was modified
 if git diff --cached --name-only | grep -q "src/lib/version.ts"; then
   echo "✅ Version file modified"
