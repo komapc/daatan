@@ -324,4 +324,99 @@ describe('fetchRssFeeds', () => {
     expect(results[0].source).toBe('example.com')
     expect(results[0].url).toBe('https://example.com/news/1')
   })
+
+  // ── SSRF URL validation tests ─────────────────────────────────────────────
+
+  it('rejects HTTP URLs (non-HTTPS) without calling RSS parser', async () => {
+    const results = await fetchRssFeeds(['http://example.com/rss'])
+
+    expect(results).toEqual([])
+    expect(mockParseURL).not.toHaveBeenCalled()
+  })
+
+  it('rejects file:// URLs without calling RSS parser', async () => {
+    const results = await fetchRssFeeds(['file:///etc/passwd'])
+
+    expect(results).toEqual([])
+    expect(mockParseURL).not.toHaveBeenCalled()
+  })
+
+  it('rejects localhost URLs without calling RSS parser', async () => {
+    const results = await fetchRssFeeds(['https://localhost/feed'])
+
+    expect(results).toEqual([])
+    expect(mockParseURL).not.toHaveBeenCalled()
+  })
+
+  it('rejects .localhost subdomains without calling RSS parser', async () => {
+    const results = await fetchRssFeeds(['https://app.localhost/feed'])
+
+    expect(results).toEqual([])
+    expect(mockParseURL).not.toHaveBeenCalled()
+  })
+
+  it('rejects private IP hostnames (192.168.x.x) without calling RSS parser', async () => {
+    const results = await fetchRssFeeds(['https://192.168.1.1/feed'])
+
+    expect(results).toEqual([])
+    expect(mockParseURL).not.toHaveBeenCalled()
+  })
+
+  it('rejects 127.x.x.x loopback IPs without calling RSS parser', async () => {
+    const results = await fetchRssFeeds(['https://127.0.0.1/rss'])
+
+    expect(results).toEqual([])
+    expect(mockParseURL).not.toHaveBeenCalled()
+  })
+
+  it('rejects .internal hostnames without calling RSS parser', async () => {
+    const results = await fetchRssFeeds(['https://internal.service.internal/feed'])
+
+    expect(results).toEqual([])
+    expect(mockParseURL).not.toHaveBeenCalled()
+  })
+
+  it('rejects .local hostnames without calling RSS parser', async () => {
+    const results = await fetchRssFeeds(['https://myserver.local/rss'])
+
+    expect(results).toEqual([])
+    expect(mockParseURL).not.toHaveBeenCalled()
+  })
+
+  it('rejects invalid (non-parseable) URLs without calling RSS parser', async () => {
+    const results = await fetchRssFeeds(['not a url at all'])
+
+    expect(results).toEqual([])
+    expect(mockParseURL).not.toHaveBeenCalled()
+  })
+
+  it('still fetches valid HTTPS public URLs after SSRF checks pass', async () => {
+    mockParseURL.mockResolvedValue({
+      title: 'Public Feed',
+      items: [{ title: 'Good item', link: 'https://public.example.com/1', pubDate: '2026-02-01T00:00:00Z' }],
+    })
+
+    const results = await fetchRssFeeds(['https://public.example.com/rss'])
+
+    expect(results).toHaveLength(1)
+    expect(mockParseURL).toHaveBeenCalledWith('https://public.example.com/rss')
+  })
+
+  it('skips only the blocked URLs and still fetches safe ones in the same batch', async () => {
+    mockParseURL.mockResolvedValue({
+      title: 'Safe Feed',
+      items: [{ title: 'Safe item', link: 'https://safe.example.com/1', pubDate: '2026-02-01T00:00:00Z' }],
+    })
+
+    const results = await fetchRssFeeds([
+      'http://evil.com/rss',          // blocked (HTTP)
+      'https://192.168.0.1/feed',    // blocked (private IP)
+      'https://safe.example.com/rss', // allowed
+    ])
+
+    expect(results).toHaveLength(1)
+    expect(results[0].title).toBe('Safe item')
+    expect(mockParseURL).toHaveBeenCalledTimes(1)
+    expect(mockParseURL).toHaveBeenCalledWith('https://safe.example.com/rss')
+  })
 })
