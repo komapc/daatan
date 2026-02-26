@@ -14,7 +14,7 @@
       "sandbox": {
         "mode": "non-main"
       },
-      "model": "openrouter/meta-llama/llama-3.3-70b-instruct:free"
+      "model": "openrouter/stepfun/step-3.5-flash:free"
     },
     "list": [
       {
@@ -34,7 +34,7 @@
           "nextjs",
           "daatan-deploy"
         ],
-        "model": "openrouter/qwen/qwen3-coder:free"
+        "model": "openrouter/upstage/solar-pro-3:free"
       },
       {
         "id": "calendar",
@@ -51,7 +51,7 @@
           "cloudflare-pages",
           "tailwind"
         ],
-        "model": "openrouter/qwen/qwen3-coder:free"
+        "model": "openrouter/upstage/solar-pro-3:free"
       }
     ]
   },
@@ -76,26 +76,19 @@
       "openrouter": {
         "apiKey": "${OPENROUTER_API_KEY}",
         "baseUrl": "https://openrouter.ai/api/v1",
+        "api": "openai-completions",
         "models": [
           {
-            "id": "qwen/qwen3-coder:free",
-            "name": "Qwen3 Coder 480B (free)"
+            "id": "upstage/solar-pro-3:free",
+            "name": "Solar Pro 3 (free)"
           },
           {
-            "id": "qwen/qwen3-next-80b-a3b-instruct:free",
-            "name": "Qwen3 80B (free)"
+            "id": "stepfun/step-3.5-flash:free",
+            "name": "Step 3.5 Flash (free)"
           },
           {
-            "id": "nousresearch/hermes-3-llama-3.1-405b:free",
-            "name": "Hermes 3 405B (free)"
-          },
-          {
-            "id": "meta-llama/llama-3.3-70b-instruct:free",
-            "name": "Llama 3.3 70B (free)"
-          },
-          {
-            "id": "openai/gpt-oss-120b:free",
-            "name": "GPT OSS 120B (free)"
+            "id": "z-ai/glm-4.5-air:free",
+            "name": "GLM 4.5 Air (free)"
           }
         ]
       },
