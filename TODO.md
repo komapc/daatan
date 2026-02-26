@@ -4,17 +4,17 @@
 
 ### P0 - Critical
 
-- [ ] **Apply migrations on production** — SSH into prod EC2, run `npx prisma migrate deploy`; any pending schema migrations are blocked until this runs.
+- [x] **Apply migrations on production** — All 22 migrations applied (last: `20260225000000_add_context_snapshots` applied 2026-02-25). Verified via `_prisma_migrations` table on 2026-02-26.
 
-- [ ] **Upgrade Next.js to ≥14.2.35** — CVE GHSA-f82v-jwr5-mffw: middleware auth bypass that lets unauthenticated requests reach `/admin/*`. Patch-only bump (`npm install next@14.2.35`), no breaking changes expected; run build + smoke-test after.
+- [x] **Upgrade Next.js to ≥14.2.35** — CVE GHSA-f82v-jwr5-mffw: middleware auth bypass that lets unauthenticated requests reach `/admin/*`. Patch-only bump (`npm install next@14.2.35`), no breaking changes expected; run build + smoke-test after.
 
 ### P1 - High Priority
 
 - [x] **Security: Deleted users retain active sessions** — `src/lib/auth.ts` session callback silently returns stale data when the DB user is gone; fix by returning `null` (forces re-login) or adding an `isActive` flag checked on every session refresh.
 
-- [ ] **Security: IPv6 SSRF gap in scraper** — `isPrivateIP()` blocks IPv4 private ranges and `::1` but misses `fe80::/10` (link-local) and `fc00::/7` (unique-local); add those two checks to close the gap.
+- [x] **Security: IPv6 SSRF gap in scraper** — `isPrivateIP()` blocks IPv4 private ranges and `::1` but misses `fe80::/10` (link-local) and `fc00::/7` (unique-local); add those two checks to close the gap.
 
-- [ ] **Perf: Fix N+1 in bot list endpoint** — `GET /api/admin/bots` fires 2 × N `botRunLog.count` queries (one CREATED_FORECAST + one VOTED per bot); replace with a single `groupBy([botId, action])` then map in memory.
+- [x] **Perf: Fix N+1 in bot list endpoint** — `GET /api/admin/bots` fires 2 × N `botRunLog.count` queries (one CREATED_FORECAST + one VOTED per bot); replace with a single `groupBy([botId, action])` then map in memory.
 
 - [ ] **Implement scoring rule (Brier score)** — add a computed `brierScore` per commitment and surface it on the leaderboard and profile; Brier = (probability − outcome)²; requires storing the numeric probability at commit time.
 
