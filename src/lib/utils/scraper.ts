@@ -15,6 +15,14 @@ export function isPrivateIP(ip: string): boolean {
   // localhost / loopback
   if (ip === '::1' || ip.startsWith('127.')) return true
 
+  // IPv6 link-local (fe80::/10) — fe80:: through febf::
+  const lowerIp = ip.toLowerCase()
+  if (lowerIp.startsWith('fe8') || lowerIp.startsWith('fe9') ||
+      lowerIp.startsWith('fea') || lowerIp.startsWith('feb')) return true
+
+  // IPv6 unique-local (fc00::/7) — the IPv6 equivalent of RFC 1918, fc00:: through fdff::
+  if (lowerIp.startsWith('fc') || lowerIp.startsWith('fd')) return true
+
   // 0.0.0.0/8 (Current network)
   if (ip.startsWith('0.')) return true
 
@@ -49,12 +57,14 @@ export function isPrivateIP(ip: string): boolean {
   // link local (AWS IMDS, etc) (169.254.0.0/16)
   if (ip.startsWith('169.254.')) return true
 
-  // Multicast (224.0.0.0/4)
-  const firstOctet = parseInt(ip.split('.')[0], 10)
-  if (firstOctet >= 224 && firstOctet <= 239) return true
-
-  // Reserved (240.0.0.0/4)
-  if (firstOctet >= 240) return true
+  // Multicast (224.0.0.0/4) and Reserved (240.0.0.0/4) — IPv4 only
+  // Guard with includes('.') so pure IPv6 addresses are not misclassified
+  // (parseInt stops at ':' and would produce a large decimal like 2001)
+  if (ip.includes('.')) {
+    const firstOctet = parseInt(ip.split('.')[0], 10)
+    if (firstOctet >= 224 && firstOctet <= 239) return true
+    if (firstOctet >= 240) return true
+  }
 
   return false
 }

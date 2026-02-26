@@ -145,6 +145,25 @@ describe('isPrivateIP (exported)', () => {
     expect(isPrivateIP('::ffff:127.0.0.1')).toBe(true)
   })
 
+  it('returns true for IPv6 link-local fe80::/10', () => {
+    expect(isPrivateIP('fe80::1')).toBe(true)
+    expect(isPrivateIP('fe80::dead:beef')).toBe(true)
+    expect(isPrivateIP('febf::1')).toBe(true) // upper bound of fe80::/10
+    expect(isPrivateIP('FE80::1')).toBe(true) // uppercase variant
+  })
+
+  it('returns true for IPv6 unique-local fc00::/7', () => {
+    expect(isPrivateIP('fc00::1')).toBe(true)
+    expect(isPrivateIP('fd00::1')).toBe(true)
+    expect(isPrivateIP('fdff:ffff::1')).toBe(true)
+  })
+
+  it('returns false for global unicast IPv6 addresses', () => {
+    expect(isPrivateIP('2001:db8::1')).toBe(false)   // documentation range (not blocked by our checks)
+    expect(isPrivateIP('2606:4700::1')).toBe(false)   // Cloudflare
+    expect(isPrivateIP('2001:4860:4860::8888')).toBe(false) // Google DNS
+  })
+
   it('returns false for well-known public IPs', () => {
     expect(isPrivateIP('8.8.8.8')).toBe(false)
     expect(isPrivateIP('1.1.1.1')).toBe(false)
