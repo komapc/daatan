@@ -28,9 +28,9 @@
 
 - [ ] **Notifications: Email + `@mentions`** — pick a transactional email provider (SES / Resend / Postmark), wire it into the existing notification service, and add `@username` mention parsing in comments that triggers a `MENTION` notification to the mentioned user.
 
-- [ ] **i18n: Wire translations into all components** — `messages/en.json` and `messages/he.json` exist with ~103 keys but most components still use hardcoded English; audit all UI text and replace with `useTranslations()` calls (nav and settings already done; forms and error messages remain).
+- [x] **i18n: Wire translations into all components** — all major components and pages (`FeedClient`, `ForecastCard`, `CommitmentForm`, `leaderboard`, `commitments`, `activity`, `profile`, `create`) now use `useTranslations` / `getTranslations`; `messages/en.json` and `messages/he.json` extended with ~50 new keys.
 
-- [ ] **i18n: Auto-translate user content** — machine-translate user-generated forecast titles, details, and comments via Google Translate or DeepL; cache translations in DB; add a language-toggle UI on forecast cards and detail pages.
+- [x] **i18n: Auto-translate user content** — Gemini-backed translation service with DB cache (`PredictionTranslation`, `CommentTranslation`); translate endpoints at `POST /api/forecasts/[id]/translate` and `POST /api/comments/[id]/translate`; translate-toggle UI on forecast detail page and per-comment in `CommentItem`.
 
 - [ ] **Infra: Separate Terraform state per environment** — prod and staging share `prod/terraform.tfstate`; applying staging vars modifies prod state. Fix: use workspaces or separate backend keys; requires a `terraform state` migration in a dedicated session with no concurrent deploys.
 
@@ -73,6 +73,22 @@
 - [ ] **Notifications: Deduplicate** — `predictionId`, `commentId`, and `actorId` fields exist on the `Notification` model but deduplication logic is not implemented; duplicate notifications can accumulate for the same actor+event.
 
 - [ ] **Notifications: Cleanup/archival** — notifications grow unbounded; add a cron/job to delete notifications older than 90 days.
+
+- [ ] **Notifications: MENTION type never triggered** — `NotificationType.MENTION` exists in the enum and schema but `createNotification()` is never called for it; implement `@username` mention parsing in comment creation (regex scan → look up username → fire `MENTION` notification).
+
+- [ ] **Notifications: Silent UI errors** — `NotificationPreferences.tsx` and `NotificationList.tsx` both have empty `catch {}` blocks; users receive no feedback when saving preferences or loading more notifications fails; add error toasts.
+
+- [ ] **Notifications: `dispatchBrowserPush()` has no retry** — called fire-and-forget without `await`; transient network failures silently lose pushes with no queue or backoff; consider a minimal retry (1–2 attempts with delay) or a persistent job queue.
+
+- [ ] **Notifications: Batch DB updates in `dispatchBrowserPush()`** — for a user with N devices the function issues N separate `prisma.pushSubscription.update()` calls; replace with a single `updateMany` keyed on the IDs that succeeded.
+
+- [ ] **Notifications: Add push subscription tests** — `POST /api/push/subscribe` and `DELETE` have no tests; also missing tests for `usePushSubscription` hook (subscribe flow, VAPID key handling, 410/404 cleanup, unauthorized access).
+
+- [ ] **Analytics: Custom event tracking** — only automatic page views are tracked; add a `trackEvent` utility and instrument key user actions: sign-in, forecast creation (express vs manual), commitment, comment, resolution, and errors.
+
+- [ ] **Analytics: User ID tracking** — authenticated users are not linked in GA4; call `gtag('config', id, { user_id })` after login so per-user journeys are visible in the GA console.
+
+- [ ] **Analytics: GDPR/CCPA consent** — GA4 fires without user opt-in; implement a consent banner (`gtag('consent', 'default', { analytics_storage: 'denied' })` then update on acceptance) before the app is used in EU/CA markets.
 
 ### Verify / Check Later
 
