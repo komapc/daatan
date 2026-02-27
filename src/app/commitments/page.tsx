@@ -18,6 +18,7 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import { createClientLogger } from '@/lib/client-logger'
+import { useTranslations } from 'next-intl'
 
 const log = createClientLogger('CommitmentHistory')
 
@@ -58,6 +59,8 @@ interface Commitment {
 type FilterTab = 'ALL' | 'ACTIVE' | 'RESOLVED'
 
 export default function CommitmentHistoryPage() {
+  const t = useTranslations('commitment')
+  const tf = useTranslations('forecast')
   const { status } = useSession()
   const router = useRouter()
   const [stats, setStats] = useState<CommitmentStats | null>(null)
@@ -114,9 +117,15 @@ export default function CommitmentHistoryPage() {
 
   const getOutcomeLabel = (c: Commitment) => {
     if (c.cuReturned === null) return null
-    if (c.cuReturned > c.cuCommitted) return { text: 'Correct', color: 'text-green-600 bg-green-50' }
-    if (c.cuReturned === 0) return { text: 'Wrong', color: 'text-red-600 bg-red-50' }
-    return { text: 'Refunded', color: 'text-gray-600 bg-gray-50' }
+    if (c.cuReturned > c.cuCommitted) return { text: t('correct'), color: 'text-green-600 bg-green-50' }
+    if (c.cuReturned === 0) return { text: t('wrong'), color: 'text-red-600 bg-red-50' }
+    return { text: t('refunded'), color: 'text-gray-600 bg-gray-50' }
+  }
+
+  const tabLabels: Record<FilterTab, string> = {
+    ALL: t('all'),
+    ACTIVE: t('activeTab'),
+    RESOLVED: t('resolvedTab'),
   }
 
   return (
@@ -124,7 +133,7 @@ export default function CommitmentHistoryPage() {
       {/* Header */}
       <div className="flex items-center gap-3 mb-6 lg:mb-8">
         <History className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Commitment History</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('title')}</h1>
       </div>
 
       {/* Stats Cards */}
@@ -133,37 +142,37 @@ export default function CommitmentHistoryPage() {
           <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
             <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
               <Target className="w-4 h-4" />
-              <span>Accuracy</span>
+              <span>{t('accuracy')}</span>
             </div>
             <p className="text-2xl font-bold text-gray-900">
               {stats.accuracy !== null ? `${stats.accuracy}%` : '—'}
             </p>
             <p className="text-xs text-gray-400 mt-1">
-              {stats.correct}/{stats.resolved} correct
+              {stats.correct}/{stats.resolved} {t('correct')}
             </p>
           </div>
 
           <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
             <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
               <BarChart3 className="w-4 h-4" />
-              <span>Total</span>
+              <span>{t('total')}</span>
             </div>
             <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
             <p className="text-xs text-gray-400 mt-1">
-              {stats.pending} pending
+              {stats.pending} {t('pending')}
             </p>
           </div>
 
           <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
             <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
               <Wallet className="w-4 h-4" />
-              <span>Net CU</span>
+              <span>{t('netCu')}</span>
             </div>
             <p className={`text-2xl font-bold ${stats.netCu >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               {stats.netCu >= 0 ? '+' : ''}{stats.netCu}
             </p>
             <p className="text-xs text-gray-400 mt-1">
-              {stats.totalCuCommitted} committed
+              {stats.totalCuCommitted} {t('committed')}
             </p>
           </div>
 
@@ -174,7 +183,7 @@ export default function CommitmentHistoryPage() {
               ) : (
                 <TrendingDown className="w-4 h-4 text-red-500" />
               )}
-              <span>RS Change</span>
+              <span>{t('rsChange')}</span>
             </div>
             <p className={`text-2xl font-bold ${stats.totalRsChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               {stats.totalRsChange >= 0 ? '+' : ''}{stats.totalRsChange}
@@ -195,7 +204,7 @@ export default function CommitmentHistoryPage() {
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
-            {tab === 'ALL' ? 'All' : tab === 'ACTIVE' ? 'Active' : 'Resolved'}
+            {tabLabels[tab]}
           </button>
         ))}
       </div>
@@ -204,9 +213,9 @@ export default function CommitmentHistoryPage() {
       {commitments.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
           <History className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500 text-lg font-medium">No commitments yet</p>
+          <p className="text-gray-500 text-lg font-medium">{t('noCommitments')}</p>
           <p className="text-gray-400 text-sm mt-1">
-            Browse the <Link href="/" className="text-blue-600 hover:underline">feed</Link> to find forecasts to commit to
+            <Link href="/" className="text-blue-600 hover:underline">{t('browseFeed')}</Link>
           </p>
         </div>
       ) : (
@@ -216,9 +225,9 @@ export default function CommitmentHistoryPage() {
             const choiceLabel = commitment.option
               ? commitment.option.text
               : commitment.binaryChoice === true
-                ? 'Will happen'
+                ? t('willHappen')
                 : commitment.binaryChoice === false
-                  ? 'Won\'t happen'
+                  ? t('wontHappen')
                   : '—'
 
             return (
@@ -234,14 +243,14 @@ export default function CommitmentHistoryPage() {
                     </p>
                     <div className="flex items-center gap-3 mt-2 text-sm text-gray-500 flex-wrap">
                       <span className={`font-medium ${getStatusColor(commitment.prediction.status)}`}>
-                        {commitment.prediction.status === 'ACTIVE' && '● Active'}
-                        {commitment.prediction.status === 'PENDING' && '● Pending'}
-                        {commitment.prediction.status === 'RESOLVED_CORRECT' && 'Resolved ✓'}
-                        {commitment.prediction.status === 'RESOLVED_WRONG' && 'Resolved ✗'}
-                        {commitment.prediction.status === 'VOID' && 'Void'}
+                        {commitment.prediction.status === 'ACTIVE' && `● ${t('activeTab')}`}
+                        {commitment.prediction.status === 'PENDING' && `● ${t('pending')}`}
+                        {commitment.prediction.status === 'RESOLVED_CORRECT' && `${tf('resolved')} ✓`}
+                        {commitment.prediction.status === 'RESOLVED_WRONG' && `${tf('resolved')} ✗`}
+                        {commitment.prediction.status === 'VOID' && tf('void')}
                       </span>
                       <span>·</span>
-                      <span>Your pick: <strong>{choiceLabel}</strong></span>
+                      <span>{t('yourPick')} <strong>{choiceLabel}</strong></span>
                       <span>·</span>
                       <span>{commitment.cuCommitted} CU</span>
                     </div>

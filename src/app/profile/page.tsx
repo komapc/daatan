@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
+import { getTranslations } from 'next-intl/server'
 import Image from 'next/image'
 import {
   User as UserIcon,
@@ -20,6 +21,8 @@ import Link from 'next/link'
 import { RoleBadge } from '@/components/RoleBadge'
 
 export default async function ProfilePage() {
+  const t = await getTranslations('profile')
+
   try {
     const session = await getServerSession(authOptions)
 
@@ -165,7 +168,7 @@ export default async function ProfilePage() {
                       className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
                     >
                       <Globe className="w-4 h-4" />
-                      Website
+                      {t('website')}
                     </a>
                   )}
                   {user.twitterHandle && (
@@ -184,18 +187,18 @@ export default async function ProfilePage() {
 
               <div className="flex flex-wrap justify-center md:justify-start gap-4">
                 <div className="px-4 py-2 bg-gray-50 rounded-xl border border-gray-100">
-                  <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block">Joined</span>
+                  <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block">{t('joined')}</span>
                   <span className="text-sm font-bold text-gray-700">{new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
                 </div>
                 <div className="px-4 py-2 bg-gray-50 rounded-xl border border-gray-100">
-                  <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block">Predictions</span>
-                  <span className="text-sm font-bold text-gray-700">{user._count.predictions} created</span>
+                  <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block">{t('predictions')}</span>
+                  <span className="text-sm font-bold text-gray-700">{user._count.predictions} {t('created')}</span>
                 </div>
                 {avgBrierScore !== null && (
                   <div className="px-4 py-2 bg-gray-50 rounded-xl border border-gray-100" title="Brier Score = (probability − outcome)². Lower is better. Only computed when you enter a % yes estimate at stake time.">
-                    <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block">Brier Score</span>
+                    <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block">{t('brierScore')}</span>
                     <span className="text-sm font-bold text-purple-700">{avgBrierScore.toFixed(3)}</span>
-                    <span className="text-[10px] text-gray-400 block">{brierStats._count.brierScore} scored</span>
+                    <span className="text-[10px] text-gray-400 block">{brierStats._count.brierScore} {t('scored')}</span>
                   </div>
                 )}
               </div>
@@ -205,14 +208,14 @@ export default async function ProfilePage() {
               <div className="flex-1 bg-blue-600 text-white p-6 rounded-3xl shadow-lg shadow-blue-100 text-center">
                 <div className="flex items-center justify-center gap-2 mb-1">
                   <Wallet className="w-4 h-4 text-blue-200" />
-                  <span className="text-xs font-bold uppercase tracking-widest text-blue-100">Balance</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-blue-100">{t('balance')}</span>
                 </div>
                 <p className="text-3xl font-black">{user.cuAvailable} <span className="text-xl font-medium">CU</span></p>
               </div>
               <div className="flex-1 bg-gray-900 text-white p-6 rounded-3xl shadow-lg shadow-gray-200 text-center">
                 <div className="flex items-center justify-center gap-2 mb-1">
                   <TrendingUp className="w-4 h-4 text-green-400" />
-                  <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Reputation</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-gray-400">{t('reputation')}</span>
                 </div>
                 <p className="text-3xl font-black">{user.rs.toFixed(1)} <span className="text-xl font-medium">RS</span></p>
               </div>
@@ -226,13 +229,13 @@ export default async function ProfilePage() {
             <div className="flex items-center justify-between mb-4 px-2">
               <h2 className="text-xl font-black text-gray-900 flex items-center gap-2">
                 <History className="w-5 h-5 text-blue-500" />
-                Recent Stakes
+                {t('recentStakes')}
               </h2>
             </div>
             <div className="space-y-4">
               {commitments.length === 0 ? (
                 <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center">
-                  <p className="text-gray-400 font-medium">No stakes yet</p>
+                  <p className="text-gray-400 font-medium">{t('noStakes')}</p>
                 </div>
               ) : (
                 commitments.map((commitment) => (
@@ -240,7 +243,7 @@ export default async function ProfilePage() {
                     <ForecastCard prediction={commitment.prediction as Prediction} />
                     <div className="absolute top-4 right-12 flex items-center gap-2 px-3 py-1 bg-blue-600 text-white text-[10px] font-black uppercase tracking-wider rounded-full shadow-md transform translate-x-4 -translate-y-2">
                       <Wallet className="w-3 h-3" />
-                      Staked {commitment.cuCommitted} CU
+                      {t('staked')} {commitment.cuCommitted} CU
                     </div>
                   </div>
                 ))
@@ -253,13 +256,13 @@ export default async function ProfilePage() {
             <div className="flex items-center justify-between mb-4 px-2">
               <h2 className="text-xl font-black text-gray-900 flex items-center gap-2">
                 <Award className="w-5 h-5 text-purple-500" />
-                My Forecasts
+                {t('myForecasts')}
               </h2>
             </div>
             <div className="space-y-4">
               {myPredictions.length === 0 ? (
                 <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center">
-                  <p className="text-gray-400 font-medium">No forecasts created yet</p>
+                  <p className="text-gray-400 font-medium">{t('noForecasts')}</p>
                 </div>
               ) : (
                 myPredictions.map((prediction) => (
@@ -276,22 +279,22 @@ export default async function ProfilePage() {
     return (
       <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
         <div className="bg-red-50 border border-red-200 rounded-3xl p-8 text-center">
-          <h1 className="text-2xl font-bold text-red-900 mb-2">Unable to Load Profile</h1>
+          <h1 className="text-2xl font-bold text-red-900 mb-2">{t('errorTitle')}</h1>
           <p className="text-red-700 mb-6">
-            We encountered an error loading your profile. This might be due to a database issue or missing data.
+            {t('errorDesc')}
           </p>
           <div className="flex gap-4 justify-center">
             <Link
               href="/"
               className="px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors"
             >
-              Go to Feed
+              {t('goToFeed')}
             </Link>
             <Link
               href="/auth/signin"
               className="px-6 py-3 bg-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-300 transition-colors"
             >
-              Sign Out & Back In
+              {t('signOutAndBack')}
             </Link>
           </div>
         </div>

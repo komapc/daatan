@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { PlusCircle } from 'lucide-react'
+import { getTranslations } from 'next-intl/server'
 import CreateForecastClient from './CreateForecastClient'
 
 export default async function CreatePage() {
@@ -12,14 +13,16 @@ export default async function CreatePage() {
     redirect('/auth/signin?callbackUrl=/create')
   }
 
+  const t = await getTranslations('forecast')
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="flex items-center gap-3 mb-6 lg:mb-8 max-w-4xl mx-auto">
         <PlusCircle className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Create Forecast</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('createTitle')}</h1>
           <p className="text-sm text-gray-600 mt-1">
-            Use Express for quick AI-assisted creation, or Manual for full control
+            {t('createSubtitle')}
           </p>
         </div>
       </div>

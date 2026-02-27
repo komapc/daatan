@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Home, Loader2, TrendingUp, Plus, Filter, Tag, X, ArrowDownUp } from 'lucide-react'
 import { useSession } from 'next-auth/react'
+import { useTranslations } from 'next-intl'
 import ForecastCard, { Prediction } from '@/components/forecasts/ForecastCard'
 import { createClientLogger } from '@/lib/client-logger'
 
@@ -22,6 +23,8 @@ export default function FeedClient() {
   const router = useRouter()
   const { data: session } = useSession()
   const isAdminOrApprover = session?.user?.role === 'ADMIN' || session?.user?.role === 'APPROVER'
+  const t = useTranslations('feed')
+  const tf = useTranslations('forecast')
 
   // Initialize state from URL search params
   const initialStatus = searchParams.get('status') as FilterStatus | null
@@ -106,8 +109,6 @@ export default function FeedClient() {
           const data = await response.json()
           const preds = data.predictions || []
           setPredictions(preds)
-
-          setPredictions(preds)
         } else {
           const errData = await response.json().catch(() => ({}))
           const baseMsg = errData?.error || `Failed to load predictions (${response.status})`
@@ -137,8 +138,8 @@ export default function FeedClient() {
             <Home className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
           </div>
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Feed</h1>
-            <p className="text-sm text-gray-500">Discover active predictions and commit your CU</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{t('title')}</h1>
+            <p className="text-sm text-gray-500">{t('discover')}</p>
           </div>
         </div>
         <Link
@@ -146,7 +147,7 @@ export default function FeedClient() {
           className="flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl font-semibold shadow-sm hover:bg-blue-700 transition-all active:scale-95"
         >
           <Plus className="w-5 h-5" />
-          <span>New Forecast</span>
+          <span>{t('newForecast')}</span>
         </Link>
       </div>
 
@@ -161,7 +162,7 @@ export default function FeedClient() {
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
           >
-            Open
+            {t('filters.open')}
           </button>
           <button
             onClick={() => handleSetFilter('CLOSING_SOON')}
@@ -170,7 +171,7 @@ export default function FeedClient() {
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
           >
-            Closing Soon
+            {t('filters.closingSoon')}
           </button>
           <button
             onClick={() => handleSetFilter('PENDING')}
@@ -179,7 +180,7 @@ export default function FeedClient() {
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
           >
-            Awaiting Resolution
+            {t('filters.awaitingResolution')}
           </button>
           {isAdminOrApprover && (
             <button
@@ -189,7 +190,7 @@ export default function FeedClient() {
                 : 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-100'
                 }`}
             >
-              Needs Review
+              {t('filters.needsReview')}
             </button>
           )}
           <button
@@ -199,7 +200,7 @@ export default function FeedClient() {
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
           >
-            Resolved
+            {t('filters.resolved')}
           </button>
           <button
             onClick={() => handleSetFilter('ALL')}
@@ -208,7 +209,7 @@ export default function FeedClient() {
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
           >
-            All
+            {t('filters.all')}
           </button>
         </div>
 
@@ -217,9 +218,9 @@ export default function FeedClient() {
           <div className="flex items-center gap-2 flex-wrap">
             <ArrowDownUp className="w-4 h-4 text-gray-400" />
             {([
-              { value: 'newest', label: 'Newest' },
-              { value: 'deadline', label: 'By Deadline' },
-              { value: 'cu', label: 'Most Staked' },
+              { value: 'newest', label: t('sort.newest') },
+              { value: 'deadline', label: t('sort.byDeadline') },
+              { value: 'cu', label: t('sort.mostStaked') },
             ] as { value: SortBy; label: string }[]).map(({ value, label }) => (
               <button
                 key={value}
@@ -281,30 +282,30 @@ export default function FeedClient() {
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-20">
           <Loader2 className="w-10 h-10 text-blue-500 animate-spin mb-4" />
-          <p className="text-gray-500 font-medium">Loading your feed...</p>
+          <p className="text-gray-500 font-medium">{t('loading')}</p>
         </div>
       ) : predictions.length === 0 ? (
         <div className="bg-white border border-gray-100 rounded-2xl p-12 text-center shadow-sm">
           <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
             <TrendingUp className="w-10 h-10 text-blue-500" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-3">No active forecasts</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-3">{t('empty')}</h2>
           <p className="text-gray-500 mb-8 max-w-md mx-auto text-lg">
-            There are no active forecasts at the moment. Check back soon!
+            {t('emptyDesc')}
           </p>
         </div>
       ) : (
         <div className="space-y-6">
           <div className="flex items-center justify-between px-2">
             <h2 className="text-lg font-bold text-gray-800 uppercase tracking-wider">
-              {filter === 'ACTIVE' && 'Open Forecasts'}
-              {filter === 'CLOSING_SOON' && 'Closing Soon'}
-              {filter === 'PENDING' && 'Awaiting Resolution'}
-              {filter === 'NEEDS_REVIEW' && 'Needs Review (Admin)'}
-              {filter === 'RESOLVED' && 'Resolved Forecasts'}
-              {filter === 'ALL' && 'All Forecasts'}
+              {filter === 'ACTIVE' && t('openForecasts')}
+              {filter === 'CLOSING_SOON' && t('closingSoon')}
+              {filter === 'PENDING' && t('awaitingResolution')}
+              {filter === 'NEEDS_REVIEW' && t('needsReview')}
+              {filter === 'RESOLVED' && t('resolvedForecasts')}
+              {filter === 'ALL' && t('allForecasts')}
             </h2>
-            <span className="text-sm text-gray-500">{predictions.length} results</span>
+            <span className="text-sm text-gray-500">{t('results', { count: predictions.length })}</span>
           </div>
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             {predictions.map((prediction) => (

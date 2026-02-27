@@ -30,30 +30,88 @@
   },
   "feed": {
     "title": "Feed",
+    "discover": "Discover active predictions and commit your CU",
+    "newForecast": "New Forecast",
     "filters": {
       "open": "Open",
       "closingSoon": "Closing Soon",
       "awaitingResolution": "Awaiting Resolution",
       "resolved": "Resolved",
-      "all": "All"
+      "all": "All",
+      "needsReview": "Needs Review"
     },
-    "empty": "No predictions yet",
+    "sort": {
+      "newest": "Newest",
+      "byDeadline": "By Deadline",
+      "mostStaked": "Most Staked"
+    },
+    "openForecasts": "Open Forecasts",
+    "closingSoon": "Closing Soon",
+    "awaitingResolution": "Awaiting Resolution",
+    "needsReview": "Needs Review (Admin)",
+    "resolvedForecasts": "Resolved Forecasts",
+    "allForecasts": "All Forecasts",
+    "results": "{count} results",
+    "empty": "No active forecasts",
+    "emptyDesc": "There are no active forecasts at the moment. Check back soon!",
     "loading": "Loading your feed..."
   },
   "forecast": {
     "create": "New Prediction",
+    "createTitle": "Create Forecast",
+    "createSubtitle": "Use Express for quick AI-assisted creation, or Manual for full control",
     "draft": "Draft",
     "active": "Active",
     "pending": "Pending",
+    "pendingApproval": "Pending Approval",
     "resolved": "Resolved",
     "void": "Void",
+    "correct": "Correct",
+    "wrong": "Wrong",
+    "unresolvable": "Unresolvable",
     "willHappen": "Will happen",
     "wontHappen": "Won't happen",
     "commitCU": "Commit CU",
-    "resolveBy": "Resolve by"
+    "resolveBy": "Resolve by",
+    "locked": "Locked",
+    "source": "Source",
+    "anonymous": "Anonymous",
+    "commitmentsLabel": "commitments",
+    "committedLabel": "Committed",
+    "approve": "Approve",
+    "reject": "Reject",
+    "deleteConfirm": "Are you sure you want to delete this forecast? This action cannot be undone.",
+    "deleteSuccess": "Forecast deleted successfully",
+    "deleteError": "Failed to delete forecast",
+    "approveSuccess": "Forecast approved",
+    "approveError": "Failed to approve forecast",
+    "rejectConfirm": "Reject this forecast? It will be moved to VOID status.",
+    "rejectSuccess": "Forecast rejected",
+    "rejectError": "Failed to reject forecast"
   },
   "commitment": {
     "title": "Commitment History",
+    "makeCommitment": "Make your commitment",
+    "updateCommitment": "Update your commitment",
+    "percentYes": "% yes",
+    "penaltyTitle": "Confirm Exit Penalty",
+    "penaltyDesc": "You've already committed to this forecast. Changing your position now will incur an exit penalty.",
+    "originalCommitment": "Original Commitment:",
+    "burnRate": "Burn Rate:",
+    "amountBurned": "Amount Burned:",
+    "amountRefunded": "Amount Refunded:",
+    "confirming": "Confirming...",
+    "acceptPenalty": "Accept Penalty & Continue",
+    "lockedTitle": "This forecast is locked",
+    "lockedDesc": "You cannot change your position at this stage.",
+    "update": "Update",
+    "select": "Select",
+    "all": "All",
+    "activeTab": "Active",
+    "resolvedTab": "Resolved",
+    "yourPick": "Your pick:",
+    "willHappen": "Will happen",
+    "wontHappen": "Won't happen",
     "accuracy": "Accuracy",
     "total": "Total",
     "pending": "pending",
@@ -69,20 +127,36 @@
   "leaderboard": {
     "title": "Leaderboard",
     "subtitle": "Top predictors ranked by performance. Prove your accuracy and climb the ranks.",
+    "rank": "Rank",
+    "predictor": "Predictor",
+    "correct": "Correct",
+    "resolvedLabel": "resolved",
+    "noUsers": "No predictors found yet.",
+    "calculating": "Calculating rankings...",
     "sortBy": {
       "reputation": "Reputation",
       "accuracy": "Accuracy",
       "mostCorrect": "Most Correct",
-      "cuCommitted": "Most CU Committed"
+      "cuCommitted": "Most CU Committed",
+      "brierScore": "Brier Score"
     },
-    "calculating": "Calculating rankings..."
+    "legend": {
+      "rsTitle": "Reputation Score (RS)",
+      "rsDesc": "Reputation is earned by making correct predictions weighted by your confidence. Higher RS means more consistent accuracy.",
+      "cuTitle": "Confidence Units (CU)",
+      "cuDesc": "CU represent how much you stake on each prediction. Correct calls return CU + bonus; wrong calls lose CU.",
+      "brierTitle": "Brier Score",
+      "brierDesc": "Lower is better. Measures calibration: (your probability − actual outcome)². Perfect score = 0."
+    }
   },
   "activity": {
     "title": "Activity Feed",
     "subtitle": "Recent commitments across all forecasts",
     "committed": "committed",
     "cuOn": "CU on",
-    "noActivity": "No activity yet"
+    "noActivity": "No activity yet",
+    "willHappen": "Will happen",
+    "wontHappen": "Won't happen"
   },
   "notifications": {
     "title": "Notifications",
@@ -101,6 +175,29 @@
   },
   "profile": {
     "title": "Profile",
-    "editProfile": "Edit Profile"
+    "editProfile": "Edit Profile",
+    "website": "Website",
+    "joined": "Joined",
+    "predictions": "Predictions",
+    "created": "created",
+    "brierScore": "Brier Score",
+    "scored": "scored",
+    "balance": "Balance",
+    "reputation": "Reputation",
+    "recentStakes": "Recent Stakes",
+    "myForecasts": "My Forecasts",
+    "noStakes": "No stakes yet",
+    "staked": "Staked",
+    "noForecasts": "No forecasts created yet",
+    "errorTitle": "Unable to Load Profile",
+    "errorDesc": "We couldn't load this user's profile. They may not exist or there was a server error.",
+    "goToFeed": "Go to Feed",
+    "signOutAndBack": "Sign Out & Back In"
+  },
+  "translate": {
+    "translate": "Translate",
+    "showOriginal": "Show original",
+    "translatedTo": "Translated",
+    "translating": "Translating..."
   }
 }

@@ -233,6 +233,7 @@ model Prediction {
   withdrawals      CommitmentWithdrawal[]
   comments         Comment[]
   contextSnapshots ContextSnapshot[]
+  translations     PredictionTranslation[]
 
   @@index([status])
   @@index([authorId])
@@ -425,7 +426,8 @@ model Comment {
   deletedAt DateTime?
 
   // Relations
-  reactions CommentReaction[]
+  reactions    CommentReaction[]
+  translations CommentTranslation[]
 
   @@index([predictionId])
   @@index([authorId])
@@ -467,6 +469,35 @@ model CommentReaction {
   @@index([commentId])
   @@index([userId])
   @@map("comment_reactions")
+}
+
+// ============================================
+// TRANSLATION CACHE
+// ============================================
+
+model PredictionTranslation {
+  id             String     @id @default(cuid())
+  predictionId   String
+  prediction     Prediction @relation(fields: [predictionId], references: [id], onDelete: Cascade)
+  fieldName      String     @db.VarChar(50)  // "claimText" | "detailsText" | "resolutionRules"
+  language       String     @db.VarChar(10)  // ISO 639-1 e.g. "he"
+  translatedText String     @db.Text
+  createdAt      DateTime   @default(now())
+
+  @@unique([predictionId, fieldName, language])
+  @@map("prediction_translations")
+}
+
+model CommentTranslation {
+  id             String   @id @default(cuid())
+  commentId      String
+  comment        Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  language       String   @db.VarChar(10)
+  translatedText String   @db.Text
+  createdAt      DateTime @default(now())
+
+  @@unique([commentId, language])
+  @@map("comment_translations")
 }
 
 // ============================================

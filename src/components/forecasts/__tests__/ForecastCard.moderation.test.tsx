@@ -1,7 +1,12 @@
 import { render, screen } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useSession } from 'next-auth/react'
+import { NextIntlClientProvider } from 'next-intl'
 import ForecastCard, { Prediction } from '../ForecastCard'
+import messages from '../../../../messages/en.json'
+
+const renderWithIntl = (ui: React.ReactElement) =>
+  render(<NextIntlClientProvider locale="en" messages={messages}>{ui}</NextIntlClientProvider>)
 
 vi.mock('next-auth/react', () => ({
   useSession: vi.fn(),
@@ -51,14 +56,14 @@ describe('ForecastCard tag display', () => {
       ...basePrediction,
       tags: [{ name: 'AI' }, { name: 'Crypto' }],
     }
-    render(<ForecastCard prediction={prediction} />)
+    renderWithIntl(<ForecastCard prediction={prediction} />)
 
     expect(screen.getByText('AI')).toBeInTheDocument()
     expect(screen.getByText('Crypto')).toBeInTheDocument()
   })
 
   it('does not render tag section when tags array is empty', () => {
-    render(<ForecastCard prediction={basePrediction} />)
+    renderWithIntl(<ForecastCard prediction={basePrediction} />)
 
     expect(screen.queryByText('AI')).toBeNull()
     expect(screen.queryByText('Crypto')).toBeNull()
@@ -66,7 +71,7 @@ describe('ForecastCard tag display', () => {
 
   it('does not render tag section when tags is undefined', () => {
     const { tags, ...predictionWithoutTags } = basePrediction
-    render(<ForecastCard prediction={predictionWithoutTags as Prediction} />)
+    renderWithIntl(<ForecastCard prediction={predictionWithoutTags as Prediction} />)
 
     expect(screen.queryByText('AI')).toBeNull()
   })
@@ -86,7 +91,7 @@ describe('ForecastCard moderation controls', () => {
       status: 'authenticated',
     } as any)
 
-    render(<ForecastCard prediction={basePrediction} />)
+    renderWithIntl(<ForecastCard prediction={basePrediction} />)
 
     expect(screen.queryByTitle(/Edit Forecast/i)).toBeNull()
     expect(screen.queryByTitle(/Delete Forecast/i)).toBeNull()
@@ -101,7 +106,7 @@ describe('ForecastCard moderation controls', () => {
       status: 'authenticated',
     } as any)
 
-    render(<ForecastCard prediction={basePrediction} showModerationControls />)
+    renderWithIntl(<ForecastCard prediction={basePrediction} showModerationControls />)
 
     expect(screen.queryByTitle(/Edit Forecast/i)).toBeNull()
     expect(screen.queryByTitle(/Delete Forecast/i)).toBeNull()
@@ -118,7 +123,7 @@ describe('ForecastCard moderation controls', () => {
     } as any)
 
     const resolvedPrediction = { ...basePrediction, status: 'RESOLVED_CORRECT' as const }
-    render(<ForecastCard prediction={resolvedPrediction} showModerationControls />)
+    renderWithIntl(<ForecastCard prediction={resolvedPrediction} showModerationControls />)
 
     expect(screen.queryByTitle(/Resolve forecast/i)).toBeNull()
   })
@@ -132,7 +137,7 @@ describe('ForecastCard moderation controls', () => {
       status: 'authenticated',
     } as any)
 
-    render(<ForecastCard prediction={basePrediction} showModerationControls />)
+    renderWithIntl(<ForecastCard prediction={basePrediction} showModerationControls />)
 
     expect(screen.getByTitle(/Resolve forecast/i)).toBeInTheDocument()
     expect(screen.getByTitle(/Edit Forecast/i)).toBeInTheDocument()

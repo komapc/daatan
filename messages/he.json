@@ -30,30 +30,88 @@
   },
   "feed": {
     "title": "פיד",
+    "discover": "גלה תחזיות פעילות והתחייב ל-CU שלך",
+    "newForecast": "תחזית חדשה",
     "filters": {
       "open": "פתוח",
       "closingSoon": "נסגר בקרוב",
       "awaitingResolution": "ממתין להכרעה",
       "resolved": "הוכרע",
-      "all": "הכל"
+      "all": "הכל",
+      "needsReview": "ממתין לבדיקה"
     },
-    "empty": "אין תחזיות עדיין",
+    "sort": {
+      "newest": "חדש ביותר",
+      "byDeadline": "לפי מועד",
+      "mostStaked": "הכי מושקע"
+    },
+    "openForecasts": "תחזיות פתוחות",
+    "closingSoon": "נסגר בקרוב",
+    "awaitingResolution": "ממתין להכרעה",
+    "needsReview": "ממתין לבדיקה (מנהל)",
+    "resolvedForecasts": "תחזיות שהוכרעו",
+    "allForecasts": "כל התחזיות",
+    "results": "{count} תוצאות",
+    "empty": "אין תחזיות פעילות",
+    "emptyDesc": "אין תחזיות פעילות כרגע. בדוק שוב בקרוב!",
     "loading": "טוען את הפיד שלך..."
   },
   "forecast": {
     "create": "תחזית חדשה",
+    "createTitle": "יצירת תחזית",
+    "createSubtitle": "השתמש ב-Express ליצירה מהירה בעזרת AI, או ב-Manual לשליטה מלאה",
     "draft": "טיוטה",
     "active": "פעיל",
     "pending": "ממתין",
+    "pendingApproval": "ממתין לאישור",
     "resolved": "הוכרע",
     "void": "בוטל",
+    "correct": "נכון",
+    "wrong": "שגוי",
+    "unresolvable": "לא ניתן להכרעה",
     "willHappen": "יקרה",
     "wontHappen": "לא יקרה",
     "commitCU": "התחייב CU",
-    "resolveBy": "הכרעה עד"
+    "resolveBy": "הכרעה עד",
+    "locked": "נעול",
+    "source": "מקור",
+    "anonymous": "אנונימי",
+    "commitmentsLabel": "התחייבויות",
+    "committedLabel": "הותחייב",
+    "approve": "אשר",
+    "reject": "דחה",
+    "deleteConfirm": "האם אתה בטוח שברצונך למחוק תחזית זו? פעולה זו אינה הפיכה.",
+    "deleteSuccess": "התחזית נמחקה בהצלחה",
+    "deleteError": "מחיקת התחזית נכשלה",
+    "approveSuccess": "התחזית אושרה",
+    "approveError": "אישור התחזית נכשל",
+    "rejectConfirm": "לדחות תחזית זו? היא תועבר לסטטוס בוטל.",
+    "rejectSuccess": "התחזית נדחתה",
+    "rejectError": "דחיית התחזית נכשלה"
   },
   "commitment": {
     "title": "היסטוריית התחייבויות",
+    "makeCommitment": "הגש את התחייבותך",
+    "updateCommitment": "עדכן את התחייבותך",
+    "percentYes": "% כן",
+    "penaltyTitle": "אשר קנס יציאה",
+    "penaltyDesc": "כבר התחייבת לתחזית זו. שינוי עמדתך כעת יגרור קנס יציאה.",
+    "originalCommitment": "התחייבות מקורית:",
+    "burnRate": "שיעור שריפה:",
+    "amountBurned": "סכום שנשרף:",
+    "amountRefunded": "סכום שהוחזר:",
+    "confirming": "מאשר...",
+    "acceptPenalty": "קבל קנס והמשך",
+    "lockedTitle": "תחזית זו נעולה",
+    "lockedDesc": "לא ניתן לשנות עמדה בשלב זה.",
+    "update": "עדכן",
+    "select": "בחר",
+    "all": "הכל",
+    "activeTab": "פעיל",
+    "resolvedTab": "הוכרע",
+    "yourPick": "הבחירה שלך:",
+    "willHappen": "יקרה",
+    "wontHappen": "לא יקרה",
     "accuracy": "דיוק",
     "total": "סה\"כ",
     "pending": "ממתינים",
@@ -69,20 +127,36 @@
   "leaderboard": {
     "title": "טבלת דירוג",
     "subtitle": "המנבאים המובילים מדורגים לפי ביצועים. הוכח את הדיוק שלך וטפס בדירוג.",
+    "rank": "דירוג",
+    "predictor": "מנבא",
+    "correct": "נכון",
+    "resolvedLabel": "הוכרע",
+    "noUsers": "אין מנבאים עדיין.",
+    "calculating": "מחשב דירוגים...",
     "sortBy": {
       "reputation": "מוניטין",
       "accuracy": "דיוק",
       "mostCorrect": "הכי נכונים",
-      "cuCommitted": "הכי הרבה CU"
+      "cuCommitted": "הכי הרבה CU",
+      "brierScore": "ציון בריאר"
     },
-    "calculating": "מחשב דירוגים..."
+    "legend": {
+      "rsTitle": "ציון מוניטין (RS)",
+      "rsDesc": "מוניטין נצבר על ידי ניבויים נכונים משוקללים לפי רמת ביטחונך. RS גבוה יותר משמעו דיוק עקבי יותר.",
+      "cuTitle": "יחידות ביטחון (CU)",
+      "cuDesc": "CU מייצגים כמה אתה מהמר על כל ניבוי. ניחושים נכונים מחזירים CU + בונוס; ניחושים שגויים מפסידים CU.",
+      "brierTitle": "ציון בריאר",
+      "brierDesc": "נמוך יותר = טוב יותר. מודד כיול: (הסתברות שלך − תוצאה בפועל)². ציון מושלם = 0."
+    }
   },
   "activity": {
     "title": "פיד פעילות",
     "subtitle": "התחייבויות אחרונות בכל התחזיות",
     "committed": "התחייב",
     "cuOn": "CU על",
-    "noActivity": "אין פעילות עדיין"
+    "noActivity": "אין פעילות עדיין",
+    "willHappen": "יקרה",
+    "wontHappen": "לא יקרה"
   },
   "notifications": {
     "title": "התראות",
@@ -101,6 +175,29 @@
   },
   "profile": {
     "title": "פרופיל",
-    "editProfile": "ערוך פרופיל"
+    "editProfile": "ערוך פרופיל",
+    "website": "אתר אינטרנט",
+    "joined": "הצטרף",
+    "predictions": "תחזיות",
+    "created": "נוצרו",
+    "brierScore": "ציון בריאר",
+    "scored": "ניקוד",
+    "balance": "יתרה",
+    "reputation": "מוניטין",
+    "recentStakes": "הצבות אחרונות",
+    "myForecasts": "התחזיות שלי",
+    "noStakes": "אין הצבות עדיין",
+    "staked": "הוצב",
+    "noForecasts": "לא נוצרו תחזיות עדיין",
+    "errorTitle": "לא ניתן לטעון פרופיל",
+    "errorDesc": "לא הצלחנו לטעון את הפרופיל של משתמש זה. ייתכן שהוא אינו קיים או שאירעה שגיאת שרת.",
+    "goToFeed": "עבור לפיד",
+    "signOutAndBack": "התנתק והתחבר שוב"
+  },
+  "translate": {
+    "translate": "תרגם",
+    "showOriginal": "הצג מקור",
+    "translatedTo": "מתורגם",
+    "translating": "מתרגם..."
   }
 }
