@@ -68,9 +68,9 @@
 
 - [ ] **About page** — modal or page accessible from settings/sidebar showing app version (from `/api/health`), git commit SHA, build date, and link to repo.
 
-- [ ] **Notifications: Deduplicate** — `predictionId`, `commentId`, and `actorId` fields exist on the `Notification` model but deduplication logic is not implemented; duplicate notifications can accumulate for the same actor+event.
+- [x] **Notifications: Deduplicate** — `createNotification()` now checks for an unread notification with same `(userId, type, actorId, predictionId)` within the last hour; if found, updates `createdAt` + `message` instead of inserting a duplicate.
 
-- [ ] **Notifications: Cleanup/archival** — notifications grow unbounded; add a cron/job to delete notifications older than 90 days.
+- [x] **Notifications: Cleanup/archival** — `cleanupOldNotifications(days=90)` added to notification service; `GET /api/cron/cleanup` route gated by `x-cron-secret` header; EC2 crontab entry documented in the route file.
 
 - [x] **Notifications: MENTION type never triggered** — implemented `@username` mention parsing in `POST /api/comments`; regex scans comment text, looks up mentioned usernames, fires `MENTION` notification for each valid user (skips self + users already notified for that comment).
 
@@ -80,7 +80,7 @@
 
 - [x] **Notifications: Batch DB updates in `dispatchBrowserPush()`** — for a user with N devices the function issued N separate `prisma.pushSubscription.update()` calls; replaced with a single `updateMany` for successes and `deleteMany` for stale subs.
 
-- [ ] **Notifications: Add push subscription tests** — `POST /api/push/subscribe` and `DELETE` have no tests; also missing tests for `usePushSubscription` hook (subscribe flow, VAPID key handling, 410/404 cleanup, unauthorized access).
+- [x] **Notifications: Add push subscription tests** — 13 tests covering `POST` (create, upsert/key rotation, ownership transfer, validation) and `DELETE` (ownership scoping, idempotency, validation) in `src/app/api/push/subscribe/__tests__/route.test.ts`.
 
 - [ ] **Analytics: Custom event tracking** — only automatic page views are tracked; add a `trackEvent` utility and instrument key user actions: sign-in, forecast creation (express vs manual), commitment, comment, resolution, and errors.
 

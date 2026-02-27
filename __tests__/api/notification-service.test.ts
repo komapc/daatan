@@ -7,8 +7,11 @@ vi.mock('@/lib/prisma', () => ({
     },
     notification: {
       create: vi.fn(),
+      update: vi.fn(),
       updateMany: vi.fn(),
       count: vi.fn(),
+      deleteMany: vi.fn(),
+      findFirst: vi.fn().mockResolvedValue(null), // default: no duplicate to dedup against
     },
   },
 }))
