@@ -72,13 +72,13 @@
 
 - [ ] **Notifications: Cleanup/archival** — notifications grow unbounded; add a cron/job to delete notifications older than 90 days.
 
-- [ ] **Notifications: MENTION type never triggered** — `NotificationType.MENTION` exists in the enum and schema but `createNotification()` is never called for it; implement `@username` mention parsing in comment creation (regex scan → look up username → fire `MENTION` notification).
+- [x] **Notifications: MENTION type never triggered** — implemented `@username` mention parsing in `POST /api/comments`; regex scans comment text, looks up mentioned usernames, fires `MENTION` notification for each valid user (skips self + users already notified for that comment).
 
-- [ ] **Notifications: Silent UI errors** — `NotificationPreferences.tsx` and `NotificationList.tsx` both have empty `catch {}` blocks; users receive no feedback when saving preferences or loading more notifications fails; add error toasts.
+- [x] **Notifications: Silent UI errors** — `NotificationPreferences.tsx` and `NotificationList.tsx` both have empty `catch {}` blocks; users receive no feedback when saving preferences or loading more notifications fails; add error toasts.
 
 - [ ] **Notifications: `dispatchBrowserPush()` has no retry** — called fire-and-forget without `await`; transient network failures silently lose pushes with no queue or backoff; consider a minimal retry (1–2 attempts with delay) or a persistent job queue.
 
-- [ ] **Notifications: Batch DB updates in `dispatchBrowserPush()`** — for a user with N devices the function issues N separate `prisma.pushSubscription.update()` calls; replace with a single `updateMany` keyed on the IDs that succeeded.
+- [x] **Notifications: Batch DB updates in `dispatchBrowserPush()`** — for a user with N devices the function issued N separate `prisma.pushSubscription.update()` calls; replaced with a single `updateMany` for successes and `deleteMany` for stale subs.
 
 - [ ] **Notifications: Add push subscription tests** — `POST /api/push/subscribe` and `DELETE` have no tests; also missing tests for `usePushSubscription` hook (subscribe flow, VAPID key handling, 410/404 cleanup, unauthorized access).
 

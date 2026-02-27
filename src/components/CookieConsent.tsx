@@ -17,7 +17,16 @@ function getStoredConsent(): ConsentValue | null {
 }
 
 function applyConsent(value: ConsentValue) {
-  if (typeof window === 'undefined' || typeof window.gtag !== 'function') return
+  if (typeof window === 'undefined') return
+  // Ensure dataLayer and gtag exist before calling — the GA script may not have
+  // loaded yet when this runs (both are afterInteractive). Defining them here
+  // queues the consent update so gtag will process it when it initializes.
+  window.dataLayer = window.dataLayer || []
+  if (typeof window.gtag !== 'function') {
+    // Define a minimal gtag that queues commands in dataLayer (same pattern as GA).
+    // The real gtag will pick up and process the queued items when it loads.
+    window.gtag = (...args: unknown[]) => window.dataLayer!.push(args)
+  }
   window.gtag('consent', 'update', {
     analytics_storage: value,
     ad_storage: 'denied', // we never use ads

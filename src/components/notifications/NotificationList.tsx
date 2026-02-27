@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import toast from 'react-hot-toast'
 import {
   Bell,
   MessageSquare,
@@ -102,9 +103,11 @@ export default function NotificationList({
         setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
         setUnreadCount(0)
         router.refresh() // invalidate router cache so next visit shows updated state
+      } else {
+        toast.error('Failed to mark notifications as read')
       }
     } catch {
-      // Silently fail
+      toast.error('Failed to mark notifications as read')
     } finally {
       setMarkingAllRead(false)
     }
@@ -118,9 +121,11 @@ export default function NotificationList({
         const data = await res.json()
         setNotifications((prev) => [...prev, ...data.notifications])
         setTotal(data.pagination.total)
+      } else {
+        toast.error('Failed to load more notifications')
       }
     } catch {
-      // Silently fail
+      toast.error('Failed to load more notifications')
     } finally {
       setLoadingMore(false)
     }

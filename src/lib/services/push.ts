@@ -39,7 +39,10 @@ export async function dispatchBrowserPush(
     type: notification.type,
   })
 
-  const results = await Promise.allSettled(
+  const successIds: string[] = []
+  const staleIds: string[] = []
+
+  await Promise.allSettled(
     subscriptions.map(async (sub) => {
       try {
         await webpush.sendNotification(
@@ -49,17 +52,12 @@ export async function dispatchBrowserPush(
           },
           payload,
         )
-        // Update lastUsedAt on success
-        await prisma.pushSubscription.update({
-          where: { id: sub.id },
-          data: { lastUsedAt: new Date() },
-        })
+        successIds.push(sub.id)
       } catch (error: unknown) {
         const statusCode = (error as { statusCode?: number }).statusCode
         if (statusCode === 410 || statusCode === 404) {
-          // Subscription expired or invalid — clean up
-          log.info({ endpoint: sub.endpoint }, 'Removing stale push subscription')
-          await prisma.pushSubscription.delete({ where: { id: sub.id } })
+          // Subscription expired or invalid — queue for cleanup
+          staleIds.push(sub.id)
         } else {
           log.error({ err: error, endpoint: sub.endpoint }, 'Failed to send push notification')
         }
@@ -67,7 +65,22 @@ export async function dispatchBrowserPush(
     }),
   )
 
-  const failed = results.filter((r) => r.status === 'rejected').length
+  // Batch DB operations rather than N individual queries
+  const now = new Date()
+  await Promise.allSettled([
+    successIds.length > 0
+      ? prisma.pushSubscription.updateMany({
+          where: { id: { in: successIds } },
+          data: { lastUsedAt: now },
+        })
+      : Promise.resolve(),
+    staleIds.length > 0
+      ? (log.info({ count: staleIds.length }, 'Removing stale push subscriptions'),
+        prisma.pushSubscription.deleteMany({ where: { id: { in: staleIds } } }))
+      : Promise.resolve(),
+  ])
+
+  const failed = subscriptions.length - successIds.length - staleIds.length
   if (failed > 0) {
     log.warn({ userId, total: subscriptions.length, failed }, 'Some push notifications failed')
   }
