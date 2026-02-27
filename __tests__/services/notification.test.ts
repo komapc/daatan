@@ -4,8 +4,11 @@ vi.mock('@/lib/prisma', () => ({
   prisma: {
     notification: {
       create: vi.fn(),
+      update: vi.fn(),
       updateMany: vi.fn(),
       count: vi.fn(),
+      deleteMany: vi.fn(),
+      findFirst: vi.fn().mockResolvedValue(null), // default: no existing notification to dedup
     },
     notificationPreference: {
       findUnique: vi.fn(),
@@ -124,6 +127,92 @@ describe('Notification Service', () => {
 
       expect(result).toBeNull()
       // Should not throw — notification failures are non-blocking
+    })
+
+    it('updates existing unread notification instead of creating a duplicate', async () => {
+      const { prisma } = await import('@/lib/prisma')
+      const { createNotification } = await import('@/lib/services/notification')
+
+      vi.mocked(prisma.notificationPreference.findUnique).mockResolvedValue(null)
+      const existing = {
+        id: 'existing-notif',
+        userId: 'user1',
+        type: 'COMMENT_ON_FORECAST',
+        read: false,
+        createdAt: new Date(Date.now() - 5 * 60 * 1000), // 5 minutes ago
+      }
+      vi.mocked(prisma.notification.findFirst).mockResolvedValueOnce(existing as any)
+      vi.mocked(prisma.notification.update).mockResolvedValue({ ...existing, message: 'Updated message' } as any)
+
+      const result = await createNotification({
+        userId: 'user1',
+        type: 'COMMENT_ON_FORECAST',
+        title: 'New Comment',
+        message: 'Updated message',
+        actorId: 'user2',
+        predictionId: 'pred1',
+      })
+
+      expect(prisma.notification.create).not.toHaveBeenCalled()
+      expect(prisma.notification.update).toHaveBeenCalledWith({
+        where: { id: 'existing-notif' },
+        data: { message: 'Updated message', createdAt: expect.any(Date) },
+      })
+      expect(result).not.toBeNull()
+    })
+
+    it('creates a new notification when no unread duplicate exists within the window', async () => {
+      const { prisma } = await import('@/lib/prisma')
+      const { createNotification } = await import('@/lib/services/notification')
+
+      vi.mocked(prisma.notificationPreference.findUnique).mockResolvedValue(null)
+      vi.mocked(prisma.notification.findFirst).mockResolvedValueOnce(null) // no duplicate
+      vi.mocked(prisma.notification.create).mockResolvedValue({ id: 'new-notif' } as any)
+
+      await createNotification({
+        userId: 'user1',
+        type: 'COMMENT_ON_FORECAST',
+        title: 'New Comment',
+        message: 'A comment',
+        actorId: 'user2',
+      })
+
+      expect(prisma.notification.create).toHaveBeenCalledTimes(1)
+      expect(prisma.notification.update).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('cleanupOldNotifications', () => {
+    it('deletes notifications older than the given number of days', async () => {
+      const { prisma } = await import('@/lib/prisma')
+      const { cleanupOldNotifications } = await import('@/lib/services/notification')
+
+      vi.mocked(prisma.notification.deleteMany).mockResolvedValue({ count: 42 })
+
+      const deleted = await cleanupOldNotifications(90)
+
+      expect(deleted).toBe(42)
+      expect(prisma.notification.deleteMany).toHaveBeenCalledWith({
+        where: { createdAt: { lt: expect.any(Date) } },
+      })
+
+      // Verify the cutoff date is approximately 90 days ago
+      const cutoffArg = vi.mocked(prisma.notification.deleteMany).mock.calls[0][0]?.where?.createdAt as any
+      const ninetyDaysAgo = Date.now() - 90 * 24 * 60 * 60 * 1000
+      expect(cutoffArg.lt.getTime()).toBeCloseTo(ninetyDaysAgo, -4) // within ~10 seconds
+    })
+
+    it('uses 90 days as default', async () => {
+      const { prisma } = await import('@/lib/prisma')
+      const { cleanupOldNotifications } = await import('@/lib/services/notification')
+
+      vi.mocked(prisma.notification.deleteMany).mockResolvedValue({ count: 0 })
+
+      await cleanupOldNotifications()
+
+      const cutoffArg = vi.mocked(prisma.notification.deleteMany).mock.calls[0][0]?.where?.createdAt as any
+      const ninetyDaysAgo = Date.now() - 90 * 24 * 60 * 60 * 1000
+      expect(cutoffArg.lt.getTime()).toBeCloseTo(ninetyDaysAgo, -4)
     })
   })
 

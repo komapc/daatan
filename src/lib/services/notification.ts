@@ -47,18 +47,41 @@ export const createNotification = async (input: CreateNotificationInput) => {
     // Create in-app notification if enabled
     let notification = null
     if (inAppEnabled) {
-      notification = await prisma.notification.create({
-        data: {
+      // Dedup: if an unread notification with the same (userId, type, actorId, predictionId)
+      // already exists within the last hour, update it instead of creating a duplicate.
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000)
+      const existing = await prisma.notification.findFirst({
+        where: {
           userId: input.userId,
           type: input.type,
-          title: input.title,
-          message: input.message,
-          link: input.link,
-          predictionId: input.predictionId,
-          commentId: input.commentId,
-          actorId: input.actorId,
+          actorId: input.actorId ?? null,
+          predictionId: input.predictionId ?? null,
+          read: false,
+          createdAt: { gte: oneHourAgo },
         },
+        orderBy: { createdAt: 'desc' },
       })
+
+      if (existing) {
+        notification = await prisma.notification.update({
+          where: { id: existing.id },
+          data: { message: input.message, createdAt: new Date() },
+        })
+        log.debug({ id: existing.id, type: input.type }, 'Deduped notification — updated existing')
+      } else {
+        notification = await prisma.notification.create({
+          data: {
+            userId: input.userId,
+            type: input.type,
+            title: input.title,
+            message: input.message,
+            link: input.link,
+            predictionId: input.predictionId,
+            commentId: input.commentId,
+            actorId: input.actorId,
+          },
+        })
+      }
     } else {
       log.debug({ userId: input.userId, type: input.type }, 'In-app notification disabled by user preference')
     }
@@ -107,6 +130,20 @@ export const getUnreadCount = async (userId: string): Promise<number> => {
   return prisma.notification.count({
     where: { userId, read: false },
   })
+}
+
+/**
+ * Delete notifications older than the given number of days (default: 90).
+ * Intended to be called from a scheduled cron job.
+ * Returns the number of deleted rows.
+ */
+export const cleanupOldNotifications = async (olderThanDays = 90): Promise<number> => {
+  const cutoff = new Date(Date.now() - olderThanDays * 24 * 60 * 60 * 1000)
+  const result = await prisma.notification.deleteMany({
+    where: { createdAt: { lt: cutoff } },
+  })
+  log.info({ deleted: result.count, olderThanDays }, 'Notification cleanup completed')
+  return result.count
 }
 
 /**
