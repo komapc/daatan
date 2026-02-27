@@ -1,5 +1,3 @@
-'use client'
-
 import Script from 'next/script'
 
 interface GoogleAnalyticsProps {
@@ -31,9 +29,10 @@ const GoogleAnalytics = ({ measurementId, isStaging = false }: GoogleAnalyticsPr
   return (
     <>
       {/* Must run before the GA script so the default consent state is applied
-          before any events are sent. Strategy "beforeInteractive" ensures it
-          executes synchronously during the initial HTML parse. */}
-      <Script id="google-analytics-consent" strategy="beforeInteractive">
+          before any events are sent. This script runs first (afterInteractive)
+          because it appears before the GA library tag in the JSX; it queues
+          the consent default in dataLayer which GA processes on initialization. */}
+      <Script id="google-analytics-consent" strategy="afterInteractive">
         {`
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}

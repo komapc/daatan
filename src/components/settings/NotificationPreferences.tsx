@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Bell, Loader2 } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { usePushSubscription } from '@/lib/hooks/usePushSubscription'
 import type { NotificationType } from '@prisma/client'
 
@@ -33,9 +34,11 @@ export default function NotificationPreferences() {
       if (res.ok) {
         const data = await res.json()
         setPreferences(data.preferences)
+      } else {
+        toast.error('Failed to load notification preferences')
       }
     } catch {
-      // Silently fail
+      toast.error('Failed to load notification preferences')
     } finally {
       setLoading(false)
     }
@@ -58,7 +61,7 @@ export default function NotificationPreferences() {
 
     setSaving(type)
     try {
-      await fetch('/api/notifications/preferences', {
+      const res = await fetch('/api/notifications/preferences', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -66,11 +69,19 @@ export default function NotificationPreferences() {
           [channel]: newValue,
         }),
       })
+      if (!res.ok) {
+        // Revert on server error
+        setPreferences((prev) =>
+          prev.map((p) => (p.type === type ? { ...p, [channel]: !newValue } : p)),
+        )
+        toast.error('Failed to save preference')
+      }
     } catch {
-      // Revert on error
+      // Revert on network error
       setPreferences((prev) =>
         prev.map((p) => (p.type === type ? { ...p, [channel]: !newValue } : p)),
       )
+      toast.error('Failed to save preference')
     } finally {
       setSaving(null)
     }

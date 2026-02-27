@@ -163,5 +163,33 @@ export const POST = withAuth(async (request, user) => {
     })
   }
 
+  // Notify @mentioned users
+  const mentionedUsernames = [...new Set(
+    [...data.text.matchAll(/@([a-zA-Z0-9_]+)/g)].map((m) => m[1].toLowerCase()),
+  )]
+  if (mentionedUsernames.length > 0) {
+    // Users already getting notified above (skip to avoid duplicates)
+    const alreadyNotifiedIds = new Set(
+      [prediction.authorId, parentComment?.authorId, user.id].filter(Boolean),
+    )
+    const mentionedUsers = await prisma.user.findMany({
+      where: { username: { in: mentionedUsernames } },
+      select: { id: true, username: true },
+    })
+    for (const mentionedUser of mentionedUsers) {
+      if (alreadyNotifiedIds.has(mentionedUser.id)) continue
+      createNotification({
+        userId: mentionedUser.id,
+        type: 'MENTION',
+        title: 'You were mentioned',
+        message: `${comment.author.name || comment.author.username || 'Someone'} mentioned you in a comment on "${prediction.claimText.substring(0, 80)}"`,
+        link: forecastLink,
+        predictionId: prediction.id,
+        commentId: comment.id,
+        actorId: user.id,
+      })
+    }
+  }
+
   return NextResponse.json(comment, { status: 201 })
 })
