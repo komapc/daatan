@@ -34,3 +34,13 @@ export const analytics = {
     trackEvent('login', params)
   },
 }
+
+/**
+ * Associate the GA session with the authenticated user ID.
+ * Uses gtag('set') so the user_id is attached to all subsequent events
+ * without requiring the measurement ID on the client.
+ */
+export function identifyUser(userId: string) {
+  if (typeof window === 'undefined' || typeof window.gtag !== 'function') return
+  window.gtag('set', { user_id: userId })
+}

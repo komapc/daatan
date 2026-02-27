@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect } from 'react'
 import Image from 'next/image'
 import { LogIn } from 'lucide-react'
+import { analytics } from '@/lib/analytics'
 
 export default function SignInClient() {
   const sessionData = useSession()
@@ -22,6 +23,7 @@ export default function SignInClient() {
   }, [status, router, callbackUrl])
 
   const handleSignIn = async () => {
+    analytics.signIn({ method: 'google' })
     await signIn('google', { callbackUrl })
   }
 
