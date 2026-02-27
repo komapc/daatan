@@ -30,14 +30,26 @@ const GoogleAnalytics = ({ measurementId, isStaging = false }: GoogleAnalyticsPr
 
   return (
     <>
+      {/* Must run before the GA script so the default consent state is applied
+          before any events are sent. Strategy "beforeInteractive" ensures it
+          executes synchronously during the initial HTML parse. */}
+      <Script id="google-analytics-consent" strategy="beforeInteractive">
+        {`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('consent', 'default', {
+            analytics_storage: 'denied',
+            ad_storage: 'denied'
+          });
+        `}
+      </Script>
       <Script
+        id="google-analytics-external"
         src={`https://www.googletagmanager.com/gtag/js?id=${measurementId}`}
         strategy="afterInteractive"
       />
       <Script id="google-analytics" strategy="afterInteractive">
         {`
-          window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
           gtag('js', new Date());
           ${gtagConfig}
         `}

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
+import { analytics } from '@/lib/analytics'
 
 interface PredictionOption {
   id: string
@@ -155,6 +156,7 @@ export default function CommitmentForm({
 
       const result = await response.json()
       window.dispatchEvent(new CustomEvent('daatan:first-action'))
+      analytics.commitmentMade({ forecast_id: prediction.id, cu_committed: Number(cuAmount) })
       onSuccess(result)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
