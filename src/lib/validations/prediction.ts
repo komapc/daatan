@@ -54,6 +54,37 @@ export const createPredictionSchema = z.object({
 
   // Tags (0-5 tags from STANDARD_TAGS)
   tags: z.array(z.string().min(1).max(50)).max(5).optional(),
+}).superRefine((data, ctx) => {
+  const payload = data.outcomePayload as Record<string, unknown> | undefined
+
+  if (data.outcomeType === 'MULTIPLE_CHOICE') {
+    const options = payload?.options
+    if (!Array.isArray(options) || options.length < 2 || options.length > 10) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'MULTIPLE_CHOICE requires 2–10 options',
+        path: ['outcomePayload', 'options'],
+      })
+    } else if (options.some((o) => typeof o !== 'string' || o.length === 0 || o.length > 500)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Each option must be a non-empty string (max 500 chars)',
+        path: ['outcomePayload', 'options'],
+      })
+    }
+  }
+
+  if (data.outcomeType === 'NUMERIC_THRESHOLD') {
+    if (!payload?.metric || typeof payload.metric !== 'string' || payload.metric.length === 0) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'NUMERIC_THRESHOLD requires a metric string', path: ['outcomePayload', 'metric'] })
+    }
+    if (payload?.threshold === undefined || typeof payload.threshold !== 'number') {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'NUMERIC_THRESHOLD requires a numeric threshold', path: ['outcomePayload', 'threshold'] })
+    }
+    if (!payload?.direction || !['above', 'below', 'exactly'].includes(payload.direction as string)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'NUMERIC_THRESHOLD direction must be above, below, or exactly', path: ['outcomePayload', 'direction'] })
+    }
+  }
 })
 
 export const updatePredictionSchema = z.object({

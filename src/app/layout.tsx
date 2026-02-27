@@ -9,6 +9,7 @@ import PwaInstaller from '@/components/PwaInstaller'
 import PushPermissionPrompt from '@/components/PushPermissionPrompt'
 import GoogleAnalytics from '@/components/GoogleAnalytics'
 import CookieConsent from '@/components/CookieConsent'
+import AnalyticsUserSync from '@/components/AnalyticsUserSync'
 import { Toaster } from 'react-hot-toast'
 import { isRtl } from '@/i18n/config'
 import type { Locale } from '@/i18n/config'
@@ -47,6 +48,7 @@ export default async function RootLayout({
         <GoogleAnalytics measurementId={gaMeasurementId} isStaging={isStaging} />
         <NextIntlClientProvider messages={messages}>
           <SessionWrapper>
+            <AnalyticsUserSync />
             <StagingBanner />
             <div className="flex min-h-screen overflow-x-hidden">
               <Sidebar />

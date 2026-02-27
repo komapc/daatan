@@ -327,6 +327,7 @@ model Commitment {
   @@unique([userId, predictionId])
   @@index([predictionId])
   @@index([userId])
+  @@index([userId, cuReturned]) // leaderboard aggregation
   @@map("commitments")
 }
 
@@ -684,5 +685,6 @@ model BotRunLog {
 
   @@index([botId])
   @@index([runAt])
+  @@index([botId, action, isDryRun, runAt]) // admin bot-log queries
   @@map("bot_run_logs")
 }
