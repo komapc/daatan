@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { createClientLogger } from '@/lib/client-logger'
 import { toast } from 'react-hot-toast'
+import { useTranslations } from 'next-intl'
 import {
   Calendar,
   Users,
@@ -73,6 +74,7 @@ export default function ForecastCard({
 }: ForecastCardProps) {
   const { data: session } = useSession()
   const router = useRouter()
+  const t = useTranslations('forecast')
 
   const canAdminister =
     showModerationControls && session?.user?.role === 'ADMIN'
@@ -95,7 +97,7 @@ export default function ForecastCard({
   const handleDelete = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    if (!confirm('Are you sure you want to delete this forecast? This action cannot be undone.')) return
+    if (!confirm(t('deleteConfirm'))) return
 
     try {
       const response = await fetch(`/api/admin/forecasts/${prediction.id}`, {
@@ -103,13 +105,13 @@ export default function ForecastCard({
       })
       if (response.ok) {
         router.refresh()
-        toast.success('Forecast deleted successfully')
+        toast.success(t('deleteSuccess'))
       } else {
-        toast.error('Failed to delete forecast')
+        toast.error(t('deleteError'))
       }
     } catch (error) {
       createClientLogger('ForecastCard').error({ err: error }, 'Error deleting forecast')
-      toast.error('Error deleting forecast')
+      toast.error(t('deleteError'))
     }
   }
 
@@ -136,20 +138,20 @@ export default function ForecastCard({
       })
       if (response.ok) {
         router.refresh()
-        toast.success('Forecast approved')
+        toast.success(t('approveSuccess'))
       } else {
-        toast.error('Failed to approve forecast')
+        toast.error(t('approveError'))
       }
     } catch (error) {
       createClientLogger('ForecastCard').error({ err: error }, 'Error approving forecast')
-      toast.error('Error approving forecast')
+      toast.error(t('approveError'))
     }
   }
 
   const handleReject = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    if (!confirm('Reject this forecast? It will be moved to VOID status.')) return
+    if (!confirm(t('rejectConfirm'))) return
     try {
       const response = await fetch(`/api/admin/forecasts/${prediction.id}`, {
         method: 'PATCH',
@@ -158,13 +160,13 @@ export default function ForecastCard({
       })
       if (response.ok) {
         router.refresh()
-        toast.success('Forecast rejected')
+        toast.success(t('rejectSuccess'))
       } else {
-        toast.error('Failed to reject forecast')
+        toast.error(t('rejectError'))
       }
     } catch (error) {
       createClientLogger('ForecastCard').error({ err: error }, 'Error rejecting forecast')
-      toast.error('Error rejecting forecast')
+      toast.error(t('rejectError'))
     }
   }
 
@@ -182,44 +184,44 @@ export default function ForecastCard({
         return {
           icon: <Clock className="w-3 h-3" />,
           className: 'bg-gray-100 text-gray-700',
-          label: 'Draft'
+          label: t('draft')
         }
       case 'ACTIVE':
         return {
           icon: <TrendingUp className="w-3 h-3" />,
           className: 'bg-green-100 text-green-700',
-          label: 'Active'
+          label: t('active')
         }
       case 'PENDING':
         return {
           icon: <AlertCircle className="w-3 h-3" />,
           className: 'bg-yellow-100 text-yellow-700',
-          label: 'Pending'
+          label: t('pending')
         }
       case 'PENDING_APPROVAL':
         return {
           icon: <Clock className="w-3 h-3" />,
           className: 'bg-amber-100 text-amber-700',
-          label: 'Pending Approval'
+          label: t('pendingApproval')
         }
       case 'RESOLVED_CORRECT':
         return {
           icon: <CheckCircle2 className="w-3 h-3" />,
           className: 'bg-blue-100 text-blue-700',
-          label: 'Correct'
+          label: t('correct')
         }
       case 'RESOLVED_WRONG':
         return {
           icon: <XCircle className="w-3 h-3" />,
           className: 'bg-red-100 text-red-700',
-          label: 'Wrong'
+          label: t('wrong')
         }
       case 'UNRESOLVABLE':
       case 'VOID':
         return {
           icon: <HelpCircle className="w-3 h-3" />,
           className: 'bg-orange-100 text-orange-700',
-          label: status === 'VOID' ? 'Void' : 'Unresolvable'
+          label: status === 'VOID' ? t('void') : t('unresolvable')
         }
       default:
         return {
@@ -248,7 +250,7 @@ export default function ForecastCard({
                     ? Math.round(((prediction.yesCount || 0) / ((prediction.yesCount || 0) + (prediction.noCount || 0))) * 100)
                     : 50
                 }
-                label="Will Happen"
+                label={t('willHappen')}
                 color="green"
                 size="md"
               />
@@ -287,7 +289,7 @@ export default function ForecastCard({
             {isLocked && (
               <span className="flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-700 text-[10px] sm:text-xs font-bold uppercase tracking-wider rounded-full border border-amber-100" title="This forecast is locked and its content cannot be changed.">
                 <Lock className="w-3 h-3" />
-                Locked
+                {t('locked')}
               </span>
             )}
           </div>
@@ -311,7 +313,7 @@ export default function ForecastCard({
               )}
               <div className="min-w-0">
                 <p className="text-xs text-gray-400 font-medium truncate uppercase tracking-tight">
-                  Source: {prediction.newsAnchor.source || 'News'}
+                  {t('source')}: {prediction.newsAnchor.source || 'News'}
                 </p>
                 <p className="text-xs text-gray-600 font-medium truncate">
                   {prediction.newsAnchor.title}
@@ -346,7 +348,7 @@ export default function ForecastCard({
               </div>
               <div className="flex flex-col">
                 <span className="font-medium text-gray-700 truncate max-w-[120px]">
-                  {prediction.author.name || 'Anonymous'}
+                  {prediction.author.name || t('anonymous')}
                 </span>
                 {prediction.author.role && (
                   <span className="mt-0.5">
@@ -366,7 +368,7 @@ export default function ForecastCard({
             <div className="flex items-center gap-1.5">
               <Users className="w-3.5 h-3.5 text-gray-400" />
               <span className="font-medium text-gray-700">{prediction._count.commitments}</span>
-              <span className="hidden sm:inline">commitments</span>
+              <span className="hidden sm:inline">{t('commitmentsLabel')}</span>
               {prediction.totalCuCommitted !== undefined && prediction.totalCuCommitted > 0 && (
                 <span className="text-gray-400">• {prediction.totalCuCommitted} CU</span>
               )}
@@ -376,7 +378,7 @@ export default function ForecastCard({
             {prediction.userHasCommitted && (
               <div className="flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full text-xs font-medium">
                 <CheckCircle2 className="w-3 h-3" />
-                <span>Committed</span>
+                <span>{t('committedLabel')}</span>
               </div>
             )}
           </div>
@@ -393,7 +395,7 @@ export default function ForecastCard({
                   aria-label="Approve forecast"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" />
-                  Approve
+                  {t('approve')}
                 </button>
                 <button
                   onClick={handleReject}
@@ -402,7 +404,7 @@ export default function ForecastCard({
                   aria-label="Reject forecast"
                 >
                   <XCircle className="w-3.5 h-3.5" />
-                  Reject
+                  {t('reject')}
                 </button>
               </>
             )}

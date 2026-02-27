@@ -2,9 +2,10 @@
 
 import { useState } from 'react'
 import { useSession } from 'next-auth/react'
+import { useLocale, useTranslations } from 'next-intl'
 import { formatDistanceToNow } from 'date-fns'
 import Image from 'next/image'
-import { ThumbsUp, Lightbulb, ThumbsDown, Reply, Trash2, Edit2, MessageSquare } from 'lucide-react'
+import { ThumbsUp, Lightbulb, ThumbsDown, Reply, Trash2, Edit2, MessageSquare, Loader2, Languages } from 'lucide-react'
 import CommentForm from './CommentForm'
 import type { Comment } from './CommentThread'
 import { RoleBadge } from '@/components/RoleBadge'
@@ -42,6 +43,8 @@ export default function CommentItem({
   isReply = false,
 }: CommentItemProps) {
   const { data: session } = useSession()
+  const locale = useLocale()
+  const t = useTranslations('translate')
   const [showReplyForm, setShowReplyForm] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [editText, setEditText] = useState(comment.text)
@@ -49,6 +52,33 @@ export default function CommentItem({
   const [showReplies, setShowReplies] = useState(false)
   const [isLoadingReplies, setIsLoadingReplies] = useState(false)
   const [reactions, setReactions] = useState(comment.reactions)
+  const [translatedText, setTranslatedText] = useState<string | null>(null)
+  const [isTranslating, setIsTranslating] = useState(false)
+
+  const showTranslateButton = locale !== 'en'
+
+  const handleTranslate = async () => {
+    if (translatedText) {
+      setTranslatedText(null)
+      return
+    }
+    setIsTranslating(true)
+    try {
+      const response = await fetch(`/api/comments/${comment.id}/translate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ language: locale }),
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setTranslatedText(data.translatedText)
+      }
+    } catch (err) {
+      log.error({ err }, 'Failed to translate comment')
+    } finally {
+      setIsTranslating(false)
+    }
+  }
 
   const isAuthor = session?.user?.id === comment.author.id
   const canDelete = isAuthor || session?.user?.role === 'ADMIN' || session?.user?.role === 'RESOLVER'
@@ -207,7 +237,7 @@ export default function CommentItem({
               </div>
             </div>
           ) : (
-            <p className="text-gray-800 whitespace-pre-wrap">{comment.text}</p>
+            <p className="text-gray-800 whitespace-pre-wrap">{translatedText ?? comment.text}</p>
           )}
 
           {/* Actions */}
@@ -260,6 +290,22 @@ export default function CommentItem({
               >
                 <Reply className="w-4 h-4" />
                 Reply
+              </button>
+            )}
+
+            {/* Translate */}
+            {showTranslateButton && !isEditing && (
+              <button
+                onClick={handleTranslate}
+                disabled={isTranslating}
+                className="flex items-center gap-1 px-2 py-1 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {isTranslating ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Languages className="w-4 h-4" />
+                )}
+                {translatedText ? t('showOriginal') : t('translate')}
               </button>
             )}
 

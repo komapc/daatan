@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { Activity, Loader2, TrendingUp, Clock, User } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { Avatar } from '@/components/Avatar'
 import { createClientLogger } from '@/lib/client-logger'
+import { useTranslations } from 'next-intl'
 
 const log = createClientLogger('ActivityFeed')
 
@@ -36,6 +36,7 @@ interface ActivityItem {
 }
 
 export default function ActivityFeedPage() {
+  const t = useTranslations('activity')
   const [activity, setActivity] = useState<ActivityItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -67,8 +68,8 @@ export default function ActivityFeedPage() {
 
   const getChoiceLabel = (item: ActivityItem) => {
     if (item.option) return item.option.text
-    if (item.binaryChoice === true) return 'Will happen'
-    if (item.binaryChoice === false) return "Won't happen"
+    if (item.binaryChoice === true) return t('willHappen')
+    if (item.binaryChoice === false) return t('wontHappen')
     return '—'
   }
 
@@ -77,14 +78,14 @@ export default function ActivityFeedPage() {
       {/* Header */}
       <div className="flex items-center gap-3 mb-6 lg:mb-8">
         <Activity className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Activity Feed</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('title')}</h1>
       </div>
-      <p className="text-gray-500 text-sm mb-6">Recent commitments across all forecasts</p>
+      <p className="text-gray-500 text-sm mb-6">{t('subtitle')}</p>
 
       {activity.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
           <Activity className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500 text-lg font-medium">No activity yet</p>
+          <p className="text-gray-500 text-lg font-medium">{t('noActivity')}</p>
         </div>
       ) : (
         <div className="relative">
@@ -112,9 +113,9 @@ export default function ActivityFeedPage() {
                       <span className="font-semibold text-gray-900">
                         {item.user.name || item.user.username || 'Anonymous'}
                       </span>
-                      {' committed '}
+                      {' '}{t('committed')}{' '}
                       <span className="font-semibold text-amber-600">{item.cuCommitted} CU</span>
-                      {' on '}
+                      {' '}{t('cuOn')}{' '}
                       <span className="font-medium text-blue-600">
                         &quot;{getChoiceLabel(item)}&quot;
                       </span>

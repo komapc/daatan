@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { Trophy, Loader2, Medal, TrendingUp, Wallet, Target, BarChart3 } from 'lucide-react'
 import { createClientLogger } from '@/lib/client-logger'
+import { useTranslations } from 'next-intl'
 
 const log = createClientLogger('Leaderboard')
 
@@ -27,18 +28,19 @@ type LeaderboardUser = {
   brierCount: number
 }
 
-const SORT_OPTIONS: { value: SortBy; label: string; icon: typeof TrendingUp }[] = [
-  { value: 'rs', label: 'Reputation', icon: TrendingUp },
-  { value: 'accuracy', label: 'Accuracy', icon: Target },
-  { value: 'totalCorrect', label: 'Most Correct', icon: BarChart3 },
-  { value: 'cuCommitted', label: 'Most CU Committed', icon: Wallet },
-  { value: 'brierScore', label: 'Brier Score', icon: Target },
-]
-
 export default function LeaderboardPage() {
+  const t = useTranslations('leaderboard')
   const [users, setUsers] = useState<LeaderboardUser[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [sortBy, setSortBy] = useState<SortBy>('rs')
+
+  const SORT_OPTIONS: { value: SortBy; label: string; icon: typeof TrendingUp }[] = [
+    { value: 'rs', label: t('sortBy.reputation'), icon: TrendingUp },
+    { value: 'accuracy', label: t('sortBy.accuracy'), icon: Target },
+    { value: 'totalCorrect', label: t('sortBy.mostCorrect'), icon: BarChart3 },
+    { value: 'cuCommitted', label: t('sortBy.cuCommitted'), icon: Wallet },
+    { value: 'brierScore', label: t('sortBy.brierScore'), icon: Target },
+  ]
 
   useEffect(() => {
     const fetchLeaderboard = async () => {
@@ -89,11 +91,11 @@ export default function LeaderboardPage() {
 
   const getHighlightLabel = () => {
     switch (sortBy) {
-      case 'accuracy': return 'Accuracy'
-      case 'totalCorrect': return 'Correct'
-      case 'cuCommitted': return 'CU Committed'
-      case 'brierScore': return 'Brier Score ↓'
-      default: return 'Reputation'
+      case 'accuracy': return t('sortBy.accuracy')
+      case 'totalCorrect': return t('correct')
+      case 'cuCommitted': return t('sortBy.cuCommitted')
+      case 'brierScore': return `${t('sortBy.brierScore')} ↓`
+      default: return t('sortBy.reputation')
     }
   }
 
@@ -104,8 +106,8 @@ export default function LeaderboardPage() {
         <div className="p-4 bg-yellow-50 rounded-2xl mb-4">
           <Trophy className="w-10 h-10 sm:w-12 sm:h-12 text-yellow-500" />
         </div>
-        <h1 className="text-3xl sm:text-4xl font-black text-gray-900 mb-2 tracking-tight">Leaderboard</h1>
-        <p className="text-gray-500 max-w-md">Top predictors ranked by performance. Prove your accuracy and climb the ranks.</p>
+        <h1 className="text-3xl sm:text-4xl font-black text-gray-900 mb-2 tracking-tight">{t('title')}</h1>
+        <p className="text-gray-500 max-w-md">{t('subtitle')}</p>
       </div>
 
       {/* Sort Tabs */}
@@ -131,11 +133,11 @@ export default function LeaderboardPage() {
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-20">
           <Loader2 className="w-10 h-10 text-blue-500 animate-spin mb-4" />
-          <p className="text-gray-500 font-medium">Calculating rankings...</p>
+          <p className="text-gray-500 font-medium">{t('calculating')}</p>
         </div>
       ) : users.length === 0 ? (
         <div className="bg-white border border-gray-100 rounded-2xl p-12 text-center shadow-sm">
-          <p className="text-gray-400 text-lg">No predictors found yet.</p>
+          <p className="text-gray-400 text-lg">{t('noUsers')}</p>
         </div>
       ) : (
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
@@ -143,10 +145,10 @@ export default function LeaderboardPage() {
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
-                  <th className="px-4 sm:px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider w-16">Rank</th>
-                  <th className="px-4 sm:px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Predictor</th>
-                  <th className="px-4 sm:px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center hidden sm:table-cell">Accuracy</th>
-                  <th className="px-4 sm:px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center hidden sm:table-cell">Correct</th>
+                  <th className="px-4 sm:px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider w-16">{t('rank')}</th>
+                  <th className="px-4 sm:px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">{t('predictor')}</th>
+                  <th className="px-4 sm:px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center hidden sm:table-cell">{t('sortBy.accuracy')}</th>
+                  <th className="px-4 sm:px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center hidden sm:table-cell">{t('correct')}</th>
                   <th className="px-4 sm:px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">
                     {getHighlightLabel()}
                   </th>
@@ -174,7 +176,7 @@ export default function LeaderboardPage() {
                             {user.name || user.username || 'Anonymous'}
                           </p>
                           <p className="text-xs text-gray-500 truncate">
-                            {user.username ? `@${user.username}` : `${user.totalCommitments} commitments`}
+                            {user.username ? `@${user.username}` : `${user.totalCommitments} ${t('resolvedLabel')}`}
                           </p>
                         </div>
                       </div>
@@ -185,7 +187,7 @@ export default function LeaderboardPage() {
                           {user.accuracy !== null ? `${user.accuracy}%` : '—'}
                         </span>
                         <span className="text-[10px] text-gray-400">
-                          {user.totalResolved > 0 ? `${user.totalResolved} resolved` : 'N/A'}
+                          {user.totalResolved > 0 ? `${user.totalResolved} ${t('resolvedLabel')}` : 'N/A'}
                         </span>
                       </div>
                     </td>
@@ -213,28 +215,28 @@ export default function LeaderboardPage() {
         <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
           <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-green-500" />
-            What is RS?
+            {t('legend.rsTitle')}
           </h3>
           <p className="text-xs text-gray-500 leading-relaxed">
-            Reputation Score (RS) measures your prediction accuracy over time. It increases when you&apos;re right and decreases when you&apos;re wrong. Higher stakes mean bigger RS changes.
+            {t('legend.rsDesc')}
           </p>
         </div>
         <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
           <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
             <Wallet className="w-4 h-4 text-blue-500" />
-            What is CU?
+            {t('legend.cuTitle')}
           </h3>
           <p className="text-xs text-gray-500 leading-relaxed">
-            Confidence Units (CU) are the currency used to place stakes. You get 100 CU when you join. When you win a prediction, you get your CU back plus a bonus based on your performance.
+            {t('legend.cuDesc')}
           </p>
         </div>
         <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
           <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
             <Target className="w-4 h-4 text-purple-500" />
-            What is Brier Score?
+            {t('legend.brierTitle')}
           </h3>
           <p className="text-xs text-gray-500 leading-relaxed">
-            Brier Score = (probability − outcome)². Lower is better: 0 is perfect, 1 is worst. Only computed when you enter a probability estimate (% yes) at stake time.
+            {t('legend.brierDesc')}
           </p>
         </div>
       </div>

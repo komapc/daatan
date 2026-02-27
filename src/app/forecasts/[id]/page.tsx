@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'react-hot-toast'
+import { useLocale, useTranslations } from 'next-intl'
 import { ModeratorResolutionSection } from './ModeratorResolutionSection'
 import CommentThread from '@/components/comments/CommentThread'
 import CommitmentForm from '@/components/forecasts/CommitmentForm'
@@ -92,14 +93,50 @@ type Prediction = {
   }
 }
 
+type TranslatedFields = {
+  claimText?: string
+  detailsText?: string
+  resolutionRules?: string
+}
+
 export default function PredictionDetailPage() {
   const params = useParams()
   const router = useRouter()
   const { data: session, update: updateSession } = useSession()
+  const locale = useLocale()
+  const t = useTranslations('translate')
   const [prediction, setPrediction] = useState<Prediction | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showCommitmentForm, setShowCommitmentForm] = useState(false)
+  const [translated, setTranslated] = useState<TranslatedFields | null>(null)
+  const [isTranslating, setIsTranslating] = useState(false)
+
+  const showTranslateButton = locale !== 'en'
+
+  const handleTranslate = async () => {
+    if (!prediction) return
+    if (translated) {
+      setTranslated(null)
+      return
+    }
+    setIsTranslating(true)
+    try {
+      const response = await fetch(`/api/forecasts/${prediction.id}/translate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ language: locale }),
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setTranslated(data)
+      }
+    } catch (err) {
+      log.error({ err }, 'Failed to translate prediction')
+    } finally {
+      setIsTranslating(false)
+    }
+  }
 
   useEffect(() => {
     const fetchPrediction = async () => {
@@ -289,11 +326,29 @@ export default function PredictionDetailPage() {
           )}
         </div>
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">
-          {prediction.claimText}
+          {translated?.claimText ?? prediction.claimText}
         </h1>
+        {showTranslateButton && (
+          <button
+            onClick={handleTranslate}
+            disabled={isTranslating}
+            className="mb-3 inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 disabled:opacity-50"
+          >
+            {isTranslating ? (
+              <><Loader2 className="w-3.5 h-3.5 animate-spin" />{t('translating')}</>
+            ) : translated ? (
+              t('showOriginal')
+            ) : (
+              t('translate')
+            )}
+          </button>
+        )}
+        {translated && (
+          <p className="text-xs text-gray-400 mb-3">{t('translatedTo')}</p>
+        )}
         <ContextTimeline
           predictionId={prediction.id}
-          initialContext={prediction.detailsText}
+          initialContext={translated?.detailsText ?? prediction.detailsText}
           initialContextUpdatedAt={prediction.contextUpdatedAt}
           canAnalyze={!!((canAdminister || session?.user?.id === prediction.author.id) && prediction.status === 'ACTIVE')}
         />
@@ -303,7 +358,7 @@ export default function PredictionDetailPage() {
               <AlertCircle className="w-4 h-4" />
               Resolution Rules
             </div>
-            {prediction.resolutionRules}
+            {translated?.resolutionRules ?? prediction.resolutionRules}
           </div>
         )}
       </div>

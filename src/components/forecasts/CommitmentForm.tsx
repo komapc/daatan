@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 
 interface PredictionOption {
   id: string
@@ -46,6 +47,7 @@ export default function CommitmentForm({
   onSuccess,
   onCancel,
 }: CommitmentFormProps) {
+  const t = useTranslations('commitment')
   const isUpdate = !!existingCommitment
   const isLocked = !!prediction.lockedAt
 
@@ -171,7 +173,7 @@ export default function CommitmentForm({
     <div className="space-y-4 rounded-xl border border-blue-200 bg-blue-50/30 p-4 shadow-sm">
       <div className="flex items-center justify-between">
         <h3 className="text-base font-semibold text-gray-900">
-          {isUpdate ? 'Update your commitment' : 'Make your commitment'}
+          {isUpdate ? t('updateCommitment') : t('makeCommitment')}
         </h3>
         {onCancel && (
           <button
@@ -215,7 +217,7 @@ export default function CommitmentForm({
               onChange={(e) => setProbability(e.target.value === '' ? '' : Number(e.target.value))}
               className="w-10 text-sm font-medium text-gray-700 outline-none bg-transparent"
             />
-            <span className="text-gray-400 text-xs">% yes</span>
+            <span className="text-gray-400 text-xs">{t('percentYes')}</span>
           </div>
         </div>
 
@@ -232,7 +234,7 @@ export default function CommitmentForm({
                   : 'bg-white text-gray-700 border-gray-300 hover:bg-green-50 hover:border-green-400 hover:text-green-700'
                   } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
-                {isSubmitting ? '...' : isUpdate ? (isCurrentOutcome(true) ? 'Update' : 'Switch to Will Happen') : 'Will Happen'}
+                {isSubmitting ? '...' : isUpdate ? (isCurrentOutcome(true) ? t('update') : `Switch to ${t('willHappen')}`) : t('willHappen')}
               </button>
               <button
                 type="button"
@@ -243,7 +245,7 @@ export default function CommitmentForm({
                   : 'bg-white text-gray-700 border-gray-300 hover:bg-red-50 hover:border-red-400 hover:text-red-700'
                   } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
-                {isSubmitting ? '...' : isUpdate ? (isCurrentOutcome(false) ? 'Update' : 'Switch to Won\'t Happen') : 'Won\'t Happen'}
+                {isSubmitting ? '...' : isUpdate ? (isCurrentOutcome(false) ? t('update') : `Switch to ${t('wontHappen')}`) : t('wontHappen')}
               </button>
             </div>
           ) : (
@@ -261,7 +263,7 @@ export default function CommitmentForm({
                 >
                   <span>{option.text}</span>
                   <span className={`text-xs ${isCurrentOutcome(option.id) ? 'text-blue-100' : 'text-gray-400'}`}>
-                    {isSubmitting ? '...' : isCurrentOutcome(option.id) ? 'Update' : 'Select'}
+                    {isSubmitting ? '...' : isCurrentOutcome(option.id) ? t('update') : t('select')}
                   </span>
                 </button>
               ))}
@@ -272,16 +274,15 @@ export default function CommitmentForm({
 
       {pendingOutcome !== null && penaltyInfo && (
         <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-lg shadow-sm">
-          <h4 className="text-sm font-semibold text-orange-800 mb-2">Confirm Exit Penalty</h4>
+          <h4 className="text-sm font-semibold text-orange-800 mb-2">{t('penaltyTitle')}</h4>
           <p className="text-sm text-orange-700 mb-3">
-            Because this prediction is locked, changing your side or increasing your CU incurs a penalty.
-            The penalty burns a percentage of your original commitment based on your side&apos;s share of the pool.
+            {t('penaltyDesc')}
           </p>
           <ul className="text-sm text-orange-800 space-y-1 mb-4">
-            <li>Original Commitment: <strong>{existingCommitment?.cuCommitted} CU</strong></li>
-            <li>Burn Rate: <strong>{penaltyInfo.burnRate}%</strong></li>
-            <li>Amount Burned: <strong>{penaltyInfo.cuBurned} CU</strong></li>
-            <li>Amount Refunded: <strong>{penaltyInfo.cuRefunded} CU</strong></li>
+            <li>{t('originalCommitment')} <strong>{existingCommitment?.cuCommitted} CU</strong></li>
+            <li>{t('burnRate')} <strong>{penaltyInfo.burnRate}%</strong></li>
+            <li>{t('amountBurned')} <strong>{penaltyInfo.cuBurned} CU</strong></li>
+            <li>{t('amountRefunded')} <strong>{penaltyInfo.cuRefunded} CU</strong></li>
           </ul>
           <div className="flex gap-3">
             <button
@@ -289,7 +290,7 @@ export default function CommitmentForm({
               disabled={isSubmitting}
               className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-medium py-2 rounded-lg transition-colors disabled:opacity-50"
             >
-              {isSubmitting ? 'Confirming...' : 'Accept Penalty & Continue'}
+              {isSubmitting ? t('confirming') : t('acceptPenalty')}
             </button>
             <button
               onClick={() => {

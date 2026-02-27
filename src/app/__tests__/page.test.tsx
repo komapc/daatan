@@ -1,6 +1,8 @@
 import { render, screen, waitFor } from '@testing-library/react'
+import { NextIntlClientProvider } from 'next-intl'
 import FeedClient from '../FeedClient'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
+import messages from '../../../messages/en.json'
 
 // Mock fetch
 const mockFetch = vi.fn()
@@ -10,6 +12,9 @@ global.fetch = mockFetch
 vi.mock('@/components/forecasts/ForecastCard', () => ({
   default: () => <div data-testid="prediction-card">Card</div>
 }))
+
+const renderWithIntl = (ui: React.ReactElement) =>
+  render(<NextIntlClientProvider locale="en" messages={messages}>{ui}</NextIntlClientProvider>)
 
 describe('FeedPage', () => {
   beforeEach(() => {
@@ -22,8 +27,8 @@ describe('FeedPage', () => {
       ok: true,
       json: async () => ({ predictions: [] }),
     } as Response)
-    render(<FeedClient />)
-    expect(screen.getByText('Loading your feed...')).toBeInTheDocument()
+    renderWithIntl(<FeedClient />)
+    expect(screen.getByText(messages.feed.loading)).toBeInTheDocument()
   })
 
   it('renders predictions when API returns data', async () => {
@@ -33,7 +38,7 @@ describe('FeedPage', () => {
       json: async () => ({ predictions: mockPredictions }),
     } as Response)
 
-    render(<FeedClient />)
+    renderWithIntl(<FeedClient />)
 
     await waitFor(() => {
       expect(screen.getByTestId('prediction-card')).toBeInTheDocument()
@@ -46,12 +51,12 @@ describe('FeedPage', () => {
       json: async () => ({ someOtherData: 'unexpected' }),
     } as Response)
 
-    render(<FeedClient />)
+    renderWithIntl(<FeedClient />)
 
     await waitFor(() => {
-      expect(screen.queryByText('Loading your feed...')).not.toBeInTheDocument()
+      expect(screen.queryByText(messages.feed.loading)).not.toBeInTheDocument()
     })
 
-    expect(screen.getByText('No active forecasts')).toBeInTheDocument()
+    expect(screen.getByText(messages.feed.empty)).toBeInTheDocument()
   })
 })
