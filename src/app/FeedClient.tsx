@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Home, Loader2, TrendingUp, Plus, Filter, Tag, X, ArrowDownUp } from 'lucide-react'
@@ -18,7 +18,11 @@ const VALID_STATUSES: FilterStatus[] = ['ACTIVE', 'PENDING', 'RESOLVED', 'CLOSIN
 
 import { STANDARD_TAGS } from '@/lib/constants'
 
-export default function FeedClient() {
+interface FeedClientProps {
+  initialPredictions?: Prediction[]
+}
+
+export default function FeedClient({ initialPredictions }: FeedClientProps) {
   const searchParams = useSearchParams()
   const router = useRouter()
   const { data: session } = useSession()
@@ -31,8 +35,11 @@ export default function FeedClient() {
   const initialTags = searchParams.get('tags')?.split(',').filter(Boolean) || []
   const initialSort = (searchParams.get('sortBy') as SortBy | null) || 'newest'
 
-  const [predictions, setPredictions] = useState<Prediction[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [predictions, setPredictions] = useState<Prediction[]>(initialPredictions ?? [])
+  const [isLoading, setIsLoading] = useState(!initialPredictions?.length)
+  // Track whether the SSR initial data has already been used so the first
+  // effect run doesn't replace it with an identical client-side fetch.
+  const ssrConsumed = useRef(!!(initialPredictions?.length))
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [filter, setFilter] = useState<FilterStatus>(
     initialStatus && VALID_STATUSES.includes(initialStatus) ? initialStatus : 'ACTIVE'
@@ -74,6 +81,13 @@ export default function FeedClient() {
   }
 
   useEffect(() => {
+    // Skip the first fetch cycle when SSR data was already provided.
+    // Subsequent filter/sort/tag changes clear this flag and fetch normally.
+    if (ssrConsumed.current) {
+      ssrConsumed.current = false
+      return
+    }
+
     const fetchFeed = async () => {
       setIsLoading(true)
       setFetchError(null)

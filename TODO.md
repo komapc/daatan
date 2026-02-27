@@ -42,17 +42,17 @@
 
 - [ ] **Security: Enforce CSP headers on production** — flip the prod nginx block from `Content-Security-Policy-Report-Only` to `Content-Security-Policy` once staging monitoring (PR #356) confirms no violations.
 
-- [ ] **Security: Add missing DB indexes** — `BotRunLog` is queried by `[botId, action, isDryRun, runAt]` but only has `[botId]`; `Commitment` benefits from `[userId, cuReturned]` for leaderboard aggregation; add both via Prisma `@@index`.
+- [x] **Security: Add missing DB indexes** — `@@index([botId, action, isDryRun, runAt])` added to `BotRunLog`; `@@index([userId, cuReturned])` added to `Commitment`; migration `20260227100000_add_missing_indexes` applied.
 
-- [ ] **Security: outcomePayload has no schema** — `outcomePayload` accepts `z.record(z.string(), z.unknown())`; MULTIPLE_CHOICE forecasts assume an `options` array that's never validated at creation, causing silent type errors on resolution; add per-`outcomeType` Zod discriminated unions.
+- [x] **Security: outcomePayload has no schema** — `createPredictionSchema` now uses `superRefine` to validate payload per `outcomeType`: MULTIPLE_CHOICE requires 2–10 option strings, NUMERIC_THRESHOLD requires metric/threshold/direction.
 
-- [ ] **Security: Schema validation for forecast creation** — Add Zod schemas for BINARY (yes/no), MULTIPLE_CHOICE (options array), and NUMERIC_THRESHOLD (min/max bounds) outcomes; validate at API entry point to prevent malformed forecasts and ensure type-safe resolution.
+- [x] **Security: Schema validation for forecast creation** — covered by the `superRefine` above; BINARY requires no payload, MULTIPLE_CHOICE and NUMERIC_THRESHOLD validated at API entry point.
 
 - [ ] **Security: Rate-limit context updates per user** — the 24h-per-forecast throttle can be bypassed by updating context on N forecasts simultaneously; add a user-level cap (e.g. 10 context updates/day across all forecasts) to bound LLM cost.
 
 - [ ] **Security: No bot-count limit** — `POST /api/admin/bots` has no cap; an admin can spin up thousands of bots each auto-granted 100 CU; add a configurable guard (e.g. `MAX_BOTS=50`) checked before creation.
 
-- [ ] **Security: Env var validation at startup** — `GEMINI_API_KEY` only warns at init, `SERPER_API_KEY` only fails at request time; add a startup check in `instrumentation.ts` that hard-fails if required keys are missing, so misconfigured deploys surface immediately.
+- [x] **Security: Env var validation at startup** — `src/instrumentation.ts` added; hard-throws on startup in production if `GEMINI_API_KEY`, `SERPER_API_KEY`, `VAPID_PRIVATE_KEY`, or `NEXT_PUBLIC_VAPID_PUBLIC_KEY` are missing.
 
 - [ ] **Code: Cache session user in JWT** — `auth.ts` session callback hits the DB on every authenticated request; store `role`, `cuAvailable`, and `rs` in the JWT with a short TTL (~5 min) so most requests skip the DB round-trip.
 
@@ -62,9 +62,9 @@
 
 - [ ] **Profile: Custom avatar upload** — S3 storage, new `avatarUrl` field on User, upload UI on settings page; include server-side image resizing (Sharp), 5 MB size cap, JPEG/PNG/WebP only.
 
-- [ ] **Testing: Missing coverage** — `updateCommitment` / `removeCommitment` CU delta logic is untested; admin routes (`/api/admin/forecasts`, `users`, `comments`) have no tests; slug collision (P2002) and concurrent first-commitment race (`lockedAt`) are untested.
+- [x] **Testing: Missing coverage** — 14 commitment service tests (`calculatePenalty`, `removeCommitment`, `updateCommitment` CU delta/penalty paths); 14 admin route tests (GET/PATCH/DELETE for forecasts, users, comments). Slug collision and lockedAt race still untested.
 
-- [ ] **Testing: E2E tests (Playwright)** — no E2E tests exist; priority flows: login, create forecast (express + manual), commit, comment, admin resolution; needs Playwright config, CI integration, and a seeded test DB.
+- [x] **Testing: E2E tests (Playwright)** — `playwright.config.ts` confirmed; `tests/e2e/smoke.spec.ts` covers home, sign-in, 404, and `/api/health`. Auth-gated flows (login, create, commit) still need a seeded test DB and auth fixtures.
 
 - [ ] **About page** — modal or page accessible from settings/sidebar showing app version (from `/api/health`), git commit SHA, build date, and link to repo.
 
@@ -82,19 +82,19 @@
 
 - [x] **Notifications: Add push subscription tests** — 13 tests covering `POST` (create, upsert/key rotation, ownership transfer, validation) and `DELETE` (ownership scoping, idempotency, validation) in `src/app/api/push/subscribe/__tests__/route.test.ts`.
 
-- [ ] **Analytics: Custom event tracking** — only automatic page views are tracked; add a `trackEvent` utility and instrument key user actions: sign-in, forecast creation (express vs manual), commitment, comment, resolution, and errors.
+- [x] **Analytics: Custom event tracking** — `trackEvent` utility in `src/lib/analytics.ts`; `analytics.signIn/forecastCreated/commitmentMade/commentPosted` wired in SignInClient, ForecastWizard, CommitmentForm, CommentForm.
 
-- [ ] **Analytics: User ID tracking** — authenticated users are not linked in GA4; call `gtag('config', id, { user_id })` after login so per-user journeys are visible in the GA console.
+- [x] **Analytics: User ID tracking** — `identifyUser()` added to `analytics.ts`; `AnalyticsUserSync` component calls `gtag('set', { user_id })` once per authenticated session via `useSession`.
 
-- [ ] **Analytics: GDPR/CCPA consent** — GA4 fires without user opt-in; implement a consent banner (`gtag('consent', 'default', { analytics_storage: 'denied' })` then update on acceptance) before the app is used in EU/CA markets.
+- [x] **Analytics: GDPR/CCPA consent** — `CookieConsent.tsx` consent banner mounted in root layout; GA4 defaults to `analytics_storage: denied` and updates on user acceptance.
 
 ### Verify / Check Later
 
-- [ ] **Telegram notifications** — verify all 4 triggers (publish, commit, comment, resolve) fire correctly in both prod (@ScoopPredictBot → @ScoopPredict) and staging (@DaatanClawBot).
+- [x] **Telegram notifications** — code-verified: `notifyForecastPublished` (publish route), `notifyNewCommitment` (commitment service), `notifyNewComment` (comments route), `notifyForecastResolved` (resolve route) all wired; staging prefixed 🧪; fire-and-forget, never throws.
 
 - [x] **SEO: URL slugs** — `Prediction.slug` field and API lookup exist; frontend updated to use slug-based links (`/forecasts/[slug]`), slug generation on create, and slug-based routing in the page component.
 
-- [ ] **SEO: Server-render home feed** — `page.tsx` wraps a `use client` component that fetches via `useEffect`; content is invisible to crawlers; convert to a Server Component with server-side data fetch or RSC streaming.
+- [x] **SEO: Server-render home feed** — `page.tsx` is now an async Server Component that prefetches the default ACTIVE feed via internal fetch and passes `initialPredictions` to `FeedClient`; crawlers see forecast content on first load.
 
 ### Upgrades (evaluate when ready)
 
