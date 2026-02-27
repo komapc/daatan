@@ -5,6 +5,7 @@ import { Send } from 'lucide-react'
 import type { Comment } from './CommentThread'
 import { createClientLogger } from '@/lib/client-logger'
 import { toast } from 'react-hot-toast'
+import { analytics } from '@/lib/analytics'
 
 const log = createClientLogger('CommentForm')
 
@@ -45,6 +46,7 @@ export default function CommentForm({
 
       if (response.ok) {
         const comment = await response.json()
+        analytics.commentPosted({ is_reply: !!parentId })
         onCommentAdded(comment)
         setText('')
         onCancel?.()

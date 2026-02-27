@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { analytics } from '@/lib/analytics'
 import {
   Newspaper,
   FileText,
@@ -177,6 +178,10 @@ export const ForecastWizard = ({ isExpressFlow = false }: ForecastWizardProps) =
       }
 
       window.dispatchEvent(new CustomEvent('daatan:first-action'))
+      analytics.forecastCreated({
+        outcome_type: formData.outcomeType,
+        is_express: isExpressFlow,
+      })
 
       // Redirect to prediction page
       router.push(`/forecasts/${prediction.slug || prediction.id}`)
