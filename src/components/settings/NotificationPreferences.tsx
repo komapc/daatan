@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Bell, Loader2 } from 'lucide-react'
+import { Bell, Loader2, BellOff, BellRing } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { usePushSubscription } from '@/lib/hooks/usePushSubscription'
 import type { NotificationType } from '@prisma/client'
@@ -26,7 +26,8 @@ export default function NotificationPreferences() {
   const [preferences, setPreferences] = useState<Preference[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
-  const { isSupported, isSubscribed, subscribe } = usePushSubscription()
+  const { isSupported, permission, isSubscribed, isLoading: pushLoading, subscribe, unsubscribe } = usePushSubscription()
+  const [pushWorking, setPushWorking] = useState(false)
 
   const fetchPreferences = useCallback(async () => {
     try {
@@ -88,7 +89,19 @@ export default function NotificationPreferences() {
   }
 
   const handleConnectPush = async () => {
-    await subscribe()
+    setPushWorking(true)
+    const ok = await subscribe()
+    setPushWorking(false)
+    if (ok) toast.success('Push notifications enabled')
+    else if (Notification.permission === 'denied') toast.error('Permission denied — unblock notifications in your browser settings')
+    else toast.error('Could not enable push notifications')
+  }
+
+  const handleDisconnectPush = async () => {
+    setPushWorking(true)
+    await unsubscribe()
+    setPushWorking(false)
+    toast.success('Push notifications disabled')
   }
 
   if (loading) {
@@ -101,6 +114,49 @@ export default function NotificationPreferences() {
 
   return (
     <div>
+      {/* Push notification status banner */}
+      {isSupported && !pushLoading && (
+        <div className={`flex items-center justify-between rounded-lg px-4 py-3 mb-4 text-sm ${
+          isSubscribed
+            ? 'bg-green-50 border border-green-200 text-green-800'
+            : permission === 'denied'
+            ? 'bg-red-50 border border-red-200 text-red-800'
+            : 'bg-blue-50 border border-blue-200 text-blue-800'
+        }`}>
+          <div className="flex items-center gap-2">
+            {isSubscribed ? (
+              <BellRing className="w-4 h-4 shrink-0" />
+            ) : (
+              <BellOff className="w-4 h-4 shrink-0" />
+            )}
+            <span>
+              {isSubscribed
+                ? 'Browser push notifications are enabled on this device.'
+                : permission === 'denied'
+                ? 'Push notifications are blocked. Unblock them in your browser\u2019s site settings.'
+                : 'Enable browser push notifications to get alerts even when the tab is closed.'}
+            </span>
+          </div>
+          {isSubscribed ? (
+            <button
+              onClick={handleDisconnectPush}
+              disabled={pushWorking}
+              className="ml-4 shrink-0 text-xs font-medium underline hover:no-underline disabled:opacity-50"
+            >
+              {pushWorking ? 'Disabling\u2026' : 'Disable'}
+            </button>
+          ) : permission !== 'denied' ? (
+            <button
+              onClick={handleConnectPush}
+              disabled={pushWorking}
+              className="ml-4 shrink-0 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              {pushWorking ? 'Enabling\u2026' : 'Enable'}
+            </button>
+          ) : null}
+        </div>
+      )}
+
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
