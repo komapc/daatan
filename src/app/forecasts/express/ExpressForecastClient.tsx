@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Sparkles, Search, FileText, Loader2, AlertCircle, Edit2, RotateCcw, ArrowLeft, X, Plus, List, Trash2 } from 'lucide-react'
+import { Sparkles, Search, FileText, Loader2, AlertCircle, Edit2, RotateCcw, ArrowLeft, X, Plus, List, Trash2, Eye, EyeOff } from 'lucide-react'
 import { createClientLogger } from '@/lib/client-logger'
 
 const log = createClientLogger('ExpressForecast')
@@ -46,6 +46,7 @@ export default function ExpressForecastClient({ userId }: ExpressForecastClientP
 
   const [isEditing, setIsEditing] = useState(false)
   const [isPublishing, setIsPublishing] = useState(false)
+  const [isPublic, setIsPublic] = useState(true)
   const [editForm, setEditForm] = useState<GeneratedPrediction | null>(null)
   const [newTag, setNewTag] = useState('')
 
@@ -181,6 +182,7 @@ export default function ExpressForecastClient({ userId }: ExpressForecastClientP
           tags: finalData.tags,
           newsAnchorUrl: finalData.newsAnchor.url,
           newsAnchorTitle: finalData.newsAnchor.title,
+          isPublic,
         }),
       })
 
@@ -605,50 +607,68 @@ export default function ExpressForecastClient({ userId }: ExpressForecastClientP
             </div>
           </div>
 
-          <div className="flex gap-3 pt-6 border-t border-gray-100">
-            {isEditing ? (
-              <>
-                <button
-                  onClick={handleSaveEdit}
-                  className="flex-1 bg-green-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-green-700 transition-colors"
-                >
-                  Save Changes
-                </button>
-                <button
-                  onClick={() => { setIsEditing(false); setEditForm(null) }}
-                  className="px-6 py-3 rounded-xl border border-gray-300 font-bold hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={handleCreatePrediction}
-                  disabled={isPublishing}
-                  className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {isPublishing ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Publishing...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-5 h-5" />
-                      Confirm & Publish
-                    </>
-                  )}
-                </button>
-                <button
-                  onClick={handleTryAgain}
-                  disabled={isPublishing}
-                  className="px-6 py-3 rounded-xl border border-gray-300 font-bold hover:bg-gray-50 disabled:opacity-50 transition-colors"
-                >
-                  <ArrowLeft className="w-5 h-5" />
-                </button>
-              </>
+          <div className="pt-6 border-t border-gray-100 space-y-3">
+            {/* Visibility toggle */}
+            {!isEditing && (
+              <button
+                type="button"
+                onClick={() => setIsPublic(v => !v)}
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-sm font-medium transition-colors ${
+                  isPublic
+                    ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
+                    : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                }`}
+              >
+                <span>{isPublic ? 'Public — visible in the feed' : 'Unlisted — only people with the link'}</span>
+                {isPublic ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+              </button>
             )}
+
+            <div className="flex gap-3">
+              {isEditing ? (
+                <>
+                  <button
+                    onClick={handleSaveEdit}
+                    className="flex-1 bg-green-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-green-700 transition-colors"
+                  >
+                    Save Changes
+                  </button>
+                  <button
+                    onClick={() => { setIsEditing(false); setEditForm(null) }}
+                    className="px-6 py-3 rounded-xl border border-gray-300 font-bold hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={handleCreatePrediction}
+                    disabled={isPublishing}
+                    className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {isPublishing ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Publishing...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-5 h-5" />
+                        Confirm & Publish
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={handleTryAgain}
+                    disabled={isPublishing}
+                    className="px-6 py-3 rounded-xl border border-gray-300 font-bold hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                  >
+                    <ArrowLeft className="w-5 h-5" />
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}
