@@ -9,6 +9,9 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     exclude: ['**/node_modules/**', '**/dist/**', '**/tests/**'],
+    env: {
+      TZ: 'UTC',
+    },
   },
   resolve: {
     alias: {
