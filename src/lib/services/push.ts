@@ -42,28 +42,27 @@ export async function dispatchBrowserPush(
   const successIds: string[] = []
   const staleIds: string[] = []
 
-  await Promise.allSettled(
-    subscriptions.map(async (sub) => {
-      try {
-        await webpush.sendNotification(
-          {
-            endpoint: sub.endpoint,
-            keys: { p256dh: sub.p256dh, auth: sub.auth },
-          },
-          payload,
-        )
-        successIds.push(sub.id)
-      } catch (error: unknown) {
-        const statusCode = (error as { statusCode?: number }).statusCode
-        if (statusCode === 410 || statusCode === 404) {
-          // Subscription expired or invalid — queue for cleanup
-          staleIds.push(sub.id)
-        } else {
-          log.error({ err: error, endpoint: sub.endpoint }, 'Failed to send push notification')
-        }
+  const sendWithRetry = async (sub: typeof subscriptions[number], attemptsLeft = 2): Promise<void> => {
+    try {
+      await webpush.sendNotification(
+        { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+        payload,
+      )
+      successIds.push(sub.id)
+    } catch (error: unknown) {
+      const statusCode = (error as { statusCode?: number }).statusCode
+      if (statusCode === 410 || statusCode === 404) {
+        staleIds.push(sub.id)
+      } else if (attemptsLeft > 1) {
+        await new Promise((r) => setTimeout(r, 500))
+        return sendWithRetry(sub, attemptsLeft - 1)
+      } else {
+        log.error({ err: error, endpoint: sub.endpoint }, 'Failed to send push notification after retries')
       }
-    }),
-  )
+    }
+  }
+
+  await Promise.allSettled(subscriptions.map((sub) => sendWithRetry(sub)))
 
   // Batch DB operations rather than N individual queries
   const now = new Date()

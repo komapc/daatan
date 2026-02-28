@@ -20,6 +20,18 @@
 
 - [ ] **Bot: Prompt management & Staging-to-Prod Transfer** — define bots in code (`src/agents/bots/*.ts`) as source of truth; server upserts DB on startup so prod bots are version-controlled, PR-reviewed, and deployed via CI rather than manual UI copy-paste.
 
+- [ ] **Bedrock Phase 1 — Infra: Terraform IAM + SSM** — `terraform/bedrock_prompts.tf` created: `aws_iam_role_policy` with `bedrock:GetPrompt` + `ssm:GetParameter` on EC2 role; 8 `aws_ssm_parameter` resources (2 envs × 4 prompts) with `PLACEHOLDER` value and `ignore_changes = [value]`. `terraform validate` passes. **Next: run `terraform plan` then `terraform apply`.**
+
+- [ ] **Bedrock Phase 1 — Create prompts in Bedrock console** — For each of the 4 file-based prompts, create a named prompt in Bedrock Prompt Management (eu-central-1): `daatan-express-prediction`, `daatan-extract-prediction`, `daatan-suggest-tags`, `daatan-update-context`. Paste text from existing `.ts` files, convert `${var}` → `{{var}}` (keep same variable names). Test in Bedrock playground, create Version 1, copy ARN.
+
+- [ ] **Bedrock Phase 1 — Populate SSM params** — After creating Bedrock Version 1 for each prompt, run `./scripts/promote-prompt.sh staging <prompt> <arn>` and `./scripts/promote-prompt.sh prod <prompt> <arn>` to store version ARNs in SSM. Verify with `aws ssm get-parameter --name /daatan/prod/prompts/express-prediction`.
+
+- [ ] **Bedrock Phase 1 — App integration** — Install `@aws-sdk/client-bedrock-agent` + `@aws-sdk/client-ssm`. Create `src/lib/llm/bedrock-prompts.ts` with: 5-min TTL in-memory cache, SSM fetch for ARN, Bedrock `GetPromptCommand` for template text, `fillPrompt()` helper for `{{var}}` substitution, hard crash on any fetch failure. Update call sites in `expressPrediction.ts`, `extractPrediction.ts`, `suggestTags.ts`, `updateContext.ts` to use `getPrompt()` + `fillPrompt()`. Delete the original prompt `.ts` files once all call sites are updated. Add `AWS_PROFILE=daatan` to local dev notes.
+
+- [x] **Bedrock Phase 1 — Promote script** — `scripts/promote-prompt.sh` created and `chmod +x`; takes `(env, prompt-name, arn|--rollback)`; saves current ARN as SSM tag `previous-arn` before overwriting; `--rollback` swaps back using the tag.
+
+- [ ] **Bedrock Phase 2 — Migrate inline prompts** — After Phase 1 is stable, migrate the 9 inline prompts from `bot-runner.ts`, `research/route.ts`, and `admin/bots/route.ts` to Bedrock. Bot-specific prompts (`forecastPrompt`, `votePrompt`) use a single Bedrock template per type with `{{personaPrompt}}`, `{{forecastPrompt}}`, `{{votePrompt}}` as runtime variables injected from DB at call time. Prompts to migrate: dedupe-check, bot-forecast-generation, forecast-quality-validation, bot-vote-decision, bot-config-generation, research-query-generation, resolution-research, translation, topic-extraction.
+
 ### P2 - Medium Priority
 
 - [x] **Notifications: In-app system** — Prisma models, API routes, service layer, browser push service, service worker, frontend list + unread badge are all complete.
@@ -56,7 +68,7 @@
 
 - [ ] **Code: Cache session user in JWT** — `auth.ts` session callback hits the DB on every authenticated request; store `role`, `cuAvailable`, and `rs` in the JWT with a short TTL (~5 min) so most requests skip the DB round-trip.
 
-- [ ] **Code: Cap `?limit` in comments route** — `GET /api/comments` defaults to 50 but has no max; `?limit=10000` would load all comments; add `Math.min(limit, 100)` consistent with other routes.
+- [x] **Code: Cap `?limit` in comments route** — `GET /api/comments` defaults to 50 but has no max; `?limit=10000` would load all comments; add `Math.min(limit, 100)` consistent with other routes.
 
 - [ ] **Code: Refactor inline LLM schemas to shared module** — `forecastBatchSchema` and `voteDecisionSchema` are defined inline in `bot-runner.ts`; move to `src/lib/llm/schemas/` and import from both `bot-runner.ts` and `bots/route.ts` to prevent drift.
 
@@ -66,7 +78,7 @@
 
 - [x] **Testing: E2E tests (Playwright)** — `playwright.config.ts` confirmed; `tests/e2e/smoke.spec.ts` covers home, sign-in, 404, and `/api/health`. Auth-gated flows (login, create, commit) still need a seeded test DB and auth fixtures.
 
-- [ ] **About page** — modal or page accessible from settings/sidebar showing app version (from `/api/health`), git commit SHA, build date, and link to repo.
+- [x] **About page** — modal or page accessible from settings/sidebar showing app version (from `/api/health`), git commit SHA, build date, and link to repo.
 
 - [x] **Notifications: Deduplicate** — `createNotification()` now checks for an unread notification with same `(userId, type, actorId, predictionId)` within the last hour; if found, updates `createdAt` + `message` instead of inserting a duplicate.
 
@@ -76,7 +88,7 @@
 
 - [x] **Notifications: Silent UI errors** — `NotificationPreferences.tsx` and `NotificationList.tsx` both have empty `catch {}` blocks; users receive no feedback when saving preferences or loading more notifications fails; add error toasts.
 
-- [ ] **Notifications: `dispatchBrowserPush()` has no retry** — called fire-and-forget without `await`; transient network failures silently lose pushes with no queue or backoff; consider a minimal retry (1–2 attempts with delay) or a persistent job queue.
+- [x] **Notifications: `dispatchBrowserPush()` has no retry** — called fire-and-forget without `await`; transient network failures silently lose pushes with no queue or backoff; consider a minimal retry (1–2 attempts with delay) or a persistent job queue.
 
 - [x] **Notifications: Batch DB updates in `dispatchBrowserPush()`** — for a user with N devices the function issued N separate `prisma.pushSubscription.update()` calls; replaced with a single `updateMany` for successes and `deleteMany` for stale subs.
 
