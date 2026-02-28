@@ -54,6 +54,9 @@ export const createPredictionSchema = z.object({
 
   // Tags (0-5 tags from STANDARD_TAGS)
   tags: z.array(z.string().min(1).max(50)).max(5).optional(),
+
+  // Visibility
+  isPublic: z.boolean().optional().default(true),
 }).superRefine((data, ctx) => {
   const payload = data.outcomePayload as Record<string, unknown> | undefined
 
@@ -94,6 +97,7 @@ export const updatePredictionSchema = z.object({
   resolutionRules: z.string().max(2000).optional().nullable(),
   resolveByDatetime: z.string().datetime().optional(),
   tags: z.array(z.string().min(1).max(50)).max(5).optional(),
+  isPublic: z.boolean().optional(),
 })
 
 // ============================================

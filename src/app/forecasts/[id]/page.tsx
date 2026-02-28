@@ -18,6 +18,8 @@ import {
   ChevronLeft,
   Edit2,
   Trash2,
+  EyeOff,
+  Copy,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'react-hot-toast'
@@ -36,6 +38,8 @@ const log = createClientLogger('ForecastDetail')
 type Prediction = {
   id: string
   slug?: string
+  isPublic: boolean
+  shareToken: string
   claimText: string
   detailsText?: string
   outcomeType: 'BINARY' | 'MULTIPLE_CHOICE' | 'NUMERIC_THRESHOLD'
@@ -111,6 +115,7 @@ export default function PredictionDetailPage() {
   const [showCommitmentForm, setShowCommitmentForm] = useState(false)
   const [translated, setTranslated] = useState<TranslatedFields | null>(null)
   const [isTranslating, setIsTranslating] = useState(false)
+  const [isApproving, setIsApproving] = useState(false)
 
   const showTranslateButton = locale !== 'en'
 
@@ -227,12 +232,14 @@ export default function PredictionDetailPage() {
   }
 
   const canAdminister = session?.user?.role === 'ADMIN'
+  const isAuthor = session?.user?.id === prediction?.author.id
   const canApprove =
     prediction?.status === 'PENDING_APPROVAL' &&
     (session?.user?.role === 'ADMIN' || session?.user?.role === 'APPROVER')
 
   const handleApproveAction = async (newStatus: 'ACTIVE' | 'VOID') => {
     if (newStatus === 'VOID' && !confirm('Reject this forecast? It will be moved to VOID status.')) return
+    setIsApproving(true)
     try {
       const response = await fetch(`/api/admin/forecasts/${prediction?.id}`, {
         method: 'PATCH',
@@ -241,15 +248,17 @@ export default function PredictionDetailPage() {
       })
       if (response.ok) {
         toast.success(newStatus === 'ACTIVE' ? 'Forecast approved' : 'Forecast rejected')
-        // Refetch
+        // Refetch — canApprove will become false once status changes
         const res = await fetch(`/api/forecasts/${params.id}`)
         if (res.ok) setPrediction(await res.json())
       } else {
         toast.error('Failed to update forecast')
+        setIsApproving(false)
       }
     } catch (error) {
       log.error({ err: error }, 'Error updating forecast status')
       toast.error('Error updating forecast')
+      setIsApproving(false)
     }
   }
 
@@ -328,6 +337,30 @@ export default function PredictionDetailPage() {
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">
           {translated?.claimText ?? prediction.claimText}
         </h1>
+
+        {/* Unlisted share-link banner (visible only to author / admin) */}
+        {!prediction.isPublic && (isAuthor || canAdminister) && (
+          <div className="mb-4 flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <EyeOff className="w-4 h-4 text-amber-600 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <span className="text-sm font-medium text-amber-800">Unlisted — share via link:</span>
+              <span className="ml-2 text-sm text-amber-700 font-mono truncate">
+                {typeof window !== 'undefined' ? `${window.location.origin}/forecasts/${prediction.shareToken}` : `/forecasts/${prediction.shareToken}`}
+              </span>
+            </div>
+            <button
+              onClick={() => {
+                const url = `${window.location.origin}/forecasts/${prediction.shareToken}`
+                navigator.clipboard.writeText(url)
+                toast.success('Link copied!')
+              }}
+              className="flex-shrink-0 p-1.5 text-amber-600 hover:bg-amber-100 rounded-lg transition-colors"
+              title="Copy share link"
+            >
+              <Copy className="w-4 h-4" />
+            </button>
+          </div>
+        )}
         {showTranslateButton && (
           <button
             onClick={handleTranslate}
@@ -570,7 +603,7 @@ export default function PredictionDetailPage() {
         <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-8">
           <h3 className="font-semibold text-blue-800 mb-2">Resolution</h3>
           <p className="text-blue-700 mb-2">
-            Resolved as <strong>{prediction.resolutionOutcome}</strong> on {formatDate(prediction.resolvedAt)}
+            Resolved as <strong className={prediction.resolutionOutcome === 'wrong' ? 'text-red-600' : undefined}>{prediction.resolutionOutcome}</strong> on {formatDate(prediction.resolvedAt)}
           </p>
           {prediction.resolutionNote && (
             <p className="text-sm text-blue-600">{prediction.resolutionNote}</p>
@@ -611,13 +644,15 @@ export default function PredictionDetailPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => handleApproveAction('ACTIVE')}
-              className="flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
+              disabled={isApproving}
+              className="flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
             >
-              Approve
+              {isApproving ? 'Approving…' : 'Approve'}
             </button>
             <button
               onClick={() => handleApproveAction('VOID')}
-              className="flex items-center gap-1.5 px-4 py-2 bg-white border border-red-200 text-red-600 text-sm font-medium rounded-lg hover:bg-red-50 transition-colors"
+              disabled={isApproving}
+              className="flex items-center gap-1.5 px-4 py-2 bg-white border border-red-200 text-red-600 text-sm font-medium rounded-lg hover:bg-red-50 disabled:opacity-50 transition-colors"
             >
               Reject
             </button>

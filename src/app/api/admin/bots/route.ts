@@ -4,8 +4,8 @@ import { prisma } from '@/lib/prisma'
 import { handleRouteError } from '@/lib/api-error'
 import { z } from 'zod'
 import { createBotLLMService } from '@/lib/llm'
+import { botConfigGenerationSchema } from '@/lib/llm/schemas'
 import { createLogger } from '@/lib/logger'
-import { SchemaType, Schema } from '@google/generative-ai'
 
 const log = createLogger('admin-bots')
 
@@ -192,17 +192,6 @@ Generate a JSON object with:
 
 Make the prompts highly specific, opinionated, and sharp. Do not be generic.`
 
-          const schema: Schema = {
-            type: SchemaType.OBJECT,
-            properties: {
-              personaPrompt: { type: SchemaType.STRING },
-              forecastPrompt: { type: SchemaType.STRING },
-              votePrompt: { type: SchemaType.STRING },
-              newsSources: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } }
-            },
-            required: ['personaPrompt', 'forecastPrompt', 'votePrompt', 'newsSources']
-          }
-
           const generatedSchema = z.object({
             personaPrompt: z.string().min(10),
             forecastPrompt: z.string().min(10),
@@ -210,7 +199,7 @@ Make the prompts highly specific, opinionated, and sharp. Do not be generic.`
             newsSources: z.array(z.string()).default([]),
           })
 
-          const response = await llm.generateContent({ prompt, temperature: 0.7, schema })
+          const response = await llm.generateContent({ prompt, temperature: 0.7, schema: botConfigGenerationSchema })
           const parsed = generatedSchema.safeParse(JSON.parse(response.text))
           if (parsed.success) {
             data.personaPrompt = parsed.data.personaPrompt

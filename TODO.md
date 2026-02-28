@@ -50,7 +50,7 @@
 
 ### P3 - Low Priority
 
-- [ ] **Feature: Private (unlisted) forecasts** — Add `isPublic` boolean to `Prediction` (default `true`). Filter private forecasts from feed/search/leaderboard; show only to author + admins. Add privacy toggle on create/edit screens; consider shareable secret links for limited access.
+- [x] **Feature: Private (unlisted) forecasts** — Add `isPublic` boolean to `Prediction` (default `true`). Filter private forecasts from feed/search/leaderboard; show only to author + admins. Add privacy toggle on create/edit screens; consider shareable secret links for limited access.
 
 - [ ] **Security: Enforce CSP headers on production** — flip the prod nginx block from `Content-Security-Policy-Report-Only` to `Content-Security-Policy` once staging monitoring (PR #356) confirms no violations.
 
@@ -70,7 +70,7 @@
 
 - [x] **Code: Cap `?limit` in comments route** — `GET /api/comments` defaults to 50 but has no max; `?limit=10000` would load all comments; add `Math.min(limit, 100)` consistent with other routes.
 
-- [ ] **Code: Refactor inline LLM schemas to shared module** — `forecastBatchSchema` and `voteDecisionSchema` are defined inline in `bot-runner.ts`; move to `src/lib/llm/schemas/` and import from both `bot-runner.ts` and `bots/route.ts` to prevent drift.
+- [x] **Code: Refactor inline LLM schemas to shared module** — `forecastBatchSchema` and `voteDecisionSchema` are defined inline in `bot-runner.ts`; move to `src/lib/llm/schemas/` and import from both `bot-runner.ts` and `bots/route.ts` to prevent drift.
 
 - [ ] **Profile: Custom avatar upload** — S3 storage, new `avatarUrl` field on User, upload UI on settings page; include server-side image resizing (Sharp), 5 MB size cap, JPEG/PNG/WebP only.
 

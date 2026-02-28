@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useSession } from 'next-auth/react'
@@ -21,6 +22,7 @@ import {
   Edit2,
   Gavel,
   Lock,
+  EyeOff,
 } from 'lucide-react'
 import { RoleBadge } from '@/components/RoleBadge'
 import Speedometer from './Speedometer'
@@ -47,6 +49,7 @@ export type Prediction = {
     source?: string | null
     imageUrl?: string | null
   } | null
+  isPublic?: boolean
   tags?: { name: string }[]
   options?: Array<{
     id: string
@@ -75,6 +78,7 @@ export default function ForecastCard({
   const { data: session } = useSession()
   const router = useRouter()
   const t = useTranslations('forecast')
+  const [isApproving, setIsApproving] = useState(false)
 
   const canAdminister =
     showModerationControls && session?.user?.role === 'ADMIN'
@@ -130,6 +134,7 @@ export default function ForecastCard({
   const handleApprove = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
+    setIsApproving(true)
     try {
       const response = await fetch(`/api/admin/forecasts/${prediction.id}`, {
         method: 'PATCH',
@@ -141,10 +146,12 @@ export default function ForecastCard({
         toast.success(t('approveSuccess'))
       } else {
         toast.error(t('approveError'))
+        setIsApproving(false)
       }
     } catch (error) {
       createClientLogger('ForecastCard').error({ err: error }, 'Error approving forecast')
       toast.error(t('approveError'))
+      setIsApproving(false)
     }
   }
 
@@ -286,6 +293,12 @@ export default function ForecastCard({
                 {tag.name}
               </span>
             ))}
+            {prediction.isPublic === false && (
+              <span className="flex items-center gap-1 px-2 py-0.5 bg-gray-50 text-gray-500 text-[10px] sm:text-xs font-bold uppercase tracking-wider rounded-full border border-gray-200" title="This forecast is unlisted — only visible via direct link.">
+                <EyeOff className="w-3 h-3" />
+                Unlisted
+              </span>
+            )}
             {isLocked && (
               <span className="flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-700 text-[10px] sm:text-xs font-bold uppercase tracking-wider rounded-full border border-amber-100" title="This forecast is locked and its content cannot be changed.">
                 <Lock className="w-3 h-3" />
@@ -390,7 +403,8 @@ export default function ForecastCard({
               <>
                 <button
                   onClick={handleApprove}
-                  className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
+                  disabled={isApproving}
+                  className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 rounded-lg transition-colors"
                   title="Approve forecast"
                   aria-label="Approve forecast"
                 >
@@ -399,7 +413,8 @@ export default function ForecastCard({
                 </button>
                 <button
                   onClick={handleReject}
-                  className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-red-600 border border-red-200 hover:bg-red-50 rounded-lg transition-colors"
+                  disabled={isApproving}
+                  className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-red-600 border border-red-200 hover:bg-red-50 disabled:opacity-50 rounded-lg transition-colors"
                   title="Reject forecast"
                   aria-label="Reject forecast"
                 >
