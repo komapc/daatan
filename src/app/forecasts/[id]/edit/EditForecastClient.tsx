@@ -9,6 +9,8 @@ import {
   AlertCircle,
   Save,
   X,
+  Eye,
+  EyeOff,
 } from 'lucide-react'
 import { createClientLogger } from '@/lib/client-logger'
 
@@ -23,6 +25,7 @@ type PredictionData = {
   resolutionRules?: string | null
   resolveByDatetime: string
   status: string
+  isPublic: boolean
   author: { id: string }
 }
 
@@ -31,6 +34,7 @@ type EditFormData = {
   detailsText: string
   resolutionRules: string
   resolveByDatetime: string
+  isPublic: boolean
 }
 
 export default function EditForecastClient() {
@@ -47,6 +51,7 @@ export default function EditForecastClient() {
     detailsText: '',
     resolutionRules: '',
     resolveByDatetime: '',
+    isPublic: true,
   })
 
   useEffect(() => {
@@ -68,6 +73,7 @@ export default function EditForecastClient() {
           detailsText: data.detailsText || '',
           resolutionRules: data.resolutionRules || '',
           resolveByDatetime: localDatetime,
+          isPublic: data.isPublic !== false,
         })
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -115,6 +121,10 @@ export default function EditForecastClient() {
         payload.resolveByDatetime = newDate
       }
 
+      if (formData.isPublic !== prediction.isPublic) {
+        payload.isPublic = formData.isPublic
+      }
+
       if (Object.keys(payload).length === 0) {
         setSaveError('No changes to save')
         return
@@ -142,6 +152,7 @@ export default function EditForecastClient() {
         detailsText: updated.detailsText || '',
         resolutionRules: updated.resolutionRules || '',
         resolveByDatetime: resolveDate.toISOString().slice(0, 16),
+        isPublic: updated.isPublic !== false,
       })
     } catch (err) {
       log.error({ err }, 'Error saving forecast')
@@ -262,6 +273,35 @@ export default function EditForecastClient() {
             onChange={(e) => handleChange('resolveByDatetime', e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
+        </div>
+
+        {/* Visibility Toggle */}
+        <div className="border border-gray-200 rounded-xl p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Visibility</label>
+              <p className="text-sm text-gray-500 mt-0.5">
+                {formData.isPublic
+                  ? 'Visible in the public feed'
+                  : 'Only people with the link can see this'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setFormData(prev => ({ ...prev, isPublic: !prev.isPublic }))}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                formData.isPublic
+                  ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
+                  : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+              }`}
+            >
+              {formData.isPublic ? (
+                <><Eye className="w-4 h-4" /> Public</>
+              ) : (
+                <><EyeOff className="w-4 h-4" /> Unlisted</>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Error / Success Messages */}

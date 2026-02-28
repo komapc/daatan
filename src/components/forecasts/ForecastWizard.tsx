@@ -42,6 +42,7 @@ export type PredictionFormData = {
 
   // Step 4: Publish
   cuCommitted?: number
+  isPublic: boolean
 }
 
 const STEPS = [
@@ -66,6 +67,7 @@ export const ForecastWizard = ({ isExpressFlow = false }: ForecastWizardProps) =
     tags: [],
     outcomeType: 'BINARY',
     resolveByDatetime: '',
+    isPublic: true,
   })
 
   // Load express prediction data from localStorage after mount (avoids hydration mismatch)
@@ -102,6 +104,7 @@ export const ForecastWizard = ({ isExpressFlow = false }: ForecastWizardProps) =
         resolutionRules: data.resolutionRules || '',
         newsAnchorUrl: data.newsAnchor?.url || '',
         newsAnchorTitle: data.newsAnchor?.title || '',
+        isPublic: data.isPublic !== false,
       })
     } catch {
       // Invalid JSON — ignore
@@ -150,11 +153,12 @@ export const ForecastWizard = ({ isExpressFlow = false }: ForecastWizardProps) =
           newsAnchorTitle: formData.newsAnchorTitle,
           claimText: formData.claimText,
           detailsText: formData.detailsText,
-          tags: formData.tags, // Added tags
+          tags: formData.tags,
           outcomeType: formData.outcomeType,
           outcomePayload,
           resolutionRules: formData.resolutionRules,
           resolveByDatetime: new Date(formData.resolveByDatetime).toISOString(),
+          isPublic: formData.isPublic,
         }),
       })
 

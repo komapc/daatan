@@ -70,6 +70,16 @@ export async function GET(request: NextRequest) {
     // Don't show drafts or pending-approval forecasts in public feed
     if (!query.authorId && !query.status && !resolvedOnly) {
       where.status = { notIn: ['DRAFT', 'PENDING_APPROVAL'] }
+      where.isPublic = true
+    }
+
+    // Author profile: show private only to the author themselves or admins
+    if (query.authorId) {
+      const isOwnProfile = session?.user?.id === query.authorId
+      const isAdmin = session?.user?.role === 'ADMIN'
+      if (!isOwnProfile && !isAdmin) {
+        where.isPublic = true
+      }
     }
 
     // Handle "closing soon" filter (within 7 days)
@@ -262,6 +272,8 @@ export const POST = withAuth(async (request, user) => {
   let retryCount = 0
   const maxRetries = 3
 
+  const shareToken = crypto.randomBytes(8).toString('hex')
+
   while (retryCount < maxRetries) {
     try {
       // Create prediction
@@ -277,6 +289,8 @@ export const POST = withAuth(async (request, user) => {
           resolutionRules: data.resolutionRules,
           resolveByDatetime: new Date(data.resolveByDatetime),
           status: 'DRAFT',
+          isPublic: data.isPublic ?? true,
+          shareToken,
           // Connect or create tags
           tags: data.tags?.length
             ? {

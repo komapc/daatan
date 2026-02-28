@@ -4,45 +4,8 @@ import { prisma } from '@/lib/prisma'
 import { apiError, handleRouteError } from '@/lib/api-error'
 import { searchArticles, SearchResult } from '@/lib/utils/webSearch'
 import { llmService } from '@/lib/llm'
-import { SchemaType } from '@google/generative-ai'
+import { queryGenerationSchema, researchSchema } from '@/lib/llm/schemas'
 import { extractKeyTerms, dedup, hasRelevantResults } from './helpers'
-
-const queryGenerationSchema = {
-    type: SchemaType.OBJECT,
-    properties: {
-        queries: {
-            type: SchemaType.ARRAY,
-            items: { type: SchemaType.STRING },
-            description: "2-3 short, factual web search queries (3-7 words each) to find news about the forecast outcome"
-        }
-    },
-    required: ['queries']
-}
-
-const researchSchema = {
-    type: SchemaType.OBJECT,
-    properties: {
-        outcome: {
-            type: SchemaType.STRING,
-            enum: ['correct', 'wrong', 'void', 'unresolvable'],
-            description: "The suggested resolution outcome"
-        },
-        correctOptionId: {
-            type: SchemaType.STRING,
-            description: "The ID of the correct option if the prediction is MULTIPLE_CHOICE and outcome is 'correct'"
-        },
-        reasoning: {
-            type: SchemaType.STRING,
-            description: "Brief explanation of why this outcome was chosen based on the evidence"
-        },
-        evidenceLinks: {
-            type: SchemaType.ARRAY,
-            items: { type: SchemaType.STRING },
-            description: "List of URLs found that support the resolution"
-        }
-    },
-    required: ['outcome', 'reasoning', 'evidenceLinks']
-}
 
 export const POST = withAuth(async (request: NextRequest, _user, { params }) => {
     try {
@@ -96,7 +59,7 @@ Forecast: "${prediction.claimText}"
 Period: ${forecastStartStr} to ${forecastEndStr}
 
 Generate 2-3 short web search queries (3-7 words each) that a journalist would use to find news confirming or denying this forecast. Use past/present tense, focus on key entities and the underlying measurable event (e.g. exchange rate, election result, price). Do NOT reuse the forecast text verbatim.`,
-                    schema: queryGenerationSchema as any,
+                    schema: queryGenerationSchema,
                     temperature: 0,
                 })
                 const { queries } = JSON.parse(qRes.text) as { queries: string[] }
@@ -158,7 +121,7 @@ Return your findings in JSON format.
 
         const response = await llmService.generateContent({
             prompt,
-            schema: researchSchema as any,
+            schema: researchSchema,
             temperature: 0
         })
 

@@ -219,6 +219,10 @@ model Prediction {
   contextUpdatedAt DateTime? // When the detailsText was last updated via analyze context
   winnersPoolBonus Int @default(0) @map("winners_pool_bonus")
 
+  // Visibility
+  isPublic   Boolean @default(true)
+  shareToken String  @unique
+
   // Resolution data (filled when resolved)
   resolvedAt        DateTime?
   resolvedById      String?
@@ -239,6 +243,7 @@ model Prediction {
   @@index([authorId])
   @@index([newsAnchorId])
   @@index([resolveByDatetime])
+  @@index([isPublic])
   @@map("predictions")
 }
 

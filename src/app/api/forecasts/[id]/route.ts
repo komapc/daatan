@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { updatePredictionSchema } from '@/lib/validations/prediction'
 import { apiError, handleRouteError } from '@/lib/api-error'
 import { withAuth } from '@/lib/api-middleware'
@@ -17,12 +19,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // Transition this prediction to PENDING if it's past its deadline
     await transitionIfExpired(params.id)
 
-    // Try to find by ID first, then by slug
+    // Try to find by ID, slug, or shareToken
     const prediction = await prisma.prediction.findFirst({
       where: {
         OR: [
           { id: params.id },
           { slug: params.id },
+          { shareToken: params.id },
         ],
       },
       include: {
@@ -77,6 +80,17 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return apiError('Prediction not found', 404)
     }
 
+    // Access gate for private forecasts
+    if (!prediction.isPublic) {
+      const accessedViaToken = params.id === prediction.shareToken
+      const session = await getServerSession(authOptions)
+      const isAuthor = session?.user?.id === prediction.authorId
+      const isAdmin = session?.user?.role === 'ADMIN'
+      if (!accessedViaToken && !isAuthor && !isAdmin) {
+        return apiError('Prediction not found', 404)
+      }
+    }
+
     // Calculate total CU committed
     const totalCuCommitted = prediction.commitments.reduce(
       (sum, c) => sum + c.cuCommitted,
@@ -108,12 +122,15 @@ export const PATCH = withAuth(async (request, user, { params }) => {
     return apiError('Forbidden', 403)
   }
 
-  // Can only update drafts (unless admin)
-  if (prediction.status !== 'DRAFT' && user.role !== 'ADMIN') {
-    return apiError('Cannot update published predictions', 400)
-  }
-
   const body = await request.json()
+
+  // Can only update drafts (unless admin), except isPublic toggle is always allowed
+  if (prediction.status !== 'DRAFT' && user.role !== 'ADMIN') {
+    const nonVisibilityKeys = Object.keys(body).filter(k => k !== 'isPublic')
+    if (nonVisibilityKeys.length > 0) {
+      return apiError('Cannot update published predictions', 400)
+    }
+  }
 
   // Enforce immutability for locked forecasts
   if (prediction.lockedAt && user.role !== 'ADMIN') {
@@ -137,6 +154,7 @@ export const PATCH = withAuth(async (request, user, { params }) => {
   if (data.outcomePayload) updateData.outcomePayload = data.outcomePayload
   if (data.resolutionRules !== undefined) updateData.resolutionRules = data.resolutionRules
   if (data.resolveByDatetime) updateData.resolveByDatetime = new Date(data.resolveByDatetime)
+  if (data.isPublic !== undefined) updateData.isPublic = data.isPublic
 
   const updated = await prisma.prediction.update({
     where: { id: params.id },

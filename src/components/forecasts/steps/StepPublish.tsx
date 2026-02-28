@@ -6,6 +6,8 @@ import {
   Target,
   Calendar,
   Check,
+  Eye,
+  EyeOff,
 } from 'lucide-react'
 import type { PredictionFormData } from '../ForecastWizard'
 
@@ -14,7 +16,7 @@ type Props = {
   updateFormData: (updates: Partial<PredictionFormData>) => void
 }
 
-export const StepPublish = ({ formData }: Props) => {
+export const StepPublish = ({ formData, updateFormData }: Props) => {
   const formatDate = (dateStr: string) => {
     if (!dateStr) return 'Not set'
     return new Date(dateStr).toLocaleDateString('en-US', {
@@ -132,13 +134,46 @@ export const StepPublish = ({ formData }: Props) => {
         </div>
       </div>
 
+      {/* Visibility Toggle */}
+      <div className="border border-gray-200 rounded-xl p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="font-medium text-gray-900">
+              {formData.isPublic ? 'Public' : 'Unlisted'}
+            </div>
+            <p className="text-sm text-gray-500 mt-0.5">
+              {formData.isPublic
+                ? 'Visible in the public feed'
+                : 'Only people with the link can see this'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => updateFormData({ isPublic: !formData.isPublic })}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
+              formData.isPublic
+                ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
+                : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+            }`}
+          >
+            {formData.isPublic ? (
+              <><Eye className="w-4 h-4" /> Public</>
+            ) : (
+              <><EyeOff className="w-4 h-4" /> Unlisted</>
+            )}
+          </button>
+        </div>
+      </div>
+
       {/* Publish Checklist */}
       <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
         <h3 className="font-medium text-green-800 mb-3">Ready to publish?</h3>
         <ul className="space-y-2">
           <li className="flex items-center gap-2 text-sm text-green-700">
             <Check className="w-4 h-4" />
-            Your prediction will be visible to all users
+            {formData.isPublic
+              ? 'Your prediction will be visible to all users'
+              : 'Your prediction will be unlisted — share the link to invite others'}
           </li>
           <li className="flex items-center gap-2 text-sm text-green-700">
             <Check className="w-4 h-4" />

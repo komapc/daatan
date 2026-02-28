@@ -15,6 +15,9 @@ export async function GET(request: NextRequest) {
         user: {
           isPublic: true,
         },
+        prediction: {
+          isPublic: true,
+        },
       },
       include: {
         user: {

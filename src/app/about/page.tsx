@@ -1,7 +1,10 @@
-import { Info, Target, Users, TrendingUp, Shield, Mail } from 'lucide-react'
+import { Info, Target, Users, TrendingUp, Shield, Mail, GitCommit } from 'lucide-react'
 import { VERSION } from '@/lib/version'
+import Link from 'next/link'
 
 export default function AboutPage() {
+  const gitCommit = process.env.GIT_COMMIT || null
+  const commitShort = gitCommit ? gitCommit.substring(0, 7) : null
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
       <div className="flex items-center gap-3 mb-6 lg:mb-8">
@@ -164,10 +167,23 @@ export default function AboutPage() {
               </a>
             </div>
           </div>
-          <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
-            <p className="text-sm text-gray-400">
-              Version <span className="font-mono">{VERSION}</span>
-            </p>
+          <div className="pt-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-4 text-sm text-gray-400">
+              <span>Version <span className="font-mono">{VERSION}</span></span>
+              {commitShort && (
+                <span className="flex items-center gap-1">
+                  <GitCommit className="w-3.5 h-3.5" />
+                  <Link
+                    href={`https://github.com/komapc/daatan/commit/${gitCommit}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-mono hover:text-blue-600 hover:underline"
+                  >
+                    {commitShort}
+                  </Link>
+                </span>
+              )}
+            </div>
             <p className="text-sm text-gray-400">
               &copy; {new Date().getFullYear()} DAATAN
             </p>

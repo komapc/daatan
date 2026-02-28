@@ -19,6 +19,7 @@
         * - cuRefillAt / cuRefillAmount: ADMIN_GRANT auto top - up via ensureBotCU()
           */
 
+import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { createBotLLMService } from '@/lib/llm'
 import { fetchRssFeeds, detectHotTopics, type HotTopic } from '@/lib/services/rss'
@@ -26,7 +27,7 @@ import { createCommitment } from '@/lib/services/commitment'
 import { createLogger } from '@/lib/logger'
 import { slugify, generateUniqueSlug } from '@/lib/utils/slugify'
 import { BotAction } from '@prisma/client'
-import { SchemaType, Schema } from '@google/generative-ai'
+import { forecastBatchSchema, voteDecisionSchema } from '@/lib/llm/schemas'
 
 const log = createLogger('bot-runner')
 
@@ -43,29 +44,6 @@ export interface BotRunSummary {
   sampleItems?: string[]
 }
 
-const forecastBatchSchema: Schema = {
-  type: SchemaType.OBJECT,
-  properties: {
-    claimText: { type: SchemaType.STRING },
-    detailsText: { type: SchemaType.STRING },
-    outcomeType: { type: SchemaType.STRING },
-    resolveByDatetime: { type: SchemaType.STRING },
-    resolutionRules: { type: SchemaType.STRING },
-    tags: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
-    skip: { type: SchemaType.BOOLEAN, description: "Set to true if the topic does not match the required tags" }
-  },
-  required: ['claimText', 'outcomeType', 'resolveByDatetime', 'resolutionRules'],
-}
-
-const voteDecisionSchema: Schema = {
-  type: SchemaType.OBJECT,
-  properties: {
-    shouldVote: { type: SchemaType.BOOLEAN },
-    binaryChoice: { type: SchemaType.BOOLEAN },
-    reason: { type: SchemaType.STRING }
-  },
-  required: ['shouldVote', 'binaryChoice'],
-}
 
 /**
  * Run all bots that are due (based on lastRunAt + intervalMinutes).
@@ -432,6 +410,7 @@ Respond ONLY with JSON: { "pass": true|false, "reason": "one sentence if failed"
         resolveByDatetime: resolveBy,
         source: 'bot',
         status: 'DRAFT',
+        shareToken: crypto.randomBytes(8).toString('hex'),
         tags: forecast.tags?.length
           ? {
             connectOrCreate: forecast.tags.slice(0, 5).map((tagName: string) => {

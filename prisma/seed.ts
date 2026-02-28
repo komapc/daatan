@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client'
+import crypto from 'crypto'
 
 const prisma = new PrismaClient()
 
@@ -98,7 +99,8 @@ async function main() {
           ...p,
           outcomeType: p.outcomeType as any,
           status: p.status as any,
-          authorId: admin.id
+          authorId: admin.id,
+          shareToken: crypto.randomBytes(8).toString('hex'),
         }
       })
       console.log(`Upserted prediction: ${p.slug}`)
