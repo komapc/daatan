@@ -258,10 +258,12 @@ async function seedNotifications() {
     return
   }
 
-  // Clear existing notifications for admin to avoid duplicates on re-seed
-  await prisma.notification.deleteMany({
-    where: { userId: admin.id }
-  })
+  // Skip if admin already has notifications (idempotent — don't reset read state on re-deploy)
+  const existingCount = await prisma.notification.count({ where: { userId: admin.id } })
+  if (existingCount > 0) {
+    console.log(`Skipping notifications seed — admin already has ${existingCount} notifications.`)
+    return
+  }
 
   const notifications = [
     {
