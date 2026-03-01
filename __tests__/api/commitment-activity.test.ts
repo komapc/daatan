@@ -72,6 +72,30 @@ describe('GET /api/commitments/activity', () => {
     )
   })
 
+  it('filters out commitments on private forecasts', async () => {
+    const { prisma } = await import('@/lib/prisma')
+
+    vi.mocked(prisma.commitment.findMany).mockResolvedValue([])
+
+    const request = new NextRequest('http://localhost/api/commitments/activity')
+    await GET(request)
+
+    const call = vi.mocked(prisma.commitment.findMany).mock.calls[0][0] as any
+    expect(call.where.prediction).toEqual({ isPublic: true })
+  })
+
+  it('filters out commitments from private users', async () => {
+    const { prisma } = await import('@/lib/prisma')
+
+    vi.mocked(prisma.commitment.findMany).mockResolvedValue([])
+
+    const request = new NextRequest('http://localhost/api/commitments/activity')
+    await GET(request)
+
+    const call = vi.mocked(prisma.commitment.findMany).mock.calls[0][0] as any
+    expect(call.where.user).toEqual({ isPublic: true })
+  })
+
   it('handles database errors gracefully', async () => {
     const { prisma } = await import('@/lib/prisma')
 
