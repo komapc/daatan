@@ -54,6 +54,7 @@
     "results": "{count} results",
     "empty": "No active forecasts",
     "emptyDesc": "There are no active forecasts at the moment. Check back soon!",
+    "createFirst": "Create the first forecast",
     "loading": "Loading your feed..."
   },
   "forecast": {
@@ -132,6 +133,8 @@
     "correct": "Correct",
     "resolvedLabel": "resolved",
     "noUsers": "No predictors found yet.",
+    "noUsersDesc": "Make some commitments to appear on the leaderboard",
+    "browseForecasts": "Browse Forecasts",
     "calculating": "Calculating rankings...",
     "sortBy": {
       "reputation": "Reputation",
@@ -189,6 +192,8 @@
     "noStakes": "No stakes yet",
     "staked": "Staked",
     "noForecasts": "No forecasts created yet",
+    "browseForecasts": "Browse Forecasts",
+    "createForecast": "Create a Forecast",
     "errorTitle": "Unable to Load Profile",
     "errorDesc": "We couldn't load this user's profile. They may not exist or there was a server error.",
     "goToFeed": "Go to Feed",

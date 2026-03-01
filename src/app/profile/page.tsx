@@ -15,6 +15,7 @@ import {
   Settings,
   Globe,
   Twitter,
+  Sparkles,
 } from 'lucide-react'
 import ForecastCard, { type Prediction } from '@/components/forecasts/ForecastCard'
 import Link from 'next/link'
@@ -235,7 +236,13 @@ export default async function ProfilePage() {
             <div className="space-y-4">
               {commitments.length === 0 ? (
                 <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center">
-                  <p className="text-gray-400 font-medium">{t('noStakes')}</p>
+                  <div className="w-14 h-14 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <TrendingUp className="w-7 h-7 text-blue-400" />
+                  </div>
+                  <p className="text-gray-500 font-medium mb-4">{t('noStakes')}</p>
+                  <Link href="/" className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-all">
+                    {t('browseForecasts')}
+                  </Link>
                 </div>
               ) : (
                 commitments.map((commitment) => (
@@ -262,7 +269,13 @@ export default async function ProfilePage() {
             <div className="space-y-4">
               {myPredictions.length === 0 ? (
                 <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center">
-                  <p className="text-gray-400 font-medium">{t('noForecasts')}</p>
+                  <div className="w-14 h-14 bg-purple-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Sparkles className="w-7 h-7 text-purple-400" />
+                  </div>
+                  <p className="text-gray-500 font-medium mb-4">{t('noForecasts')}</p>
+                  <Link href="/create" className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700 transition-all">
+                    {t('createForecast')}
+                  </Link>
                 </div>
               ) : (
                 myPredictions.map((prediction) => (
