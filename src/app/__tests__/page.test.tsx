@@ -22,13 +22,15 @@ describe('FeedPage', () => {
     mockFetch.mockReset()
   })
 
-  it('renders loading state initially', () => {
+  it('renders skeleton cards in loading state', () => {
     mockFetch.mockResolvedValue({
       ok: true,
       json: async () => ({ predictions: [] }),
     } as Response)
     renderWithIntl(<FeedClient />)
-    expect(screen.getByText(messages.feed.loading)).toBeInTheDocument()
+    // Skeleton cards are shown (5 animate-pulse divs) instead of a spinner
+    const skeletons = document.querySelectorAll('.animate-pulse')
+    expect(skeletons.length).toBeGreaterThan(0)
   })
 
   it('renders predictions when API returns data', async () => {
