@@ -1,0 +1,83 @@
+import { BedrockAgentClient, GetPromptCommand } from '@aws-sdk/client-bedrock-agent'
+import { SSMClient, GetParameterCommand } from '@aws-sdk/client-ssm'
+import { createClientLogger } from '@/lib/client-logger'
+
+const log = createClientLogger('BedrockPrompts')
+
+const bedrock = new BedrockAgentClient({ region: process.env.AWS_REGION || 'eu-central-1' })
+const ssm = new SSMClient({ region: process.env.AWS_REGION || 'eu-central-1' })
+
+type PromptName = 'express-prediction' | 'extract-prediction' | 'suggest-tags' | 'update-context'
+
+interface CacheEntry {
+    template: string
+    expiresAt: number
+}
+
+const templateCache = new Map<PromptName, CacheEntry>()
+const CACHE_TTL_MS = 5 * 60 * 1000 // 5 minutes
+
+/**
+ * Force a crash if fetching fails because prompts are critical for the app.
+ */
+function failFast(message: string, error?: unknown): never {
+    log.error({ err: error }, message)
+    throw new Error(`${message}: ${error instanceof Error ? error.message : String(error)}`)
+}
+
+/**
+ * Fetch a prompt template from Bedrock using an ARN stored in SSM.
+ * Uses a 5-minute in-memory cache.
+ */
+export async function getPromptTemplate(promptName: PromptName): Promise<string> {
+    const now = Date.now()
+    const cached = templateCache.get(promptName)
+
+    if (cached && cached.expiresAt > now) {
+        return cached.template
+    }
+
+    const env = process.env.NEXT_PUBLIC_APP_ENV || 'staging'
+    const paramName = `/daatan/${env}/prompts/${promptName}`
+
+    try {
+        // 1. Get ARN from SSM
+        const ssmRes = await ssm.send(new GetParameterCommand({ Name: paramName }))
+        const promptArn = ssmRes.Parameter?.Value
+
+        if (!promptArn || promptArn === 'PLACEHOLDER') {
+            failFast(`SSM parameter ${paramName} contains invalid ARN: ${promptArn}`)
+        }
+
+        // 2. Fetch template from Bedrock Agent
+        // ARN format typically includes :prompt/ID:VERSION
+        const bedrockRes = await bedrock.send(new GetPromptCommand({ promptIdentifier: promptArn }))
+
+        // The variant contains the actual template string. We assume standard text prompt variant.
+        const templateText = bedrockRes.variants?.[0]?.templateConfiguration?.text?.text
+
+        if (!templateText) {
+            failFast(`Bedrock prompt ${promptArn} returned no text template in variant 0`)
+        }
+
+        // 3. Cache and return
+        templateCache.set(promptName, {
+            template: templateText,
+            expiresAt: now + CACHE_TTL_MS
+        })
+
+        return templateText
+    } catch (error) {
+        failFast(`Failed to fetch Bedrock prompt '${promptName}'`, error)
+    }
+}
+
+/**
+ * Helper to replace {{var}} placeholders in a template with actual values.
+ */
+export function fillPrompt(template: string, variables: Record<string, string | number>): string {
+    return Object.entries(variables).reduce((text, [key, value]) => {
+        // Replace all instances of {{key}} with the stringified value
+        return text.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), String(value))
+    }, template)
+}

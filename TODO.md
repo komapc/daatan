@@ -50,9 +50,9 @@
 
 ### P3 - Low Priority
 
-- [ ] **UX: Skeleton loaders on forecasts list page** — `src/app/forecasts/page.tsx` still shows a `Loader2` spinner; swap in `ForecastCardSkeleton` (already used in `FeedClient`) for consistent loading UX across forecast list views.
+- [x] **UX: Skeleton loaders on forecasts list page** — `src/app/forecasts/page.tsx` still shows a `Loader2` spinner; swap in `ForecastCardSkeleton` (already used in `FeedClient`) for consistent loading UX across forecast list views.
 
-- [ ] **Code: Shared `EmptyState` component** — the icon-circle + heading + description + CTA-link pattern is copy-pasted in ≥8 places (`FeedClient`, `leaderboard`, `profile`, `commitments`, `activity`, `NotificationList`, `forecasts/page`). Create `src/components/ui/EmptyState.tsx` with props `icon`, `iconBgClass`, `title`, `description`, `action?: { label, href }`, `variant?: 'card' | 'dashed'` and migrate all sites.
+- [x] **Code: Shared `EmptyState` component** — the icon-circle + heading + description + CTA-link pattern is copy-pasted in ≥8 places (`FeedClient`, `leaderboard`, `profile`, `commitments`, `activity`, `NotificationList`, `forecasts/page`). Create `src/components/ui/EmptyState.tsx` with props `icon`, `iconBgClass`, `title`, `description`, `action?: { label, href }`, `variant?: 'card' | 'dashed'` and migrate all sites.
 
 - [ ] **Code: Shared primary link/button component** — three slightly-different Tailwind class strings for blue CTA buttons are inline across the app. Create `src/components/ui/PrimaryLink.tsx` (or a `buttonVariants` helper) to prevent further drift.
 
@@ -72,7 +72,7 @@
 
 - [x] **Security: Env var validation at startup** — `src/instrumentation.ts` added; hard-throws on startup in production if `GEMINI_API_KEY`, `SERPER_API_KEY`, `VAPID_PRIVATE_KEY`, or `NEXT_PUBLIC_VAPID_PUBLIC_KEY` are missing.
 
-- [ ] **Code: Cache session user in JWT** — `auth.ts` session callback still hits the DB on every authenticated request to fetch `cuAvailable`, `cuLocked`, `rs`, and `username`. `role` is already cached in the JWT token; extend caching to the remaining fields with a short TTL (~5 min) to skip the DB round-trip for most requests.
+- [x] **Code: Cache session user in JWT** — `auth.ts` session callback still hits the DB on every authenticated request to fetch `cuAvailable`, `cuLocked`, `rs`, and `username`. `role` is already cached in the JWT token; extend caching to the remaining fields with a short TTL (~5 min) to skip the DB round-trip for most requests.
 
 - [x] **Code: Cap `?limit` in comments route** — `GET /api/comments` defaults to 50 but has no max; `?limit=10000` would load all comments; add `Math.min(limit, 100)` consistent with other routes.
 
