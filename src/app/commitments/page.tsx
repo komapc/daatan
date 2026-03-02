@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { createClientLogger } from '@/lib/client-logger'
 import { useTranslations } from 'next-intl'
+import EmptyState from '@/components/ui/EmptyState'
 
 const log = createClientLogger('CommitmentHistory')
 
@@ -211,13 +212,18 @@ export default function CommitmentHistoryPage() {
 
       {/* Commitments List */}
       {commitments.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
-          <History className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500 text-lg font-medium">{t('noCommitments')}</p>
-          <p className="text-gray-400 text-sm mt-1">
-            <Link href="/" className="text-blue-600 hover:underline">{t('browseFeed')}</Link>
-          </p>
-        </div>
+        <EmptyState
+          variant="dashed"
+          icon={<History className="w-12 h-12 text-gray-300" />}
+          description={
+            <>
+              <span className="block">{t('noCommitments')}</span>
+              <span className="block text-sm mt-1">
+                <Link href="/" className="text-blue-600 hover:underline">{t('browseFeed')}</Link>
+              </span>
+            </>
+          }
+        />
       ) : (
         <div className="space-y-3">
           {commitments.map((commitment) => {

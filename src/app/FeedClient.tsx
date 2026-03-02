@@ -8,6 +8,7 @@ import { useSession } from 'next-auth/react'
 import { useTranslations } from 'next-intl'
 import ForecastCard, { Prediction } from '@/components/forecasts/ForecastCard'
 import { ForecastCardSkeleton } from '@/components/forecasts/ForecastCardSkeleton'
+import EmptyState from '@/components/ui/EmptyState'
 import { createClientLogger } from '@/lib/client-logger'
 
 const log = createClientLogger('FeedClient')
@@ -302,22 +303,14 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
           {[...Array(5)].map((_, i) => <ForecastCardSkeleton key={i} />)}
         </div>
       ) : predictions.length === 0 ? (
-        <div className="bg-white border border-gray-100 rounded-2xl p-12 text-center shadow-sm">
-          <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
-            <TrendingUp className="w-10 h-10 text-blue-500" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-3">{t('empty')}</h2>
-          <p className="text-gray-500 mb-8 max-w-md mx-auto text-lg">
-            {t('emptyDesc')}
-          </p>
-          <Link
-            href="/create"
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-all shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            {t('createFirst')}
-          </Link>
-        </div>
+        <EmptyState
+          variant="card"
+          icon={<TrendingUp className="w-10 h-10 text-blue-500" />}
+          iconBgClass="bg-blue-50"
+          title={t('empty')}
+          description={t('emptyDesc')}
+          action={{ label: t('createFirst'), href: '/create', icon: <Plus className="w-4 h-4" /> }}
+        />
       ) : (
         <div className="space-y-6">
           <div className="flex items-center justify-between px-2">

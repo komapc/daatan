@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import type { NotificationType } from '@prisma/client'
+import EmptyState from '@/components/ui/EmptyState'
 
 interface Notification {
   id: string
@@ -133,13 +134,16 @@ export default function NotificationList({
 
   if (notifications.length === 0) {
     return (
-      <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl p-8 sm:p-12 text-center">
-        <Bell className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-        <p className="text-gray-400 text-base sm:text-lg">No notifications yet</p>
-        <p className="text-gray-400 text-sm mt-1">
-          When someone interacts with your forecasts, you&apos;ll see it here.
-        </p>
-      </div>
+      <EmptyState
+        variant="dashed"
+        icon={<Bell className="w-10 h-10 text-gray-300" />}
+        description={
+          <>
+            <p>No notifications yet</p>
+            <p className="text-sm mt-1">When someone interacts with your forecasts, you&apos;ll see it here.</p>
+          </>
+        }
+      />
     )
   }
 
