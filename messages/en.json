@@ -88,7 +88,12 @@
     "approveError": "Failed to approve forecast",
     "rejectConfirm": "Reject this forecast? It will be moved to VOID status.",
     "rejectSuccess": "Forecast rejected",
-    "rejectError": "Failed to reject forecast"
+    "rejectError": "Failed to reject forecast",
+    "author": "Author",
+    "resolutionDeadline": "Resolution Deadline",
+    "usersLabel": "users",
+    "commitToPrompt": "Want to commit to this prediction?",
+    "signInToCommit": "Sign In to Commit"
   },
   "commitment": {
     "title": "Commitment History",

@@ -28,8 +28,8 @@ describe('FeedPage', () => {
       json: async () => ({ predictions: [] }),
     } as Response)
     renderWithIntl(<FeedClient />)
-    // Skeleton cards are shown (5 animate-pulse divs) instead of a spinner
-    const skeletons = document.querySelectorAll('.animate-pulse')
+    // Skeleton cards are shown (5 skeleton cards) instead of a spinner
+    const skeletons = screen.getAllByTestId('forecast-skeleton')
     expect(skeletons.length).toBeGreaterThan(0)
   })
 

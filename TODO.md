@@ -20,7 +20,7 @@
 
 - [ ] **Bot: Prompt management & Staging-to-Prod Transfer** — define bots in code (`src/agents/bots/*.ts`) as source of truth; server upserts DB on startup so prod bots are version-controlled, PR-reviewed, and deployed via CI rather than manual UI copy-paste.
 
-- [ ] **Bedrock Phase 1 — Infra: Terraform IAM + SSM** — `terraform/bedrock_prompts.tf` created: `aws_iam_role_policy` with `bedrock:GetPrompt` + `ssm:GetParameter` on EC2 role; 8 `aws_ssm_parameter` resources (2 envs × 4 prompts) with `PLACEHOLDER` value and `ignore_changes = [value]`. `terraform validate` passes. **Next: run `terraform plan` then `terraform apply`.**
+- [x] **Bedrock Phase 1 — Infra: Terraform IAM + SSM** — `terraform/bedrock_prompts.tf` created: `aws_iam_role_policy` with `bedrock:GetPrompt` + `ssm:GetParameter` on EC2 role; 8 `aws_ssm_parameter` resources (2 envs × 4 prompts) with `PLACEHOLDER` value and `ignore_changes = [value]`. `terraform validate` passes. **Next: run `terraform plan` then `terraform apply`.**
 
 - [ ] **Bedrock Phase 1 — Create prompts in Bedrock console** — For each of the 4 file-based prompts, create a named prompt in Bedrock Prompt Management (eu-central-1): `daatan-express-prediction`, `daatan-extract-prediction`, `daatan-suggest-tags`, `daatan-update-context`. Paste text from existing `.ts` files, convert `${var}` → `{{var}}` (keep same variable names). Test in Bedrock playground, create Version 1, copy ARN.
 
@@ -38,7 +38,7 @@
 
 - [x] **Infra: Generate and configure VAPID keys for browser push** — keys already present on server (`NEXT_PUBLIC_VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY`). Verified 2026-02-26.
 
-- [ ] **Notifications: Email + `@mentions`** — pick a transactional email provider (SES / Resend / Postmark), wire it into the existing notification service, and add `@username` mention parsing in comments that triggers a `MENTION` notification to the mentioned user.
+- [ ] **Notifications: Email** — pick a transactional email provider (SES / Resend / Postmark) and wire it into the existing notification service (MENTION, COMMITMENT_RESOLVED, SYSTEM types are already flagged `email: true`).
 
 - [x] **i18n: Wire translations into all components** — all major components and pages (`FeedClient`, `ForecastCard`, `CommitmentForm`, `leaderboard`, `commitments`, `activity`, `profile`, `create`) now use `useTranslations` / `getTranslations`; `messages/en.json` and `messages/he.json` extended with ~50 new keys.
 
@@ -50,7 +50,13 @@
 
 ### P3 - Low Priority
 
-- [x] **Feature: Private (unlisted) forecasts** — Add `isPublic` boolean to `Prediction` (default `true`). Filter private forecasts from feed/search/leaderboard; show only to author + admins. Add privacy toggle on create/edit screens; consider shareable secret links for limited access.
+- [ ] **UX: Skeleton loaders on forecasts list page** — `src/app/forecasts/page.tsx` still shows a `Loader2` spinner; swap in `ForecastCardSkeleton` (already used in `FeedClient`) for consistent loading UX across forecast list views.
+
+- [ ] **Code: Shared `EmptyState` component** — the icon-circle + heading + description + CTA-link pattern is copy-pasted in ≥8 places (`FeedClient`, `leaderboard`, `profile`, `commitments`, `activity`, `NotificationList`, `forecasts/page`). Create `src/components/ui/EmptyState.tsx` with props `icon`, `iconBgClass`, `title`, `description`, `action?: { label, href }`, `variant?: 'card' | 'dashed'` and migrate all sites.
+
+- [ ] **Code: Shared primary link/button component** — three slightly-different Tailwind class strings for blue CTA buttons are inline across the app. Create `src/components/ui/PrimaryLink.tsx` (or a `buttonVariants` helper) to prevent further drift.
+
+- [x] **Feature: Private (unlisted) forecasts** — `isPublic Boolean @default(true)` + `shareToken String @unique` on `Prediction`. Filtered from feed, leaderboard, activity feed. Access gated by author/admin/shareToken URL. Visibility toggle on ForecastWizard (StepPublish), EditForecastClient, and ExpressForecastClient. Share-link banner shown to author on forecast detail page.
 
 - [ ] **Security: Enforce CSP headers on production** — flip the prod nginx block from `Content-Security-Policy-Report-Only` to `Content-Security-Policy` once staging monitoring (PR #356) confirms no violations.
 
@@ -66,7 +72,7 @@
 
 - [x] **Security: Env var validation at startup** — `src/instrumentation.ts` added; hard-throws on startup in production if `GEMINI_API_KEY`, `SERPER_API_KEY`, `VAPID_PRIVATE_KEY`, or `NEXT_PUBLIC_VAPID_PUBLIC_KEY` are missing.
 
-- [ ] **Code: Cache session user in JWT** — `auth.ts` session callback hits the DB on every authenticated request; store `role`, `cuAvailable`, and `rs` in the JWT with a short TTL (~5 min) so most requests skip the DB round-trip.
+- [ ] **Code: Cache session user in JWT** — `auth.ts` session callback still hits the DB on every authenticated request to fetch `cuAvailable`, `cuLocked`, `rs`, and `username`. `role` is already cached in the JWT token; extend caching to the remaining fields with a short TTL (~5 min) to skip the DB round-trip for most requests.
 
 - [x] **Code: Cap `?limit` in comments route** — `GET /api/comments` defaults to 50 but has no max; `?limit=10000` would load all comments; add `Math.min(limit, 100)` consistent with other routes.
 
@@ -74,7 +80,7 @@
 
 - [ ] **Profile: Custom avatar upload** — S3 storage, new `avatarUrl` field on User, upload UI on settings page; include server-side image resizing (Sharp), 5 MB size cap, JPEG/PNG/WebP only.
 
-- [x] **Testing: Missing coverage** — 14 commitment service tests (`calculatePenalty`, `removeCommitment`, `updateCommitment` CU delta/penalty paths); 14 admin route tests (GET/PATCH/DELETE for forecasts, users, comments). Slug collision and lockedAt race still untested.
+- [x] **Testing: Missing coverage** — 764 tests across 60 files. Added: commitment service (calculatePenalty, removeCommitment, updateCommitment), admin routes, GET/PATCH/DELETE /api/forecasts/[id] (incl. shareToken gate, isPublic toggle), EditForecastClient, ExpressForecastClient visibility, activity feed isPublic filter. Slug collision and lockedAt race still untested.
 
 - [x] **Testing: E2E tests (Playwright)** — `playwright.config.ts` confirmed; `tests/e2e/smoke.spec.ts` covers home, sign-in, 404, and `/api/health`. Auth-gated flows (login, create, commit) still need a seeded test DB and auth fixtures.
 
