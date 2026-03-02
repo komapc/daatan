@@ -166,13 +166,13 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
         </Link>
       </div>
 
-      {/* Filters */}
-      <div className="mb-6 space-y-4">
+      {/* Filters + Sort (single toolbar row) */}
+      <div className="mb-6 space-y-3">
         <div className="flex items-center gap-2 flex-wrap">
-          <Filter className="w-5 h-5 text-gray-400" />
+          <Filter className="w-4 h-4 text-gray-400 flex-shrink-0" />
           <button
             onClick={() => handleSetFilter('ACTIVE')}
-            className={`px-4 py-2 rounded-lg font-medium transition-all ${filter === 'ACTIVE'
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === 'ACTIVE'
               ? 'bg-blue-600 text-white shadow-sm'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
@@ -181,7 +181,7 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
           </button>
           <button
             onClick={() => handleSetFilter('CLOSING_SOON')}
-            className={`px-4 py-2 rounded-lg font-medium transition-all ${filter === 'CLOSING_SOON'
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === 'CLOSING_SOON'
               ? 'bg-blue-600 text-white shadow-sm'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
@@ -190,7 +190,7 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
           </button>
           <button
             onClick={() => handleSetFilter('PENDING')}
-            className={`px-4 py-2 rounded-lg font-medium transition-all ${filter === 'PENDING'
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === 'PENDING'
               ? 'bg-blue-600 text-white shadow-sm'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
@@ -200,7 +200,7 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
           {isAdminOrApprover && (
             <button
               onClick={() => handleSetFilter('NEEDS_REVIEW')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${filter === 'NEEDS_REVIEW'
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === 'NEEDS_REVIEW'
                 ? 'bg-purple-600 text-white shadow-sm'
                 : 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-100'
                 }`}
@@ -210,7 +210,7 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
           )}
           <button
             onClick={() => handleSetFilter('RESOLVED')}
-            className={`px-4 py-2 rounded-lg font-medium transition-all ${filter === 'RESOLVED'
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === 'RESOLVED'
               ? 'bg-blue-600 text-white shadow-sm'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
@@ -219,37 +219,38 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
           </button>
           <button
             onClick={() => handleSetFilter('ALL')}
-            className={`px-4 py-2 rounded-lg font-medium transition-all ${filter === 'ALL'
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === 'ALL'
               ? 'bg-blue-600 text-white shadow-sm'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
           >
             {t('filters.all')}
           </button>
-        </div>
 
-        {/* Sort Row — hidden for Closing Soon (has its own implicit ordering) */}
-        {filter !== 'CLOSING_SOON' && (
-          <div className="flex items-center gap-2 flex-wrap">
-            <ArrowDownUp className="w-4 h-4 text-gray-400" />
-            {([
-              { value: 'newest', label: t('sort.newest') },
-              { value: 'deadline', label: t('sort.byDeadline') },
-              { value: 'cu', label: t('sort.mostStaked') },
-            ] as { value: SortBy; label: string }[]).map(({ value, label }) => (
-              <button
-                key={value}
-                onClick={() => handleSetSort(value)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${sortBy === value
-                  ? 'bg-gray-800 text-white shadow-sm'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        )}
+          {/* Sort — hidden for Closing Soon (has its own implicit ordering) */}
+          {filter !== 'CLOSING_SOON' && (
+            <>
+              <div className="w-px h-5 bg-gray-200 mx-1 flex-shrink-0" />
+              <ArrowDownUp className="w-4 h-4 text-gray-400 flex-shrink-0" />
+              {([
+                { value: 'newest', label: t('sort.newest') },
+                { value: 'deadline', label: t('sort.byDeadline') },
+                { value: 'cu', label: t('sort.mostStaked') },
+              ] as { value: SortBy; label: string }[]).map(({ value, label }) => (
+                <button
+                  key={value}
+                  onClick={() => handleSetSort(value)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${sortBy === value
+                    ? 'bg-gray-800 text-white shadow-sm'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </>
+          )}
+        </div>
 
         {/* Tag Multi-Select Filter */}
         <div className="space-y-2">
@@ -267,7 +268,7 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
               </button>
             )}
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
             {STANDARD_TAGS.map((tag) => {
               const isSelected = selectedTags.includes(tag)
               return (

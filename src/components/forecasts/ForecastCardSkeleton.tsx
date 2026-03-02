@@ -4,8 +4,7 @@ export function ForecastCardSkeleton() {
       <div className="flex gap-4 items-start">
         {/* Speedometer placeholder */}
         <div className="hidden sm:flex flex-col items-center gap-1 flex-shrink-0">
-          <div className="w-16 h-16 rounded-full bg-gray-100" />
-          <div className="h-3 w-10 bg-gray-100 rounded" />
+          <div className="w-16 h-10 rounded-lg bg-gray-100" />
         </div>
 
         {/* Main content */}

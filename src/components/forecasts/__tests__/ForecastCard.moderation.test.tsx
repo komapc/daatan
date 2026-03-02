@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useSession } from 'next-auth/react'
 import { NextIntlClientProvider } from 'next-intl'
@@ -93,8 +93,7 @@ describe('ForecastCard moderation controls', () => {
 
     renderWithIntl(<ForecastCard prediction={basePrediction} />)
 
-    expect(screen.queryByTitle(/Edit Forecast/i)).toBeNull()
-    expect(screen.queryByTitle(/Delete Forecast/i)).toBeNull()
+    expect(screen.queryByLabelText(/Admin actions/i)).toBeNull()
   })
 
   it('does not show Edit/Delete for resolvers but shows Resolve for active predictions', () => {
@@ -108,9 +107,12 @@ describe('ForecastCard moderation controls', () => {
 
     renderWithIntl(<ForecastCard prediction={basePrediction} showModerationControls />)
 
-    expect(screen.queryByTitle(/Edit Forecast/i)).toBeNull()
-    expect(screen.queryByTitle(/Delete Forecast/i)).toBeNull()
-    expect(screen.getByTitle(/Resolve forecast/i)).toBeInTheDocument()
+    const menuBtn = screen.getByLabelText(/Admin actions/i)
+    fireEvent.click(menuBtn)
+
+    expect(screen.queryByText(/^Edit$/i)).toBeNull()
+    expect(screen.queryByText(/^Delete$/i)).toBeNull()
+    expect(screen.getByText(/^Resolve$/i)).toBeInTheDocument()
   })
 
   it('does not show Resolve for resolved predictions', () => {
@@ -125,7 +127,7 @@ describe('ForecastCard moderation controls', () => {
     const resolvedPrediction = { ...basePrediction, status: 'RESOLVED_CORRECT' as const }
     renderWithIntl(<ForecastCard prediction={resolvedPrediction} showModerationControls />)
 
-    expect(screen.queryByTitle(/Resolve forecast/i)).toBeNull()
+    expect(screen.queryByLabelText(/Admin actions/i)).toBeNull()
   })
 
   it('shows moderation controls for admins when flag is true', () => {
@@ -139,9 +141,12 @@ describe('ForecastCard moderation controls', () => {
 
     renderWithIntl(<ForecastCard prediction={basePrediction} showModerationControls />)
 
-    expect(screen.getByTitle(/Resolve forecast/i)).toBeInTheDocument()
-    expect(screen.getByTitle(/Edit Forecast/i)).toBeInTheDocument()
-    expect(screen.getByTitle(/Delete Forecast/i)).toBeInTheDocument()
+    const menuBtn = screen.getByLabelText(/Admin actions/i)
+    fireEvent.click(menuBtn)
+
+    expect(screen.getByText(/^Resolve$/i)).toBeInTheDocument()
+    expect(screen.getByText(/^Edit$/i)).toBeInTheDocument()
+    expect(screen.getByText(/^Delete$/i)).toBeInTheDocument()
   })
 })
 
