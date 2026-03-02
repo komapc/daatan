@@ -296,7 +296,7 @@ export default function PredictionDetailPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">
       {/* Back Link */}
       <Link
         href="/"
@@ -305,6 +305,10 @@ export default function PredictionDetailPage() {
         <ChevronLeft className="w-4 h-4" />
         Back to Feed
       </Link>
+
+      <div className="lg:grid lg:grid-cols-[1fr_360px] lg:gap-8 lg:items-start">
+        {/* Left column */}
+        <div className="min-w-0">
 
       {/* Header */}
       <div className="mb-6">
@@ -418,6 +422,9 @@ export default function PredictionDetailPage() {
         </div>
       )}
 
+      {/* Info Grid + Commitment Section — mobile only (desktop: right sticky column) */}
+      <div className="lg:hidden">
+
       {/* Info Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         {/* Author */}
@@ -516,6 +523,8 @@ export default function PredictionDetailPage() {
           </Link>
         </div>
       )}
+
+      </div>{/* end lg:hidden */}
 
       {/* Outcome Type */}
       <div className="mb-8">
@@ -711,6 +720,110 @@ export default function PredictionDetailPage() {
       <div className="border-t border-gray-200 pt-8">
         <CommentThread predictionId={prediction.id} />
       </div>
+
+        </div>{/* end left column */}
+
+        {/* Right column — sticky on desktop */}
+        <div className="hidden lg:block lg:sticky lg:top-8 space-y-4">
+          {/* Info Grid */}
+          <div className="grid grid-cols-1 gap-3">
+            {/* Author */}
+            <div className="p-4 border border-gray-200 rounded-xl bg-white shadow-sm">
+              <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-gray-400 mb-2">
+                <User className="w-3.5 h-3.5" />
+                Author
+              </div>
+              <div className="flex items-center gap-2">
+                {prediction.author.image && (
+                  <Image
+                    src={prediction.author.image}
+                    alt=""
+                    width={32}
+                    height={32}
+                    className="rounded-full"
+                  />
+                )}
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-gray-900">{prediction.author.name}</span>
+                    {prediction.author.role && (
+                      <RoleBadge role={prediction.author.role} size="sm" />
+                    )}
+                  </div>
+                  <div className="text-xs text-gray-500">RS: {prediction.author.rs.toFixed(0)}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Deadline */}
+            <div className="p-4 border border-gray-200 rounded-xl bg-white shadow-sm">
+              <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-gray-400 mb-2">
+                <Calendar className="w-3.5 h-3.5" />
+                Resolution Deadline
+              </div>
+              <div className="font-semibold text-gray-900">
+                {formatDate(prediction.resolveByDatetime)}
+              </div>
+            </div>
+
+            {/* Commitments */}
+            <div className="p-4 border border-gray-200 rounded-xl bg-white shadow-sm">
+              <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-gray-400 mb-2">
+                <Users className="w-3.5 h-3.5" />
+                Commitments
+              </div>
+              <div className="font-semibold text-gray-900">
+                {prediction._count.commitments} users &middot; {prediction.totalCuCommitted} CU
+              </div>
+            </div>
+          </div>
+
+          {/* Commitment Section */}
+          {session?.user && prediction.status === 'ACTIVE' && (
+            <div className="space-y-4">
+              <CUBalanceIndicator
+                cuAvailable={session.user.cuAvailable || 0}
+                cuLocked={session.user.cuLocked || 0}
+              />
+              {userCommitment && !showCommitmentForm ? (
+                <CommitmentDisplay
+                  commitment={userCommitment}
+                  prediction={prediction}
+                  onEdit={() => setShowCommitmentForm(true)}
+                  onRemove={handleCommitmentSuccess}
+                />
+              ) : userCommitment && showCommitmentForm ? (
+                <CommitmentForm
+                  prediction={prediction}
+                  existingCommitment={userCommitment}
+                  userCuAvailable={session.user.cuAvailable || 0}
+                  onSuccess={handleCommitmentSuccess}
+                  onCancel={() => setShowCommitmentForm(false)}
+                />
+              ) : (
+                <CommitmentForm
+                  prediction={prediction}
+                  userCuAvailable={session.user.cuAvailable || 0}
+                  onSuccess={handleCommitmentSuccess}
+                />
+              )}
+            </div>
+          )}
+
+          {!session?.user && prediction.status === 'ACTIVE' && (
+            <div className="p-5 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl text-center">
+              <p className="text-gray-600 mb-3">Want to commit to this prediction?</p>
+              <Link
+                href="/auth/signin"
+                className="inline-block py-2.5 px-5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-sm hover:shadow-md"
+              >
+                Sign In to Commit
+              </Link>
+            </div>
+          )}
+        </div>{/* end right column */}
+
+      </div>{/* end lg:grid */}
     </div>
   )
 }

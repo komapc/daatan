@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { Trophy, Loader2, Medal, TrendingUp, Wallet, Target, BarChart3 } from 'lucide-react'
+import Link from 'next/link'
 import { createClientLogger } from '@/lib/client-logger'
 import { useTranslations } from 'next-intl'
 
@@ -137,7 +138,17 @@ export default function LeaderboardPage() {
         </div>
       ) : users.length === 0 ? (
         <div className="bg-white border border-gray-100 rounded-2xl p-12 text-center shadow-sm">
-          <p className="text-gray-400 text-lg">{t('noUsers')}</p>
+          <div className="w-20 h-20 bg-yellow-50 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Trophy className="w-10 h-10 text-yellow-500" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-3">{t('noUsers')}</h2>
+          <p className="text-gray-500 mb-8 max-w-md mx-auto text-lg">{t('noUsersDesc')}</p>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-all shadow-sm"
+          >
+            {t('browseForecasts')}
+          </Link>
         </div>
       ) : (
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
