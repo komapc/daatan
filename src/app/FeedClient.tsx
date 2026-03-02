@@ -168,88 +168,90 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
 
       {/* Filters + Sort (single toolbar row) */}
       <div className="mb-6 space-y-3">
-        <div className="flex items-center gap-2 flex-wrap">
-          <Filter className="w-4 h-4 text-gray-400 flex-shrink-0" />
-          <button
-            onClick={() => handleSetFilter('ACTIVE')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === 'ACTIVE'
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-          >
-            {t('filters.open')}
-          </button>
-          <button
-            onClick={() => handleSetFilter('CLOSING_SOON')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === 'CLOSING_SOON'
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-          >
-            {t('filters.closingSoon')}
-          </button>
-          <button
-            onClick={() => handleSetFilter('PENDING')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === 'PENDING'
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-          >
-            {t('filters.awaitingResolution')}
-          </button>
-          {isAdminOrApprover && (
+        <div className="overflow-x-auto scrollbar-hide">
+          <div className="flex items-center gap-2 min-w-max">
+            <Filter className="w-4 h-4 text-gray-400 flex-shrink-0" />
             <button
-              onClick={() => handleSetFilter('NEEDS_REVIEW')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === 'NEEDS_REVIEW'
-                ? 'bg-purple-600 text-white shadow-sm'
-                : 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-100'
+              onClick={() => handleSetFilter('ACTIVE')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === 'ACTIVE'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
             >
-              {t('filters.needsReview')}
+              {t('filters.open')}
             </button>
-          )}
-          <button
-            onClick={() => handleSetFilter('RESOLVED')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === 'RESOLVED'
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-          >
-            {t('filters.resolved')}
-          </button>
-          <button
-            onClick={() => handleSetFilter('ALL')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === 'ALL'
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-          >
-            {t('filters.all')}
-          </button>
-
-          {/* Sort — hidden for Closing Soon (has its own implicit ordering) */}
-          {filter !== 'CLOSING_SOON' && (
-            <>
-              <div className="w-px h-5 bg-gray-200 mx-1 flex-shrink-0" />
-              <ArrowDownUp className="w-4 h-4 text-gray-400 flex-shrink-0" />
-              {([
-                { value: 'newest', label: t('sort.newest') },
-                { value: 'deadline', label: t('sort.byDeadline') },
-                { value: 'cu', label: t('sort.mostStaked') },
-              ] as { value: SortBy; label: string }[]).map(({ value, label }) => (
-                <button
-                  key={value}
-                  onClick={() => handleSetSort(value)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${sortBy === value
-                    ? 'bg-gray-800 text-white shadow-sm'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            <button
+              onClick={() => handleSetFilter('CLOSING_SOON')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === 'CLOSING_SOON'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+            >
+              {t('filters.closingSoon')}
+            </button>
+            <button
+              onClick={() => handleSetFilter('PENDING')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === 'PENDING'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+            >
+              {t('filters.awaitingResolution')}
+            </button>
+            {isAdminOrApprover && (
+              <button
+                onClick={() => handleSetFilter('NEEDS_REVIEW')}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === 'NEEDS_REVIEW'
+                  ? 'bg-purple-600 text-white shadow-sm'
+                  : 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-100'
                   }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </>
-          )}
+              >
+                {t('filters.needsReview')}
+              </button>
+            )}
+            <button
+              onClick={() => handleSetFilter('RESOLVED')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === 'RESOLVED'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+            >
+              {t('filters.resolved')}
+            </button>
+            <button
+              onClick={() => handleSetFilter('ALL')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === 'ALL'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+            >
+              {t('filters.all')}
+            </button>
+
+            {/* Sort — hidden for Closing Soon (has its own implicit ordering) */}
+            {filter !== 'CLOSING_SOON' && (
+              <>
+                <div className="w-px h-5 bg-gray-200 mx-1 flex-shrink-0" />
+                <ArrowDownUp className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                {([
+                  { value: 'newest', label: t('sort.newest') },
+                  { value: 'deadline', label: t('sort.byDeadline') },
+                  { value: 'cu', label: t('sort.mostStaked') },
+                ] as { value: SortBy; label: string }[]).map(({ value, label }) => (
+                  <button
+                    key={value}
+                    onClick={() => handleSetSort(value)}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${sortBy === value
+                      ? 'bg-gray-800 text-white shadow-sm'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </>
+            )}
+          </div>
         </div>
 
         {/* Tag Multi-Select Filter */}
