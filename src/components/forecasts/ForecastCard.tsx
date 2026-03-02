@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useSession } from 'next-auth/react'
@@ -23,6 +23,7 @@ import {
   Gavel,
   Lock,
   EyeOff,
+  MoreHorizontal,
 } from 'lucide-react'
 import { RoleBadge } from '@/components/RoleBadge'
 import Speedometer from './Speedometer'
@@ -79,6 +80,8 @@ export default function ForecastCard({
   const router = useRouter()
   const t = useTranslations('forecast')
   const [isApproving, setIsApproving] = useState(false)
+  const [showAdminMenu, setShowAdminMenu] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   const canAdminister =
     showModerationControls && session?.user?.role === 'ADMIN'
@@ -177,6 +180,17 @@ export default function ForecastCard({
     }
   }
 
+  useEffect(() => {
+    if (!showAdminMenu) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowAdminMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showAdminMenu])
+
   const formatDate = (date: string | Date) => {
     return new Date(date).toLocaleDateString('en-US', {
       month: 'short',
@@ -247,31 +261,30 @@ export default function ForecastCard({
       className="group block p-4 sm:p-5 bg-white border border-gray-200 rounded-xl hover:border-blue-300 hover:shadow-md transition-all duration-200"
     >
       <div className="flex items-center justify-between gap-4">
-        {/* Speedometer Gauges (Desktop-only on side) */}
+        {/* Mini Gauge (Desktop-only on side) */}
         {prediction.status === 'ACTIVE' && (
           <div className="hidden sm:block flex-shrink-0">
-            {prediction.outcomeType === 'BINARY' ? (
+            {prediction._count.commitments === 0 ? (
+              <div className="w-16 h-10 flex items-center justify-center rounded-lg bg-gray-50 border border-gray-100">
+                <span className="text-xs text-gray-300 font-medium">—</span>
+              </div>
+            ) : prediction.outcomeType === 'BINARY' ? (
               <Speedometer
-                percentage={
-                  (prediction.yesCount || 0) + (prediction.noCount || 0) > 0
-                    ? Math.round(((prediction.yesCount || 0) / ((prediction.yesCount || 0) + (prediction.noCount || 0))) * 100)
-                    : 50
-                }
-                label={t('willHappen')}
+                percentage={Math.round(((prediction.yesCount || 0) / ((prediction.yesCount || 0) + (prediction.noCount || 0))) * 100)}
+                label=""
                 color="green"
-                size="md"
+                size="xs"
               />
             ) : prediction.outcomeType === 'MULTIPLE_CHOICE' && prediction.options && prediction.options.length > 0 ? (() => {
               const sortedOptions = [...prediction.options].sort((a, b) => (b.commitmentsCount || 0) - (a.commitmentsCount || 0))
               const topOption = sortedOptions[0]
-              const total = prediction._count.commitments
-              const pct = total > 0 ? Math.round(((topOption.commitmentsCount || 0) / total) * 100) : 0
+              const pct = Math.round(((topOption.commitmentsCount || 0) / prediction._count.commitments) * 100)
               return (
                 <Speedometer
                   percentage={pct}
-                  label={topOption.text}
+                  label=""
                   color="green"
-                  size="md"
+                  size="xs"
                 />
               )
             })() : null}
@@ -285,14 +298,23 @@ export default function ForecastCard({
               {badge.icon}
               {badge.label}
             </span>
-            {prediction.tags && prediction.tags.length > 0 && prediction.tags.map((tag) => (
-              <span
-                key={tag.name}
-                className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] sm:text-xs font-medium rounded-full border border-blue-100"
-              >
-                {tag.name}
-              </span>
-            ))}
+            {prediction.tags && prediction.tags.length > 0 && (
+              <>
+                {prediction.tags.slice(0, 2).map((tag) => (
+                  <span
+                    key={tag.name}
+                    className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] sm:text-xs font-medium rounded-full border border-blue-100"
+                  >
+                    {tag.name}
+                  </span>
+                ))}
+                {prediction.tags.length > 2 && (
+                  <span className="px-2 py-0.5 bg-gray-50 text-gray-400 text-[10px] sm:text-xs font-medium rounded-full border border-gray-100">
+                    +{prediction.tags.length - 2}
+                  </span>
+                )}
+              </>
+            )}
             {prediction.isPublic === false && (
               <span className="flex items-center gap-1 px-2 py-0.5 bg-gray-50 text-gray-500 text-[10px] sm:text-xs font-bold uppercase tracking-wider rounded-full border border-gray-200" title="This forecast is unlisted — only visible via direct link.">
                 <EyeOff className="w-3 h-3" />
@@ -372,20 +394,30 @@ export default function ForecastCard({
             </div>
 
             {/* Resolve By Date */}
-            <div className="flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5 text-gray-400" />
-              <span suppressHydrationWarning>{formatDate(prediction.resolveByDatetime)}</span>
-            </div>
+            {(() => {
+              const daysUntil = Math.ceil((new Date(prediction.resolveByDatetime).getTime() - Date.now()) / 86400000)
+              const dateClass = prediction.status === 'ACTIVE'
+                ? daysUntil <= 3 ? 'text-red-500' : daysUntil <= 7 ? 'text-amber-500' : 'text-gray-400'
+                : 'text-gray-400'
+              return (
+                <div className={`flex items-center gap-1.5 ${dateClass}`}>
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span suppressHydrationWarning>{formatDate(prediction.resolveByDatetime)}</span>
+                </div>
+              )
+            })()}
 
             {/* Commitment Count & CU */}
-            <div className="flex items-center gap-1.5">
-              <Users className="w-3.5 h-3.5 text-gray-400" />
-              <span className="font-medium text-gray-700">{prediction._count.commitments}</span>
-              <span className="hidden sm:inline">{t('commitmentsLabel')}</span>
-              {prediction.totalCuCommitted !== undefined && prediction.totalCuCommitted > 0 && (
-                <span className="text-gray-400">• {prediction.totalCuCommitted} CU</span>
-              )}
-            </div>
+            {prediction._count.commitments > 0 && (
+              <div className="flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5 text-gray-400" />
+                <span className="font-medium text-gray-700">{prediction._count.commitments}</span>
+                <span className="hidden sm:inline">{t('commitmentsLabel')}</span>
+                {prediction.totalCuCommitted !== undefined && prediction.totalCuCommitted > 0 && (
+                  <span className="text-gray-400">• {prediction.totalCuCommitted} CU</span>
+                )}
+              </div>
+            )}
 
             {/* User Committed Indicator */}
             {prediction.userHasCommitted && (
@@ -398,9 +430,9 @@ export default function ForecastCard({
         </div>
 
         {(canAdminister || canResolve || canApprove) && (
-          <div className="flex-shrink-0 flex gap-2 self-start mt-1">
-            {canApprove && (
-              <>
+          <div className="flex-shrink-0 self-start mt-1" ref={menuRef}>
+            {canApprove ? (
+              <div className="flex gap-2">
                 <button
                   onClick={handleApprove}
                   disabled={isApproving}
@@ -421,39 +453,48 @@ export default function ForecastCard({
                   <XCircle className="w-3.5 h-3.5" />
                   {t('reject')}
                 </button>
-              </>
-            )}
-            {canResolve && (
-              <button
-                onClick={handleResolve}
-                className="p-1 rounded-full text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                title="Resolve forecast"
-                aria-label="Resolve forecast"
-              >
-                <Gavel className="w-4 h-4" />
-              </button>
-            )}
-            {canAdminister && (
-              <>
-                {isEditable && (
-                  <button
-                    onClick={handleEdit}
-                    className="p-1 rounded-full text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                    title="Edit Forecast"
-                    aria-label="Edit forecast"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                )}
+              </div>
+            ) : (
+              <div className="relative">
                 <button
-                  onClick={handleDelete}
-                  className="p-1 rounded-full text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                  title="Delete Forecast"
-                  aria-label="Delete forecast"
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowAdminMenu(v => !v) }}
+                  className="p-1 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                  aria-label="Admin actions"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <MoreHorizontal className="w-4 h-4" />
                 </button>
-              </>
+                {showAdminMenu && (
+                  <div className="absolute right-0 top-6 z-10 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[120px]">
+                    {canResolve && (
+                      <button
+                        onClick={handleResolve}
+                        className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        <Gavel className="w-3.5 h-3.5" />
+                        {t('resolve')}
+                      </button>
+                    )}
+                    {canAdminister && isEditable && (
+                      <button
+                        onClick={handleEdit}
+                        className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                        {t('edit')}
+                      </button>
+                    )}
+                    {canAdminister && (
+                      <button
+                        onClick={handleDelete}
+                        className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        {t('delete')}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )}

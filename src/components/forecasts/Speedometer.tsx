@@ -4,7 +4,7 @@ interface SpeedometerProps {
   percentage: number
   label: string
   color: 'green' | 'red'
-  size?: 'sm' | 'md' | 'lg' | 'xl'
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 }
 
 export default function Speedometer({
@@ -18,6 +18,7 @@ export default function Speedometer({
 
   // ∩-shape speedometer: height is roughly radius + top/bottom padding
   const sizes = {
+    xs: { width: 64, height: 40, strokeWidth: 4, fontSize: '10px', needleBase: 3.5, pivotRadius: 2.5 },
     sm: { width: 120, height: 72, strokeWidth: 5, fontSize: '12px', needleBase: 5, pivotRadius: 3.5 },
     md: { width: 160, height: 96, strokeWidth: 7, fontSize: '15px', needleBase: 6, pivotRadius: 4.5 },
     lg: { width: 220, height: 132, strokeWidth: 9, fontSize: '18px', needleBase: 8, pivotRadius: 6 },
