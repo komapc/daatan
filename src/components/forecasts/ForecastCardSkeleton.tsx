@@ -1,6 +1,6 @@
 export function ForecastCardSkeleton() {
   return (
-    <div className="p-4 sm:p-5 bg-white border border-gray-200 rounded-xl animate-pulse">
+    <div data-testid="forecast-skeleton" className="p-4 sm:p-5 bg-white border border-gray-200 rounded-xl animate-pulse">
       <div className="flex gap-4 items-start">
         {/* Speedometer placeholder */}
         <div className="hidden sm:flex flex-col items-center gap-1 flex-shrink-0">

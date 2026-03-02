@@ -88,7 +88,12 @@
     "approveError": "אישור התחזית נכשל",
     "rejectConfirm": "לדחות תחזית זו? היא תועבר לסטטוס בוטל.",
     "rejectSuccess": "התחזית נדחתה",
-    "rejectError": "דחיית התחזית נכשלה"
+    "rejectError": "דחיית התחזית נכשלה",
+    "author": "מחבר",
+    "resolutionDeadline": "מועד הכרעה",
+    "usersLabel": "משתמשים",
+    "commitToPrompt": "רוצה להתחייב לתחזית זו?",
+    "signInToCommit": "התחבר להתחייב"
   },
   "commitment": {
     "title": "היסטוריית התחייבויות",
