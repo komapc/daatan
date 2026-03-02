@@ -44,50 +44,55 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user && token.sub) {
-        // Assign the user ID from the token
         session.user.id = token.sub
 
-        // Fetch latest user stats from database to keep session in sync
-        try {
-          const user = await prisma.user.findUnique({
-            where: { id: token.sub },
-            select: {
-              name: true,
-              image: true,
-              cuAvailable: true,
-              cuLocked: true,
-              rs: true,
-              username: true,
-              role: true,
-            }
-          })
-
-          if (!user) {
-            // User was deleted — invalidate the session so the client is forced to re-login
-            log.warn({ userId: token.sub }, 'Session user not found in DB — invalidating session')
-            session.expires = new Date(0).toISOString()
-            return session
-          }
-
-          // Always use DB name/image so profile edits are reflected in session
-          if (user.name) session.user.name = user.name
-          if (user.image) session.user.image = user.image
-          session.user.cuAvailable = user.cuAvailable
-          session.user.cuLocked = user.cuLocked
-          session.user.username = user.username
-          session.user.rs = user.rs
-          session.user.role = user.role
-        } catch (error) {
-          log.error({ err: error }, 'Error fetching user stats for session')
+        if (token.userDeleted) {
+          log.warn({ userId: token.sub }, 'Session user not found in DB — invalidating session')
+          session.expires = new Date(0).toISOString()
+          return session
         }
+
+        // Read cached values from JWT — no DB round-trip needed
+        session.user.role = token.role ?? 'USER'
+        session.user.username = token.username
+        session.user.rs = token.rs
+        session.user.cuAvailable = token.cuAvailable
+        session.user.cuLocked = token.cuLocked
+        if (token.name) session.user.name = token.name
+        if (token.picture) session.user.image = token.picture as string
       }
       return session
     },
     async jwt({ token, user }) {
-      if (user) {
-        // When a user signs in, user object is available. Set token.sub to user.id
-        token.sub = user.id
-        token.role = user.role
+      // On sign-in the `user` object is present; otherwise only refresh when cache is stale
+      const TTL = 5 * 60 * 1000 // 5 minutes
+      const isSignIn = !!user
+      const stale = !token.cachedAt || Date.now() - token.cachedAt > TTL
+
+      if ((isSignIn || stale) && token.sub) {
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.sub },
+            select: { role: true, username: true, name: true, image: true, rs: true, cuAvailable: true, cuLocked: true },
+          })
+
+          if (!dbUser) {
+            token.userDeleted = true
+            return token
+          }
+
+          token.role = dbUser.role
+          token.username = dbUser.username
+          token.name = dbUser.name ?? token.name
+          token.picture = dbUser.image ?? token.picture
+          token.rs = dbUser.rs
+          token.cuAvailable = dbUser.cuAvailable
+          token.cuLocked = dbUser.cuLocked
+          token.cachedAt = Date.now()
+          token.userDeleted = undefined
+        } catch (error) {
+          log.error({ err: error }, 'Error fetching user for JWT cache')
+        }
       }
       return token
     },

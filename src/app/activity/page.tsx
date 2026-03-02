@@ -7,6 +7,7 @@ import { formatDistanceToNow } from 'date-fns'
 import { Avatar } from '@/components/Avatar'
 import { createClientLogger } from '@/lib/client-logger'
 import { useTranslations } from 'next-intl'
+import EmptyState from '@/components/ui/EmptyState'
 
 const log = createClientLogger('ActivityFeed')
 
@@ -83,10 +84,11 @@ export default function ActivityFeedPage() {
       <p className="text-gray-500 text-sm mb-6">{t('subtitle')}</p>
 
       {activity.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
-          <Activity className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500 text-lg font-medium">{t('noActivity')}</p>
-        </div>
+        <EmptyState
+          variant="dashed"
+          icon={<Activity className="w-12 h-12 text-gray-300" />}
+          description={t('noActivity')}
+        />
       ) : (
         <div className="relative">
           {/* Timeline line */}
