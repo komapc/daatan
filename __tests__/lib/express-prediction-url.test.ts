@@ -27,6 +27,11 @@ vi.mock('@/lib/llm/index', () => ({
   },
 }))
 
+vi.mock('@/lib/llm/bedrock-prompts', () => ({
+  getPromptTemplate: vi.fn().mockResolvedValue('Mock template: {{userInput}} {{articlesText}}'),
+  fillPrompt: vi.fn().mockImplementation((t, v) => Object.values(v).join(' ')),
+}))
+
 import { generateExpressPrediction, extractDomainFromUrl } from '@/lib/llm/expressPrediction'
 import type { SearchResult } from '@/lib/utils/webSearch'
 

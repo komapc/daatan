@@ -40,6 +40,11 @@ vi.mock('@/lib/llm', () => ({
   },
 }))
 
+vi.mock('@/lib/llm/bedrock-prompts', () => ({
+  getPromptTemplate: vi.fn().mockResolvedValue('Mock template: {{claimText}} {{changeInstruction}} {{articlesText}}'),
+  fillPrompt: vi.fn().mockImplementation((t, v) => Object.values(v).join(' ')),
+}))
+
 vi.mock('@/lib/prisma', () => ({
   prisma: mockPrisma,
 }))
