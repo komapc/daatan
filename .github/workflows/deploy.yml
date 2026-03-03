@@ -297,6 +297,36 @@ jobs:
             echo "version=manual" >> $GITHUB_OUTPUT
           fi
 
+      - name: Verify Staging Version matches or exceeds Production
+        run: |
+          PROD_VERSION="${{ steps.version.outputs.version }}"
+          if [[ "$PROD_VERSION" == "manual" ]]; then
+            echo "Manual deployment, skipping version check."
+            exit 0
+          fi
+          
+          echo "Checking staging version..."
+          STAGING_VERSION=$(curl -s --connect-timeout 5 https://staging.daatan.com/api/health | jq -r .version || echo "error")
+          
+          if [[ "$STAGING_VERSION" == "error" || "$STAGING_VERSION" == "null" ]]; then
+            echo "⚠️ Warning: Could not reach staging for version check."
+            exit 0
+          fi
+          
+          echo "Staging version: $STAGING_VERSION"
+          echo "Target Production version: $PROD_VERSION"
+          
+          # Function to compare versions
+          function ver { echo "$@" | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }'; }
+          
+          if [ $(ver $PROD_VERSION) -gt $(ver $STAGING_VERSION) ]; then
+            echo "❌ Error: Cannot deploy version $PROD_VERSION to production."
+            echo "The target version ($PROD_VERSION) is higher than the current staging version ($STAGING_VERSION)."
+            echo "Please deploy to staging first."
+            exit 1
+          fi
+          echo "✅ Version check passed."
+
       - name: Check Instance SSM Health
         run: |
           INSTANCE_ID=$(aws ec2 describe-instances \
