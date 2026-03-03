@@ -1,11 +1,12 @@
 import { BedrockAgentClient, GetPromptCommand } from '@aws-sdk/client-bedrock-agent'
 import { SSMClient, GetParameterCommand } from '@aws-sdk/client-ssm'
-import { createClientLogger } from '@/lib/client-logger'
+import { createLogger } from '@/lib/logger'
 
-const log = createClientLogger('BedrockPrompts')
+const log = createLogger('llm-bedrock-prompts')
 
-const bedrock = new BedrockAgentClient({ region: process.env.AWS_REGION || 'eu-central-1' })
-const ssm = new SSMClient({ region: process.env.AWS_REGION || 'eu-central-1' })
+const REGION = process.env.AWS_REGION || 'eu-central-1'
+const bedrock = new BedrockAgentClient({ region: REGION })
+const ssm = new SSMClient({ region: REGION })
 
 type PromptName = 'express-prediction' | 'extract-prediction' | 'suggest-tags' | 'update-context'
 
@@ -37,8 +38,10 @@ export async function getPromptTemplate(promptName: PromptName): Promise<string>
         return cached.template
     }
 
-    const env = process.env.NEXT_PUBLIC_APP_ENV || 'staging'
+    const env = process.env.APP_ENV || process.env.NEXT_PUBLIC_APP_ENV || 'staging'
     const paramName = `/daatan/${env}/prompts/${promptName}`
+
+    log.debug({ promptName, env, paramName, region: REGION }, 'Fetching prompt template')
 
     try {
         // 1. Get ARN from SSM
@@ -49,7 +52,7 @@ export async function getPromptTemplate(promptName: PromptName): Promise<string>
             failFast(`SSM parameter ${paramName} contains invalid ARN: ${promptArn}`)
         }
 
-        // 2. Fetch template from Bedrock Agent
+        log.debug({ promptName, promptArn }, 'Fetched ARN from SSM, now fetching from Bedrock')
         // ARN format typically includes :prompt/ID:VERSION
         const bedrockRes = await bedrock.send(new GetPromptCommand({ promptIdentifier: promptArn }))
 
@@ -68,6 +71,7 @@ export async function getPromptTemplate(promptName: PromptName): Promise<string>
 
         return templateText
     } catch (error) {
+        log.error({ err: error, promptName, paramName, region: REGION }, 'Failed to fetch prompt template from AWS')
         failFast(`Failed to fetch Bedrock prompt '${promptName}'`, error)
     }
 }
