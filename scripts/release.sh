@@ -45,6 +45,27 @@ git pull origin main --quiet
 LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
 echo -e "Latest version: ${GREEN}$LATEST_TAG${NC}"
 
+# Fetch staging version for safety check
+echo -e "${BLUE}🔍 Checking staging version...${NC}"
+STAGING_VERSION_RAW=$(curl -s --connect-timeout 5 https://staging.daatan.com/api/health | jq -r .version || echo "error")
+
+if [ "$STAGING_VERSION_RAW" == "error" ] || [ "$STAGING_VERSION_RAW" == "null" ]; then
+    echo -e "${YELLOW}⚠️  Could not fetch staging version. Proceeding with caution.${NC}"
+    STAGING_VERSION=""
+else
+    STAGING_VERSION="v$STAGING_VERSION_RAW"
+    echo -e "Staging version: ${GREEN}$STAGING_VERSION${NC}"
+fi
+
+# Function to convert version string to comparable integer
+version_to_int() {
+    local v=$1
+    # Remove 'v' prefix if present
+    v=${v#v}
+    # Split by dot and pad with zeros to ensure correct comparison (e.g. 1.10.0 > 1.2.0)
+    printf "%03d%03d%03d" $(echo "$v" | tr '.' ' ')
+}
+
 # Parse version components
 VERSION_REGEX="v([0-9]+)\.([0-9]+)\.([0-9]+)"
 if [[ $LATEST_TAG =~ $VERSION_REGEX ]]; then
@@ -94,6 +115,21 @@ esac
 if git rev-parse "$NEW_VERSION" >/dev/null 2>&1; then
     echo -e "${RED}❌ Tag $NEW_VERSION already exists!${NC}"
     exit 1
+fi
+
+# Safety check: Production version must not be greater than Staging version
+if [ -z "$STAGING_VERSION" ]; then
+    echo -e "${YELLOW}⚠️  Skipping staging version check (staging unreachable).${NC}"
+else
+    NEW_V_INT=$(version_to_int "$NEW_VERSION")
+    STAGING_V_INT=$(version_to_int "$STAGING_VERSION")
+    
+    if [ "$NEW_V_INT" -gt "$STAGING_V_INT" ]; then
+        echo -e "${RED}❌ ABORTED: Production version ($NEW_VERSION) cannot be higher than Staging version ($STAGING_VERSION)${NC}"
+        echo -e "${YELLOW}Please deploy to staging first (push to main) before releasing to production.${NC}"
+        exit 1
+    fi
+    echo -e "${GREEN}✅ Version check passed: $NEW_VERSION <= $STAGING_VERSION${NC}"
 fi
 
 echo ""
