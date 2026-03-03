@@ -30,7 +30,7 @@
 
 - [x] **Bedrock Phase 1 — Promote script** — `scripts/promote-prompt.sh` created and `chmod +x`; takes `(env, prompt-name, arn|--rollback)`; saves current ARN as SSM tag `previous-arn` before overwriting; `--rollback` swaps back using the tag.
 
-- [ ] **Bedrock Phase 2 — Migrate inline prompts** — After Phase 1 is stable, migrate the 9 inline prompts from `bot-runner.ts`, `research/route.ts`, and `admin/bots/route.ts` to Bedrock. Bot-specific prompts (`forecastPrompt`, `votePrompt`) use a single Bedrock template per type with `{{personaPrompt}}`, `{{forecastPrompt}}`, `{{votePrompt}}` as runtime variables injected from DB at call time. Prompts to migrate: dedupe-check, bot-forecast-generation, forecast-quality-validation, bot-vote-decision, bot-config-generation, research-query-generation, resolution-research, translation, topic-extraction.
+- [x] **Bedrock Phase 2 — Migrate inline prompts** — All 9 remaining inline prompts (dedupe-check, bot-forecast-generation, forecast-quality-validation, bot-vote-decision, bot-config-generation, research-query-generation, resolution-research, translate, topic-extraction) migrated to Bedrock Prompt Management. Updated `bot-runner.ts`, `research/route.ts`, `admin/bots/route.ts`, `translation.ts`, and `expressPrediction.ts`.
 
 ### P2 - Medium Priority
 

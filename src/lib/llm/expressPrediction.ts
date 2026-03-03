@@ -113,8 +113,10 @@ export async function generateExpressPrediction(
 
       let topic: string
       try {
+        const template = await getPromptTemplate('topic-extraction')
+        const prompt = fillPrompt(template, { articleContent: articleContent.substring(0, 3000) })
         const extractResult = await llmService.generateContent({
-          prompt: `Extract the main topic of this article in 5-10 words suitable as a web search query. Return ONLY the search query, nothing else.\n\nArticle content:\n${articleContent.substring(0, 3000)}`,
+          prompt,
           temperature: 0,
         })
         topic = extractResult.text.trim().replace(/^["']|["']$/g, '')

@@ -8,7 +8,20 @@ const REGION = process.env.AWS_REGION || 'eu-central-1'
 const bedrock = new BedrockAgentClient({ region: REGION })
 const ssm = new SSMClient({ region: REGION })
 
-type PromptName = 'express-prediction' | 'extract-prediction' | 'suggest-tags' | 'update-context'
+type PromptName =
+    | 'express-prediction'
+    | 'extract-prediction'
+    | 'suggest-tags'
+    | 'update-context'
+    | 'dedupe-check'
+    | 'bot-forecast-generation'
+    | 'forecast-quality-validation'
+    | 'bot-vote-decision'
+    | 'bot-config-generation'
+    | 'research-query-generation'
+    | 'resolution-research'
+    | 'translate'
+    | 'topic-extraction'
 
 interface CacheEntry {
     template: string

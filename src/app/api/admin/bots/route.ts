@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { handleRouteError } from '@/lib/api-error'
 import { z } from 'zod'
 import { createBotLLMService } from '@/lib/llm'
+import { getPromptTemplate, fillPrompt } from '@/lib/llm/bedrock-prompts'
 import { botConfigGenerationSchema } from '@/lib/llm/schemas'
 import { createLogger } from '@/lib/logger'
 
@@ -180,17 +181,8 @@ export const POST = withAuth(
       if (data.personaPrompt === DEFAULT_PERSONA) {
         try {
           const llm = createBotLLMService(data.modelPreference)
-          const prompt = `You are defining a new autonomous agent for a prediction market platform. 
-The bot's name is "${data.name}". 
-
-Based on this name, infer what kind of topics it cares about, its personality, and what news sources it should read.
-Generate a JSON object with:
-- personaPrompt: "You are [Name], a [description]. You track [topics]."
-- forecastPrompt: "Using the news topic, write a specific, verifiable forecast about [topics]. Avoid vague claims. Resolution window: 14-90 days."
-- votePrompt: "As a [role], commit to forecasts about [topics]. Vote yes when [conditions]."
-- newsSources: An array of 2-4 real world RSS feed URLs that fit this persona (e.g., https://feeds.bbci.co.uk/news/world/rss.xml, https://www.theverge.com/rss/index.xml, etc).
-
-Make the prompts highly specific, opinionated, and sharp. Do not be generic.`
+          const template = await getPromptTemplate('bot-config-generation')
+          const prompt = fillPrompt(template, { name: data.name })
 
           const generatedSchema = z.object({
             personaPrompt: z.string().min(10),
