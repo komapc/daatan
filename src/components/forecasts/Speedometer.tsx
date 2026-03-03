@@ -13,8 +13,9 @@ export default function Speedometer({
   color,
   size = 'md',
 }: SpeedometerProps) {
-  // Clamp percentage between 0 and 100
-  const clampedPercentage = Math.min(100, Math.max(0, percentage))
+  // Clamp percentage between 0 and 100. Handle NaN as 50 (or 0) to avoid SVG errors.
+  const safePercentage = isNaN(percentage) ? 50 : percentage
+  const clampedPercentage = Math.min(100, Math.max(0, safePercentage))
 
   // ∩-shape speedometer: height is roughly radius + top/bottom padding
   const sizes = {
