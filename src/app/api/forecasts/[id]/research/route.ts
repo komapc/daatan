@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { apiError, handleRouteError } from '@/lib/api-error'
 import { searchArticles, SearchResult } from '@/lib/utils/webSearch'
 import { llmService } from '@/lib/llm'
+import { getPromptTemplate, fillPrompt } from '@/lib/llm/bedrock-prompts'
 import { queryGenerationSchema, researchSchema } from '@/lib/llm/schemas'
 import { extractKeyTerms, dedup, hasRelevantResults } from './helpers'
 
@@ -53,12 +54,15 @@ export const POST = withAuth(async (request: NextRequest, _user, { params }) => 
         const needsFallback = results.length < 3 || !hasRelevantResults(results, claimNouns)
         if (needsFallback) {
             try {
-                const qRes = await llmService.generateContent({
-                    prompt: `You are helping find news articles to verify a forecast.
-Forecast: "${prediction.claimText}"
-Period: ${forecastStartStr} to ${forecastEndStr}
+                const template = await getPromptTemplate('research-query-generation')
+                const prompt = fillPrompt(template, {
+                    claimText: prediction.claimText,
+                    forecastStartStr,
+                    forecastEndStr,
+                })
 
-Generate 2-3 short web search queries (3-7 words each) that a journalist would use to find news confirming or denying this forecast. Use past/present tense, focus on key entities and the underlying measurable event (e.g. exchange rate, election result, price). Do NOT reuse the forecast text verbatim.`,
+                const qRes = await llmService.generateContent({
+                    prompt,
                     schema: queryGenerationSchema,
                     temperature: 0,
                 })
@@ -87,37 +91,19 @@ Generate 2-3 short web search queries (3-7 words each) that a journalist would u
             : ''
 
         // 3. Ask LLM to evaluate
-        const prompt = `
-You are an expert fact-checker and forecast resolver.
-Your task is to determine the outcome of the following forecast.
-
-Forecast Claim: ${prediction.claimText}
-Outcome Type: ${prediction.outcomeType}${optionsContext}
-Resolution Rules: ${prediction.resolutionRules || 'Determine outcome based on publicly available information for the relevant period.'}
-
-Forecast Period: ${forecastStartStr} to ${forecastEndStr}
-Current Date: ${now.toISOString().split('T')[0]}
-
-${context
-    ? `News Context (${results.length} articles found for the forecast period):\n${context}`
-    : 'Note: Automated news search returned no results. Rely on your training knowledge for the forecast period.'}
-
-Instructions:
-1. Determine what happened during the forecast period (${forecastStartStr} to ${forecastEndStr}) with respect to the claim.
-2. Use the news context above as your primary evidence. If it is insufficient or irrelevant, draw on your own knowledge of events during that period.
-3. In your reasoning, explicitly list which sources or facts (from context or your own knowledge) you are using to reach your conclusion.
-4. For BINARY predictions:
-   - If the claim is clearly true (the event happened as stated), use 'correct'.
-   - If the claim is clearly false (the event did not happen), use 'wrong'.
-   - Only use 'unresolvable' if you genuinely have no reliable information for the period.
-5. For MULTIPLE_CHOICE predictions:
-   - If one option clearly occurred, use 'correct' AND provide correctOptionId.
-   - If no option clearly matches, use 'unresolvable'.
-6. Use 'void' only if the event was cancelled or the claim cannot be judged fairly by its own rules.
-7. Do NOT default to 'unresolvable' simply because the news context is empty or irrelevant — use your knowledge.
-
-Return your findings in JSON format.
-`
+        const template = await getPromptTemplate('resolution-research')
+        const prompt = fillPrompt(template, {
+            claimText: prediction.claimText,
+            outcomeType: prediction.outcomeType,
+            optionsContext,
+            resolutionRules: prediction.resolutionRules || 'Determine outcome based on publicly available information for the relevant period.',
+            forecastStartStr,
+            forecastEndStr,
+            currentDate: now.toISOString().split('T')[0],
+            context: context
+                ? `News Context (${results.length} articles found for the forecast period):\n${context}`
+                : 'Note: Automated news search returned no results. Rely on your training knowledge for the forecast period.'
+        })
 
         const response = await llmService.generateContent({
             prompt,

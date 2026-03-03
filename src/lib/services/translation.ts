@@ -1,6 +1,7 @@
 import { llmService } from '@/lib/llm'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
+import { getPromptTemplate, fillPrompt } from '@/lib/llm/bedrock-prompts'
 
 const log = createLogger('translation-service')
 
@@ -8,8 +9,11 @@ const TRANSLATABLE_FIELDS = ['claimText', 'detailsText', 'resolutionRules'] as c
 type TranslatableField = (typeof TRANSLATABLE_FIELDS)[number]
 
 async function callGeminiTranslate(text: string, language: string): Promise<string> {
+  const template = await getPromptTemplate('translate')
+  const prompt = fillPrompt(template, { text, language })
+
   const response = await llmService.generateContent({
-    prompt: `Translate the following text to ${language}. Return only the translated text, no explanation, no quotes:\n\n${text}`,
+    prompt,
     temperature: 0.1,
   })
   return response.text.trim()

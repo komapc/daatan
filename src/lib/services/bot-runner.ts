@@ -22,6 +22,7 @@
 import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { createBotLLMService } from '@/lib/llm'
+import { getPromptTemplate, fillPrompt } from '@/lib/llm/bedrock-prompts'
 import { fetchRssFeeds, detectHotTopics, type HotTopic } from '@/lib/services/rss'
 import { createCommitment } from '@/lib/services/commitment'
 import { createLogger } from '@/lib/logger'
@@ -231,14 +232,11 @@ async function processTopic(
     })
 
     const existingTitles = recentForecasts.map(f => f.claimText).join('\n- ')
-    const dedupPrompt = `You are a fact-checking assistant reviewing whether a news topic already has an active forecast.
-
-Incoming topic: "${topicTitle}"
-
-Existing active forecasts:
-- ${existingTitles}
-
-Is this topic already substantially covered by one of the forecasts above? Reply with only "yes" or "no".`
+    const dedupTemplate = await getPromptTemplate('dedupe-check')
+    const dedupPrompt = fillPrompt(dedupTemplate, {
+      topicTitle,
+      existingTitles,
+    })
 
     const dedupResult = await llm.generateContent({ prompt: dedupPrompt, temperature: 0 })
     const alreadyExists = dedupResult.text.trim().toLowerCase().startsWith('yes')
@@ -260,29 +258,15 @@ Is this topic already substantially covered by one of the forecasts above? Reply
 
     // Generate a forecast from this topic
     const now = new Date()
-    const forecastPrompt = `${bot.personaPrompt}
-
-${bot.forecastPrompt}
-
-News topic: "${topicTitle}"
-Source URLs: ${sourceUrls.slice(0, 3).join(', ')}
-Today's date: ${now.toISOString().split('T')[0]}
-
-Create a concise, verifiable forecast as JSON with these exact fields:
-{
-  "claimText": "A testable prediction statement starting with 🤖 (max 200 chars)",
-  "detailsText": "2–4 sentences of background context and resolution criteria",
-  "outcomeType": "BINARY",
-  "resolveByDatetime": "ISO 8601 date, e.g. 2026-09-15T00:00:00Z (30–180 days from today)",
-  "resolutionRules": "1–2 sentences describing exactly how to decide the outcome",
-  "tags": ["tag1", "tag2"]
-}
-
-Requirements:
-- claimText MUST begin with "🤖 "
-- Be specific enough that a third party can verify the outcome objectively
-- Use English throughout
-- resolveByDatetime must be strictly in the future${tagConstraint}`
+    const forecastTemplate = await getPromptTemplate('bot-forecast-generation')
+    const forecastPrompt = fillPrompt(forecastTemplate, {
+      personaPrompt: bot.personaPrompt,
+      forecastPrompt: bot.forecastPrompt,
+      topicTitle,
+      sourceUrls: sourceUrls.slice(0, 3).join(', '),
+      todayDate: now.toISOString().split('T')[0],
+      tagConstraint,
+    })
 
     const response = await llm.generateContent({ prompt: forecastPrompt, temperature: 0.7, schema: forecastBatchSchema })
 
@@ -332,21 +316,14 @@ Requirements:
 
     // ── Quality gate ─────────────────────────────────────────────────────
     // Ask LLM to validate forecast quality before saving
-    const qualityPrompt = `You are a forecast quality validator. Review this forecast for issues.
-
-Claim: "${forecast.claimText}"
-Details: "${forecast.detailsText || 'None'}"
-Resolve By: "${forecast.resolveByDatetime}"
-Resolution Rules: "${forecast.resolutionRules || 'None'}"
-Original Topic: "${topicTitle}"
-
-Check:
-1. Is the claim specific and testable (not vague or tautological)?
-2. Does the claim relate to the original topic?
-3. Is resolveByDatetime a valid future date with a reasonable timeframe (30-365 days)?
-4. Do the resolution rules clearly explain how to decide the outcome?
-
-Respond ONLY with JSON: { "pass": true|false, "reason": "one sentence if failed" }`
+    const qualityTemplate = await getPromptTemplate('forecast-quality-validation')
+    const qualityPrompt = fillPrompt(qualityTemplate, {
+      claimText: forecast.claimText,
+      detailsText: forecast.detailsText || 'None',
+      resolveByDatetime: forecast.resolveByDatetime,
+      resolutionRules: forecast.resolutionRules || 'None',
+      topicTitle,
+    })
 
     try {
       const qualityResult = await llm.generateContent({ prompt: qualityPrompt, temperature: 0 })
@@ -494,18 +471,14 @@ async function runVoting(
     if (voted >= maxVotes) break
 
     try {
-      const votePrompt = `${bot.personaPrompt}
-
-${bot.votePrompt}
-
-Forecast: "${forecast.claimText}"
-Details: "${forecast.detailsText ?? 'No additional details provided'}"
-${biasHint}
-Decide whether to commit CU to this forecast. If committing, also decide your position.
-
-Respond with JSON: { "shouldVote": true|false, "binaryChoice": true|false, "reason": "one sentence" }
-- shouldVote: true if you want to participate, false to skip
-- binaryChoice: true = "this will happen", false = "this won't happen"`
+      const voteTemplate = await getPromptTemplate('bot-vote-decision')
+      const votePrompt = fillPrompt(voteTemplate, {
+        personaPrompt: bot.personaPrompt,
+        votePrompt: bot.votePrompt,
+        claimText: forecast.claimText,
+        detailsText: forecast.detailsText ?? 'No additional details provided',
+        biasHint,
+      })
 
       const response = await llm.generateContent({ prompt: votePrompt, temperature: 0.5, schema: voteDecisionSchema })
 

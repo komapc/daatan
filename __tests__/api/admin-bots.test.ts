@@ -51,6 +51,11 @@ vi.mock('@/lib/llm', () => ({
   createBotLLMService: vi.fn(() => ({ generateContent: mockGenerateContent })),
 }))
 
+vi.mock('@/lib/llm/bedrock-prompts', () => ({
+  getPromptTemplate: vi.fn().mockResolvedValue('Mock template with {{name}}'),
+  fillPrompt: vi.fn().mockImplementation((t, v) => t),
+}))
+
 // ─── Bot runner mock ──────────────────────────────────────────────────────────
 vi.mock('@/lib/services/bot-runner', () => ({
   runBotById: vi.fn(),

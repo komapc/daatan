@@ -1,6 +1,20 @@
 locals {
-  prompt_names = ["express-prediction", "extract-prediction", "suggest-tags", "update-context"]
-  prompt_envs  = ["staging", "prod"]
+  prompt_names = [
+    "express-prediction",
+    "extract-prediction",
+    "suggest-tags",
+    "update-context",
+    "dedupe-check",
+    "bot-forecast-generation",
+    "forecast-quality-validation",
+    "bot-vote-decision",
+    "bot-config-generation",
+    "research-query-generation",
+    "resolution-research",
+    "translate",
+    "topic-extraction"
+  ]
+  prompt_envs = ["staging", "prod"]
 }
 
 # Allow EC2 to read Bedrock prompts by ARN and SSM prompt params
