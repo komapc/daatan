@@ -38,7 +38,8 @@ export async function getPromptTemplate(promptName: PromptName): Promise<string>
         return cached.template
     }
 
-    const env = process.env.APP_ENV || process.env.NEXT_PUBLIC_APP_ENV || 'staging'
+    const rawEnv = process.env.APP_ENV || process.env.NEXT_PUBLIC_APP_ENV || 'staging'
+    const env = rawEnv === 'production' ? 'prod' : rawEnv
     const paramName = `/daatan/${env}/prompts/${promptName}`
 
     log.debug({ promptName, env, paramName, region: REGION }, 'Fetching prompt template')
