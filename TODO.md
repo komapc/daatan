@@ -18,7 +18,7 @@
 
 - [x] **Implement scoring rule (Brier score)** — `probability Float?` and `brierScore Float?` added to Commitment; probability captured via `% yes` input in CommitmentForm; `brierScore = (probability − outcome)²` computed at resolution; avgBrierScore surfaced on leaderboard (sortable) and profile page.
 
-- [ ] **Bot: Prompt management & Staging-to-Prod Transfer** — define bots in code (`src/agents/bots/*.ts`) as source of truth; server upserts DB on startup so prod bots are version-controlled, PR-reviewed, and deployed via CI rather than manual UI copy-paste.
+- [x] **Bot: Prompt management & Staging-to-Prod Transfer** — define bots in code (`src/agents/bots/*.ts`) as source of truth; server upserts DB on startup so prod bots are version-controlled, PR-reviewed, and deployed via CI rather than manual UI copy-paste.
 
 - [x] **Bedrock Phase 1 — Infra: Terraform IAM + SSM** — `terraform/bedrock_prompts.tf` created: `aws_iam_role_policy` with `bedrock:GetPrompt` + `ssm:GetParameter` on EC2 role; 8 `aws_ssm_parameter` resources (2 envs × 4 prompts) with `PLACEHOLDER` value and `ignore_changes = [value]`. `terraform validate` passes. **Next: run `terraform plan` then `terraform apply`.**
 

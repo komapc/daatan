@@ -5,6 +5,15 @@
  */
 export async function register() {
   if (process.env.NEXT_RUNTIME !== 'nodejs') return
+
+  // Sync bot configurations to database on startup
+  try {
+    const { syncBotsToDatabase } = await import('@/lib/bots/sync')
+    await syncBotsToDatabase()
+  } catch (error) {
+    console.error('[startup] Failed to sync bots to database:', error)
+  }
+
   if (process.env.NODE_ENV !== 'production') return
 
   const required: Array<{ key: string; feature: string }> = [

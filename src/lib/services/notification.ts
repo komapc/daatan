@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
 import { dispatchBrowserPush } from '@/lib/services/push'
+import { dispatchEmail } from '@/lib/services/email'
 import type { NotificationType } from '@prisma/client'
 
 const log = createLogger('notification-service')
@@ -94,6 +95,17 @@ export const createNotification = async (input: CreateNotificationInput) => {
         link: input.link,
         type: input.type,
       })
+    }
+
+    // Dispatch email (fire-and-forget)
+    const emailEnabled = preference ? preference.email : defaults.email
+    if (emailEnabled) {
+      dispatchEmail({
+        userId: input.userId,
+        title: input.title,
+        message: input.message,
+        link: input.link,
+      }).catch(() => {})
     }
 
     return notification
