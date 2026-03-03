@@ -34,6 +34,15 @@ vi.mock('@/lib/llm', () => ({
   createBotLLMService: vi.fn(() => ({ generateContent: mockGenerateContent })),
 }))
 
+vi.mock('@/lib/llm/bedrock-prompts', () => ({
+  getPromptTemplate: vi.fn().mockImplementation((name) => {
+    if (name === 'bot-forecast-generation') return 'Forecast template: {{personaPrompt}} {{forecastPrompt}} {{tagConstraint}}'
+    if (name === 'bot-vote-decision') return 'Vote template: {{personaPrompt}} {{votePrompt}} {{biasHint}}'
+    return `Mock template for ${name}`
+  }),
+  fillPrompt: vi.fn().mockImplementation((t, v) => t + ' ' + Object.values(v).join(' ')),
+}))
+
 // ─── RSS mock ────────────────────────────────────────────────────────────────
 vi.mock('@/lib/services/rss', () => ({
   fetchRssFeeds: vi.fn(),

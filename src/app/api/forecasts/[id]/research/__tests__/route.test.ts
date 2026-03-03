@@ -30,6 +30,11 @@ vi.mock('@/lib/llm', () => ({
   llmService: { generateContent: generateContentMock },
 }))
 
+vi.mock('@/lib/llm/bedrock-prompts', () => ({
+    getPromptTemplate: vi.fn().mockResolvedValue('Mock template: {{claimText}} {{forecastStartStr}} {{forecastEndStr}} {{context}} Do NOT default to'),
+    fillPrompt: vi.fn().mockImplementation((t, v) => t + ' ' + Object.values(v).join(' ')),
+}))
+
 vi.mock('@/lib/api-error', () => ({
   apiError: (msg: string, status: number) => new Response(JSON.stringify({ error: msg }), { status }),
   handleRouteError: (err: unknown, msg: string) =>
