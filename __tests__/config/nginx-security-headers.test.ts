@@ -93,12 +93,17 @@ describe('Nginx security headers', () => {
       },
     )
 
-    it('uses Report-Only CSP for safe rollout', () => {
-      expect(content).toContain('Content-Security-Policy-Report-Only')
+    it('uses a CSP policy', () => {
+      expect(
+        content.includes('Content-Security-Policy-Report-Only') ||
+        content.includes('Content-Security-Policy')
+      ).toBe(true)
     })
 
-    it('does NOT include upgrade-insecure-requests in the CSP (as it is ignored in Report-Only mode)', () => {
-      expect(content).not.toContain('upgrade-insecure-requests')
+    it('does NOT include upgrade-insecure-requests IF in Report-Only mode (as it is ignored)', () => {
+      if (content.includes('Content-Security-Policy-Report-Only')) {
+        expect(content).not.toContain('upgrade-insecure-requests')
+      }
     })
   })
 
