@@ -185,10 +185,11 @@ export default function ForecastCard({
     const handleClickOutside = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setShowAdminMenu(false)
+      document.addEventListener('mousedown', handleClickOutside, { passive: true })
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside)
       }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+
   }, [showAdminMenu])
 
   const formatDate = (date: string | Date) => {
