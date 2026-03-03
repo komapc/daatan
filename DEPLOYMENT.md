@@ -135,9 +135,15 @@ Before pushing to staging:
 # Deploy to staging (automatic on push to main)
 git push origin main
 
+# Promote any new Bedrock prompt versions to staging
+./scripts/promote-prompt.sh staging <prompt-name> <arn>
+
 # Deploy to production (create version tag)
-git tag v1.1.1
-git push origin v1.1.1
+./scripts/release.sh
+# (Follow the interactive prompts for version and release notes)
+
+# Promote verified Bedrock prompt versions from staging to prod
+./scripts/promote-prompt.sh prod <prompt-name> <arn>
 ```
 
 **What happens:**
@@ -157,6 +163,7 @@ git push origin v1.1.1
 - [ ] Build step completed successfully
 - [ ] Tests passed in CI/CD
 - [ ] Deployment step started
+- [ ] Bedrock prompts promoted to correct environment via `promote-prompt.sh`
 
 ### 2. Blue-Green Deployment (Zero Downtime)
 
@@ -395,9 +402,11 @@ docker logs daatan-nginx --tail 100
 2. Tests passing
 3. Push to main (staging auto-deploys)
 4. Verify staging health
-5. Create version tag for production
-6. Verify production health
-7. Monitor for 30 minutes
+5. Promote Bedrock prompts to staging (if changed)
+6. Create version tag for production
+7. Verify production health
+8. Promote Bedrock prompts to production (if changed)
+9. Monitor for 30 minutes
 
 ### Hotfix Deployment
 1. Create hotfix branch
@@ -423,6 +432,16 @@ docker logs daatan-nginx --tail 100
 4. Notify stakeholders
 5. Investigate root cause
 6. Plan fix and re-deploy
+
+### Prompt Promotion (Bedrock)
+1. Edit prompt draft in Bedrock console
+2. Test in playground
+3. Create new **Version** in Bedrock console
+4. Copy Version ARN
+5. Promote to staging: `./scripts/promote-prompt.sh staging <prompt> <arn>`
+6. Verify in staging app
+7. Promote to prod: `./scripts/promote-prompt.sh prod <prompt> <arn>`
+8. Monitor LLM responses
 
 ---
 

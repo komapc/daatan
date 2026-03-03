@@ -20,6 +20,11 @@ vi.mock('../index', () => ({
   },
 }))
 
+vi.mock('../bedrock-prompts', () => ({
+  getPromptTemplate: vi.fn().mockResolvedValue('Mock template with {{text}} and {{claim}} and {{details}}'),
+  fillPrompt: vi.fn().mockImplementation((t, v) => t),
+}))
+
 import { extractPrediction } from '../gemini'
 
 describe('Gemini LLM Integration (via llmService)', () => {
