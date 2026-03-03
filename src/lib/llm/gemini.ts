@@ -1,7 +1,8 @@
 import { SchemaType, type Schema } from '@google/generative-ai'
-import { getExtractPredictionPrompt, getSuggestTagsPrompt } from './prompts'
+import { getPromptTemplate, fillPrompt } from './bedrock-prompts'
 import { llmService } from './index'
 import { createLogger } from '@/lib/logger'
+import { STANDARD_TAGS } from '@/lib/constants'
 
 const log = createLogger('llm-gemini')
 
@@ -51,7 +52,12 @@ export const predictionSchema: Schema = {
 }
 
 export async function suggestTags(claim: string, details?: string) {
-  const prompt = getSuggestTagsPrompt(claim, details)
+  const template = await getPromptTemplate('suggest-tags')
+  const prompt = fillPrompt(template, {
+    claim,
+    details: details ? `Details: "${details}"` : '',
+    STANDARD_TAGS: STANDARD_TAGS.join(', '),
+  })
 
   try {
     const result = await llmService.generateContent({
@@ -74,7 +80,8 @@ export async function suggestTags(claim: string, details?: string) {
 }
 
 export async function extractPrediction(text: string) {
-  const prompt = getExtractPredictionPrompt(text)
+  const template = await getPromptTemplate('extract-prediction')
+  const prompt = fillPrompt(template, { text })
 
   try {
     const result = await llmService.generateContent({

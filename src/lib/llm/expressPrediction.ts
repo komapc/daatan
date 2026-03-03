@@ -1,10 +1,11 @@
 import { SchemaType, type Schema } from '@google/generative-ai'
-import { getExpressPredictionPrompt } from './prompts'
+import { getPromptTemplate, fillPrompt } from './bedrock-prompts'
 import { llmService } from './index'
 import { searchArticles, type SearchResult } from '../utils/webSearch'
 import { fetchUrlContent } from '../utils/scraper'
 import { hashUrl } from '../utils/hash'
 import { createLogger } from '@/lib/logger'
+import { STANDARD_TAGS } from '@/lib/constants'
 
 const log = createLogger('express-prediction')
 
@@ -202,13 +203,15 @@ URL: ${article.url}
   const endOfYear = `${currentYear}-12-31T23:59:59Z`
   const endOfYearHuman = `December 31, ${currentYear}`
 
-  const prompt = getExpressPredictionPrompt({
+  const template = await getPromptTemplate('express-prediction')
+  const prompt = fillPrompt(template, {
     userInput,
     articlesText,
     endOfYear,
     endOfYearHuman,
     currentYear,
     currentDate: now.toISOString().split('T')[0],
+    STANDARD_TAGS: STANDARD_TAGS.join(', '),
   })
 
   let prediction: ParsedPrediction

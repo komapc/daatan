@@ -705,6 +705,8 @@ GOOGLE_CLIENT_SECRET=<google-oauth-client-secret>
 POSTGRES_PASSWORD=<secure-password>
 GEMINI_API_KEY=<gemini-api-key>
 BOT_RUNNER_SECRET=<shared-secret-for-cron-endpoint>
+AWS_REGION=eu-central-1
+AWS_PROFILE=daatan
 ```
 
 ### Git Hooks (Husky)

@@ -74,6 +74,7 @@ set_arn() {
   aws ssm put-parameter \
     --name "$SSM_PATH" \
     --value "$arn" \
+    --type String \
     --overwrite \
     --region "$REGION" \
     --output text > /dev/null

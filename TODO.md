@@ -22,11 +22,11 @@
 
 - [x] **Bedrock Phase 1 — Infra: Terraform IAM + SSM** — `terraform/bedrock_prompts.tf` created: `aws_iam_role_policy` with `bedrock:GetPrompt` + `ssm:GetParameter` on EC2 role; 8 `aws_ssm_parameter` resources (2 envs × 4 prompts) with `PLACEHOLDER` value and `ignore_changes = [value]`. `terraform validate` passes. **Next: run `terraform plan` then `terraform apply`.**
 
-- [ ] **Bedrock Phase 1 — Create prompts in Bedrock console** — For each of the 4 file-based prompts, create a named prompt in Bedrock Prompt Management (eu-central-1): `daatan-express-prediction`, `daatan-extract-prediction`, `daatan-suggest-tags`, `daatan-update-context`. Paste text from existing `.ts` files, convert `${var}` → `{{var}}` (keep same variable names). Test in Bedrock playground, create Version 1, copy ARN.
+- [x] **Bedrock Phase 1 — Create prompts in Bedrock console** — Created 4 prompts (`daatan-express-prediction`, `daatan-extract-prediction`, `daatan-suggest-tags`, `daatan-update-context`) via AWS CLI with `{{var}}` syntax. Generated Version 1 for each.
 
-- [ ] **Bedrock Phase 1 — Populate SSM params** — After creating Bedrock Version 1 for each prompt, run `./scripts/promote-prompt.sh staging <prompt> <arn>` and `./scripts/promote-prompt.sh prod <prompt> <arn>` to store version ARNs in SSM. Verify with `aws ssm get-parameter --name /daatan/prod/prompts/express-prediction`.
+- [x] **Bedrock Phase 1 — Populate SSM params** — All Version 1 ARNs stored in SSM Parameter Store for both `staging` and `prod` environments using `scripts/promote-prompt.sh`. Verified via CLI.
 
-- [ ] **Bedrock Phase 1 — App integration** — Install `@aws-sdk/client-bedrock-agent` + `@aws-sdk/client-ssm`. Create `src/lib/llm/bedrock-prompts.ts` with: 5-min TTL in-memory cache, SSM fetch for ARN, Bedrock `GetPromptCommand` for template text, `fillPrompt()` helper for `{{var}}` substitution, hard crash on any fetch failure. Update call sites in `expressPrediction.ts`, `extractPrediction.ts`, `suggestTags.ts`, `updateContext.ts` to use `getPrompt()` + `fillPrompt()`. Delete the original prompt `.ts` files once all call sites are updated. Add `AWS_PROFILE=daatan` to local dev notes.
+- [x] **Bedrock Phase 1 — App integration** — `@aws-sdk/client-bedrock-agent` + `@aws-sdk/client-ssm` installed. `src/lib/llm/bedrock-prompts.ts` implemented with 5-min TTL cache, SSM fetch for ARN, and Bedrock `GetPromptCommand`. Call sites in `expressPrediction.ts`, `gemini.ts` (extract/suggest), and `context/route.ts` updated. Original prompt `.ts` files deleted. `AWS_PROFILE=daatan` added to dev notes.
 
 - [x] **Bedrock Phase 1 — Promote script** — `scripts/promote-prompt.sh` created and `chmod +x`; takes `(env, prompt-name, arn|--rollback)`; saves current ARN as SSM tag `previous-arn` before overwriting; `--rollback` swaps back using the tag.
 
@@ -38,7 +38,7 @@
 
 - [x] **Infra: Generate and configure VAPID keys for browser push** — keys already present on server (`NEXT_PUBLIC_VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY`). Verified 2026-02-26.
 
-- [ ] **Notifications: Email** — pick a transactional email provider (SES / Resend / Postmark) and wire it into the existing notification service (MENTION, COMMITMENT_RESOLVED, SYSTEM types are already flagged `email: true`).
+- [x] **Notifications: Email** — Wire transactional email into the notification service using Resend (v1.6.71). Reads `emailNotifications` preference and `RESEND_API_KEY`. Fire-and-forget dispatch.
 
 - [x] **i18n: Wire translations into all components** — all major components and pages (`FeedClient`, `ForecastCard`, `CommitmentForm`, `leaderboard`, `commitments`, `activity`, `profile`, `create`) now use `useTranslations` / `getTranslations`; `messages/en.json` and `messages/he.json` extended with ~50 new keys.
 

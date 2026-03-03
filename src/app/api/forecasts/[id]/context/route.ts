@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { apiError, handleRouteError } from '@/lib/api-error'
 import { withAuth } from '@/lib/api-middleware'
 import { prisma } from '@/lib/prisma'
-import { getContextUpdatePrompt } from '@/lib/llm/prompts'
+import { getPromptTemplate, fillPrompt } from '@/lib/llm/bedrock-prompts'
 import { llmService } from '@/lib/llm'
 import { searchArticles } from '@/lib/utils/webSearch'
 
@@ -94,12 +94,16 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
 
         // 2. Query LLM to summarize new context
         const currentYear = new Date().getFullYear()
-        const prompt = getContextUpdatePrompt(
-            prediction.claimText,
+        const template = await getPromptTemplate('update-context')
+        const changeInstruction = prediction.detailsText
+            ? `\nPrevious context summary:\n"${prediction.detailsText}"\n\nFocus on what has CHANGED since the previous summary. Highlight new developments.\n`
+            : ''
+        const prompt = fillPrompt(template, {
+            claimText: prediction.claimText,
             articlesText,
             currentYear,
-            prediction.detailsText
-        )
+            changeInstruction,
+        })
 
         const result = await llmService.generateContent({
             prompt,
