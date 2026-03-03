@@ -51,7 +51,7 @@ export const POST = withAuth(async (request) => {
           const errorMessage = JSON.stringify({
             stage: 'error',
             error: 'GENERATION_FAILED',
-            message: 'Failed to generate prediction'
+            message: error instanceof Error ? `Failed: ${error.message}` : 'Failed to generate prediction'
           }) + '\n'
           controller.enqueue(encoder.encode(errorMessage))
         }
