@@ -275,7 +275,7 @@ export default function ForecastCard({
                 color="green"
                 size="xs"
               />
-            ) : prediction.outcomeType === 'MULTIPLE_CHOICE' && prediction.options && prediction.options.length > 0 ? (() => {
+            ) : prediction.outcomeType === 'MULTIPLE_CHOICE' && prediction.options && prediction.options.length > 0 && prediction._count.commitments > 0 ? (() => {
               const sortedOptions = [...prediction.options].sort((a, b) => (b.commitmentsCount || 0) - (a.commitmentsCount || 0))
               const topOption = sortedOptions[0]
               const pct = Math.round(((topOption.commitmentsCount || 0) / prediction._count.commitments) * 100)

@@ -122,4 +122,9 @@ describe('Speedometer component', () => {
     const emptyPaths = pathDs.filter(d => d === '')
     expect(emptyPaths.length).toBeGreaterThanOrEqual(1)
   })
+
+  it('handles NaN percentage gracefully by treating it as 50%', () => {
+    const { getByText } = render(<Speedometer percentage={NaN} label="Test NaN" color="green" />)
+    expect(getByText('50%')).toBeDefined()
+  })
 })

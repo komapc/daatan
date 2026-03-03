@@ -1,7 +1,6 @@
 {
   "name": "daatan",
-  "version": "1.6.74",
-
+  "version": "1.6.75",
   "private": true,
   "scripts": {
     "dev": "next dev",
