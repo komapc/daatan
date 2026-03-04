@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { CheckCircle, XCircle, Ban, HelpCircle, Sparkles, Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
 
 interface ResolutionFormProps {
   predictionId: string
@@ -94,19 +95,18 @@ export function ResolutionForm({ predictionId, outcomeType, options, onResolved 
     <form onSubmit={handleSubmit} className="bg-white rounded-lg border border-gray-200 p-6 space-y-6 shadow-sm">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-gray-900">Resolve Forecast</h3>
-        <button
+        <Button
           type="button"
           onClick={handleAiResearch}
-          disabled={isResearching || isSubmitting}
-          className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-100 rounded-lg hover:bg-blue-100 disabled:opacity-50 transition-colors"
+          loading={isResearching}
+          disabled={isSubmitting}
+          variant="secondary"
+          size="sm"
+          leftIcon={!isResearching && <Sparkles className="w-4 h-4" />}
+          className="text-blue-600 bg-blue-50 border border-blue-100 hover:bg-blue-100"
         >
-          {isResearching ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Sparkles className="w-4 h-4" />
-          )}
           AI Assist
-        </button>
+        </Button>
       </div>
 
       {/* Outcome Selection */}
@@ -235,13 +235,14 @@ export function ResolutionForm({ predictionId, outcomeType, options, onResolved 
         </div>
       )}
 
-      <button
+      <Button
         type="submit"
-        disabled={isSubmitting}
-        className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+        loading={isSubmitting}
+        fullWidth
+        size="lg"
       >
-        {isSubmitting ? 'Resolving...' : 'Confirm Resolution'}
-      </button>
+        Confirm Resolution
+      </Button>
     </form>
   )
 }

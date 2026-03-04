@@ -6,6 +6,7 @@ import type { Comment } from './CommentThread'
 import { createClientLogger } from '@/lib/client-logger'
 import { toast } from 'react-hot-toast'
 import { analytics } from '@/lib/analytics'
+import { Button } from '@/components/ui/Button'
 
 const log = createClientLogger('CommentForm')
 
@@ -79,32 +80,23 @@ export default function CommentForm({
         </span>
         <div className="flex gap-2">
           {onCancel && (
-            <button
+            <Button
               type="button"
+              variant="ghost"
               onClick={onCancel}
-              className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
               disabled={isSubmitting}
             >
               Cancel
-            </button>
+            </Button>
           )}
-          <button
+          <Button
             type="submit"
-            disabled={!text.trim() || isSubmitting}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            loading={isSubmitting}
+            disabled={!text.trim()}
+            leftIcon={<Send className="w-4 h-4" />}
           >
-            {isSubmitting ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Posting...
-              </>
-            ) : (
-              <>
-                <Send className="w-4 h-4" />
-                Post
-              </>
-            )}
-          </button>
+            Post
+          </Button>
         </div>
       </div>
     </form>

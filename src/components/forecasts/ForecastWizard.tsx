@@ -13,6 +13,7 @@ import {
   Check,
   Loader2,
 } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
 import { StepNewsAnchor } from './steps/StepNewsAnchor'
 import { StepPrediction } from './steps/StepPrediction'
 import { StepOutcome } from './steps/StepOutcome'
@@ -284,56 +285,43 @@ export const ForecastWizard = ({ isExpressFlow = false }: ForecastWizardProps) =
 
       {/* Navigation Buttons */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <button
+        <Button
           onClick={handleBack}
           disabled={currentStep === (isExpressFlow ? 2 : 1)}
-          className={`
-            flex items-center gap-2 px-4 sm:px-6 py-3 rounded-lg font-medium transition-colors
-            ${currentStep === (isExpressFlow ? 2 : 1)
-              ? 'text-gray-300 cursor-not-allowed'
-              : 'text-gray-600 hover:bg-gray-100'
-            }
-          `}
+          variant="ghost"
+          leftIcon={<ChevronLeft className="w-5 h-5" />}
         >
-          <ChevronLeft className="w-5 h-5" />
           Back
-        </button>
+        </Button>
 
         <div className="flex gap-2 sm:gap-3">
           {currentStep === 4 ? (
             <>
-              <button
+              <Button
                 onClick={() => handleSubmit(true)}
-                disabled={isSubmitting}
-                className="px-4 sm:px-6 py-3 rounded-lg border-2 border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 text-sm sm:text-base"
+                loading={isSubmitting}
+                variant="outline"
               >
-                {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Save Draft'}
-              </button>
-              <button
+                Save Draft
+              </Button>
+              <Button
                 onClick={() => handleSubmit(false)}
-                disabled={isSubmitting || !canProceed()}
-                className="flex items-center gap-2 px-4 sm:px-6 py-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+                loading={isSubmitting}
+                disabled={!canProceed()}
+                leftIcon={!isSubmitting && <Rocket className="w-5 h-5" />}
               >
-                {isSubmitting ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <>
-                    <Rocket className="w-5 h-5" />
-                    <span className="hidden sm:inline">Publish Prediction</span>
-                    <span className="sm:hidden">Publish</span>
-                  </>
-                )}
-              </button>
+                <span className="hidden sm:inline">Publish Prediction</span>
+                <span className="sm:hidden">Publish</span>
+              </Button>
             </>
           ) : (
-            <button
+            <Button
               onClick={handleNext}
               disabled={!canProceed()}
-              className="flex items-center gap-2 px-4 sm:px-6 py-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              rightIcon={<ChevronRight className="w-5 h-5" />}
             >
               Next
-              <ChevronRight className="w-5 h-5" />
-            </button>
+            </Button>
           )}
         </div>
       </div>

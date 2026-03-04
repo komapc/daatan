@@ -5,6 +5,7 @@ import { Bell, Loader2, BellOff, BellRing } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { usePushSubscription } from '@/lib/hooks/usePushSubscription'
 import type { NotificationType } from '@prisma/client'
+import { Button } from '@/components/ui/Button'
 
 interface Preference {
   type: NotificationType
@@ -138,21 +139,24 @@ export default function NotificationPreferences() {
             </span>
           </div>
           {isSubscribed ? (
-            <button
+            <Button
               onClick={handleDisconnectPush}
-              disabled={pushWorking}
-              className="ml-4 shrink-0 text-xs font-medium underline hover:no-underline disabled:opacity-50"
+              loading={pushWorking}
+              variant="ghost"
+              size="xs"
+              className="ml-4 shrink-0 font-medium underline hover:no-underline"
             >
-              {pushWorking ? 'Disabling\u2026' : 'Disable'}
-            </button>
+              Disable
+            </Button>
           ) : permission !== 'denied' ? (
-            <button
+            <Button
               onClick={handleConnectPush}
-              disabled={pushWorking}
-              className="ml-4 shrink-0 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+              loading={pushWorking}
+              size="xs"
+              className="ml-4 shrink-0"
             >
-              {pushWorking ? 'Enabling\u2026' : 'Enable'}
-            </button>
+              Enable
+            </Button>
           ) : null}
         </div>
       )}
@@ -212,12 +216,14 @@ export default function NotificationPreferences() {
                       />
                     </button>
                   ) : isSupported ? (
-                    <button
+                    <Button
                       onClick={handleConnectPush}
-                      className="text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline"
+                      variant="ghost"
+                      size="xs"
+                      className="text-blue-600 hover:text-blue-700 hover:underline"
                     >
                       Connect
-                    </button>
+                    </Button>
                   ) : (
                     <span className="text-xs text-gray-400">N/A</span>
                   )}
