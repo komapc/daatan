@@ -13,12 +13,14 @@ async function sendChannelNotification(message: string): Promise<void> {
   const chatId = process.env.TELEGRAM_CHAT_ID
 
   if (!token || !chatId) {
-    log.debug('Telegram not configured (missing TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID)')
+    log.warn({ hasToken: !!token, hasChatId: !!chatId }, 'Telegram not configured')
     return
   }
 
   const isStaging = process.env.NEXT_PUBLIC_ENV === 'staging'
   const prefixed = isStaging ? `🧪 ${message}` : message
+
+  log.debug({ chatId, isStaging }, 'Sending Telegram notification')
 
   try {
     const res = await fetch(`${TELEGRAM_API}${token}/sendMessage`, {
@@ -34,10 +36,12 @@ async function sendChannelNotification(message: string): Promise<void> {
 
     if (!res.ok) {
       const body = await res.text()
-      log.error({ status: res.status, body }, 'Telegram API error')
+      log.error({ status: res.status, body, chatId }, 'Telegram API error')
+    } else {
+      log.info({ chatId }, 'Telegram notification sent successfully')
     }
   } catch (err) {
-    log.error({ err }, 'Failed to send Telegram notification')
+    log.error({ err, chatId }, 'Failed to send Telegram notification')
   }
 }
 
