@@ -28,6 +28,7 @@ model User {
   emailVerified DateTime?
   name          String?
   image         String? // Avatar URL from Google
+  avatarUrl     String? // Custom uploaded avatar URL from S3
 
   // Custom profile fields
   username             String? @unique

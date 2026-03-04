@@ -1,9 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { User, Globe, Twitter, Bell, Save, X } from 'lucide-react'
+import { User, Globe, Twitter, Bell, Save, X, Upload, Loader2 } from 'lucide-react'
 import Link from 'next/link'
+import { Avatar } from '@/components/Avatar'
+import { Button } from '@/components/ui/Button'
+import { toast } from 'react-hot-toast'
 
 interface ProfileEditFormProps {
   user: {
@@ -11,6 +14,7 @@ interface ProfileEditFormProps {
     name: string | null
     email: string
     image: string | null
+    avatarUrl?: string | null
     username: string | null
     website: string | null
     twitterHandle: string | null
@@ -21,15 +25,61 @@ interface ProfileEditFormProps {
 export default function ProfileEditForm({ user }: ProfileEditFormProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [formData, setFormData] = useState({
     username: user.username || '',
     website: user.website || '',
     twitterHandle: user.twitterHandle || '',
     emailNotifications: user.emailNotifications,
+    avatarUrl: user.avatarUrl || user.image || '',
   })
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File size must be less than 5MB')
+      return
+    }
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('File must be an image')
+      return
+    }
+
+    setUploadingAvatar(true)
+    const uploadData = new FormData()
+    uploadData.append('avatar', file)
+
+    try {
+      const response = await fetch('/api/profile/avatar', {
+        method: 'POST',
+        body: uploadData,
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to upload avatar')
+      }
+
+      setFormData(prev => ({ ...prev, avatarUrl: result.avatarUrl }))
+      toast.success('Avatar uploaded successfully')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to upload avatar')
+    } finally {
+      setUploadingAvatar(false)
+      // Reset input so the same file can be selected again if needed
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -38,10 +88,14 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
     setSuccess(false)
 
     try {
+      // The update endpoint ignores avatarUrl because it's handled by its own endpoint
+      const updateData = { ...formData }
+      delete (updateData as any).avatarUrl
+
       const response = await fetch('/api/profile/update', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(updateData),
       })
 
       const data = await response.json()
@@ -65,6 +119,41 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
   return (
     <form onSubmit={handleSubmit} className="bg-white border border-gray-100 rounded-3xl p-6 sm:p-8 shadow-sm">
       <div className="space-y-6">
+        {/* Avatar Upload */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 pb-6 border-b border-gray-100">
+          <Avatar 
+            src={formData.avatarUrl} 
+            name={user.name || user.username} 
+            size={80} 
+            className="ring-4 ring-white shadow-sm"
+          />
+          <div className="space-y-2">
+            <h3 className="text-sm font-bold text-gray-900">Profile Picture</h3>
+            <p className="text-xs text-gray-500 max-w-sm">
+              Upload a new avatar (JPG, PNG, WebP). Max size 5MB.
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                ref={fileInputRef}
+                onChange={handleAvatarUpload}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                loading={uploadingAvatar}
+                leftIcon={!uploadingAvatar && <Upload className="w-4 h-4" />}
+              >
+                Change Picture
+              </Button>
+            </div>
+          </div>
+        </div>
+
         {/* Username */}
         <div>
           <label htmlFor="username" className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">

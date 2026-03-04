@@ -18,6 +18,7 @@ export default async function ProfileEditPage() {
       name: true,
       email: true,
       image: true,
+      avatarUrl: true,
       username: true,
       website: true,
       twitterHandle: true,
