@@ -73,7 +73,7 @@ export const authOptions: NextAuthOptions = {
         try {
           const dbUser = await prisma.user.findUnique({
             where: { id: token.sub },
-            select: { role: true, username: true, name: true, image: true, rs: true, cuAvailable: true, cuLocked: true },
+            select: { role: true, username: true, name: true, image: true, avatarUrl: true, rs: true, cuAvailable: true, cuLocked: true },
           })
 
           if (!dbUser) {
@@ -84,7 +84,7 @@ export const authOptions: NextAuthOptions = {
           token.role = dbUser.role
           token.username = dbUser.username
           token.name = dbUser.name ?? token.name
-          token.picture = dbUser.image ?? token.picture
+          token.picture = dbUser.avatarUrl || dbUser.image || token.picture
           token.rs = dbUser.rs
           token.cuAvailable = dbUser.cuAvailable
           token.cuLocked = dbUser.cuLocked
