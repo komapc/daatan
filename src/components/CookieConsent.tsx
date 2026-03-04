@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { Button } from '@/components/ui/Button'
 
 const STORAGE_KEY = 'daatan_analytics_consent'
 
@@ -75,18 +76,19 @@ export default function CookieConsent() {
           No ads. No cross-site tracking.{' '}
         </p>
         <div className="flex gap-2 shrink-0">
-          <button
+          <Button
             onClick={handleDecline}
-            className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            variant="outline"
+            size="sm"
           >
             Decline
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleAccept}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+            size="sm"
           >
             Accept
-          </button>
+          </Button>
         </div>
       </div>
     </div>
