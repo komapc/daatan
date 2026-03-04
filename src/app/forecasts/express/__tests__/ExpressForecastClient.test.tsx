@@ -148,8 +148,9 @@ describe('ExpressForecastClient', () => {
 
       fireEvent.click(confirmButton)
 
-      // Verify immediate feedback
-      expect(screen.getByText('Publishing...')).toBeInTheDocument()
+      // Verify immediate feedback (button is disabled while loading)
+      expect(confirmButton).toBeDisabled()
+      expect(screen.getByText('Confirm & Publish')).toBeInTheDocument()
 
       // Wait for redirect
       await vi.waitFor(() => {
