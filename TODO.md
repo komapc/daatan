@@ -10,6 +10,8 @@
 
 ### P1 - High Priority
 
+- [ ] **Separate Terraform state per environment** — Currently `staging` and `prod` share the same `prod/terraform.tfstate` in S3, which is highly dangerous. Implement "Partial Configuration" by moving `key` and `dynamodb_table` out of `main.tf` into separate `backend-staging.hcl` and `backend-prod.hcl` files. Update `state.tf` to provision a dedicated DynamoDB lock table for staging (`daatan-terraform-locks-staging`). Document the new `terraform init -backend-config=...` workflow.
+
 - [x] **Security: Deleted users retain active sessions** — `src/lib/auth.ts` session callback silently returns stale data when the DB user is gone; fix by returning `null` (forces re-login) or adding an `isActive` flag checked on every session refresh.
 
 - [x] **Security: IPv6 SSRF gap in scraper** — `isPrivateIP()` blocks IPv4 private ranges and `::1` but misses `fe80::/10` (link-local) and `fc00::/7` (unique-local); add those two checks to close the gap.
@@ -44,17 +46,7 @@
 
 - [x] **i18n: Auto-translate user content** — Gemini-backed translation service with DB cache (`PredictionTranslation`, `CommentTranslation`); translate endpoints at `POST /api/forecasts/[id]/translate` and `POST /api/comments/[id]/translate`; translate-toggle UI on forecast detail page and per-comment in `CommentItem`.
 
-- [ ] **Infra: Separate Terraform state per environment** — prod and staging share `prod/terraform.tfstate`; applying staging vars modifies prod state. Fix: use workspaces or separate backend keys; requires a `terraform state` migration in a dedicated session with no concurrent deploys.
-
-- [x] **CI/CD: Create `version-bump.yml` workflow** — `scripts/check-version-bump.sh` already exists and is wired into `.husky/pre-commit`. Verified 2026-02-26.
-
-### P3 - Low Priority
-
-- [x] **UX: Skeleton loaders on forecasts list page** — `src/app/forecasts/page.tsx` still shows a `Loader2` spinner; swap in `ForecastCardSkeleton` (already used in `FeedClient`) for consistent loading UX across forecast list views.
-
-- [x] **Code: Shared `EmptyState` component** — the icon-circle + heading + description + CTA-link pattern is copy-pasted in ≥8 places (`FeedClient`, `leaderboard`, `profile`, `commitments`, `activity`, `NotificationList`, `forecasts/page`). Create `src/components/ui/EmptyState.tsx` with props `icon`, `iconBgClass`, `title`, `description`, `action?: { label, href }`, `variant?: 'card' | 'dashed'` and migrate all sites.
-
-- [ ] **Code: Shared primary link/button component** — three slightly-different Tailwind class strings for blue CTA buttons are inline across the app. Create `src/components/ui/PrimaryLink.tsx` (or a `buttonVariants` helper) to prevent further drift.
+- [x] **Code: Shared primary link/button component** — Centralized button styling into `src/components/ui/Button.tsx`. Supports variants, sizes, loading state, and Link integration. Migrated `FeedClient`, `ExpressForecastClient`, `EmptyState`, `CommentForm`, `ForecastWizard`, and others.
 
 - [x] **Feature: Private (unlisted) forecasts** — `isPublic Boolean @default(true)` + `shareToken String @unique` on `Prediction`. Filtered from feed, leaderboard, activity feed. Access gated by author/admin/shareToken URL. Visibility toggle on ForecastWizard (StepPublish), EditForecastClient, and ExpressForecastClient. Share-link banner shown to author on forecast detail page.
 

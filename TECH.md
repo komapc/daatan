@@ -335,7 +335,6 @@ src/
 | 80 | TCP | 0.0.0.0/0 | HTTP (redirects to HTTPS) |
 | 443 | TCP | 0.0.0.0/0 | HTTPS |
 | ICMP | - | 0.0.0.0/0 | Ping (debugging) |
-
 ### Terraform Resources
 
 ```hcl
@@ -345,6 +344,27 @@ aws_eip.backend               # Elastic IP
 aws_route53_zone.main         # DNS zone
 aws_route53_record.*          # DNS records
 aws_s3_bucket.backups         # Backup bucket
+```
+
+### Terraform Workflow (State Separation)
+
+Terraform state is stored in S3 (`daatan-terraform-state`) and uses DynamoDB for state locking.
+**Crucial:** Staging and Production environments are completely isolated using "Partial Configuration". You MUST pass the correct backend configuration file when initializing Terraform.
+
+```bash
+cd terraform
+
+# For Staging:
+terraform init -backend-config=backend-staging.hcl
+terraform plan -var="environment=staging"
+terraform apply -var="environment=staging"
+
+# For Production:
+terraform init -backend-config=backend-prod.hcl
+terraform plan -var="environment=prod"
+terraform apply -var="environment=prod"
+```
+
 aws_security_group.ec2        # Firewall rules
 aws_iam_role.ec2_role         # IAM role
 aws_vpc.main                  # VPC
