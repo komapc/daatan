@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import { Button } from './Button'
 
 interface EmptyStateAction {
   label: string
@@ -63,13 +63,14 @@ export default function EmptyState({
       )}
 
       {action && (
-        <Link
+        <Button
           href={action.href}
-          className={`inline-flex items-center gap-2 ${isCard ? 'px-5 py-2.5 rounded-xl' : 'px-4 py-2 rounded-lg text-sm'} ${actionColorClass} text-white font-semibold transition-all shadow-sm`}
+          size={isCard ? 'lg' : 'md'}
+          className={action.variant === 'purple' ? 'bg-purple-600 hover:bg-purple-700' : ''}
+          leftIcon={action.icon}
         >
-          {action.icon}
           {action.label}
-        </Link>
+        </Button>
       )}
     </div>
   )

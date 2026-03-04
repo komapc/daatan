@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Home, Loader2, TrendingUp, Plus, Filter, Tag, X, ArrowDownUp } from 'lucide-react'
+import { Home, Loader2, TrendingUp, Plus, Filter, Tag, X, ArrowUpRight, ArrowDownUp } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
+
 import { useSession } from 'next-auth/react'
 import { useTranslations } from 'next-intl'
 import ForecastCard, { Prediction } from '@/components/forecasts/ForecastCard'
@@ -158,13 +160,13 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
             <p className="text-sm text-gray-500">{t('discover')}</p>
           </div>
         </div>
-        <Link
+        <Button
           href="/create"
-          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl font-semibold shadow-sm hover:bg-blue-700 transition-all active:scale-95"
+          size="lg"
+          leftIcon={<Plus className="w-5 h-5" />}
         >
-          <Plus className="w-5 h-5" />
-          <span>{t('newForecast')}</span>
-        </Link>
+          {t('newForecast')}
+        </Button>
       </div>
 
       {/* Filters + Sort (single toolbar row) */}
