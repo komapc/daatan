@@ -69,7 +69,8 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
       }
 
       setFormData(prev => ({ ...prev, avatarUrl: result.avatarUrl }))
-      toast.success('Avatar uploaded successfully')
+      toast.success('Avatar uploaded successfully. It will update everywhere shortly.')
+      router.refresh() // Tell Next.js to re-fetch data for the current page
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to upload avatar')
     } finally {
