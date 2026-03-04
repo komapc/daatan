@@ -2,7 +2,7 @@
 resource "aws_secretsmanager_secret" "env_vars" {
   name        = "daatan-env-${var.environment}"
   description = "Environment variables for DAATAN ${var.environment} environment"
-  
+
   # Allow deletion without recovery window for easier cleanup in dev/staging
   recovery_window_in_days = var.environment == "prod" ? 30 : 0
 
@@ -14,7 +14,7 @@ resource "aws_secretsmanager_secret" "env_vars" {
 resource "aws_secretsmanager_secret_version" "env_vars" {
   secret_id     = aws_secretsmanager_secret.env_vars.id
   secret_string = "Please update this manually in AWS Console with real .env content"
-  
+
   lifecycle {
     ignore_changes = [secret_string] # Prevent Terraform from overwriting manual updates
   }

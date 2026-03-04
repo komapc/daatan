@@ -3,7 +3,7 @@
 # then uncomment the backend block and run terraform init -migrate-state
 
 resource "aws_s3_bucket" "terraform_state" {
-  count = var.environment == "prod" ? 1 : 0
+  count  = var.environment == "prod" ? 1 : 0
   bucket = "daatan-terraform-state"
 
   lifecycle {
@@ -16,7 +16,7 @@ resource "aws_s3_bucket" "terraform_state" {
 }
 
 resource "aws_s3_bucket_versioning" "terraform_state" {
-  count = var.environment == "prod" ? 1 : 0
+  count  = var.environment == "prod" ? 1 : 0
   bucket = aws_s3_bucket.terraform_state[0].id
 
   versioning_configuration {
@@ -25,7 +25,7 @@ resource "aws_s3_bucket_versioning" "terraform_state" {
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "terraform_state" {
-  count = var.environment == "prod" ? 1 : 0
+  count  = var.environment == "prod" ? 1 : 0
   bucket = aws_s3_bucket.terraform_state[0].id
 
   rule {
@@ -36,7 +36,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "terraform_state" 
 }
 
 resource "aws_s3_bucket_public_access_block" "terraform_state" {
-  count = var.environment == "prod" ? 1 : 0
+  count  = var.environment == "prod" ? 1 : 0
   bucket = aws_s3_bucket.terraform_state[0].id
 
   block_public_acls       = true
@@ -45,9 +45,9 @@ resource "aws_s3_bucket_public_access_block" "terraform_state" {
   restrict_public_buckets = true
 }
 
-# DynamoDB table for state locking
+# DynamoDB table for state locking (Prod)
 resource "aws_dynamodb_table" "terraform_locks" {
-  count = var.environment == "prod" ? 1 : 0
+  count        = var.environment == "prod" ? 1 : 0
   name         = "daatan-terraform-locks"
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "LockID"
@@ -59,5 +59,22 @@ resource "aws_dynamodb_table" "terraform_locks" {
 
   tags = {
     Name = "daatan-terraform-locks"
+  }
+}
+
+# DynamoDB table for state locking (Staging)
+resource "aws_dynamodb_table" "terraform_locks_staging" {
+  count        = var.environment == "prod" ? 1 : 0
+  name         = "daatan-terraform-locks-staging"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "LockID"
+
+  attribute {
+    name = "LockID"
+    type = "S"
+  }
+
+  tags = {
+    Name = "daatan-terraform-locks-staging"
   }
 }
