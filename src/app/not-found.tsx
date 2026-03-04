@@ -1,5 +1,5 @@
-import Link from 'next/link'
 import { Home } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
 
 export default function NotFound() {
   return (
@@ -9,14 +9,15 @@ export default function NotFound() {
       <p className="text-gray-500 mb-8 max-w-md">
         The page you&apos;re looking for doesn&apos;t exist or has been moved.
       </p>
-      <Link
+      <Button
         href="/"
-        className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+        size="lg"
+        leftIcon={<Home className="w-5 h-5" />}
       >
-        <Home className="w-5 h-5" />
         Back to Feed
-      </Link>
+      </Button>
     </div>
   )
 }
+
 

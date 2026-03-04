@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Sparkles, Search, FileText, Loader2, AlertCircle, Edit2, RotateCcw, ArrowLeft, X, Plus, List, Trash2, Eye, EyeOff } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
 import { createClientLogger } from '@/lib/client-logger'
 
 const log = createClientLogger('ExpressForecast')
@@ -290,14 +291,16 @@ export default function ExpressForecastClient({ userId }: ExpressForecastClientP
             </div>
           )}
 
-          <button
+          <Button
             onClick={handleGenerate}
             disabled={!userInput.trim() || userInput.length < 5}
-            className="mt-6 w-full flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            fullWidth
+            size="xl"
+            leftIcon={<Sparkles className="w-5 h-5" />}
+            className="mt-6"
           >
-            <Sparkles className="w-5 h-5" />
             Generate Forecast
-          </button>
+          </Button>
 
           <div className="mt-8 pt-6 border-t border-gray-100">
             <p className="text-sm font-bold text-gray-700 mb-3">Examples:</p>
@@ -627,45 +630,41 @@ export default function ExpressForecastClient({ userId }: ExpressForecastClientP
             <div className="flex gap-3">
               {isEditing ? (
                 <>
-                  <button
+                  <Button
                     onClick={handleSaveEdit}
-                    className="flex-1 bg-green-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-green-700 transition-colors"
+                    fullWidth
+                    size="xl"
+                    className="bg-green-600 hover:bg-green-700"
                   >
                     Save Changes
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={() => { setIsEditing(false); setEditForm(null) }}
-                    className="px-6 py-3 rounded-xl border border-gray-300 font-bold hover:bg-gray-50 transition-colors"
+                    variant="outline"
+                    size="xl"
                   >
                     Cancel
-                  </button>
+                  </Button>
                 </>
               ) : (
                 <>
-                  <button
+                  <Button
                     onClick={handleCreatePrediction}
-                    disabled={isPublishing}
-                    className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    loading={isPublishing}
+                    fullWidth
+                    size="xl"
+                    leftIcon={<Sparkles className="w-5 h-5" />}
                   >
-                    {isPublishing ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        Publishing...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-5 h-5" />
-                        Confirm & Publish
-                      </>
-                    )}
-                  </button>
-                  <button
+                    Confirm & Publish
+                  </Button>
+                  <Button
                     onClick={handleTryAgain}
                     disabled={isPublishing}
-                    className="px-6 py-3 rounded-xl border border-gray-300 font-bold hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                    variant="outline"
+                    size="xl"
                   >
                     <ArrowLeft className="w-5 h-5" />
-                  </button>
+                  </Button>
                 </>
               )}
             </div>
