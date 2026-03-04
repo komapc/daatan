@@ -68,6 +68,70 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "backups" {
   }
 }
 
+# ==========================================
+# User Uploads Bucket (Avatars, etc.)
+# ==========================================
+
+resource "aws_s3_bucket" "uploads" {
+  bucket = "daatan-uploads-${var.environment}-${data.aws_caller_identity.current.account_id}"
+
+  tags = {
+    Name        = "daatan-uploads"
+    Environment = var.environment
+  }
+}
+
+# Allow public read access for avatars
+resource "aws_s3_bucket_public_access_block" "uploads" {
+  bucket = aws_s3_bucket.uploads.id
+
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
+  restrict_public_buckets = false
+}
+
+resource "aws_s3_bucket_policy" "allow_public_read" {
+  bucket = aws_s3_bucket.uploads.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "PublicReadGetObject"
+        Effect    = "Allow"
+        Principal = "*"
+        Action    = "s3:GetObject"
+        Resource  = "${aws_s3_bucket.uploads.arn}/*"
+      }
+    ]
+  })
+  depends_on = [aws_s3_bucket_public_access_block.uploads]
+}
+
+# CORS configuration to allow direct browser uploads/reads if needed later
+resource "aws_s3_bucket_cors_configuration" "uploads" {
+  bucket = aws_s3_bucket.uploads.id
+
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["GET", "PUT", "POST"]
+    allowed_origins = ["https://daatan.com", "https://staging.daatan.com", "http://localhost:3000"]
+    expose_headers  = ["ETag"]
+    max_age_seconds = 3000
+  }
+}
+
+# Server-side encryption
+resource "aws_s3_bucket_server_side_encryption_configuration" "uploads" {
+  bucket = aws_s3_bucket.uploads.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
 # IAM role for EC2 to access S3
 resource "aws_iam_role" "ec2_role" {
   name = "daatan-ec2-role-${var.environment}"
@@ -90,9 +154,9 @@ resource "aws_iam_role" "ec2_role" {
   }
 }
 
-# IAM policy for S3 backup access
+# IAM policy for S3 access (Backups and Uploads)
 resource "aws_iam_role_policy" "ec2_s3_policy" {
-  name = "daatan-s3-backup-policy"
+  name = "daatan-s3-access-policy"
   role = aws_iam_role.ec2_role.id
 
   policy = jsonencode({
@@ -108,7 +172,9 @@ resource "aws_iam_role_policy" "ec2_s3_policy" {
         ]
         Resource = [
           aws_s3_bucket.backups.arn,
-          "${aws_s3_bucket.backups.arn}/*"
+          "${aws_s3_bucket.backups.arn}/*",
+          aws_s3_bucket.uploads.arn,
+          "${aws_s3_bucket.uploads.arn}/*"
         ]
       }
     ]

@@ -51,9 +51,10 @@ resource "aws_ssm_parameter" "prompts" {
     "${pair[0]}-${pair[1]}" => { env = pair[0], prompt = pair[1] }
   }
 
-  name  = "/daatan/${each.value.env}/prompts/${each.value.prompt}"
-  type  = "String"
-  value = "PLACEHOLDER"
+  name      = "/daatan/${each.value.env}/prompts/${each.value.prompt}"
+  type      = "String"
+  value     = "PLACEHOLDER"
+  overwrite = true
 
   tags = {
     Prompt      = each.value.prompt
