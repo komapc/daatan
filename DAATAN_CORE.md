@@ -29,11 +29,13 @@ If any check fails → out of scope.
 - **Language:** TypeScript 5
 - **Frontend:** React 18, Tailwind CSS
 - **Backend:** Next.js API Routes, Node.js 20
-- **Database:** PostgreSQL 16 (Prisma 5.16 ORM)
+- **Database:** PostgreSQL 16 (Prisma 5.22 ORM)
 - **Authentication:** NextAuth.js (Google OAuth)
 - **Testing:** Vitest
-- **AI Integration:** Google Gemini API
-- **Infrastructure:** Docker, Nginx, AWS EC2
+- **AI Integration:** Gemini (primary), Ollama (fallback), OpenRouter (bots), AWS Bedrock (prompt management)
+- **Notifications:** Resend (email), web-push (browser push), Telegram
+- **i18n:** next-intl
+- **Infrastructure:** Docker, Nginx, AWS EC2, S3 (avatars)
 
 ## 3. Key Personnel
 - **Project Lead:** Mark (@komapcc)
@@ -50,5 +52,6 @@ If any check fails → out of scope.
 - **Reputation Score (RS):** Long-term credibility score based on resolved predictions (ELO-like)
 - **Confidence Units (CU):** Limited budget of conviction allocated across predictions (no monetary value)
 - **Prediction Weight:** `RS × CU` — influence of a specific prediction
+- **Brier Score:** Probability calibration metric, `(probability − outcome)²` — lower is better
 
 See [GLOSSARY.md](./GLOSSARY.md) for full terminology and [PRODUCT.md](./PRODUCT.md) for detailed product documentation.

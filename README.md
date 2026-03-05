@@ -122,6 +122,10 @@ git push origin v1.1.1
 | [TECH.md](./TECH.md) | Technical architecture, infrastructure, and project structure |
 | [SECRETS.md](./SECRETS.md) | Secrets management and security |
 | [VERSIONING.md](./VERSIONING.md) | Semantic versioning rules |
+| [TESTING.md](./TESTING.md) | Testing strategy and guidelines |
+| [PRODUCT.md](./PRODUCT.md) | Product vision and feature documentation |
+| [docs/bots.md](./docs/bots.md) | Autonomous bot system |
+| [docs/LLM_ARCHITECTURE.md](./docs/LLM_ARCHITECTURE.md) | LLM provider chain and Bedrock prompts |
 
 ---
 

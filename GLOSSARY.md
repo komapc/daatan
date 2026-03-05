@@ -1,6 +1,6 @@
 # DAATAN Glossary
 
-> Last updated: January 2026
+> Last updated: March 2026
 
 ## Core Concepts
 
@@ -73,6 +73,9 @@ The influence/strength of a specific prediction in scoring/visibility calculatio
 
 **Formula:** `Weight = RS × CU`
 
+### Brier Score
+Probability calibration metric measuring forecast accuracy. Formula: `(probability − outcome)²`. Lower is better; 0 = perfect, 1 = worst.
+
 ---
 
 ## Prediction Types
@@ -93,6 +96,7 @@ A metric crosses a defined value (e.g., "Bitcoin will exceed $100k").
 | Status | Description |
 | ------ | ----------- |
 | `draft` | Created but not published |
+| `pending_approval` | Created by bot, awaiting human review before going active |
 | `active` / `locked` | Published, CU committed, awaiting resolution |
 | `resolved_correct` | Resolved as correct |
 | `resolved_wrong` | Resolved as wrong |
@@ -100,4 +104,23 @@ A metric crosses a defined value (e.g., "Bitcoin will exceed $100k").
 | `unresolvable` | Cannot be determined |
 | `expired` | (Optional) Deadline passed without resolution |
 
+---
+
+## Commitment Lifecycle
+
+### Commitment Withdrawal (Exit Penalty)
+Early exit from an active commitment before resolution. The user receives a partial CU refund calculated via a burn rate formula — the longer the commitment has been active, the lower the refund. Withdrawn commitments do not affect RS.
+
+---
+
+## Bot System
+
+### Bot
+An automated user account (`isBot: true`) that autonomously creates forecasts and votes based on a configured persona and RSS feed topics. Bot-created forecasts are marked with `source: 'bot'` and a `🤖` prefix in the title and require human approval (`pending_approval`) before going active (unless `autoApprove` is enabled).
+
+### BotConfig
+Database model storing bot configuration: persona prompt, run interval, topic/tag filter, vote bias, and autoApprove flag.
+
+### BotRunLog
+Audit log entry for each bot execution, recording the action taken (`CREATED_FORECAST`, `VOTED`, `SKIPPED`, `ERROR`), dry-run flag, and any generated text or error message.
 
