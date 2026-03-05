@@ -6,7 +6,7 @@
 
 [![Live](https://img.shields.io/badge/Production-daatan.com-green)](https://daatan.com)
 [![Staging](https://img.shields.io/badge/Staging-staging.daatan.com-yellow)](https://staging.daatan.com)
-[![Version](https://img.shields.io/badge/Version-1.1.1-blue)](https://github.com/komapc/daatan/releases)
+[![Version](https://img.shields.io/badge/Version-1.7.16-blue)](https://github.com/komapc/daatan/releases)
 [![Next.js](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)](https://www.typescriptlang.org/)
 
@@ -45,9 +45,12 @@ DAaTAn is a reputation-based product that enables testing understanding and fore
 | Framework | Next.js 14 (React 18) |
 | Language | TypeScript 5 |
 | Styling | Tailwind CSS |
-| Database | PostgreSQL 16 + Prisma 5.16 |
+| Database | PostgreSQL 16 + Prisma 5.22 |
 | Auth | NextAuth.js (Google OAuth) |
 | Hosting | AWS EC2 (eu-central-1) |
+| Storage | AWS S3 (avatars) |
+| LLM | Gemini (primary), Ollama (fallback), OpenRouter (bots) |
+| Prompt Mgmt | AWS Bedrock Prompt Management |
 | Container | Docker + Nginx |
 | CI/CD | GitHub Actions |
 | SSL | Let's Encrypt |
@@ -72,9 +75,11 @@ npm run dev
 
 ### Development
 ```bash
-npm run dev      # Start dev server
-npm run build    # Build for production
-npm run lint     # Run linter
+npm run dev        # Start dev server
+npm run build      # Build for production
+npm run lint       # Run linter
+npm run typecheck  # Type check
+npm test           # Run unit tests
 ```
 
 ### Operations

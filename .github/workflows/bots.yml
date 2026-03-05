@@ -30,6 +30,7 @@ jobs:
           RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$URL" \
             -H "x-bot-runner-secret: ${{ secrets.BOT_RUNNER_SECRET }}" \
             -H "Content-Type: application/json" \
+            -d "{\"dryRun\":$DRY_RUN}" \
             --max-time 30)
 
           HTTP_CODE=$(echo "$RESPONSE" | tail -n1)

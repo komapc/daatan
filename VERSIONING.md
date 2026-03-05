@@ -1,6 +1,6 @@
 # Versioning Rules
 
-DAATAN follows [Semantic Versioning](https://semver.org/) with automatic version bumps on every PR merge.
+DAATAN follows [Semantic Versioning](https://semver.org/).
 
 ## Version Format
 
@@ -10,32 +10,38 @@ MAJOR.MINOR.PATCH
 
 - **MAJOR**: Breaking changes, major rewrites, or significant new systems
 - **MINOR**: New features, significant improvements
-- **PATCH**: Bug fixes, small improvements (default for every PR)
+- **PATCH**: Bug fixes, small improvements
 
-## Automatic Version Bumping
+## Convention
 
-The version is automatically incremented when a PR is merged to `main`:
-
-| PR Title Prefix | Label | Version Bump |
-|-----------------|-------|--------------|
-| `BREAKING:`, `major:`, `Major:` | `major` | MAJOR (x.0.0) |
-| `feat:`, `feature:`, `Feature:` | `minor` | MINOR (0.x.0) |
-| Any other | - | PATCH (0.0.x) |
+| PR Title Prefix | Version Bump |
+|-----------------|--------------|
+| `BREAKING:`, `major:` | MAJOR (x.0.0) |
+| `feat:`, `feature:` | MINOR (0.x.0) |
+| `fix:`, `chore:`, `infra:`, other | PATCH (0.0.x) |
 
 ## Examples
 
 ```
 feat: Add user authentication     → 0.1.0 (minor bump)
-fix: Correct login validation     → 0.1.1 (patch bump)  
+fix: Correct login validation     → 0.1.1 (patch bump)
 BREAKING: New database schema     → 1.0.0 (major bump)
 chore: Update dependencies        → 1.0.1 (patch bump)
 ```
 
-## Current Version
+## How to Bump
 
-The version is stored in `src/lib/version.ts` and displayed in the sidebar near the logo.
+Version bumps are **manual** and done explicitly when releasing:
 
-## Git Tags
+1. Update `package.json` → `"version"` field
+2. Update the comment in `src/lib/version.ts` to match (e.g. `// v1.7.16`)
+3. Commit: `git commit -m "chore: bump version to v1.x.x"`
+4. Run `./scripts/release.sh` to tag and trigger production deploy
 
-Each version bump creates a git tag (e.g., `v0.0.1`) for easy reference and rollbacks.
+## Where the Version Lives
+
+- **Source of truth**: `package.json` → `"version"`
+- **Runtime**: `NEXT_PUBLIC_APP_VERSION` build arg (baked by CI from `package.json`)
+- **Display**: sidebar logo, `/api/health` response, About page
+- **Git tags**: each production release creates a tag `vMAJOR.MINOR.PATCH`
 
