@@ -26,7 +26,7 @@ describe('GET /api/commitments/stats', () => {
     mockGetServerSession.mockResolvedValue(null)
 
     const request = new NextRequest('http://localhost/api/commitments/stats')
-    const response = await GET(request, { params: {} } as any)
+    const response = await GET(request, { params: Promise.resolve({}) } as any)
 
     expect(response.status).toBe(401)
   })
@@ -52,7 +52,7 @@ describe('GET /api/commitments/stats', () => {
     vi.mocked(prisma.commitment.findMany).mockResolvedValue(mockCommitments as any)
 
     const request = new NextRequest('http://localhost/api/commitments/stats')
-    const response = await GET(request, { params: {} } as any)
+    const response = await GET(request, { params: Promise.resolve({}) } as any)
     const data = await response.json()
 
     expect(response.status).toBe(200)
@@ -80,7 +80,7 @@ describe('GET /api/commitments/stats', () => {
     ] as any)
 
     const request = new NextRequest('http://localhost/api/commitments/stats')
-    const response = await GET(request, { params: {} } as any)
+    const response = await GET(request, { params: Promise.resolve({}) } as any)
     const data = await response.json()
 
     expect(data.accuracy).toBeNull()
@@ -98,7 +98,7 @@ describe('GET /api/commitments/stats', () => {
     vi.mocked(prisma.commitment.findMany).mockResolvedValue([])
 
     const request = new NextRequest('http://localhost/api/commitments/stats')
-    const response = await GET(request, { params: {} } as any)
+    const response = await GET(request, { params: Promise.resolve({}) } as any)
     const data = await response.json()
 
     expect(data.total).toBe(0)

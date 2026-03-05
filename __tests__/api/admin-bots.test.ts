@@ -131,7 +131,7 @@ describe('GET /api/admin/bots', () => {
     mockGetServerSession.mockResolvedValue(null)
 
     const req = new NextRequest('http://localhost/api/admin/bots')
-    const res = await GET(req, { params: {} })
+    const res = await GET(req, { params: Promise.resolve({}) })
 
     expect(res.status).toBe(401)
   })
@@ -141,7 +141,7 @@ describe('GET /api/admin/bots', () => {
     mockGetServerSession.mockResolvedValue(USER_SESSION)
 
     const req = new NextRequest('http://localhost/api/admin/bots')
-    const res = await GET(req, { params: {} })
+    const res = await GET(req, { params: Promise.resolve({}) })
 
     expect(res.status).toBe(403)
   })
@@ -161,7 +161,7 @@ describe('GET /api/admin/bots', () => {
     ] as any)
 
     const req = new NextRequest('http://localhost/api/admin/bots')
-    const res = await GET(req, { params: {} })
+    const res = await GET(req, { params: Promise.resolve({}) })
     const data = await res.json()
 
     expect(res.status).toBe(200)
@@ -182,7 +182,7 @@ describe('GET /api/admin/bots', () => {
     vi.mocked(prisma.botRunLog.groupBy).mockResolvedValue([])
 
     const req = new NextRequest('http://localhost/api/admin/bots')
-    const res = await GET(req, { params: {} })
+    const res = await GET(req, { params: Promise.resolve({}) })
     const data = await res.json()
 
     expect(data.bots[0].nextRunAt).toBeNull()
@@ -196,7 +196,7 @@ describe('GET /api/admin/bots', () => {
     vi.mocked(prisma.botConfig.findMany).mockRejectedValue(new Error('DB error'))
 
     const req = new NextRequest('http://localhost/api/admin/bots')
-    const res = await GET(req, { params: {} })
+    const res = await GET(req, { params: Promise.resolve({}) })
 
     expect(res.status).toBe(500)
   })
@@ -217,7 +217,7 @@ describe('POST /api/admin/bots', () => {
       method: 'POST',
       body: JSON.stringify({ name: 'TestBot' }),
     })
-    const res = await POST(req, { params: {} })
+    const res = await POST(req, { params: Promise.resolve({}) })
 
     expect(res.status).toBe(401)
   })
@@ -237,7 +237,7 @@ describe('POST /api/admin/bots', () => {
         stakeMax: 10,
       }),
     })
-    const res = await POST(req, { params: {} })
+    const res = await POST(req, { params: Promise.resolve({}) })
     const data = await res.json()
 
     expect(res.status).toBe(400)
@@ -260,7 +260,7 @@ describe('POST /api/admin/bots', () => {
         votePrompt: 'Custom vote prompt, long enough to pass validation.',
       }),
     })
-    const res = await POST(req, { params: {} })
+    const res = await POST(req, { params: Promise.resolve({}) })
     const data = await res.json()
 
     expect(res.status).toBe(400)
@@ -298,7 +298,7 @@ describe('POST /api/admin/bots', () => {
         stakeMax: 100,
       }),
     })
-    const res = await POST(req, { params: {} })
+    const res = await POST(req, { params: Promise.resolve({}) })
     const data = await res.json()
 
     expect(res.status).toBe(201)
@@ -314,7 +314,7 @@ describe('POST /api/admin/bots', () => {
       method: 'POST',
       body: JSON.stringify({ name: 'X' }), // name min length is 2
     })
-    const res = await POST(req, { params: {} })
+    const res = await POST(req, { params: Promise.resolve({}) })
 
     expect(res.status).toBe(400)
   })
@@ -364,7 +364,7 @@ describe('POST /api/admin/bots', () => {
     const captureRef = { data: null as any }
     makeTransactionMock(prisma, captureRef)
 
-    const res = await POST(makeLlmPostRequest(), { params: {} })
+    const res = await POST(makeLlmPostRequest(), { params: Promise.resolve({}) })
 
     expect(res.status).toBe(201)
     expect(captureRef.data?.personaPrompt).toBe(generated.personaPrompt)
@@ -386,7 +386,7 @@ describe('POST /api/admin/bots', () => {
     const captureRef = { data: null as any }
     makeTransactionMock(prisma, captureRef)
 
-    const res = await POST(makeLlmPostRequest(), { params: {} })
+    const res = await POST(makeLlmPostRequest(), { params: Promise.resolve({}) })
 
     expect(res.status).toBe(201)
     // Falls back to the Zod default (DEFAULT_PERSONA)
@@ -404,7 +404,7 @@ describe('POST /api/admin/bots', () => {
     const captureRef = { data: null as any }
     makeTransactionMock(prisma, captureRef)
 
-    const res = await POST(makeLlmPostRequest(), { params: {} })
+    const res = await POST(makeLlmPostRequest(), { params: Promise.resolve({}) })
 
     // Bot should still be created with default prompts, not a 500 error
     expect(res.status).toBe(201)
@@ -435,7 +435,7 @@ describe('POST /api/admin/bots', () => {
       }),
     })
 
-    await POST(req, { params: {} })
+    await POST(req, { params: Promise.resolve({}) })
 
     expect(mockGenerateContent).not.toHaveBeenCalled()
   })
@@ -456,7 +456,7 @@ describe('PATCH /api/admin/bots/[id]', () => {
       method: 'PATCH',
       body: JSON.stringify({ isActive: false }),
     })
-    const res = await PATCH(req, { params: { id: 'bot-1' } })
+    const res = await PATCH(req, { params: Promise.resolve({ id: 'bot-1' }) })
 
     expect(res.status).toBe(401)
   })
@@ -472,7 +472,7 @@ describe('PATCH /api/admin/bots/[id]', () => {
       method: 'PATCH',
       body: JSON.stringify({ isActive: false }),
     })
-    const res = await PATCH(req, { params: { id: 'nonexistent' } })
+    const res = await PATCH(req, { params: Promise.resolve({ id: 'nonexistent' }) })
 
     expect(res.status).toBe(404)
   })
@@ -488,7 +488,7 @@ describe('PATCH /api/admin/bots/[id]', () => {
       method: 'PATCH',
       body: JSON.stringify({ stakeMin: 200 }), // 200 > stakeMax(50)
     })
-    const res = await PATCH(req, { params: { id: 'bot-1' } })
+    const res = await PATCH(req, { params: Promise.resolve({ id: 'bot-1' }) })
     const data = await res.json()
 
     expect(res.status).toBe(400)
@@ -509,7 +509,7 @@ describe('PATCH /api/admin/bots/[id]', () => {
       method: 'PATCH',
       body: JSON.stringify({ isActive: false }),
     })
-    const res = await PATCH(req, { params: { id: 'bot-1' } })
+    const res = await PATCH(req, { params: Promise.resolve({ id: 'bot-1' }) })
     const data = await res.json()
 
     expect(res.status).toBe(200)
@@ -529,7 +529,7 @@ describe('DELETE /api/admin/bots/[id]', () => {
     mockGetServerSession.mockResolvedValue(null)
 
     const req = new NextRequest('http://localhost/api/admin/bots/bot-1', { method: 'DELETE' })
-    const res = await DELETE(req, { params: { id: 'bot-1' } })
+    const res = await DELETE(req, { params: Promise.resolve({ id: 'bot-1' }) })
 
     expect(res.status).toBe(401)
   })
@@ -542,7 +542,7 @@ describe('DELETE /api/admin/bots/[id]', () => {
     vi.mocked(prisma.botConfig.findUnique).mockResolvedValue(null)
 
     const req = new NextRequest('http://localhost/api/admin/bots/nonexistent', { method: 'DELETE' })
-    const res = await DELETE(req, { params: { id: 'nonexistent' } })
+    const res = await DELETE(req, { params: Promise.resolve({ id: 'nonexistent' }) })
 
     expect(res.status).toBe(404)
   })
@@ -556,7 +556,7 @@ describe('DELETE /api/admin/bots/[id]', () => {
     vi.mocked(prisma.botConfig.update).mockResolvedValue({} as any)
 
     const req = new NextRequest('http://localhost/api/admin/bots/bot-1', { method: 'DELETE' })
-    const res = await DELETE(req, { params: { id: 'bot-1' } })
+    const res = await DELETE(req, { params: Promise.resolve({ id: 'bot-1' }) })
     const data = await res.json()
 
     expect(res.status).toBe(200)
@@ -580,7 +580,7 @@ describe('GET /api/admin/bots/[id]/logs', () => {
     mockGetServerSession.mockResolvedValue(null)
 
     const req = new NextRequest('http://localhost/api/admin/bots/bot-1/logs')
-    const res = await GET(req, { params: { id: 'bot-1' } })
+    const res = await GET(req, { params: Promise.resolve({ id: 'bot-1' }) })
 
     expect(res.status).toBe(401)
   })
@@ -593,7 +593,7 @@ describe('GET /api/admin/bots/[id]/logs', () => {
     vi.mocked(prisma.botConfig.findUnique).mockResolvedValue(null)
 
     const req = new NextRequest('http://localhost/api/admin/bots/nonexistent/logs')
-    const res = await GET(req, { params: { id: 'nonexistent' } })
+    const res = await GET(req, { params: Promise.resolve({ id: 'nonexistent' }) })
 
     expect(res.status).toBe(404)
   })
@@ -620,7 +620,7 @@ describe('GET /api/admin/bots/[id]/logs', () => {
     vi.mocked(prisma.botRunLog.count).mockResolvedValue(45)
 
     const req = new NextRequest('http://localhost/api/admin/bots/bot-1/logs?page=2&limit=20')
-    const res = await GET(req, { params: { id: 'bot-1' } })
+    const res = await GET(req, { params: Promise.resolve({ id: 'bot-1' }) })
     const data = await res.json()
 
     expect(res.status).toBe(200)
@@ -641,7 +641,7 @@ describe('GET /api/admin/bots/[id]/logs', () => {
     vi.mocked(prisma.botRunLog.count).mockResolvedValue(0)
 
     const req = new NextRequest('http://localhost/api/admin/bots/bot-1/logs?limit=999')
-    const res = await GET(req, { params: { id: 'bot-1' } })
+    const res = await GET(req, { params: Promise.resolve({ id: 'bot-1' }) })
     const data = await res.json()
 
     expect(res.status).toBe(200)
@@ -658,7 +658,7 @@ describe('GET /api/admin/bots/[id]/logs', () => {
     vi.mocked(prisma.botRunLog.count).mockResolvedValue(0)
 
     const req = new NextRequest('http://localhost/api/admin/bots/bot-1/logs')
-    const res = await GET(req, { params: { id: 'bot-1' } })
+    const res = await GET(req, { params: Promise.resolve({ id: 'bot-1' }) })
     const data = await res.json()
 
     expect(data.pagination.page).toBe(1)
@@ -678,7 +678,7 @@ describe('POST /api/admin/bots/[id]/run', () => {
     mockGetServerSession.mockResolvedValue(null)
 
     const req = new NextRequest('http://localhost/api/admin/bots/bot-1/run', { method: 'POST' })
-    const res = await POST(req, { params: { id: 'bot-1' } })
+    const res = await POST(req, { params: Promise.resolve({ id: 'bot-1' }) })
 
     expect(res.status).toBe(401)
   })
@@ -691,7 +691,7 @@ describe('POST /api/admin/bots/[id]/run', () => {
     vi.mocked(prisma.botConfig.findUnique).mockResolvedValue(null)
 
     const req = new NextRequest('http://localhost/api/admin/bots/nonexistent/run', { method: 'POST' })
-    const res = await POST(req, { params: { id: 'nonexistent' } })
+    const res = await POST(req, { params: Promise.resolve({ id: 'nonexistent' }) })
 
     expect(res.status).toBe(404)
   })
@@ -708,7 +708,7 @@ describe('POST /api/admin/bots/[id]/run', () => {
     })
 
     const req = new NextRequest('http://localhost/api/admin/bots/bot-1/run', { method: 'POST' })
-    const res = await POST(req, { params: { id: 'bot-1' } })
+    const res = await POST(req, { params: Promise.resolve({ id: 'bot-1' }) })
     const data = await res.json()
 
     expect(res.status).toBe(200)
@@ -728,7 +728,7 @@ describe('POST /api/admin/bots/[id]/run', () => {
     })
 
     const req = new NextRequest('http://localhost/api/admin/bots/bot-1/run?dry=true', { method: 'POST' })
-    const res = await POST(req, { params: { id: 'bot-1' } })
+    const res = await POST(req, { params: Promise.resolve({ id: 'bot-1' }) })
 
     expect(res.status).toBe(200)
     expect(runBotById).toHaveBeenCalledWith('bot-1', true)
@@ -747,7 +747,7 @@ describe('POST /api/admin/bots/[id]/run', () => {
     vi.mocked(runBotById).mockResolvedValue(mockSummary)
 
     const req = new NextRequest('http://localhost/api/admin/bots/bot-1/run', { method: 'POST' })
-    const res = await POST(req, { params: { id: 'bot-1' } })
+    const res = await POST(req, { params: Promise.resolve({ id: 'bot-1' }) })
     const data = await res.json()
 
     expect(data.summary).toMatchObject({

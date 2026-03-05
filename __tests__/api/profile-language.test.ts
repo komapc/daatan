@@ -33,7 +33,7 @@ describe('PATCH /api/profile/language', () => {
       method: 'PATCH',
       body: JSON.stringify({ language: 'en' }),
     })
-    const response = await PATCH(request, { params: {} } as any)
+    const response = await PATCH(request, { params: Promise.resolve({}) } as any)
 
     expect(response.status).toBe(401)
   })
@@ -50,7 +50,7 @@ describe('PATCH /api/profile/language', () => {
       method: 'PATCH',
       body: JSON.stringify({ language: 'en' }),
     })
-    const response = await PATCH(request, { params: {} } as any)
+    const response = await PATCH(request, { params: Promise.resolve({}) } as any)
     const data = await response.json()
 
     expect(response.status).toBe(200)
@@ -73,7 +73,7 @@ describe('PATCH /api/profile/language', () => {
       method: 'PATCH',
       body: JSON.stringify({ language: 'he' }),
     })
-    const response = await PATCH(request, { params: {} } as any)
+    const response = await PATCH(request, { params: Promise.resolve({}) } as any)
     const data = await response.json()
 
     expect(response.status).toBe(200)
@@ -89,7 +89,7 @@ describe('PATCH /api/profile/language', () => {
       method: 'PATCH',
       body: JSON.stringify({ language: 'fr' }),
     })
-    const response = await PATCH(request, { params: {} } as any)
+    const response = await PATCH(request, { params: Promise.resolve({}) } as any)
 
     // Zod validation should throw and be caught by withAuth / error handler
     expect(response.status).toBeGreaterThanOrEqual(400)
@@ -104,7 +104,7 @@ describe('PATCH /api/profile/language', () => {
       method: 'PATCH',
       body: JSON.stringify({}),
     })
-    const response = await PATCH(request, { params: {} } as any)
+    const response = await PATCH(request, { params: Promise.resolve({}) } as any)
 
     expect(response.status).toBeGreaterThanOrEqual(400)
   })

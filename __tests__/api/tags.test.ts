@@ -162,7 +162,7 @@ describe('POST /api/tags', () => {
     })
 
     const request = createRequest({ name: 'Technology' })
-    const response = await POST(request, { params: {} } as any)
+    const response = await POST(request, { params: Promise.resolve({}) } as any)
     const data = await response.json()
 
     expect(response.status).toBe(201)
@@ -180,7 +180,7 @@ describe('POST /api/tags', () => {
     vi.mocked(getServerSession).mockResolvedValue({ user: createMockUser({ role: 'USER' }) } as any)
 
     const request = createRequest({ name: 'Technology' })
-    const response = await POST(request, { params: {} } as any)
+    const response = await POST(request, { params: Promise.resolve({}) } as any)
     const data = await response.json()
 
     expect(response.status).toBe(403)
@@ -194,7 +194,7 @@ describe('POST /api/tags', () => {
     vi.mocked(getServerSession).mockResolvedValue({ user: createMockUser() } as any)
 
     const request = createRequest({ name: '' })
-    const response = await POST(request, { params: {} } as any)
+    const response = await POST(request, { params: Promise.resolve({}) } as any)
     const data = await response.json()
 
     expect(response.status).toBe(400)
@@ -209,7 +209,7 @@ describe('POST /api/tags', () => {
 
     const longName = 'a'.repeat(51)
     const request = createRequest({ name: longName })
-    const response = await POST(request, { params: {} } as any)
+    const response = await POST(request, { params: Promise.resolve({}) } as any)
     const data = await response.json()
 
     expect(response.status).toBe(400)
@@ -228,7 +228,7 @@ describe('POST /api/tags', () => {
     })
 
     const request = createRequest({ name: 'Politics' })
-    const response = await POST(request, { params: {} } as any)
+    const response = await POST(request, { params: Promise.resolve({}) } as any)
     const data = await response.json()
 
     expect(response.status).toBe(409)
@@ -249,7 +249,7 @@ describe('POST /api/tags', () => {
     })
 
     const request = createRequest({ name: '  Technology  ' })
-    await POST(request, { params: {} } as any)
+    await POST(request, { params: Promise.resolve({}) } as any)
 
     expect(prisma.tag.create).toHaveBeenCalledWith({
       data: {
@@ -273,7 +273,7 @@ describe('POST /api/tags', () => {
     })
 
     const request = createRequest({ name: 'US Politics' })
-    await POST(request, { params: {} } as any)
+    await POST(request, { params: Promise.resolve({}) } as any)
 
     expect(prisma.tag.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -292,7 +292,7 @@ describe('POST /api/tags', () => {
     vi.mocked(prisma.tag.findUnique).mockRejectedValue(new Error('DB error'))
 
     const request = createRequest({ name: 'Technology' })
-    const response = await POST(request, { params: {} } as any)
+    const response = await POST(request, { params: Promise.resolve({}) } as any)
     const data = await response.json()
 
     expect(response.status).toBe(500)

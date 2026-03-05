@@ -158,7 +158,7 @@ describe('Comments API', () => {
         }),
       })
 
-      const response = await createComment(request, { params: {} } as any)
+      const response = await createComment(request, { params: Promise.resolve({}) } as any)
       const data = await response.json()
 
       expect(response.status).toBe(201)
@@ -178,7 +178,7 @@ describe('Comments API', () => {
         }),
       })
 
-      const response = await createComment(request, { params: {} } as any)
+      const response = await createComment(request, { params: Promise.resolve({}) } as any)
 
       expect(response.status).toBe(401)
     })
@@ -198,7 +198,7 @@ describe('Comments API', () => {
         }),
       })
 
-      const response = await createComment(request, { params: {} } as any)
+      const response = await createComment(request, { params: Promise.resolve({}) } as any)
 
       expect(response.status).toBe(400)
     })
@@ -247,7 +247,7 @@ describe('Comments API', () => {
         }),
       })
 
-      const response = await updateComment(request, { params: { id: 'comment1' } })
+      const response = await updateComment(request, { params: Promise.resolve({ id: 'comment1' }) })
       const data = await response.json()
 
       expect(response.status).toBe(200)
@@ -275,7 +275,7 @@ describe('Comments API', () => {
         }),
       })
 
-      const response = await updateComment(request, { params: { id: 'comment1' } })
+      const response = await updateComment(request, { params: Promise.resolve({ id: 'comment1' }) })
 
       expect(response.status).toBe(403)
     })
@@ -306,7 +306,7 @@ describe('Comments API', () => {
         method: 'DELETE',
       })
 
-      const response = await deleteComment(request, { params: { id: 'comment1' } })
+      const response = await deleteComment(request, { params: Promise.resolve({ id: 'comment1' }) })
       const data = await response.json()
 
       expect(response.status).toBe(200)
@@ -341,7 +341,7 @@ describe('Comments API', () => {
         method: 'DELETE',
       })
 
-      const response = await deleteComment(request, { params: { id: 'comment1' } })
+      const response = await deleteComment(request, { params: Promise.resolve({ id: 'comment1' }) })
 
       expect(response.status).toBe(200)
     })
@@ -366,7 +366,7 @@ describe('Comments API', () => {
         method: 'DELETE',
       })
 
-      const response = await deleteComment(request, { params: { id: 'comment1' } })
+      const response = await deleteComment(request, { params: Promise.resolve({ id: 'comment1' }) })
 
       expect(response.status).toBe(200)
       expect(prisma.comment.update).toHaveBeenCalledWith(
@@ -414,7 +414,7 @@ describe('Comments API', () => {
         }),
       })
 
-      const response = await addReaction(request, { params: { id: 'comment1' } })
+      const response = await addReaction(request, { params: Promise.resolve({ id: 'comment1' }) })
       const data = await response.json()
 
       expect(response.status).toBe(200)
@@ -433,7 +433,7 @@ describe('Comments API', () => {
         }),
       })
 
-      const response = await addReaction(request, { params: { id: 'comment1' } })
+      const response = await addReaction(request, { params: Promise.resolve({ id: 'comment1' }) })
 
       expect(response.status).toBe(401)
     })
@@ -454,7 +454,7 @@ describe('Comments API', () => {
         method: 'DELETE',
       })
 
-      const response = await removeReaction(request, { params: { id: 'comment1' } })
+      const response = await removeReaction(request, { params: Promise.resolve({ id: 'comment1' }) })
       const data = await response.json()
 
       expect(response.status).toBe(200)

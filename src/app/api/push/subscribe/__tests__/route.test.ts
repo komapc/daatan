@@ -30,7 +30,7 @@ vi.mock('@/lib/logger', () => ({
 
 const ENDPOINT = 'https://push.example.com/endpoint/abc123'
 const KEYS = { p256dh: 'validp256dhkey1234567890ab', auth: 'validauthkey123' }
-const CTX = { params: {} }
+const CTX = { params: Promise.resolve({}) }
 
 function makeSubscribeRequest(body: unknown, userAgent = 'TestBrowser/1.0') {
   return new NextRequest('http://localhost/api/push/subscribe', {

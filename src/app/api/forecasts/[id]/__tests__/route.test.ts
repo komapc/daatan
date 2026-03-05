@@ -64,7 +64,7 @@ function makeRequest(method = 'GET', body?: object) {
   })
 }
 
-const routeCtx = (id = 'pred-1') => ({ params: { id } })
+const routeCtx = (id = 'pred-1') => ({ params: Promise.resolve({ id }) })
 
 // ─── GET ──────────────────────────────────────────────────────────────────────
 

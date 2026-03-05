@@ -11,8 +11,10 @@ import { NextRequest } from 'next/server'
 // Strip authentication — call the inner handler directly with a mock admin user
 vi.mock('@/lib/api-middleware', () => ({
   withAuth: (handler: Function) =>
-    (request: Request, context: { params: { id: string } }) =>
-      handler(request, { id: 'admin-user', role: 'ADMIN' }, context),
+    async (request: Request, context: { params: Promise<{ id: string }> }) => {
+      const params = await context.params
+      return handler(request, { id: 'admin-user', role: 'ADMIN' }, { ...context, params })
+    },
 }))
 
 vi.mock('@/lib/prisma', () => ({
@@ -101,14 +103,14 @@ describe('POST /api/forecasts/[id]/research', () => {
   it('returns 404 when the prediction is not found', async () => {
     vi.mocked(prisma.prediction.findUnique).mockResolvedValue(null)
 
-    const response = await POST(makeRequest(), { params: { id: 'missing' } })
+    const response = await POST(makeRequest(), { params: Promise.resolve({ id: 'missing' }) })
     expect(response.status).toBe(404)
   })
 
   it('runs three parallel searches and merges results', async () => {
     vi.mocked(prisma.prediction.findUnique).mockResolvedValue(basePrediction as never)
 
-    await POST(makeRequest(), { params: { id: 'pred-1' } })
+    await POST(makeRequest(), { params: Promise.resolve({ id: 'pred-1' }) })
 
     // Three searchArticles calls: dated, broad, simplified
     expect(searchArticles).toHaveBeenCalledTimes(3)
@@ -117,7 +119,7 @@ describe('POST /api/forecasts/[id]/research', () => {
   it('the simplified query strips stopwords and includes the resolution year', async () => {
     vi.mocked(prisma.prediction.findUnique).mockResolvedValue(basePrediction as never)
 
-    await POST(makeRequest(), { params: { id: 'pred-1' } })
+    await POST(makeRequest(), { params: Promise.resolve({ id: 'pred-1' }) })
 
     const calls = vi.mocked(searchArticles).mock.calls
     // The third call is the simplified/keyword query
@@ -130,7 +132,7 @@ describe('POST /api/forecasts/[id]/research', () => {
   it('passes date range to dated and simplified searches', async () => {
     vi.mocked(prisma.prediction.findUnique).mockResolvedValue(basePrediction as never)
 
-    await POST(makeRequest(), { params: { id: 'pred-1' } })
+    await POST(makeRequest(), { params: Promise.resolve({ id: 'pred-1' }) })
 
     const calls = vi.mocked(searchArticles).mock.calls
     // calls[0] = dated, calls[2] = simplified — both receive dateFrom/dateTo
@@ -143,7 +145,7 @@ describe('POST /api/forecasts/[id]/research', () => {
   it('returns the LLM outcome as JSON', async () => {
     vi.mocked(prisma.prediction.findUnique).mockResolvedValue(basePrediction as never)
 
-    const response = await POST(makeRequest(), { params: { id: 'pred-1' } })
+    const response = await POST(makeRequest(), { params: Promise.resolve({ id: 'pred-1' }) })
     const data = await response.json()
 
     expect(response.status).toBe(200)
@@ -166,7 +168,7 @@ describe('POST /api/forecasts/[id]/research', () => {
       .mockResolvedValueOnce({ text: JSON.stringify({ queries: ['shekel usd rate 2026', 'ILS dollar February'] }) })
       .mockResolvedValueOnce({ text: JSON.stringify({ outcome: 'correct', reasoning: 'ok', evidenceLinks: [] }) })
 
-    await POST(makeRequest(), { params: { id: 'pred-1' } })
+    await POST(makeRequest(), { params: Promise.resolve({ id: 'pred-1' }) })
 
     // 3 initial + 2 fallback = 5 total searchArticles calls
     expect(searchArticles).toHaveBeenCalledTimes(5)
@@ -183,7 +185,7 @@ describe('POST /api/forecasts/[id]/research', () => {
       makeArticle('Shekel dollar exchange'),
     ])
 
-    await POST(makeRequest(), { params: { id: 'pred-1' } })
+    await POST(makeRequest(), { params: Promise.resolve({ id: 'pred-1' }) })
 
     // Only 3 initial searches, LLM called once for evaluation only
     expect(searchArticles).toHaveBeenCalledTimes(3)
@@ -198,7 +200,7 @@ describe('POST /api/forecasts/[id]/research', () => {
       makeArticle('Israeli currency rises', 'reuters.com'),
     ])
 
-    await POST(makeRequest(), { params: { id: 'pred-1' } })
+    await POST(makeRequest(), { params: Promise.resolve({ id: 'pred-1' }) })
 
     // LLM is called exactly once (evaluation only — no fallback with 3 relevant articles)
     expect(generateContentMock).toHaveBeenCalledTimes(1)
@@ -209,7 +211,7 @@ describe('POST /api/forecasts/[id]/research', () => {
   it('passes the forecast period dates to the LLM prompt', async () => {
     vi.mocked(prisma.prediction.findUnique).mockResolvedValue(basePrediction as never)
 
-    await POST(makeRequest(), { params: { id: 'pred-1' } })
+    await POST(makeRequest(), { params: Promise.resolve({ id: 'pred-1' }) })
 
     const promptArg: string = generateContentMock.mock.calls[0][0].prompt
     expect(promptArg).toContain('2026-01-01')  // forecastStart
@@ -224,7 +226,7 @@ describe('POST /api/forecasts/[id]/research', () => {
       .mockResolvedValueOnce({ text: JSON.stringify({ queries: ['shekel usd'] }) })
       .mockResolvedValueOnce({ text: JSON.stringify({ outcome: 'wrong', reasoning: 'no evidence', evidenceLinks: [] }) })
 
-    await POST(makeRequest(), { params: { id: 'pred-1' } })
+    await POST(makeRequest(), { params: Promise.resolve({ id: 'pred-1' }) })
 
     const evalPrompt: string = generateContentMock.mock.calls[1][0].prompt
     expect(evalPrompt).toContain('Rely on your training knowledge')
@@ -247,7 +249,7 @@ describe('POST /api/forecasts/[id]/research', () => {
       makeArticle('Shekel dollar rate rises', 'reuters.com'),
     ])
 
-    await POST(makeRequest(), { params: { id: 'pred-1' } })
+    await POST(makeRequest(), { params: Promise.resolve({ id: 'pred-1' }) })
 
     // LLM called once (evaluation only)
     expect(generateContentMock).toHaveBeenCalledTimes(1)
@@ -266,7 +268,7 @@ describe('POST /api/forecasts/[id]/research', () => {
       .mockRejectedValueOnce(new Error('LLM rate limit'))
       .mockResolvedValueOnce({ text: JSON.stringify({ outcome: 'unresolvable', reasoning: 'no data', evidenceLinks: [] }) })
 
-    const response = await POST(makeRequest(), { params: { id: 'pred-1' } })
+    const response = await POST(makeRequest(), { params: Promise.resolve({ id: 'pred-1' }) })
     expect(response.status).toBe(200)
     const data = await response.json()
     expect(data.outcome).toBe('unresolvable')
@@ -285,7 +287,7 @@ describe('POST /api/forecasts/[id]/research', () => {
       .mockResolvedValueOnce({ text: JSON.stringify({ queries: ['shekel usd', 'ILS rate'] }) })
       .mockResolvedValueOnce({ text: JSON.stringify({ outcome: 'unresolvable', reasoning: 'fallback failed', evidenceLinks: [] }) })
 
-    const response = await POST(makeRequest(), { params: { id: 'pred-1' } })
+    const response = await POST(makeRequest(), { params: Promise.resolve({ id: 'pred-1' }) })
     expect(response.status).toBe(200)
   })
 })
