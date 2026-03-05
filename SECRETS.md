@@ -20,6 +20,12 @@
 | `GA_MEASUREMENT_ID_STAGING` | Server `.env` | Google Analytics 4 — staging (staging.daatan.com) |
 | `TELEGRAM_BOT_TOKEN` | Server `.env` | @ScoopPredictBot token from @BotFather (same token on both servers) |
 | `TELEGRAM_CHAT_ID` | Server `.env` | @ScoopPredict channel ID (`-1003127305278`). Must be set on both staging and production. |
+| `BOT_RUNNER_SECRET` | Server `.env` + GitHub Secret | Shared secret for `/api/bots/run` cron endpoint |
+| `OPENROUTER_API_KEY` | Server `.env` + GitHub Secret | OpenRouter LLM API key (used by bots) |
+| `RESEND_API_KEY` | Server `.env` | Email delivery via Resend |
+| `VAPID_PUBLIC_KEY` | Server `.env` | Browser push notification public key |
+| `VAPID_PRIVATE_KEY` | Server `.env` | Browser push notification private key |
+| `CRON_SECRET` | Server `.env` + GitHub Secret | Shared secret for `/api/cron/cleanup` endpoint |
 
 ### Current Setup
 
@@ -251,4 +257,4 @@ A:
 
 ---
 
-Last updated: February 19, 2026
+Last updated: March 5, 2026

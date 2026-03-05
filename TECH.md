@@ -1,7 +1,7 @@
 # DAATAN Technical Documentation
 
 > Technical architecture, infrastructure, project structure, and development guide.
-> Last updated: February 2026
+> Last updated: March 2026
 
 ---
 
@@ -29,7 +29,7 @@
 | Runtime | Node.js | 20.x |
 | Styling | Tailwind CSS | 3.4.x |
 | Database | PostgreSQL | 16 |
-| ORM | Prisma | 5.16.x |
+| ORM | Prisma | 5.22.x |
 | Authentication | NextAuth.js | 4.24.x |
 | Testing | Vitest | 4.x |
 | Containerization | Docker | Latest |
@@ -38,9 +38,15 @@
 | Cloud | AWS (EC2, Route 53, S3) | - |
 | IaC | Terraform | 1.x |
 | CI/CD | GitHub Actions | - |
-| AI Integration | Google Gemini API | - |
+| AI Integration | Google Gemini API (primary), Ollama (fallback), OpenRouter (bots) | - |
+| Prompt Management | AWS Bedrock Prompt Management | - |
+| Email | Resend | - |
+| Push Notifications | web-push (VAPID) | - |
+| Notifications | Telegram | - |
+| i18n | next-intl | 4.x |
+| Image Processing | Sharp | - |
 
-**LLM prompts** (forecast/prediction creation) are defined in `src/lib/llm/prompts/`: `expressPrediction.ts` (Express flow) and `extractPrediction.ts` (extract from text).
+**LLM prompts** (forecast/prediction creation) are managed via AWS Bedrock Prompt Management. See [docs/LLM_ARCHITECTURE.md](./docs/LLM_ARCHITECTURE.md).
 
 ---
 
@@ -174,7 +180,13 @@ src/
 │   │   ├── news-anchors/       # News anchor management
 │   │   ├── notifications/      # Notification endpoints
 │   │   ├── profile/            # User profile update
-│   │   ├── top-reputation/     # Leaderboard endpoint
+│   │   │   └── avatar/         # Avatar upload → S3
+│   │   ├── push/               # Browser push subscription management
+│   │   ├── ai/                 # AI-powered endpoints
+│   │   ├── cron/               # Cron job endpoints (cleanup, etc.)
+│   │   ├── tags/               # Tag management
+│   │   ├── leaderboard/        # Leaderboard endpoint
+│   │   ├── top-reputation/     # Top reputation endpoint (legacy)
 │   │   └── version/            # Version endpoint
 │   ├── admin/                  # Admin UI pages (role: ADMIN)
 │   │   └── bots/               # Bot management dashboard (BotsTable.tsx)
@@ -202,12 +214,15 @@ src/
 │   ├── Sidebar.tsx             # Navigation sidebar
 │   └── SessionWrapper.tsx      # Auth session provider
 ├── lib/                        # Shared utilities
-│   ├── llm/                    # LLM integration (Gemini)
-│   │   ├── prompts/            # LLM prompt templates
-│   │   │   ├── expressPrediction.ts  # Express forecast creation
-│   │   │   └── extractPrediction.ts  # Extract prediction from text
-│   │   ├── expressPrediction.ts
-│   │   └── gemini.ts
+│   ├── llm/                    # LLM integration
+│   │   ├── providers/          # Provider implementations
+│   │   │   ├── gemini.ts       # Google Gemini
+│   │   │   ├── ollama.ts       # Ollama (self-hosted fallback)
+│   │   │   └── openrouter.ts   # OpenRouter (bots)
+│   │   ├── bedrock-prompts.ts  # AWS Bedrock Prompt Management (5-min cache)
+│   │   ├── service.ts          # ResilientLLMService (primary + fallback)
+│   │   ├── types.ts            # LLMProvider, LLMRequest, LLMResponse
+│   │   └── index.ts            # Exports llmService, createBotLLMService
 │   ├── services/               # Business logic services
 │   ├── utils/                  # Utility functions
 │   ├── validations/            # Zod schemas
@@ -243,9 +258,12 @@ terraform/
 ├── security_groups.tf          # Firewall rules
 ├── route53.tf                  # DNS records
 ├── s3.tf                       # Backup bucket + IAM
+├── state.tf                    # S3 backend + DynamoDB state locking config
 ├── iam_ssm.tf                  # SSM access
 ├── variables.tf                # Input variables
 ├── outputs.tf                  # Output values
+├── backend-staging.hcl         # Staging backend config (partial configuration)
+├── backend-prod.hcl            # Production backend config (partial configuration)
 ├── terraform.tfvars            # Variable values (gitignored)
 └── terraform.tfvars.example    # Example variables
 ```
@@ -305,7 +323,8 @@ src/
 | EC2 Instance | t3.small | Ubuntu 24.04, 2GB RAM |
 | Elastic IP | Static | Assigned to EC2 |
 | Route 53 | Hosted Zone | daatan.com |
-| S3 Bucket | Backup Storage | 30-day retention |
+| S3 Bucket | Backup Storage | `daatan-db-backups-{account-id}`, 30-day retention |
+| S3 Bucket | Avatar Storage | `daatan-avatars-{account-id}`, public-read |
 | Security Group | Firewall | SSH (restricted), HTTP, HTTPS |
 | IAM Role | EC2 Profile | S3 backup access |
 
@@ -444,6 +463,14 @@ See [docs/bots.md](./docs/bots.md) for full bot system documentation.
 | `GOOGLE_CLIENT_SECRET` | OAuth client secret |
 | `GEMINI_API_KEY` | AI API key |
 | `BOT_RUNNER_SECRET` | Shared secret for `POST /api/bots/run` (cron endpoint) |
+| `OPENROUTER_API_KEY` | OpenRouter LLM API key (used by bots) |
+| `RESEND_API_KEY` | Email delivery via Resend |
+| `VAPID_PUBLIC_KEY` | Browser push notification public key |
+| `VAPID_PRIVATE_KEY` | Browser push notification private key |
+| `TELEGRAM_BOT_TOKEN` | Telegram bot token for notifications |
+| `TELEGRAM_CHAT_ID` | Telegram channel ID for notifications |
+| `CRON_SECRET` | Shared secret for `/api/cron/cleanup` |
+| `STAGING_URL` | Staging URL (used by bot runner workflow) |
 
 ---
 
@@ -481,13 +508,19 @@ See [docs/bots.md](./docs/bots.md) for full bot system documentation.
 
 | Model | Purpose | Key Fields |
 |-------|---------|------------|
-| User | User accounts | rs, cuAvailable, cuLocked, isBot |
-| Prediction | Forecast statements | claimText, outcomeType, status |
+| User | User accounts | rs, cuAvailable, cuLocked, isBot, avatarUrl, slug, username |
+| Prediction | Forecast statements | claimText, outcomeType, status, source |
 | PredictionOption | Options for multiple choice | text, predictionId |
 | Commitment | CU stakes | cuCommitted, rsSnapshot |
+| CommitmentWithdrawal | Early exit record | commitmentId, cuRefunded, penaltyBurned |
 | NewsAnchor | News context | url, title, source |
 | CuTransaction | CU ledger | type, amount, balanceAfter |
-| Notification | User notifications | type, message, read |
+| Comment | Prediction comments | content, userId, predictionId |
+| CommentReaction | Emoji reactions on comments | type, userId, commentId |
+| Notification | User notifications | type, message, read, userId |
+| NotificationPreference | Per-channel notification settings | userId, channel, enabled |
+| PushSubscription | Browser push subscription | userId, endpoint, keys |
+| ContextSnapshot | LLM context cache | key, content, expiresAt |
 | Tag | Prediction categories | name, slug |
 | BotConfig | Autonomous bot configuration | personaPrompt, intervalMinutes, autoApprove, tagFilter, voteBias |
 | BotRunLog | Audit log of bot actions | action (CREATED_FORECAST, VOTED, SKIPPED, ERROR), isDryRun, generatedText |
