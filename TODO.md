@@ -50,7 +50,7 @@
 
 - [x] **Feature: Private (unlisted) forecasts** — `isPublic Boolean @default(true)` + `shareToken String @unique` on `Prediction`. Filtered from feed, leaderboard, activity feed. Access gated by author/admin/shareToken URL. Visibility toggle on ForecastWizard (StepPublish), EditForecastClient, and ExpressForecastClient. Share-link banner shown to author on forecast detail page.
 
-- [ ] **Security: Enforce CSP headers on production** — flip the prod nginx block from `Content-Security-Policy-Report-Only` to `Content-Security-Policy` once staging monitoring (PR #356) confirms no violations.
+- [x] **Security: Enforce CSP headers on production** — flip the prod nginx block from `Content-Security-Policy-Report-Only` to `Content-Security-Policy` once staging monitoring (PR #356) confirms no violations.
 
 - [x] **Security: Add missing DB indexes** — `@@index([botId, action, isDryRun, runAt])` added to `BotRunLog`; `@@index([userId, cuReturned])` added to `Commitment`; migration `20260227100000_add_missing_indexes` applied.
 
@@ -60,8 +60,6 @@
 
 - [ ] **Security: Rate-limit context updates per user** — the 24h-per-forecast throttle can be bypassed by updating context on N forecasts simultaneously; add a user-level cap (e.g. 10 context updates/day across all forecasts) to bound LLM cost.
 
-- [ ] **Security: No bot-count limit** — `POST /api/admin/bots` has no cap; an admin can spin up thousands of bots each auto-granted 100 CU; add a configurable guard (e.g. `MAX_BOTS=50`) checked before creation.
-
 - [x] **Security: Env var validation at startup** — `src/instrumentation.ts` added; hard-throws on startup in production if `GEMINI_API_KEY`, `SERPER_API_KEY`, `VAPID_PRIVATE_KEY`, or `NEXT_PUBLIC_VAPID_PUBLIC_KEY` are missing.
 
 - [x] **Code: Cache session user in JWT** — `auth.ts` session callback still hits the DB on every authenticated request to fetch `cuAvailable`, `cuLocked`, `rs`, and `username`. `role` is already cached in the JWT token; extend caching to the remaining fields with a short TTL (~5 min) to skip the DB round-trip for most requests.
@@ -70,7 +68,7 @@
 
 - [x] **Code: Refactor inline LLM schemas to shared module** — `forecastBatchSchema` and `voteDecisionSchema` are defined inline in `bot-runner.ts`; move to `src/lib/llm/schemas/` and import from both `bot-runner.ts` and `bots/route.ts` to prevent drift.
 
-- [ ] **Profile: Custom avatar upload** — S3 storage, new `avatarUrl` field on User, upload UI on settings page; include server-side image resizing (Sharp), 5 MB size cap, JPEG/PNG/WebP only.
+- [x] **Profile: Custom avatar upload** — S3 storage, new `avatarUrl` field on User, upload UI on settings page; include server-side image resizing (Sharp), 5 MB size cap, JPEG/PNG/WebP only.
 
 - [x] **Testing: Missing coverage** — 764 tests across 60 files. Added: commitment service (calculatePenalty, removeCommitment, updateCommitment), admin routes, GET/PATCH/DELETE /api/forecasts/[id] (incl. shareToken gate, isPublic toggle), EditForecastClient, ExpressForecastClient visibility, activity feed isPublic filter. Slug collision and lockedAt race still untested.
 
