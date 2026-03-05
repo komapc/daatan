@@ -9,23 +9,21 @@ import { transitionIfExpired } from '@/lib/services/prediction-lifecycle'
 
 export const dynamic = 'force-dynamic'
 
-type RouteParams = {
-  params: { id: string }
-}
-
 // GET /api/predictions/[id] - Get a single prediction (supports ID or slug)
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
+
     // Transition this prediction to PENDING if it's past its deadline
-    await transitionIfExpired(params.id)
+    await transitionIfExpired(id)
 
     // Try to find by ID, slug, or shareToken
     const prediction = await prisma.prediction.findFirst({
       where: {
         OR: [
-          { id: params.id },
-          { slug: params.id },
-          { shareToken: params.id },
+          { id },
+          { slug: id },
+          { shareToken: id },
         ],
       },
       include: {
@@ -82,7 +80,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     // Access gate for private forecasts
     if (!prediction.isPublic) {
-      const accessedViaToken = params.id === prediction.shareToken
+      const accessedViaToken = id === prediction.shareToken
       const session = await getServerSession(authOptions)
       const isAuthor = session?.user?.id === prediction.authorId
       const isAdmin = session?.user?.role === 'ADMIN'
