@@ -26,22 +26,37 @@ fi
 
 echo -e "${BLUE}🔍 Verifying deployment at $URL${NC}"
 
-# Check Health and Version
+# Check Health and Version (with retries — container may still be starting)
 echo -n "Checking Health... "
-# Use a random query parameter to bypass cache
-CACHE_BUSTER=$(date +%s)
-HEALTH_RESPONSE_FULL=$(curl -s -v "$URL/api/health?cb=$CACHE_BUSTER" 2>&1)
-# Extract only the actual JSON response (last line that starts with {)
-HEALTH_RESPONSE=$(echo "$HEALTH_RESPONSE_FULL" | grep '^{' | tail -1)
-# Handle both "status":"ok" and "status": "ok" formats (with or without spaces)
-HEALTH_STATUS=$(echo "$HEALTH_RESPONSE" | grep -oE '"status"\s*:\s*"[^"]*"' | tail -1 | sed 's/.*"\([^"]*\)"$/\1/')
-DEPLOYED_VERSION=$(echo "$HEALTH_RESPONSE" | grep -oE '"version"\s*:\s*"[^"]*"' | tail -1 | sed 's/.*"\([^"]*\)"$/\1/')
-DEPLOYED_COMMIT=$(echo "$HEALTH_RESPONSE" | grep -oE '"commit"\s*:\s*"[^"]*"' | tail -1 | sed 's/.*"\([^"]*\)"$/\1/')
+MAX_RETRIES=12
+RETRY_INTERVAL=10
+HEALTH_STATUS=""
+HEALTH_RESPONSE=""
+DEPLOYED_VERSION=""
+DEPLOYED_COMMIT=""
+
+for i in $(seq 1 $MAX_RETRIES); do
+  CACHE_BUSTER=$(date +%s)
+  HEALTH_RESPONSE_FULL=$(curl -s -v "$URL/api/health?cb=$CACHE_BUSTER" 2>&1)
+  HEALTH_RESPONSE=$(echo "$HEALTH_RESPONSE_FULL" | grep '^{' | tail -1)
+  HEALTH_STATUS=$(echo "$HEALTH_RESPONSE" | grep -oE '"status"\s*:\s*"[^"]*"' | tail -1 | sed 's/.*"\([^"]*\)"$/\1/')
+  DEPLOYED_VERSION=$(echo "$HEALTH_RESPONSE" | grep -oE '"version"\s*:\s*"[^"]*"' | tail -1 | sed 's/.*"\([^"]*\)"$/\1/')
+  DEPLOYED_COMMIT=$(echo "$HEALTH_RESPONSE" | grep -oE '"commit"\s*:\s*"[^"]*"' | tail -1 | sed 's/.*"\([^"]*\)"$/\1/')
+
+  if [ "$HEALTH_STATUS" = "ok" ]; then
+    break
+  fi
+
+  if [ "$i" -lt "$MAX_RETRIES" ]; then
+    echo -e "\n  Attempt $i/$MAX_RETRIES failed (status='$HEALTH_STATUS'), retrying in ${RETRY_INTERVAL}s..."
+    sleep $RETRY_INTERVAL
+  fi
+done
 
 # Check if health is OK (required)
 if [ "$HEALTH_STATUS" != "ok" ]; then
     echo -e "${RED}FAILED${NC}"
-    echo -e "  Health Status: ${RED}$HEALTH_STATUS${NC}"
+    echo -e "  Health Status: ${RED}$HEALTH_STATUS${NC} (after $MAX_RETRIES attempts)"
     echo -e "  Full Response:"
     echo "$HEALTH_RESPONSE"
     exit 1
