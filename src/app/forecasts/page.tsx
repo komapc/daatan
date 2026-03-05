@@ -24,7 +24,7 @@ export default function PredictionsPage() {
       setIsLoading(true)
       setFetchError(null)
       try {
-        let url = '/api/predictions?limit=50'
+        let url = '/api/forecasts?limit=50'
 
         // Apply status filter
         if (filter === 'ACTIVE') {
