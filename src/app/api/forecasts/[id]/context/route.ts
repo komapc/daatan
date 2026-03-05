@@ -8,15 +8,12 @@ import { searchArticles } from '@/lib/utils/webSearch'
 
 export const dynamic = 'force-dynamic'
 
-type RouteParams = {
-    params: Record<string, string>
-}
-
 // GET — public endpoint returning context timeline
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
+        const { id } = await params
         const prediction = await prisma.prediction.findUnique({
-            where: { id: params.id },
+            where: { id },
             select: {
                 id: true,
                 detailsText: true,
@@ -41,7 +38,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 }
 
-export const POST = withAuth(async (request: NextRequest, user, { params }: RouteParams) => {
+export const POST = withAuth(async (request: NextRequest, user, { params }) => {
     try {
         const prediction = await prisma.prediction.findUnique({
             where: { id: params.id },

@@ -75,7 +75,7 @@ describe('POST /api/predictions/[id]/resolve', () => {
       }),
     })
 
-    const response = await resolvePrediction(request, { params: { id: 'pred-1' } })
+    const response = await resolvePrediction(request, { params: Promise.resolve({ id: 'pred-1' }) })
 
     expect(response.status).toBe(401)
   })
@@ -94,7 +94,7 @@ describe('POST /api/predictions/[id]/resolve', () => {
       }),
     })
 
-    const response = await resolvePrediction(request, { params: { id: 'pred-1' } })
+    const response = await resolvePrediction(request, { params: Promise.resolve({ id: 'pred-1' }) })
     const data = await response.json()
 
     expect(response.status).toBe(403)
@@ -135,7 +135,7 @@ describe('POST /api/predictions/[id]/resolve', () => {
       }),
     })
 
-    const response = await resolvePrediction(request, { params: { id: 'pred-1' } })
+    const response = await resolvePrediction(request, { params: Promise.resolve({ id: 'pred-1' }) })
 
     expect(response.status).toBe(200)
   })
@@ -174,7 +174,7 @@ describe('POST /api/predictions/[id]/resolve', () => {
       }),
     })
 
-    const response = await resolvePrediction(request, { params: { id: 'pred-1' } })
+    const response = await resolvePrediction(request, { params: Promise.resolve({ id: 'pred-1' }) })
 
     expect(response.status).toBe(200)
   })
@@ -196,7 +196,7 @@ describe('POST /api/predictions/[id]/resolve', () => {
       }),
     })
 
-    const response = await resolvePrediction(request, { params: { id: 'nonexistent' } })
+    const response = await resolvePrediction(request, { params: Promise.resolve({ id: 'nonexistent' }) })
     const data = await response.json()
 
     expect(response.status).toBe(404)
@@ -218,7 +218,7 @@ describe('POST /api/predictions/[id]/resolve', () => {
       body: JSON.stringify({ outcome: 'correct', resolutionNote: 'Test' }),
     })
 
-    await resolvePrediction(request, { params: { id: 'correct-id' } })
+    await resolvePrediction(request, { params: Promise.resolve({ id: 'correct-id' }) })
 
     expect(prisma.prediction.findUnique).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id: 'correct-id' } })
@@ -286,7 +286,7 @@ describe('POST /api/predictions/[id]/resolve', () => {
         body: JSON.stringify({ outcome: 'correct', resolutionNote: 'Test' }),
       })
 
-      await resolvePrediction(request, { params: { id: 'pred-1' } })
+      await resolvePrediction(request, { params: Promise.resolve({ id: 'pred-1' }) })
 
       expect(mockUserUpdate).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -313,7 +313,7 @@ describe('POST /api/predictions/[id]/resolve', () => {
         body: JSON.stringify({ outcome: 'correct', resolutionNote: 'Test' }),
       })
 
-      await resolvePrediction(request, { params: { id: 'pred-1' } })
+      await resolvePrediction(request, { params: Promise.resolve({ id: 'pred-1' }) })
 
       // cuReturned = floor(20 * 1.5) = 30, rsChange = 20 * 0.1 = 2
       expect(mockCommitmentUpdate).toHaveBeenCalledWith(
@@ -348,7 +348,7 @@ describe('POST /api/predictions/[id]/resolve', () => {
         body: JSON.stringify({ outcome: 'wrong', resolutionNote: 'Test' }),
       })
 
-      await resolvePrediction(request, { params: { id: 'pred-1' } })
+      await resolvePrediction(request, { params: Promise.resolve({ id: 'pred-1' }) })
 
       // cuReturned = 0, rsChange = -(20 * 0.05) = -1
       expect(mockCommitmentUpdate).toHaveBeenCalledWith(
@@ -383,7 +383,7 @@ describe('POST /api/predictions/[id]/resolve', () => {
         body: JSON.stringify({ outcome: 'void', resolutionNote: 'Voided' }),
       })
 
-      await resolvePrediction(request, { params: { id: 'pred-1' } })
+      await resolvePrediction(request, { params: Promise.resolve({ id: 'pred-1' }) })
 
       expect(mockCommitmentUpdate).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -417,7 +417,7 @@ describe('POST /api/predictions/[id]/resolve', () => {
         body: JSON.stringify({ outcome: 'wrong', resolutionNote: 'Test' }),
       })
 
-      await resolvePrediction(request, { params: { id: 'pred-1' } })
+      await resolvePrediction(request, { params: Promise.resolve({ id: 'pred-1' }) })
 
       // rsChange = -(50 * 0.05) = -2.5, but rs = max(0, 2 + (-2.5)) = 0
       expect(mockUserUpdate).toHaveBeenCalledWith(
@@ -453,7 +453,7 @@ describe('POST /api/predictions/[id]/resolve', () => {
       }),
     })
 
-    const response = await resolvePrediction(request, { params: { id: 'pred-1' } })
+    const response = await resolvePrediction(request, { params: Promise.resolve({ id: 'pred-1' }) })
     const data = await response.json()
 
     expect(response.status).toBe(400)

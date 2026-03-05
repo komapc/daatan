@@ -5,16 +5,12 @@ import { locales } from '@/i18n/config'
 
 export const dynamic = 'force-dynamic'
 
-type RouteParams = {
-  params: Record<string, string>
-}
-
 // POST /api/comments/[id]/translate
 // Body: { language: string }
 // Returns translated comment text
-export async function POST(request: NextRequest, { params }: RouteParams) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const id = params.id
+    const { id } = await params
     const body = await request.json()
     const { language } = body
 

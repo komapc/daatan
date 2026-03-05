@@ -52,7 +52,7 @@ vi.mock('@/lib/prisma', () => ({
 const makeRequest = (id: string, method = 'GET') =>
   new NextRequest(`http://localhost/api/forecasts/${id}/context`, { method })
 
-const routeParams = (id: string) => ({ params: { id } })
+const routeParams = (id: string) => ({ params: Promise.resolve({ id }) })
 
 describe('GET /api/forecasts/[id]/context', () => {
   beforeEach(() => {

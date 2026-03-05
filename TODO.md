@@ -10,7 +10,7 @@
 
 ### P1 - High Priority
 
-- [ ] **Separate Terraform state per environment** — Currently `staging` and `prod` share the same `prod/terraform.tfstate` in S3, which is highly dangerous. Implement "Partial Configuration" by moving `key` and `dynamodb_table` out of `main.tf` into separate `backend-staging.hcl` and `backend-prod.hcl` files. Update `state.tf` to provision a dedicated DynamoDB lock table for staging (`daatan-terraform-locks-staging`). Document the new `terraform init -backend-config=...` workflow.
+- [x] **Separate Terraform state per environment** — Currently `staging` and `prod` share the same `prod/terraform.tfstate` in S3, which is highly dangerous. Implement "Partial Configuration" by moving `key` and `dynamodb_table` out of `main.tf` into separate `backend-staging.hcl` and `backend-prod.hcl` files. Update `state.tf` to provision a dedicated DynamoDB lock table for staging (`daatan-terraform-locks-staging`). Document the new `terraform init -backend-config=...` workflow.
 
 - [x] **Security: Deleted users retain active sessions** — `src/lib/auth.ts` session callback silently returns stale data when the DB user is gone; fix by returning `null` (forces re-login) or adding an `isActive` flag checked on every session refresh.
 

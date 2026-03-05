@@ -4,8 +4,10 @@ import { NextRequest } from 'next/server'
 // ─── withAuth mock — injects a pre-made ADMIN user ───────────────────────────
 vi.mock('@/lib/api-middleware', () => ({
   withAuth: (handler: (req: Request, user: unknown, ctx: unknown) => unknown, _opts?: unknown) =>
-    (req: Request, ctx: Record<string, unknown>) =>
-      handler(req, { id: 'admin-1', email: 'admin@example.com', role: 'ADMIN', rs: 0, cuAvailable: 0, cuLocked: 0 }, ctx),
+    async (req: Request, ctx: { params: Promise<Record<string, string>> }) => {
+      const params = await ctx.params
+      return handler(req, { id: 'admin-1', email: 'admin@example.com', role: 'ADMIN', rs: 0, cuAvailable: 0, cuLocked: 0 }, { ...ctx, params })
+    },
 }))
 
 // ─── Prisma mock ─────────────────────────────────────────────────────────────
@@ -37,8 +39,8 @@ vi.mock('@/lib/logger', () => ({
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const CTX = { params: {} }
-const CTX_WITH_ID = (id: string) => ({ params: { id } })
+const CTX = { params: Promise.resolve({}) }
+const CTX_WITH_ID = (id: string) => ({ params: Promise.resolve({ id }) })
 
 function makeRequest(url: string, method = 'GET', body?: unknown) {
   return new NextRequest(url, {

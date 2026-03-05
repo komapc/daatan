@@ -19,9 +19,14 @@ interface AuthUser {
   cuLocked: number
 }
 
-/** Route handler context with typed params. */
+/** Route handler context with typed params (resolved). */
 interface RouteContext {
   params: Record<string, string>
+}
+
+/** Raw Next.js 15 context where params is always a Promise. */
+interface RawRouteContext {
+  params: Promise<Record<string, string>>
 }
 
 /** Options for the withAuth wrapper. */
@@ -48,7 +53,7 @@ export function withAuth(
   ) => Promise<NextResponse | Response>,
   options?: WithAuthOptions,
 ) {
-  return async (request: NextRequest, context: RouteContext) => {
+  return async (request: NextRequest, rawContext: RawRouteContext) => {
     let session: any = null
     try {
       session = await getServerSession(authOptions)
@@ -67,6 +72,7 @@ export function withAuth(
         }
       }
 
+      const context: RouteContext = { params: await rawContext.params }
       return await handler(request, user, context)
     } catch (error) {
       log.error({

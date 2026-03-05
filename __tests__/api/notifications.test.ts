@@ -36,7 +36,7 @@ describe('Notifications API', () => {
       mockGetServerSession.mockResolvedValue(null)
 
       const request = new NextRequest('http://localhost/api/notifications')
-      const response = await GET(request, { params: {} } as any)
+      const response = await GET(request, { params: Promise.resolve({}) } as any)
 
       expect(response.status).toBe(401)
     })
@@ -59,7 +59,7 @@ describe('Notifications API', () => {
         .mockResolvedValueOnce(1) // unread
 
       const request = new NextRequest('http://localhost/api/notifications?page=1&limit=20')
-      const response = await GET(request, { params: {} } as any)
+      const response = await GET(request, { params: Promise.resolve({}) } as any)
       const data = await response.json()
 
       expect(response.status).toBe(200)
@@ -84,7 +84,7 @@ describe('Notifications API', () => {
       vi.mocked(prisma.notification.count).mockResolvedValue(0)
 
       const request = new NextRequest('http://localhost/api/notifications?unreadOnly=true')
-      const response = await GET(request, { params: {} } as any)
+      const response = await GET(request, { params: Promise.resolve({}) } as any)
 
       expect(response.status).toBe(200)
       expect(prisma.notification.findMany).toHaveBeenCalledWith(
@@ -106,7 +106,7 @@ describe('Notifications API', () => {
       const request = new NextRequest('http://localhost/api/notifications', {
         method: 'POST',
       })
-      const response = await POST(request, { params: {} } as any)
+      const response = await POST(request, { params: Promise.resolve({}) } as any)
       const data = await response.json()
 
       expect(response.status).toBe(200)
@@ -120,7 +120,7 @@ describe('Notifications API', () => {
       const request = new NextRequest('http://localhost/api/notifications', {
         method: 'POST',
       })
-      const response = await POST(request, { params: {} } as any)
+      const response = await POST(request, { params: Promise.resolve({}) } as any)
 
       expect(response.status).toBe(401)
     })
@@ -137,7 +137,7 @@ describe('Notifications API', () => {
       const request = new NextRequest('http://localhost/api/notifications/n1', {
         method: 'PATCH',
       })
-      const response = await PATCH(request, { params: { id: 'n1' } })
+      const response = await PATCH(request, { params: Promise.resolve({ id: 'n1' }) })
 
       expect(response.status).toBe(200)
       expect(markNotificationRead).toHaveBeenCalledWith('n1', 'user1')
@@ -149,7 +149,7 @@ describe('Notifications API', () => {
       const request = new NextRequest('http://localhost/api/notifications/n1', {
         method: 'PATCH',
       })
-      const response = await PATCH(request, { params: { id: 'n1' } })
+      const response = await PATCH(request, { params: Promise.resolve({ id: 'n1' }) })
 
       expect(response.status).toBe(401)
     })
