@@ -18,7 +18,12 @@ export async function GET(request: NextRequest) {
     await transitionExpiredPredictions()
 
     const { searchParams } = new URL(request.url)
-    const session = await getServerSession(authOptions)
+    let session = null
+    try {
+      session = await getServerSession(authOptions)
+    } catch {
+      // Treat as unauthenticated if session retrieval fails
+    }
     const isAdminOrApprover = session?.user?.role === 'ADMIN' || session?.user?.role === 'APPROVER'
 
     const queryData = {
