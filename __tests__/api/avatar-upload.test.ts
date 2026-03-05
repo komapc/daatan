@@ -67,13 +67,13 @@ describe('POST /api/profile/avatar', () => {
   it('returns 401 if not authenticated', async () => {
     mockGetServerSession.mockResolvedValue(null)
     const req = createUploadRequest(new File([''], 'test.jpg', { type: 'image/jpeg' }))
-    const res = await POST(req, { params: {} })
+    const res = await POST(req, { params: Promise.resolve({}) })
     expect(res.status).toBe(401)
   })
 
   it('returns 400 if no file provided', async () => {
     const req = createUploadRequest(null)
-    const res = await POST(req, { params: {} })
+    const res = await POST(req, { params: Promise.resolve({}) })
     expect(res.status).toBe(400)
     const data = await res.json()
     expect(data.error).toContain('No file provided')
@@ -81,7 +81,7 @@ describe('POST /api/profile/avatar', () => {
 
   it('returns 400 if file is not an image', async () => {
     const req = createUploadRequest(new File(['hello'], 'test.txt', { type: 'text/plain' }))
-    const res = await POST(req, { params: {} })
+    const res = await POST(req, { params: Promise.resolve({}) })
     expect(res.status).toBe(400)
     const data = await res.json()
     expect(data.error).toContain('must be an image')
@@ -94,7 +94,7 @@ describe('POST /api/profile/avatar', () => {
     mockS3Send.mockResolvedValue({})
     mockPrisma.user.update.mockResolvedValue({ id: 'user-1', avatarUrl: 'http://s3/path' })
 
-    const res = await POST(req, { params: {} })
+    const res = await POST(req, { params: Promise.resolve({}) })
     
     expect(res.status).toBe(200)
     const data = await res.json()
@@ -120,7 +120,7 @@ describe('POST /api/profile/avatar', () => {
 
     mockS3Send.mockRejectedValue(new Error('S3 Down'))
 
-    const res = await POST(req, { params: {} })
+    const res = await POST(req, { params: Promise.resolve({}) })
     expect(res.status).toBe(500)
     const data = await res.json()
     expect(data.error).toBe('Failed to upload avatar')
