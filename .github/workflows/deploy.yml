@@ -329,16 +329,17 @@ jobs:
 
       - name: Check Instance SSM Health
         run: |
+          # Production containers run on the staging-tagged instance (both envs on same host)
           INSTANCE_ID=$(aws ec2 describe-instances \
-            --filters "Name=tag:Name,Values=daatan-backend" "Name=tag:Environment,Values=prod" \
+            --filters "Name=tag:Name,Values=daatan-backend" "Name=tag:Environment,Values=staging" \
             --query "Reservations[0].Instances[0].InstanceId" \
             --output text)
-          
+
           PING_STATUS=$(aws ssm describe-instance-information \
             --filters "Key=InstanceIds,Values=$INSTANCE_ID" \
             --query "InstanceInformationList[0].PingStatus" \
             --output text)
-            
+
           echo "Instance $INSTANCE_ID PingStatus: $PING_STATUS"
           if [[ "$PING_STATUS" != "Online" ]]; then
             echo "❌ Error: Instance is $PING_STATUS. SSM command will fail. Please check or reboot the instance."
@@ -349,9 +350,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Get Instance ID (Note: Tag Value is 'prod')
+          # Production containers run on the staging-tagged instance (both envs on same host)
           INSTANCE_ID=$(aws ec2 describe-instances \
-            --filters "Name=tag:Name,Values=daatan-backend" "Name=tag:Environment,Values=prod" \
+            --filters "Name=tag:Name,Values=daatan-backend" "Name=tag:Environment,Values=staging" \
             --query "Reservations[0].Instances[0].InstanceId" \
             --output text)
           echo "Found Production Instance: $INSTANCE_ID"
