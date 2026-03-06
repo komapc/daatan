@@ -191,6 +191,7 @@ fi
 # We run the new container directly (not via compose) to avoid name conflicts
 ENV_ARGS=""
 ENV_ARGS="$ENV_ARGS -e NODE_ENV=production"
+ENV_ARGS="$ENV_ARGS -e APP_ENV=${ENVIRONMENT}"
 ENV_ARGS="$ENV_ARGS -e NEXT_PUBLIC_ENV=${ENVIRONMENT}"
 ENV_ARGS="$ENV_ARGS -e NEXTAUTH_SECRET=${NEXTAUTH_SECRET}"
 ENV_ARGS="$ENV_ARGS -e GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}"

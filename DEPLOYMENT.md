@@ -24,11 +24,16 @@
 
 ### Prerequisites
 
-- SSH access to EC2 instance (configured as `daatan-release` or `daatan-staging` in `~/.ssh/config`)
-- SSH key: `~/.ssh/daatan-key.pem`
-- Docker and Docker Compose installed on EC2
+- AWS CLI configured with a profile that has SSM + S3 access (`aws sts get-caller-identity`)
 - GitHub CLI (`gh`) for local operations
 - Access to secrets (see [SECRETS.md](./SECRETS.md))
+
+> **SSH is blocked (port 22 closed).** All server access is via AWS SSM:
+> ```bash
+> INSTANCE_ID=$(aws ssm describe-instance-information \
+>   --query 'InstanceInformationList[0].InstanceId' --output text)
+> aws ssm start-session --target "$INSTANCE_ID"   # interactive shell
+> ```
 
 ### Verify Service Status
 
@@ -170,11 +175,15 @@ git push origin main
 **Use when:** You need zero-downtime deployment with instant rollback
 
 ```bash
-# Deploy to staging
-ssh daatan-staging "cd ~/app && ./scripts/blue-green-deploy.sh staging"
+# Deploy via SSM (SSH is blocked)
+INSTANCE_ID=$(aws ssm describe-instance-information \
+  --query 'InstanceInformationList[0].InstanceId' --output text)
 
-# Deploy to production
-ssh daatan-release "cd ~/app && ./scripts/blue-green-deploy.sh production"
+# Interactive session on server
+aws ssm start-session --target "$INSTANCE_ID"
+# Then on server:
+cd ~/app && ./scripts/blue-green-deploy.sh staging
+cd ~/app && ./scripts/blue-green-deploy.sh production
 ```
 
 **How it works:**
@@ -196,12 +205,15 @@ ssh daatan-release "cd ~/app && ./scripts/blue-green-deploy.sh production"
 - [ ] Deployment started
 - [ ] Health checks passing
 
-### 3. Manual Deployment (Direct SSH)
+### 3. Manual Deployment (via SSM)
 
 **Use when:** You need direct control or CI/CD is unavailable
 
 ```bash
-ssh -i ~/.ssh/daatan-key.pem ubuntu@<EC2_IP>
+INSTANCE_ID=$(aws ssm describe-instance-information \
+  --query 'InstanceInformationList[0].InstanceId' --output text)
+aws ssm start-session --target "$INSTANCE_ID"
+# On server:
 cd ~/app
 git pull origin main
 docker compose -f docker-compose.prod.yml up -d --build
@@ -209,7 +221,7 @@ docker compose -f docker-compose.prod.yml up -d --build
 ```
 
 **Checklist:**
-- [ ] SSH access working
+- [ ] SSM session established
 - [ ] Git pull successful
 - [ ] Docker build completed
 - [ ] Containers started
@@ -222,9 +234,9 @@ docker compose -f docker-compose.prod.yml up -d --build
 ### Immediate Checks (First 5 minutes)
 - [ ] Health endpoint responds: `curl https://daatan.com/api/health`
 - [ ] Staging health: `curl https://staging.daatan.com/api/health`
-- [ ] No error logs: `docker logs daatan-app --tail 50`
-- [ ] Nginx running: `docker ps | grep nginx`
-- [ ] Database connected: `docker exec daatan-postgres pg_isready`
+- [ ] No error logs (via SSM): `docker logs daatan-app --tail 50`
+- [ ] Nginx running (via SSM): `docker ps --format "{{.Names}} {{.Status}}"`
+- [ ] Database connected (via SSM): `docker exec daatan-postgres pg_isready -U daatan`
 
 ### Functional Checks (First 15 minutes)
 - [ ] Homepage loads
@@ -253,13 +265,13 @@ docker compose -f docker-compose.prod.yml up -d --build
 **Use when:** Current deployment is broken and you need to revert immediately
 
 ```bash
-# Rollback staging
-ssh -i ~/.ssh/daatan-key.pem ubuntu@<EC2_IP> \
-  "cd ~/app && ./scripts/rollback.sh staging"
-
-# Rollback production
-ssh -i ~/.ssh/daatan-key.pem ubuntu@<EC2_IP> \
-  "cd ~/app && ./scripts/rollback.sh production"
+# Open SSM session then run rollback on server
+INSTANCE_ID=$(aws ssm describe-instance-information \
+  --query 'InstanceInformationList[0].InstanceId' --output text)
+aws ssm start-session --target "$INSTANCE_ID"
+# On server:
+cd ~/app && ./scripts/rollback.sh staging
+cd ~/app && ./scripts/rollback.sh production
 ```
 
 **What happens:**
@@ -282,7 +294,7 @@ ssh -i ~/.ssh/daatan-key.pem ubuntu@<EC2_IP> \
 **Use when:** Rollback script fails or you need more control
 
 ```bash
-ssh -i ~/.ssh/daatan-key.pem ubuntu@<EC2_IP>
+# Via SSM session on server:
 cd ~/app
 git log --oneline -5                    # Check git history
 git checkout <commit-hash>              # Checkout previous commit
@@ -296,9 +308,12 @@ docker compose -f docker-compose.prod.yml up -d --build
 **Use when:** Database migrations failed
 
 ```bash
-docker exec daatan-app npx prisma migrate status
-docker exec daatan-app npx prisma migrate resolve --rolled-back <migration-name>
-docker exec daatan-app npx prisma migrate deploy
+# Via SSM session — always use staging container (prod image may be outdated)
+docker exec daatan-app-staging npx prisma migrate status
+docker exec -e DATABASE_URL=postgresql://daatan:<PASS>@postgres:5432/daatan \
+  daatan-app-staging npx prisma migrate resolve --rolled-back <migration-name>
+docker exec -e DATABASE_URL=postgresql://daatan:<PASS>@postgres:5432/daatan \
+  daatan-app-staging npx prisma migrate deploy
 ```
 
 ### Post-Rollback Actions
@@ -447,56 +462,73 @@ docker logs daatan-nginx --tail 100
 
 ## Useful Commands
 
+### Server Access
+
+```bash
+# All server operations go via AWS SSM (port 22 is blocked)
+INSTANCE_ID=$(aws ssm describe-instance-information \
+  --query 'InstanceInformationList[0].InstanceId' --output text)
+
+# Interactive shell
+aws ssm start-session --target "$INSTANCE_ID"
+
+# Non-interactive one-liner
+aws ssm send-command --instance-ids "$INSTANCE_ID" \
+  --document-name AWS-RunShellScript \
+  --parameters '{"commands":["<YOUR COMMAND>"]}' \
+  --query 'Command.CommandId' --output text
+# Then retrieve: aws ssm get-command-invocation --command-id <ID> --instance-id <INSTANCE_ID>
+```
+
 ### View Logs
 
 ```bash
-# Production app logs
-ssh -i ~/.ssh/daatan-key.pem ubuntu@<EC2_IP> \
-  "docker logs daatan-app --tail 100 -f"
-
-# Staging app logs
-ssh -i ~/.ssh/daatan-key.pem ubuntu@<EC2_IP> \
-  "docker logs daatan-app-staging --tail 100 -f"
-
-# Nginx logs
-ssh -i ~/.ssh/daatan-key.pem ubuntu@<EC2_IP> \
-  "docker logs daatan-nginx --tail 100 -f"
+# Via SSM session on server:
+docker logs daatan-app --tail 100 -f
+docker logs daatan-app-staging --tail 100 -f
+docker logs daatan-nginx --tail 100 -f
+docker logs daatan-postgres --tail 100
 ```
 
 ### Database Operations
 
 ```bash
-# Connect to database
-ssh -i ~/.ssh/daatan-key.pem ubuntu@<EC2_IP> \
-  "docker exec -it daatan-postgres psql -U daatan -d daatan"
+# Via SSM session on server:
+DB_PASS=$(grep POSTGRES_PASSWORD ~/app/.env | cut -d= -f2)
 
-# Run migrations
-ssh -i ~/.ssh/daatan-key.pem ubuntu@<EC2_IP> \
-  "docker exec daatan-app npx prisma migrate deploy"
+# Connect to production DB
+docker exec -it -e PGPASSWORD=$DB_PASS daatan-postgres psql -U daatan -d daatan
 
-# Backup database
-ssh -i ~/.ssh/daatan-key.pem ubuntu@<EC2_IP> \
-  "docker exec daatan-postgres pg_dump -U daatan daatan | gzip > ~/backups/daatan_\$(date +%Y%m%d_%H%M%S).sql.gz"
+# Run migrations (always use staging container — prod image may be outdated)
+docker exec -e DATABASE_URL=postgresql://daatan:$DB_PASS@postgres:5432/daatan \
+  daatan-app-staging npx prisma migrate deploy
+
+# Manual backup (also runs automatically at 03:00 UTC)
+bash ~/backup-db.sh
+
+# Check backup status
+tail -20 ~/backups/backup.log
+ls -lh ~/backups/*.sql.gz
+cat ~/.s3_bucket   # verify this points to daatan-db-backups-272007598366
 ```
 
 ### Container Management
 
 ```bash
+# Via SSM session on server:
+cd ~/app
+
 # Restart all services
-ssh -i ~/.ssh/daatan-key.pem ubuntu@<EC2_IP> \
-  "cd ~/app && docker compose -f docker-compose.prod.yml restart"
+docker compose -f docker-compose.prod.yml restart
 
 # Stop all services
-ssh -i ~/.ssh/daatan-key.pem ubuntu@<EC2_IP> \
-  "cd ~/app && docker compose -f docker-compose.prod.yml down"
+docker compose -f docker-compose.prod.yml down
 
 # Start all services
-ssh -i ~/.ssh/daatan-key.pem ubuntu@<EC2_IP> \
-  "cd ~/app && docker compose -f docker-compose.prod.yml up -d"
+docker compose -f docker-compose.prod.yml up -d
 
 # Rebuild and restart
-ssh -i ~/.ssh/daatan-key.pem ubuntu@<EC2_IP> \
-  "cd ~/app && docker compose -f docker-compose.prod.yml up -d --build"
+docker compose -f docker-compose.prod.yml up -d --build
 ```
 
 ---
