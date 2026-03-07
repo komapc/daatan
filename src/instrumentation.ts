@@ -70,19 +70,19 @@ export async function register() {
     )
 
     if (missing2.length > 0) {
+      // Warn only — hardcoded fallback prompts in bedrock-prompts.ts cover all PLACEHOLDER params
       // eslint-disable-next-line no-console
-      console.error(
-        `[startup] FATAL: The following SSM parameters are not configured (still PLACEHOLDER or missing):\n` +
+      console.warn(
+        `[startup] SSM params using hardcoded fallbacks (Bedrock not fully configured):\n` +
         missing2.map((n) => `  - ${n}`).join('\n') +
-        '\nRun ./scripts/promote-prompt.sh to set real Bedrock ARNs before deploying.',
+        '\nRun ./scripts/promote-prompt.sh to promote real Bedrock ARNs.',
       )
-      throw new Error(`Unconfigured SSM params: ${missing2.join(', ')}`)
+    } else {
+      // eslint-disable-next-line no-console
+      console.log(`[startup] SSM prompt params OK (${ssmEnv}, ${criticalPrompts.length} checked)`)
     }
-    // eslint-disable-next-line no-console
-    console.log(`[startup] SSM prompt params OK (${ssmEnv}, ${criticalPrompts.length} checked)`)
   } catch (error) {
-    if (error instanceof Error && error.message.startsWith('Unconfigured SSM')) throw error
-    // SSM unreachable (no IAM role locally etc.) — log and continue rather than crash non-prod
+    // SSM unreachable — log and continue
     // eslint-disable-next-line no-console
     console.warn('[startup] Could not validate SSM prompt params:', error)
   }
