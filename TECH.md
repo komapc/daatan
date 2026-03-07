@@ -24,7 +24,7 @@
 
 | Layer | Technology | Version |
 |-------|------------|---------|
-| Framework | Next.js (App Router) | 14.2.x |
+| Framework | Next.js (App Router) | 15.5.x |
 | Language | TypeScript | 5.x |
 | Runtime | Node.js | 20.x |
 | Styling | Tailwind CSS | 3.4.x |
@@ -87,11 +87,11 @@
 │  │         │                     │                           │  │
 │  │         └──────────┬──────────┘                           │  │
 │  │                    ▼                                      │  │
-│  │         ┌──────────────────────┐                          │  │
-│  │         │  daatan-postgres     │                          │  │
-│  │         │  (PostgreSQL 16)     │                          │  │
-│  │         │  :5432               │                          │  │
-│  │         └──────────────────────┘                          │  │
+│  │  ┌────────────────────┐  ┌──────────────────────────┐    │  │
+│  │  │  daatan-postgres   │  │  daatan-postgres-staging │    │  │
+│  │  │  DB: daatan        │  │  DB: daatan_staging      │    │  │
+│  │  │  :5432 (internal)  │  │  :5432 (internal)        │    │  │
+│  │  └────────────────────┘  └──────────────────────────┘    │  │
 │  │                                                           │  │
 │  │         ┌──────────────────────┐                          │  │
 │  │         │  daatan-certbot      │                          │  │
@@ -123,16 +123,20 @@
 | `daatan-nginx` | `nginx:alpine` | 80, 443 | Reverse proxy, SSL termination |
 | `daatan-app` | `daatan-app:latest` | 3000 (internal) | Production Next.js app |
 | `daatan-app-staging` | `daatan-app:staging-*` | 3000 (internal) | Staging Next.js app |
-| `daatan-postgres` | `postgres:16-alpine` | 5432 (internal) | PostgreSQL database |
+| `daatan-postgres` | `postgres:16-alpine` | 5432 (internal) | Production PostgreSQL (DB: `daatan`) |
+| `daatan-postgres-staging` | `postgres:16-alpine` | 5432 (internal) | Staging PostgreSQL (DB: `daatan_staging`) |
 | `daatan-certbot` | `certbot/certbot` | - | SSL certificate renewal |
 
 ### Volumes
 
 | Volume | Mount Point | Purpose |
 |--------|-------------|---------|
-| postgres_data | /var/lib/postgresql/data | Database persistence |
-| ./certbot/conf | /etc/letsencrypt | SSL certificates |
-| ./certbot/www | /var/www/certbot | ACME challenge files |
+| `app_postgres_data` | /var/lib/postgresql/data | Production DB persistence (named volume, Docker-prefixed) |
+| `app_postgres_staging_data` | /var/lib/postgresql/data | Staging DB persistence |
+| `./certbot/conf` | /etc/letsencrypt | SSL certificates |
+| `./certbot/www` | /var/www/certbot | ACME challenge files |
+
+> **Note:** Docker prefixes named volumes with the compose project name (`app_`) because compose runs from `/home/ubuntu/app/`. Data survives container restarts but NOT `docker compose down -v`.
 
 ---
 
@@ -323,10 +327,11 @@ src/
 | EC2 Instance | t3.small | Ubuntu 24.04, 2GB RAM |
 | Elastic IP | Static | Assigned to EC2 |
 | Route 53 | Hosted Zone | daatan.com |
-| S3 Bucket | Backup Storage | `daatan-db-backups-{account-id}`, 30-day retention |
-| S3 Bucket | Avatar Storage | `daatan-avatars-{account-id}`, public-read |
-| Security Group | Firewall | SSH (restricted), HTTP, HTTPS |
-| IAM Role | EC2 Profile | S3 backup access |
+| S3 Bucket | Production DB backups | `daatan-db-backups-272007598366` |
+| S3 Bucket | Staging DB backups | `daatan-db-backups-staging-272007598366` |
+| S3 Bucket | Avatar/upload storage | `daatan-uploads-prod-272007598366`, `daatan-uploads-staging-272007598366` |
+| Security Group | Firewall | HTTP, HTTPS (port 22 blocked — use SSM for server access) |
+| IAM Role | EC2 Profile | `daatan-ec2-role-staging` — SSM + S3 backup access (both buckets) |
 
 ### Live Deployment
 
@@ -350,7 +355,7 @@ src/
 
 | Port | Protocol | Source | Purpose |
 |------|----------|--------|---------|
-| 22 | TCP | Restricted CIDR | SSH access |
+| 22 | TCP | Blocked | SSH — not used; access is via AWS SSM only |
 | 80 | TCP | 0.0.0.0/0 | HTTP (redirects to HTTPS) |
 | 443 | TCP | 0.0.0.0/0 | HTTPS |
 | ICMP | - | 0.0.0.0/0 | Ping (debugging) |
@@ -535,25 +540,50 @@ See [docs/bots.md](./docs/bots.md) for full bot system documentation.
 
 ### Database Operations
 
+> **All server commands go via AWS SSM** — SSH port 22 is blocked. See `/ssm` skill or DEPLOYMENT.md.
+
 ```bash
-# Connect to database
-docker exec -it daatan-postgres psql -U daatan -d daatan
+# Connect to production DB (via SSM)
+aws ssm send-command --instance-ids <ID> --document-name AWS-RunShellScript \
+  --parameters '{"commands":["docker exec -i daatan-postgres psql -U daatan -d daatan -c \"\\dt\""]}'
 
-# Run migrations
-docker exec daatan-app npx prisma migrate deploy
+# Run migrations (always use staging app container — prod image may be outdated)
+# via SSM on the server:
+docker exec -e DATABASE_URL=postgresql://daatan:<PASS>@postgres:5432/daatan \
+  daatan-app-staging npx prisma migrate deploy
 
-# Check migration status
-docker exec daatan-app npx prisma migrate status
+# Check migration status (22 migrations total as of v1.7.18)
+docker exec daatan-app-staging npx prisma migrate status
 
-# Backup database
-docker exec daatan-postgres pg_dump -U daatan daatan | gzip > backup.sql.gz
+# Manual backup (script handles this automatically)
+bash /home/ubuntu/backup-db.sh
 ```
+
+### Prod/Staging DB Separation
+
+Both databases run on the **same EC2 instance** in separate containers:
+
+| | Production | Staging |
+|---|---|---|
+| Container | `daatan-postgres` | `daatan-postgres-staging` |
+| Database name | `daatan` | `daatan_staging` |
+| Volume | `app_postgres_data` | `app_postgres_staging_data` |
+| App container | `daatan-app` | `daatan-app-staging` |
+| URL | daatan.com | staging.daatan.com |
+
+The staging and production databases are **fully independent**. They share no data unless explicitly copied.
 
 ### Automated Backups
 
-- **Schedule:** Daily at 3 AM UTC
-- **Retention:** 30 days in S3, 3 local copies
-- **Location:** `s3://daatan-db-backups-{account-id}/daily/`
+- **Script:** `/home/ubuntu/backup-db.sh`
+- **Cron:** `/etc/cron.d/daatan-backup` — daily at **03:00 UTC**
+- **Target:** determined by `/home/ubuntu/.s3_bucket` (currently `daatan-db-backups-272007598366`)
+- **S3 path:** `s3://daatan-db-backups-272007598366/daily/daatan_YYYYMMDD_HHMMSS.sql.gz`
+- **Local retention:** last 7 files in `/home/ubuntu/backups/`
+- **Size guard:** files under 1 KB are rejected (catches empty-DB dumps)
+- **Exact container match:** uses `grep -qx daatan-postgres` to avoid false-matching `daatan-postgres-staging`
+
+> **Post-incident note (2026-03-06):** A misconfigured `.s3_bucket` file caused 24 days of backups to go to the staging bucket instead of production. Always verify `/home/ubuntu/.s3_bucket` after any infra changes.
 
 ---
 
