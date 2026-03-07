@@ -77,6 +77,9 @@ jobs:
       - name: Security audit
         run: npm audit --audit-level=critical || echo "⚠️ Audit found vulnerabilities — review before production deploy"
 
+      - name: Check env var parity (blue-green-deploy.sh vs docker-compose.prod.yml)
+        run: ./scripts/check-env-parity.sh
+
       # ECR Integration: Build and push Docker image (skip on PRs to save ECR storage)
       - name: Configure AWS credentials
         if: github.event_name != 'pull_request'

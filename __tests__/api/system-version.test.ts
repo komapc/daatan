@@ -15,5 +15,6 @@ describe('Health and Version API', () => {
     expect(data).toHaveProperty('version')
     expect(data).toHaveProperty('commit')
     expect(data).toHaveProperty('timestamp')
+    expect(data).toHaveProperty('env')
   })
 })
