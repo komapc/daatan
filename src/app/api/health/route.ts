@@ -15,5 +15,6 @@ export async function GET() {
     version: VERSION,
     commit: commitShort,
     timestamp: timestamp,
+    env: process.env.APP_ENV ?? 'unknown',
   })
 }

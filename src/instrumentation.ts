@@ -35,4 +35,55 @@ export async function register() {
     // Throw to prevent the server from starting in a broken state
     throw new Error(`Missing required env vars: ${missing.map((m) => m.key).join(', ')}`)
   }
+
+  // Validate critical SSM prompt params are not PLACEHOLDER.
+  // All of these are called without fallbacks in user-facing request paths;
+  // a PLACEHOLDER value causes a runtime error only when the feature is used.
+  const criticalPrompts = [
+    'express-prediction',
+    'extract-prediction',
+    'suggest-tags',
+    'update-context',
+    'dedupe-check',
+    'translate',
+    'research-query-generation',
+    'resolution-research',
+    'forecast-quality-validation',
+  ] as const
+
+  const rawEnv = process.env.APP_ENV || process.env.NEXT_PUBLIC_APP_ENV || 'staging'
+  const ssmEnv = rawEnv === 'production' ? 'prod' : rawEnv
+
+  try {
+    const { SSMClient, GetParametersCommand } = await import('@aws-sdk/client-ssm')
+    const ssm = new SSMClient({ region: process.env.AWS_REGION || 'eu-central-1' })
+
+    const paramNames = criticalPrompts.map((p) => `/daatan/${ssmEnv}/prompts/${p}`)
+    const res = await ssm.send(new GetParametersCommand({ Names: paramNames }))
+
+    const placeholders = (res.Parameters ?? [])
+      .filter((p) => !p.Value || p.Value === 'PLACEHOLDER')
+      .map((p) => p.Name ?? '')
+
+    const missing2 = paramNames.filter(
+      (name) => placeholders.includes(name) || !(res.Parameters ?? []).find((p) => p.Name === name),
+    )
+
+    if (missing2.length > 0) {
+      // eslint-disable-next-line no-console
+      console.error(
+        `[startup] FATAL: The following SSM parameters are not configured (still PLACEHOLDER or missing):\n` +
+        missing2.map((n) => `  - ${n}`).join('\n') +
+        '\nRun ./scripts/promote-prompt.sh to set real Bedrock ARNs before deploying.',
+      )
+      throw new Error(`Unconfigured SSM params: ${missing2.join(', ')}`)
+    }
+    // eslint-disable-next-line no-console
+    console.log(`[startup] SSM prompt params OK (${ssmEnv}, ${criticalPrompts.length} checked)`)
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith('Unconfigured SSM')) throw error
+    // SSM unreachable (no IAM role locally etc.) — log and continue rather than crash non-prod
+    // eslint-disable-next-line no-console
+    console.warn('[startup] Could not validate SSM prompt params:', error)
+  }
 }
