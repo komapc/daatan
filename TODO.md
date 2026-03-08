@@ -96,6 +96,12 @@
 
 - [x] **Analytics: GDPR/CCPA consent** — `CookieConsent.tsx` consent banner mounted in root layout; GA4 defaults to `analytics_storage: denied` and updates on user acceptance.
 
+- [ ] **Notifications: Accessibility** — Add `aria-pressed`, `aria-label` to notification buttons in `NotificationList.tsx` for screen readers.
+
+- [ ] **Notifications: API PATCH 404** — `PATCH /api/notifications/[id]` returns 200 even when `updateMany` affects 0 rows; return 404 when notification not found or not owned by user so the client can handle rollback correctly.
+
+- [ ] **Docs: VAPID setup** — Add subsection to SECRETS.md: `npx web-push generate-vapid-keys`, note that `NEXT_PUBLIC_VAPID_PUBLIC_KEY` must be baked at build time (GitHub Actions secret), `VAPID_PRIVATE_KEY` at runtime (EC2 `.env`); document key rotation if push subscriptions break.
+
 ### Verify / Check Later
 
 - [x] **Telegram notifications** — code-verified: `notifyForecastPublished` (publish route), `notifyNewCommitment` (commitment service), `notifyNewComment` (comments route), `notifyForecastResolved` (resolve route) all wired; staging prefixed 🧪; fire-and-forget, never throws.
