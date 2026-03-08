@@ -23,7 +23,7 @@ describe('Telegram notification service', () => {
     process.env = { ...originalEnv }
     process.env.TELEGRAM_BOT_TOKEN = 'test-token'
     process.env.TELEGRAM_CHAT_ID = '-100123'
-    process.env.NEXT_PUBLIC_ENV = 'production'
+    process.env.APP_ENV = 'production'
     vi.spyOn(global, 'fetch').mockResolvedValue({ ok: true } as Response)
   })
 
@@ -50,11 +50,11 @@ describe('Telegram notification service', () => {
     expect(body.text).toContain('New forecast published')
     expect(body.text).toContain('Will BTC reach 100k?')
     expect(body.text).toContain('Mark')
-    expect(body.text).not.toContain('🧪')
+    expect(body.text).toMatch(/^\[prod\]/)
   })
 
-  it('prefixes with 🧪 on staging', async () => {
-    process.env.NEXT_PUBLIC_ENV = 'staging'
+  it('prefixes with [staging] on staging', async () => {
+    process.env.APP_ENV = 'staging'
 
     notifyForecastPublished(
       { id: 'p1', claimText: 'Test claim' },
@@ -66,7 +66,7 @@ describe('Telegram notification service', () => {
     })
 
     const body = JSON.parse(vi.mocked(fetch).mock.calls[0][1]!.body as string)
-    expect(body.text).toMatch(/^🧪/)
+    expect(body.text).toMatch(/^\[staging\]/)
   })
 
   it('skips when TELEGRAM_BOT_TOKEN is missing', async () => {

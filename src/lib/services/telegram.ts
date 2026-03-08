@@ -17,10 +17,11 @@ async function sendChannelNotification(message: string): Promise<void> {
     return
   }
 
-  const isStaging = process.env.NEXT_PUBLIC_ENV === 'staging'
-  const prefixed = isStaging ? `🧪 ${message}` : message
+  const env = process.env.APP_ENV || process.env.NEXT_PUBLIC_APP_ENV || 'staging'
+  const prefix = env === 'production' ? 'prod' : 'staging'
+  const prefixed = `[${prefix}] ${message}`
 
-  log.debug({ chatId, isStaging }, 'Sending Telegram notification')
+  log.debug({ chatId, prefix }, 'Sending Telegram notification')
 
   try {
     const res = await fetch(`${TELEGRAM_API}${token}/sendMessage`, {
