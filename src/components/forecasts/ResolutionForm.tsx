@@ -19,6 +19,7 @@ export function ResolutionForm({ predictionId, outcomeType, options, onResolved 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isResearching, setIsResearching] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [resolved, setResolved] = useState(false)
 
   const handleAiResearch = async () => {
     setIsResearching(true)
@@ -81,12 +82,25 @@ export function ResolutionForm({ predictionId, outcomeType, options, onResolved 
         throw new Error(data.error || 'Failed to resolve prediction')
       }
 
+      setResolved(true)
       onResolved?.()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to resolve prediction')
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  if (resolved) {
+    return (
+      <div className="bg-green-50 border border-green-200 rounded-lg p-6 flex items-center gap-3 text-green-800">
+        <CheckCircle className="w-6 h-6 text-green-600 shrink-0" />
+        <div>
+          <div className="font-semibold">Forecast resolved as: {outcome}</div>
+          <div className="text-sm text-green-600">Page will refresh shortly.</div>
+        </div>
+      </div>
+    )
   }
 
   const isMultipleChoice = outcomeType === 'MULTIPLE_CHOICE'
