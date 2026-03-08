@@ -75,16 +75,18 @@ export async function GET(request: NextRequest) {
     // Don't show drafts or pending-approval forecasts in public feed
     if (!query.authorId && !query.status && !resolvedOnly) {
       where.status = { notIn: ['DRAFT', 'PENDING_APPROVAL'] }
-      where.isPublic = true
     }
 
-    // Author profile: show private only to the author themselves or admins
+    // Hide unlisted forecasts from everyone except the author or admin.
+    // Applies to ALL query shapes (feed, resolved, status-filtered, tag-filtered).
     if (query.authorId) {
       const isOwnProfile = session?.user?.id === query.authorId
       const isAdmin = session?.user?.role === 'ADMIN'
       if (!isOwnProfile && !isAdmin) {
         where.isPublic = true
       }
+    } else {
+      where.isPublic = true
     }
 
     // Handle "closing soon" filter (within 7 days)
