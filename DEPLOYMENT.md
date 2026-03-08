@@ -1,7 +1,7 @@
 # DAATAN Deployment Guide
 
 > Complete guide for deploying, managing, and troubleshooting DAATAN.
-> Last updated: February 2026
+> Last updated: March 2026
 
 ---
 
@@ -45,7 +45,7 @@ curl https://daatan.com/api/health
 curl https://staging.daatan.com/api/health
 
 # Expected response:
-# {"status":"ok","version":"1.x.x","timestamp":"..."}
+# {"status":"ok","version":"1.x.x","commit":"...","timestamp":"...","env":"production"}
 ```
 
 ---
@@ -503,13 +503,15 @@ docker exec -it -e PGPASSWORD=$DB_PASS daatan-postgres psql -U daatan -d daatan
 docker exec -e DATABASE_URL=postgresql://daatan:$DB_PASS@postgres:5432/daatan \
   daatan-app-staging npx prisma migrate deploy
 
-# Manual backup (also runs automatically at 03:00 UTC)
+# Manual backup (also runs automatically at 03:00 UTC — backs up BOTH prod and staging)
 bash ~/backup-db.sh
 
 # Check backup status
 tail -20 ~/backups/backup.log
 ls -lh ~/backups/*.sql.gz
-cat ~/.s3_bucket   # verify this points to daatan-db-backups-272007598366
+
+# Watchdog log (runs at 07:00 UTC, alerts Telegram if backup missing)
+tail -10 ~/backups/watchdog.log
 ```
 
 ### Container Management
