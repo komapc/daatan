@@ -14,6 +14,7 @@ export default function CreateForecastClient({ userId }: CreateForecastClientPro
   const searchParams = useSearchParams()
   const fromExpress = searchParams.get('from') === 'express'
   const [mode, setMode] = useState<'express' | 'manual'>('express')
+  const [sharedUserInput, setSharedUserInput] = useState('')
 
   // When redirected from express generation, go straight to the wizard
   if (fromExpress) {
@@ -58,9 +59,16 @@ export default function CreateForecastClient({ userId }: CreateForecastClientPro
 
       {/* Content */}
       {mode === 'express' ? (
-        <ExpressForecastClient userId={userId} />
+        <ExpressForecastClient 
+          userId={userId} 
+          initialInput={sharedUserInput}
+          onInputChange={setSharedUserInput}
+        />
       ) : (
-        <ForecastWizard isExpressFlow={false} />
+        <ForecastWizard 
+          isExpressFlow={false} 
+          initialClaim={sharedUserInput}
+        />
       )}
     </div>
   )

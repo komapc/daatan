@@ -10,6 +10,8 @@ const log = createClientLogger('ExpressForecast')
 
 interface ExpressForecastClientProps {
   userId: string
+  initialInput?: string
+  onInputChange?: (val: string) => void
 }
 
 interface GeneratedPrediction {
@@ -34,9 +36,18 @@ interface GeneratedPrediction {
 
 type Step = 'input' | 'searching' | 'analyzing' | 'generating' | 'review' | 'error'
 
-export default function ExpressForecastClient({ userId }: ExpressForecastClientProps) {
+export default function ExpressForecastClient({ 
+  userId, 
+  initialInput = '', 
+  onInputChange 
+}: ExpressForecastClientProps) {
   const router = useRouter()
-  const [userInput, setUserInput] = useState('')
+  const [userInput, setUserInput] = useState(initialInput)
+
+  const handleUserInputChange = (val: string) => {
+    setUserInput(val)
+    onInputChange?.(val)
+  }
   const [step, setStep] = useState<Step>('input')
   const [error, setError] = useState('')
   const [generated, setGenerated] = useState<GeneratedPrediction | null>(null)
@@ -148,6 +159,7 @@ export default function ExpressForecastClient({ userId }: ExpressForecastClientP
   const handleTryAgain = () => {
     setStep('input')
     setError('')
+    handleUserInputChange('')
     setGenerated(null)
     setEditForm(null)
     setIsEditing(false)
@@ -271,7 +283,7 @@ export default function ExpressForecastClient({ userId }: ExpressForecastClientP
           <textarea
             id="prediction-input"
             value={userInput}
-            onChange={(e) => setUserInput(e.target.value)}
+            onChange={(e) => handleUserInputChange(e.target.value)}
             placeholder="Describe your event OR paste a news article URL..."
             className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
             rows={3}

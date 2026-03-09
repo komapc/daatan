@@ -21,6 +21,7 @@ const { mockSearchArticles, mockGenerateContent, mockPrisma } = vi.hoisted(() =>
     prediction: {
       findUnique: vi.fn(),
       update: vi.fn(),
+      count: vi.fn().mockResolvedValue(0),
     },
     contextSnapshot: {
       create: vi.fn(),
@@ -156,6 +157,24 @@ describe('POST /api/forecasts/[id]/context', () => {
 
     const res = await POST(makeRequest('pred1', 'POST'), routeParams('pred1'))
     expect(res.status).toBe(429)
+  })
+
+  it('returns 429 when user daily limit reached (10 updates/day)', async () => {
+    mockGetServerSession.mockResolvedValue({ user: authenticatedUser })
+    mockPrisma.prediction.findUnique.mockResolvedValue({
+      id: 'pred1',
+      authorId: 'user1',
+      status: 'ACTIVE',
+      claimText: 'Test claim',
+      contextUpdatedAt: null,
+      newsAnchor: null,
+    })
+    mockPrisma.prediction.count.mockResolvedValueOnce(10)
+
+    const res = await POST(makeRequest('pred1', 'POST'), routeParams('pred1'))
+    expect(res.status).toBe(429)
+    const data = await res.json()
+    expect(data.error).toMatch(/daily/i)
   })
 
   it('returns 404 when no articles found', async () => {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { apiError, handleRouteError } from '@/lib/api-error'
-import { withAuth } from '@/lib/api-middleware'
+import { withAuth, type RouteContext } from '@/lib/api-middleware'
 import { prisma } from '@/lib/prisma'
 import { getPromptTemplate, fillPrompt } from '@/lib/llm/bedrock-prompts'
 import { llmService } from '@/lib/llm'
@@ -8,8 +8,13 @@ import { searchArticles } from '@/lib/utils/webSearch'
 
 export const dynamic = 'force-dynamic'
 
-// GET — public endpoint returning context timeline
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+/** Raw Next.js 15 context where params is a Promise. Used for direct exports. */
+type RawRouteContext = {
+    params: Promise<{ id: string }>
+}
+
+// GET — public endpoint returning context timeline (direct export, must use Promise params)
+export async function GET(request: NextRequest, { params }: RawRouteContext) {
     try {
         const { id } = await params
         const prediction = await prisma.prediction.findUnique({
@@ -38,10 +43,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 }
 
-export const POST = withAuth(async (request: NextRequest, user, { params }) => {
+// POST — protected endpoint (wrapped by withAuth, params already awaited)
+export const POST = withAuth(async (request: NextRequest, user, { params }: RouteContext) => {
     try {
+        const { id } = params
         const prediction = await prisma.prediction.findUnique({
-            where: { id: params.id },
+            where: { id },
             include: { newsAnchor: true }
         })
 
@@ -58,13 +65,25 @@ export const POST = withAuth(async (request: NextRequest, user, { params }) => {
             return apiError('Context can only be updated for active predictions', 400)
         }
 
-        // Rate Limiting (Once per 24 hours per forecast)
+        // Rate Limiting: once per 24 hours per forecast
         if (prediction.contextUpdatedAt) {
             const now = new Date()
             const timeDiffHours = (now.getTime() - new Date(prediction.contextUpdatedAt).getTime()) / (1000 * 60 * 60)
             if (timeDiffHours < 24) {
                 return apiError('Context was updated recently. Please wait 24 hours between updates.', 429)
             }
+        }
+
+        // Rate Limiting: max 10 context updates per user per day across all forecasts
+        const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000)
+        const dailyUserCount = await prisma.prediction.count({
+            where: {
+                authorId: user.id,
+                contextUpdatedAt: { gte: cutoff },
+            },
+        })
+        if (dailyUserCount >= 10) {
+            return apiError('Daily context update limit reached (10 per day). Please try again tomorrow.', 429)
         }
 
         // 1. Search for recent articles
