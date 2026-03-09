@@ -23,7 +23,7 @@ vi.mock('@/lib/prisma', () => ({
 // Mock the notification service
 vi.mock('@/lib/services/notification', () => ({
   markAllNotificationsRead: vi.fn(),
-  markNotificationRead: vi.fn(),
+  markNotificationRead: vi.fn().mockResolvedValue({ count: 1 }),
 }))
 
 describe('Notifications API', () => {
@@ -141,6 +141,20 @@ describe('Notifications API', () => {
 
       expect(response.status).toBe(200)
       expect(markNotificationRead).toHaveBeenCalledWith('n1', 'user1')
+    })
+
+    it('returns 404 when notification not found or not owned', async () => {
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user1', email: 'test@example.com', role: 'USER' },
+      })
+      const { markNotificationRead } = await import('@/lib/services/notification')
+      vi.mocked(markNotificationRead).mockResolvedValueOnce({ count: 0 })
+
+      const request = new NextRequest('http://localhost/api/notifications/missing', {
+        method: 'PATCH',
+      })
+      const response = await PATCH(request, { params: Promise.resolve({ id: 'missing' }) })
+      expect(response.status).toBe(404)
     })
 
     it('returns 401 when not authenticated', async () => {

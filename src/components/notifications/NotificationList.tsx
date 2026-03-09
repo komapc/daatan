@@ -155,6 +155,7 @@ export default function NotificationList({
           <button
             onClick={handleMarkAllRead}
             disabled={markingAllRead}
+            aria-label="Mark all notifications as read"
             className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium disabled:opacity-50"
           >
             {markingAllRead ? (
@@ -176,6 +177,8 @@ export default function NotificationList({
             <button
               key={notification.id}
               onClick={() => handleClick(notification)}
+              aria-label={`${notification.title}${!notification.read ? ', unread' : ''}`}
+              aria-pressed={notification.read}
               className={`w-full text-left flex items-start gap-3 p-4 rounded-lg transition-colors hover:bg-gray-50 ${
                 !notification.read ? 'bg-blue-50/50' : ''
               }`}
@@ -210,6 +213,7 @@ export default function NotificationList({
           <button
             onClick={handleLoadMore}
             disabled={loadingMore}
+            aria-label={`Load more notifications, ${total - notifications.length} remaining`}
             className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-50 disabled:opacity-50"
           >
             {loadingMore ? (
