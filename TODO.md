@@ -86,7 +86,7 @@
 - [x] Analytics: custom event tracking (signIn, forecastCreated, commitmentMade, commentPosted)
 - [x] Analytics: user ID tracking (`gtag set user_id`)
 - [x] Analytics: GDPR/CCPA consent banner (GA4 defaults denied)
-- [x] Testing: 759 tests across 59 files (commitment service, admin routes, forecast CRUD, notifications)
+- [x] Testing: 769 tests across 61 files (commitment service, admin routes, forecast CRUD, notifications)
 - [x] Testing: E2E smoke tests (Playwright — home, sign-in, 404, /api/health)
 - [x] About page (version, commit SHA, build date, link to repo)
 - [x] Docs: VAPID setup in SECRETS.md (key generation, build-time vs runtime, rotation caveats)
