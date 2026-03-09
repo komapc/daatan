@@ -4,14 +4,14 @@
 
 ---
 
-## Recommended Models (Cheapest First)
+## Recommended Models (Free Tier)
 
-| Model | Price/1K Tokens | Tokens/$5 | Best For |
-|-------|-----------------|-----------|----------|
-| **qwen-2.5-7b-instruct** | $0.00035 | ~14M | Simple Q&A, health checks |
-| **qwen-2.5-14b-instruct** | $0.00050 | ~10M | Code assistance, debugging |
-| **qwen-2.5-32b-instruct** | $0.00060 | ~8M | Complex reasoning |
-| **qwen-2.5-72b-instruct** | $0.00080 | ~6M | Best quality fallback |
+| Model | ID (use in config) | Context | Best For |
+|-------|--------------------|---------|----------|
+| **Gemini 2.0 Flash Exp** | `openrouter/google/gemini-2.0-flash-exp:free` | 1M | Primary model, fast & capable |
+| **Llama 3.3 70B** | `openrouter/meta-llama/llama-3.3-70b-instruct:free` | 128k | High quality fallback |
+| **Mistral Small 3** | `openrouter/mistralai/mistral-small-24b-instruct-2501:free` | 32k | Balanced fallback |
+| **Best Available Free** | `openrouter/free` | Varies | Catch-all fallback |
 
 ---
 
@@ -19,13 +19,15 @@
 
 ```json
 {
-  "routing": {
-    "fallback": "openrouter/qwen/qwen-2.5-7b-instruct"
+  "agents": {
+    "defaults": {
+      "model": "openrouter/google/gemini-2.0-flash-exp:free"
+    }
   }
 }
 ```
 
-**Why 7B?** Best value for money. Good enough for most fallback scenarios.
+**Why Gemini 2.0 Flash?** Massive context window and state-of-the-art performance for a free model.
 
 ---
 
@@ -35,101 +37,52 @@
 
 | Activity | Tokens/Day | Cost/Day | Cost/Month |
 |----------|------------|----------|------------|
-| **Light** (10 forecasts, 50 messages) | 20K | $0.007 | $0.21 |
-| **Medium** (30 forecasts, 200 messages) | 100K | $0.035 | $1.05 |
-| **Heavy** (100 forecasts, 1K messages) | 500K | $0.175 | $5.25 |
+| **Free Tier Models** | Any | $0.00 | $0.00 |
 
-**With $5 budget:** Up to **Medium** usage + occasional Heavy days.
+**With $5 budget:** Primarily used for non-free models if needed, otherwise $0.
 
 ---
 
 ## Cost Optimization Tips
 
-### 1. Use Local Fallback First
+### 1. Use Local Fallback
 
 ```json
 {
-  "routing": {
-    "fallback": "openrouter/qwen/qwen-2.5-7b-instruct",
-    "localFallback": "ollama/qwen2.5:1.5b"
-  }
-}
-```
-
-**Strategy:** Local handles 80% of fallback cases, cloud only for complex queries.
-
-**Savings:** ~60-80% on cloud costs.
-
----
-
-### 2. Set Per-Agent Limits
-
-```json
-{
-  "agents": {
-    "daatan": {
-      "model": {
-        "fallback": "openrouter/qwen/qwen-2.5-7b-instruct"
-      }
-    },
-    "calendar": {
-      "model": {
-        "fallback": "ollama/qwen2.5:1.5b"
+  "auth": {
+    "profiles": {
+      "ollama:default": {
+        "provider": "ollama",
+        "mode": "api_key"
       }
     }
   }
 }
 ```
 
-**Why:** Calendar agent does simpler tasks → use local only.
+**Strategy:** If OpenRouter is down or rate-limited, OpenClaw can fallback to local Ollama if configured.
+
+---
+
+### 2. Set Default Model
+
+```json
+{
+  "agents": {
+    "defaults": {
+      "model": "openrouter/google/gemini-2.0-flash-exp:free"
+    }
+  }
+}
+```
 
 ---
 
 ### 3. Monitor Usage
 
 ```bash
-# Check OpenRouter usage
-curl -H "Authorization: Bearer YOUR_API_KEY" \
-  https://openrouter.ai/api/v1/usage
-
-# Or visit: https://openrouter.ai/activity
-```
-
----
-
-### 4. Upgrade Model Only When Needed
-
-```json
-{
-  "agents": {
-    "daatan": {
-      "model": {
-        "fallback": "openrouter/qwen/qwen-2.5-7b-instruct",
-        "complex": "openrouter/qwen/qwen-2.5-72b-instruct"
-      }
-    }
-  }
-}
-```
-
-**Usage:** 72B only for complex code review, architecture decisions.
-
----
-
-## Budget Alerts
-
-### OpenRouter Dashboard
-
-1. Visit: https://openrouter.ai/settings
-2. Set spending limit: $5/month
-3. Enable email alerts at: $4 (80%), $4.50 (90%), $5 (100%)
-
-### Manual Tracking
-
-```bash
-# Add to crontab (weekly check)
-0 9 * * 1 curl -s -H "Authorization: Bearer YOUR_API_KEY" \
-  https://openrouter.ai/api/v1/usage | jq '.total_cost'
+# Check OpenRouter models
+docker exec openclaw node openclaw.mjs models list
 ```
 
 ---
@@ -137,22 +90,22 @@ curl -H "Authorization: Bearer YOUR_API_KEY" \
 ## Fallback Chain (Optimized)
 
 ```
-┌─────────────────────────────────────────┐
-│  Primary: google/gemini-1.5-pro         │
-│  (Your main model, best quality)        │
-└─────────────────┬───────────────────────┘
-                  │ (Gemini unavailable or quota exhausted)
+┌─────────────────────────────────────────────────────┐
+│  Primary: openrouter/google/gemini-2.0-flash:free   │
+│  (Best free model, huge context)                    │
+└─────────────────┬───────────────────────────────────┘
+                  │ (Rate limited or unavailable)
                   ▼
-┌─────────────────────────────────────────┐
-│  Fallback: openrouter/qwen-2.5-7b       │
-│  ($0.00035/1K tokens, good quality)     │
-└─────────────────┬───────────────────────┘
-                  │ (OpenRouter fails or budget exceeded)
+┌─────────────────────────────────────────────────────┐
+│  Fallback: openrouter/meta-llama/llama-3.3-70b:free │
+│  (High intelligence, reliable)                      │
+└─────────────────┬───────────────────────────────────┘
+                  │ (Still unavailable)
                   ▼
-┌─────────────────────────────────────────┐
-│  Local: ollama/qwen2.5:1.5b             │
-│  (Free, always available)               │
-└─────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│  Last Resort: ollama/qwen2.5:1.5b                   │
+│  (Local, free, always available)                    │
+└─────────────────────────────────────────────────────┘
 ```
 
 ---

@@ -13,53 +13,23 @@
         "paths": {
           "base": "./agents/corvus"
         },
-        "model": {
-          "primary": "google/gemini-2.0-flash-exp:free",
-          "fallbacks": [
-            "meta-llama/llama-3.3-70b-instruct:free",
-            "deepseek/deepseek-r1:free",
-            "mistralai/mistral-small-24b-instruct-2501:free",
-            "qwen/qwen-2.5-72b-instruct:free",
-            "openrouter/free",
-            "ollama/qwen2.5:1.5b"
-          ]
-        }
+        "model": "google/gemini-2.0-flash-exp:free"
       },
       "devops": {
         "id": "devops",
-        "label": "DevOps Agent",
+        "label": "Infrastructure",
         "paths": {
           "base": "./agents/devops"
         },
-        "model": {
-          "primary": "google/gemini-2.0-flash-exp:free",
-          "fallbacks": [
-            "meta-llama/llama-3.3-70b-instruct:free",
-            "deepseek/deepseek-r1:free",
-            "mistralai/mistral-small-24b-instruct-2501:free",
-            "qwen/qwen-2.5-72b-instruct:free",
-            "openrouter/free",
-            "ollama/qwen2.5:1.5b"
-          ]
-        }
+        "model": "google/gemini-2.0-flash-exp:free"
       },
       "qa": {
         "id": "qa",
-        "label": "QA Agent",
+        "label": "QA",
         "paths": {
           "base": "./agents/qa"
         },
-        "model": {
-          "primary": "google/gemini-2.0-flash-exp:free",
-          "fallbacks": [
-            "meta-llama/llama-3.3-70b-instruct:free",
-            "deepseek/deepseek-r1:free",
-            "mistralai/mistral-small-24b-instruct-2501:free",
-            "qwen/qwen-2.5-72b-instruct:free",
-            "openrouter/free",
-            "ollama/qwen2.5:1.5b"
-          ]
-        }
+        "model": "google/gemini-2.0-flash-exp:free"
       }
     }
   },
@@ -78,7 +48,7 @@
       },
       "ollama:default": {
         "provider": "ollama",
-        "mode": "none"
+        "mode": "api_key"
       }
     }
   }

@@ -4,49 +4,21 @@
   },
   "agents": {
     "defaults": {
-      "workspace": "/workspace"
+      "workspace": "/workspace",
+      "model": "google/gemini-2.0-flash-exp:free"
     },
     "definitions": {
       "main": {
         "id": "main",
         "label": "Calendar Agent",
-        "paths": { "base": "./agents/main" },
-        "model": {
-          "primary": "google/gemini-1.5-pro",
-          "fallbacks": [
-            "google/gemini-2.0-flash-exp:free",
-            "meta-llama/llama-3.3-70b-instruct:free",
-            "deepseek/deepseek-r1:free",
-            "mistralai/mistral-small-24b-instruct-2501:free",
-            "qwen/qwen-2.5-72b-instruct:free",
-            "openrouter/free",
-            "ollama/qwen2.5:1.5b"
-          ]
-        },
+        "paths": { "base": "./calendar-agent-bootstrap" },
+        "model": "google/gemini-2.0-flash-exp:free",
         "identity": {
           "name": "Calendar Agent",
           "theme": "Year-shape (Vite, TypeScript)",
           "emoji": "📅"
         }
       }
-    }
-  },
-  "models": {
-    "providers": {
-      "ollama": {
-        "baseUrl": "http://host.docker.internal:11434/v1",
-        "apiKey": "ollama-local",
-        "api": "openai-responses"
-      }
-    }
-  },
-  "channels": {
-    "telegram": {
-      "enabled": true,
-      "botToken": "${TELEGRAM_BOT_TOKEN}",
-      "chatId": "${TELEGRAM_CHAT_ID}",
-      "dmPolicy": "pairing",
-      "streamMode": "partial"
     }
   },
   "plugins": {
@@ -66,7 +38,7 @@
       },
       "ollama:default": {
         "provider": "ollama",
-        "mode": "none"
+        "mode": "api_key"
       }
     }
   }
