@@ -7,6 +7,7 @@ import Image from 'next/image'
 import { useSession, signOut, signIn } from 'next-auth/react'
 import { VERSION } from '@/lib/version'
 import { Avatar } from './Avatar'
+import { UserLink } from './UserLink'
 import { useUnreadCount } from '@/lib/hooks/useUnreadCount'
 import {
   Home,
@@ -135,13 +136,17 @@ const Sidebar = () => {
         </Link>
         <div className="flex items-center gap-2">
           {hasMounted && status === 'authenticated' && session?.user && (
-            <Link href="/profile" onClick={handleCloseMenu}>
-              <Avatar
-                src={session.user.image}
-                name={session.user.name}
-                size={32}
-              />
-            </Link>
+            <UserLink 
+              userId={session.user.id}
+              username={session.user.username}
+              name={session.user.name}
+              image={session.user.image}
+              showAvatar={true}
+              avatarSize={32}
+              onClick={handleCloseMenu}
+            >
+              <span />
+            </UserLink>
           )}
           <button
             onClick={handleToggleMenu}
@@ -244,17 +249,17 @@ const Sidebar = () => {
             </div>
           ) : effectiveStatus === 'authenticated' && session?.user ? (
             <div className="space-y-1">
-              <Link
-                href="/profile"
+              <UserLink
+                userId={session.user.id}
+                username={session.user.username}
+                name={session.user.name}
+                image={session.user.image}
+                showAvatar={true}
+                avatarSize={32}
                 onClick={handleCloseMenu}
-                className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors w-full"
               >
-                <Avatar
-                  src={session.user.image}
-                  name={session.user.name}
-                  size={32}
-                />
-                <div className="flex-1 overflow-hidden">
+                <div className="flex-1 overflow-hidden text-left">
                   <div className="flex items-center gap-1.5">
                     <p className="font-medium truncate text-sm">{session.user.username || session.user.name || 'User'}</p>
                     {session.user.role === 'ADMIN' && (
@@ -273,7 +278,7 @@ const Sidebar = () => {
                     {session.user.cuAvailable ?? 0} CU
                   </div>
                 </div>
-              </Link>
+              </UserLink>
               <button
                 onClick={handleSignOut}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors"

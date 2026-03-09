@@ -4,6 +4,7 @@ import { Loader2, CheckCircle, XCircle, ExternalLink, Bot } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import Link from 'next/link'
 import Image from 'next/image'
+import { UserLink } from '@/components/UserLink'
 
 type PendingForecast = {
     id: string
@@ -15,6 +16,7 @@ type PendingForecast = {
     createdAt: string
     publishedAt: string | null
     author: {
+        id: string
         name: string | null
         username: string | null
         email: string
@@ -176,16 +178,18 @@ export default function ApprovalsPage() {
                                 {/* Content */}
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-1.5">
-                                        {p.author.image ? (
-                                            <Image src={p.author.image} alt="" width={20} height={20} className="rounded-full" />
-                                        ) : (
-                                            <div className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-bold text-gray-500">
-                                                {p.author.name?.charAt(0) || '?'}
-                                            </div>
-                                        )}
-                                        <span className="text-sm font-medium text-gray-700">
-                                            {p.author.username || p.author.name || 'Anon'}
-                                        </span>
+                                        <UserLink 
+                                            userId={p.author.id}
+                                            username={p.author.username}
+                                            name={p.author.name}
+                                            image={p.author.image}
+                                            showAvatar={true}
+                                            avatarSize={20}
+                                        >
+                                            <span className="text-sm font-medium text-gray-700">
+                                                {p.author.username || p.author.name || 'Anon'}
+                                            </span>
+                                        </UserLink>
                                         {p.author.isBot && (
                                             <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-indigo-100 text-indigo-700">
                                                 <Bot className="w-3 h-3" /> Bot

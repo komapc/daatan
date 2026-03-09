@@ -4,30 +4,14 @@ import { useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useLocale, useTranslations } from 'next-intl'
 import { formatDistanceToNow } from 'date-fns'
-import Image from 'next/image'
 import { ThumbsUp, Lightbulb, ThumbsDown, Reply, Trash2, Edit2, MessageSquare, Loader2, Languages } from 'lucide-react'
 import CommentForm from './CommentForm'
 import type { Comment } from './CommentThread'
 import { RoleBadge } from '@/components/RoleBadge'
+import { UserLink } from '@/components/UserLink'
 import { createClientLogger } from '@/lib/client-logger'
 
 const log = createClientLogger('CommentItem')
-
-function SimpleAvatar({ user, size = 'sm' }: { user: { name: string | null; image: string | null }; size?: 'sm' | 'md' }) {
-  const sizeClass = size === 'sm' ? 'w-8 h-8 text-sm' : 'w-10 h-10 text-base'
-  const sizePixels = size === 'sm' ? 32 : 40
-  const initial = user.name?.charAt(0)?.toUpperCase() || '?'
-  
-  if (user.image) {
-    return <Image src={user.image} alt="" width={sizePixels} height={sizePixels} className={`${sizeClass} rounded-full`} />
-  }
-  
-  return (
-    <div className={`${sizeClass} rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold`}>
-      {initial}
-    </div>
-  )
-}
 
 interface CommentItemProps {
   comment: Comment
@@ -187,15 +171,28 @@ export default function CommentItem({
   return (
     <div className={`${isReply ? 'ml-8' : ''}`}>
       <div className="flex gap-3">
-        <SimpleAvatar user={comment.author} size="sm" />
+        <UserLink 
+          userId={comment.author.id}
+          username={comment.author.username}
+          name={comment.author.name}
+          image={comment.author.image}
+          showAvatar={true}
+          avatarSize={32}
+        >
+          {/* Empty children so it only renders the avatar */}
+          <span />
+        </UserLink>
         
         <div className="flex-1 space-y-2">
           {/* Header */}
           <div className="flex items-center gap-2 text-sm">
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-gray-900">
-                {comment.author.name || comment.author.username || 'Anonymous'}
-              </span>
+              <UserLink 
+                userId={comment.author.id}
+                username={comment.author.username}
+                name={comment.author.name}
+                className="font-semibold text-gray-900"
+              />
               {comment.author.role && (
                 <RoleBadge role={comment.author.role} size="sm" />
               )}
