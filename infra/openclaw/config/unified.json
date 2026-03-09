@@ -18,9 +18,7 @@
         "primary": "google/gemini-2.0-flash-exp:free",
         "fallbacks": [
           "meta-llama/llama-3.3-70b-instruct:free",
-          "deepseek/deepseek-r1:free",
           "mistralai/mistral-small-24b-instruct-2501:free",
-          "qwen/qwen-2.5-72b-instruct:free",
           "openrouter/free",
           "ollama/qwen2.5:1.5b"
         ]
@@ -48,9 +46,7 @@
         "primary": "google/gemini-2.0-flash-exp:free",
         "fallbacks": [
           "meta-llama/llama-3.3-70b-instruct:free",
-          "deepseek/deepseek-r1:free",
           "mistralai/mistral-small-24b-instruct-2501:free",
-          "qwen/qwen-2.5-72b-instruct:free",
           "openrouter/free",
           "ollama/qwen2.5:1.5b"
         ]
@@ -75,9 +71,7 @@
         "primary": "google/gemini-2.0-flash-exp:free",
         "fallbacks": [
           "meta-llama/llama-3.3-70b-instruct:free",
-          "deepseek/deepseek-r1:free",
           "mistralai/mistral-small-24b-instruct-2501:free",
-          "qwen/qwen-2.5-72b-instruct:free",
           "openrouter/free",
           "ollama/qwen2.5:1.5b"
         ]
