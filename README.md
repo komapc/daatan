@@ -6,8 +6,8 @@
 
 [![Live](https://img.shields.io/badge/Production-daatan.com-green)](https://daatan.com)
 [![Staging](https://img.shields.io/badge/Staging-staging.daatan.com-yellow)](https://staging.daatan.com)
-[![Version](https://img.shields.io/badge/Version-1.7.16-blue)](https://github.com/komapc/daatan/releases)
-[![Next.js](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org/)
+[![Version](https://img.shields.io/badge/Version-1.7.30-blue)](https://github.com/komapc/daatan/releases)
+[![Next.js](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)](https://www.typescriptlang.org/)
 
 ---
@@ -42,7 +42,7 @@ DAaTAn is a reputation-based product that enables testing understanding and fore
 
 | Layer | Technology |
 | ----- | ---------- |
-| Framework | Next.js 14 (React 18) |
+| Framework | Next.js 15 (React 18) |
 | Language | TypeScript 5 |
 | Styling | Tailwind CSS |
 | Database | PostgreSQL 16 + Prisma 5.22 |
@@ -123,6 +123,7 @@ git push origin v1.1.1
 | [SECRETS.md](./SECRETS.md) | Secrets management and security |
 | [VERSIONING.md](./VERSIONING.md) | Semantic versioning rules |
 | [TESTING.md](./TESTING.md) | Testing strategy and guidelines |
+| [SECURITY.md](./SECURITY.md) | Security policy and vulnerability reporting |
 | [PRODUCT.md](./PRODUCT.md) | Product vision and feature documentation |
 | [docs/bots.md](./docs/bots.md) | Autonomous bot system |
 | [docs/LLM_ARCHITECTURE.md](./docs/LLM_ARCHITECTURE.md) | LLM provider chain and Bedrock prompts |
