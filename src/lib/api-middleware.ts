@@ -20,7 +20,7 @@ interface AuthUser {
 }
 
 /** Route handler context with typed params (resolved). */
-interface RouteContext {
+export interface RouteContext {
   params: Record<string, string>
 }
 

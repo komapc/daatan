@@ -130,7 +130,35 @@ aws secretsmanager get-secret-value \
   --output text > .env
 ```
 
-### 2. Google Client Secret Rotation
+### 2. VAPID Keys (Browser Push Notifications)
+
+VAPID keys authenticate our server when sending Web Push notifications. Two keys are required:
+
+| Key | Where set | Notes |
+|-----|-----------|-------|
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Server `.env` **+ GitHub Actions secret** | Baked into the JS bundle at build time — must be a GitHub secret so CI can pass it to `next build` |
+| `VAPID_PRIVATE_KEY` | Server `.env` only | Runtime only, never exposed to the client |
+
+**Generating new keys:**
+```bash
+npx web-push generate-vapid-keys
+# Outputs:
+# Public Key:  Bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+# Private Key: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+**After generating:**
+1. Update `NEXT_PUBLIC_VAPID_PUBLIC_KEY` in the GitHub Actions secret (Settings → Secrets → `NEXT_PUBLIC_VAPID_PUBLIC_KEY`)
+2. Update both keys in `~/app/.env` on the server
+3. Restart the app container: `docker restart daatan-app` / `daatan-app-staging`
+4. Sync to AWS Secrets Manager
+
+**Key rotation (if push subscriptions break):**
+- All existing push subscriptions become invalid after key rotation — users must re-subscribe
+- The client re-subscribes automatically on next page load (service worker checks the public key)
+- Rotate only when the private key is compromised; otherwise leave keys unchanged
+
+### 3. Google Client Secret Rotation
 **When:** If `invalid_client` errors appear in logs or Google Cloud Console integrity is compromised.
 1.  **Generate New Secret:** Go to Google Cloud Console > Credentials > OAuth 2.0 Client IDs > Reset Secret.
 2.  **Update Config:**

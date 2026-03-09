@@ -409,9 +409,12 @@ export default function PredictionDetailPage() {
           <h2 className="text-xl font-semibold text-gray-900 mb-2">
             {error || 'Prediction not found'}
           </h2>
-          <Link href="/" className="text-blue-600 hover:underline">
+          <button 
+            onClick={() => { router.push('/'); router.refresh(); }}
+            className="text-blue-600 hover:underline"
+          >
             Back to Feed
-          </Link>
+          </button>
         </div>
       </div>
     )
@@ -420,13 +423,13 @@ export default function PredictionDetailPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">
       {/* Back Link */}
-      <Link
-        href="/"
+      <button
+        onClick={() => { router.push('/'); router.refresh(); }}
         className="inline-flex items-center gap-1 text-gray-500 hover:text-gray-700 mb-6"
       >
         <ChevronLeft className="w-4 h-4" />
         Back to Feed
-      </Link>
+      </button>
 
       <div className="lg:grid lg:grid-cols-[1fr_360px] lg:gap-8 lg:items-start">
         {/* Left column */}

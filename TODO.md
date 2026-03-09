@@ -58,7 +58,7 @@
 
 - [x] **Security: Schema validation for forecast creation** — covered by the `superRefine` above; BINARY requires no payload, MULTIPLE_CHOICE and NUMERIC_THRESHOLD validated at API entry point.
 
-- [ ] **Security: Rate-limit context updates per user** — the 24h-per-forecast throttle can be bypassed by updating context on N forecasts simultaneously; add a user-level cap (e.g. 10 context updates/day across all forecasts) to bound LLM cost.
+- [x] **Security: Rate-limit context updates per user** — the 24h-per-forecast throttle can be bypassed by updating context on N forecasts simultaneously; add a user-level cap (e.g. 10 context updates/day across all forecasts) to bound LLM cost.
 
 - [x] **Security: Env var validation at startup** — `src/instrumentation.ts` added; hard-throws on startup in production if `GEMINI_API_KEY`, `SERPER_API_KEY`, `VAPID_PRIVATE_KEY`, or `NEXT_PUBLIC_VAPID_PUBLIC_KEY` are missing.
 
@@ -96,11 +96,11 @@
 
 - [x] **Analytics: GDPR/CCPA consent** — `CookieConsent.tsx` consent banner mounted in root layout; GA4 defaults to `analytics_storage: denied` and updates on user acceptance.
 
-- [ ] **Notifications: Accessibility** — Add `aria-pressed`, `aria-label` to notification buttons in `NotificationList.tsx` for screen readers.
+- [x] **Notifications: Accessibility** — Add `aria-pressed`, `aria-label` to notification buttons in `NotificationList.tsx` for screen readers.
 
-- [ ] **Notifications: API PATCH 404** — `PATCH /api/notifications/[id]` returns 200 even when `updateMany` affects 0 rows; return 404 when notification not found or not owned by user so the client can handle rollback correctly.
+- [x] **Notifications: API PATCH 404** — `PATCH /api/notifications/[id]` returns 200 even when `updateMany` affects 0 rows; return 404 when notification not found or not owned by user so the client can handle rollback correctly.
 
-- [ ] **Docs: VAPID setup** — Add subsection to SECRETS.md: `npx web-push generate-vapid-keys`, note that `NEXT_PUBLIC_VAPID_PUBLIC_KEY` must be baked at build time (GitHub Actions secret), `VAPID_PRIVATE_KEY` at runtime (EC2 `.env`); document key rotation if push subscriptions break.
+- [x] **Docs: VAPID setup** — Add subsection to SECRETS.md: `npx web-push generate-vapid-keys`, note that `NEXT_PUBLIC_VAPID_PUBLIC_KEY` must be baked at build time (GitHub Actions secret), `VAPID_PRIVATE_KEY` at runtime (EC2 `.env`); document key rotation if push subscriptions break.
 
 ### Verify / Check Later
 

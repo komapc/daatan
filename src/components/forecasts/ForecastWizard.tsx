@@ -55,16 +55,17 @@ const STEPS = [
 
 interface ForecastWizardProps {
   isExpressFlow?: boolean
+  initialClaim?: string
 }
 
-export const ForecastWizard = ({ isExpressFlow = false }: ForecastWizardProps) => {
+export const ForecastWizard = ({ isExpressFlow = false, initialClaim = '' }: ForecastWizardProps) => {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(isExpressFlow ? 2 : 1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const [formData, setFormData] = useState<PredictionFormData>({
-    claimText: '',
+    claimText: initialClaim,
     tags: [],
     outcomeType: 'BINARY',
     resolveByDatetime: '',
