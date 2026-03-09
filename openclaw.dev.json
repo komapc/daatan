@@ -14,7 +14,7 @@
           "base": "./agents/corvus"
         },
         "model": {
-          "primary": "google/gemini-1.5-flash"
+          "primary": "openrouter/free"
         }
       },
       "devops": {
@@ -24,7 +24,7 @@
           "base": "./agents/devops"
         },
         "model": {
-          "primary": "google/gemini-1.5-flash"
+          "primary": "openrouter/free"
         }
       },
       "qa": {
@@ -34,7 +34,7 @@
           "base": "./agents/qa"
         },
         "model": {
-          "primary": "google/gemini-1.5-flash"
+          "primary": "openrouter/free"
         }
       }
     }
@@ -48,8 +48,8 @@
   },
   "auth": {
     "profiles": {
-      "google:default": {
-        "provider": "google",
+      "openrouter:default": {
+        "provider": "openrouter",
         "mode": "api_key"
       }
     }

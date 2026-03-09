@@ -14,7 +14,7 @@
       "sandbox": {
         "mode": "non-main"
       },
-      "model": "openrouter/stepfun/step-3.5-flash:free"
+      "model": "openrouter/free"
     },
     "list": [
       {
@@ -34,7 +34,7 @@
           "nextjs",
           "daatan-deploy"
         ],
-        "model": "openrouter/upstage/solar-pro-3:free"
+        "model": "openrouter/free"
       },
       {
         "id": "calendar",
@@ -51,7 +51,7 @@
           "cloudflare-pages",
           "tailwind"
         ],
-        "model": "openrouter/upstage/solar-pro-3:free"
+        "model": "openrouter/free"
       }
     ]
   },
@@ -79,8 +79,28 @@
         "api": "openai-completions",
         "models": [
           {
-            "id": "upstage/solar-pro-3:free",
-            "name": "Solar Pro 3 (free)"
+            "id": "openrouter/free",
+            "name": "Best Available Free Model"
+          },
+          {
+            "id": "meta-llama/llama-3.3-70b-instruct:free",
+            "name": "Llama 3.3 70B Instruct (free)"
+          },
+          {
+            "id": "google/gemini-2.0-flash-exp:free",
+            "name": "Gemini 2.0 Flash Exp (free)"
+          },
+          {
+            "id": "deepseek/deepseek-r1:free",
+            "name": "DeepSeek R1 (free)"
+          },
+          {
+            "id": "mistralai/mistral-small-24b-instruct-2501:free",
+            "name": "Mistral Small 3 (free)"
+          },
+          {
+            "id": "qwen/qwen-2.5-72b-instruct:free",
+            "name": "Qwen 2.5 72B (free)"
           },
           {
             "id": "stepfun/step-3.5-flash:free",
