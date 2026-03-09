@@ -577,13 +577,14 @@ The staging and production databases are **fully independent**. They share no da
 
 - **Script:** `/home/ubuntu/backup-db.sh`
 - **Cron:** `/etc/cron.d/daatan-backup` — daily at **03:00 UTC**
-- **Target:** determined by `/home/ubuntu/.s3_bucket` (currently `daatan-db-backups-272007598366`)
-- **S3 path:** `s3://daatan-db-backups-272007598366/daily/daatan_YYYYMMDD_HHMMSS.sql.gz`
+- **Backs up both DBs:**
+  - Prod (`daatan-postgres` → `daatan`) → `s3://daatan-db-backups-272007598366/daily/`
+  - Staging (`daatan-postgres-staging` → `daatan_staging`) → `s3://daatan-db-backups-staging-272007598366/daily/`
+- **S3 filename format:** `daatan_YYYYMMDD_HHMMSS.sql.gz` / `daatan_staging_YYYYMMDD_HHMMSS.sql.gz`
 - **Local retention:** last 7 files in `/home/ubuntu/backups/`
 - **Size guard:** files under 1 KB are rejected (catches empty-DB dumps)
-- **Exact container match:** uses `grep -qx daatan-postgres` to avoid false-matching `daatan-postgres-staging`
-
-> **Post-incident note (2026-03-06):** A misconfigured `.s3_bucket` file caused 24 days of backups to go to the staging bucket instead of production. Always verify `/home/ubuntu/.s3_bucket` after any infra changes.
+- **Failure alerting:** sends Telegram message to "Daatan Updates" channel on any failure
+- **Watchdog:** `/home/ubuntu/backup-watchdog.sh` — cron at **07:00 UTC** (`/etc/cron.d/daatan-backup-watchdog`), alerts if no backup uploaded to S3 today
 
 ---
 
