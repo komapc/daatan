@@ -17,7 +17,7 @@ export const GET = withAuth(async (req) => {
         prisma.prediction.findMany({
             where,
             include: {
-                author: { select: { name: true, username: true, email: true, image: true, isBot: true } },
+                author: { select: { id: true, name: true, username: true, email: true, image: true, isBot: true } },
                 _count: { select: { commitments: true, comments: true } },
             },
             skip: (page - 1) * limit,
