@@ -13,7 +13,15 @@
         "paths": { "base": "./agents/main" },
         "model": {
           "primary": "google/gemini-1.5-pro",
-          "fallbacks": ["ollama/qwen:1.5b"]
+          "fallbacks": [
+            "google/gemini-2.0-flash-exp:free",
+            "meta-llama/llama-3.3-70b-instruct:free",
+            "deepseek/deepseek-r1:free",
+            "mistralai/mistral-small-24b-instruct-2501:free",
+            "qwen/qwen-2.5-72b-instruct:free",
+            "openrouter/free",
+            "ollama/qwen2.5:1.5b"
+          ]
         },
         "identity": {
           "name": "Calendar Agent",
@@ -51,6 +59,14 @@
       "google:default": {
         "provider": "google",
         "mode": "api_key"
+      },
+      "openrouter:default": {
+        "provider": "openrouter",
+        "mode": "api_key"
+      },
+      "ollama:default": {
+        "provider": "ollama",
+        "mode": "none"
       }
     }
   }

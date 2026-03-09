@@ -14,7 +14,15 @@
           "base": "./agents/corvus"
         },
         "model": {
-          "primary": "openrouter/free"
+          "primary": "google/gemini-2.0-flash-exp:free",
+          "fallbacks": [
+            "meta-llama/llama-3.3-70b-instruct:free",
+            "deepseek/deepseek-r1:free",
+            "mistralai/mistral-small-24b-instruct-2501:free",
+            "qwen/qwen-2.5-72b-instruct:free",
+            "openrouter/free",
+            "ollama/qwen2.5:1.5b"
+          ]
         }
       },
       "devops": {
@@ -24,7 +32,15 @@
           "base": "./agents/devops"
         },
         "model": {
-          "primary": "openrouter/free"
+          "primary": "google/gemini-2.0-flash-exp:free",
+          "fallbacks": [
+            "meta-llama/llama-3.3-70b-instruct:free",
+            "deepseek/deepseek-r1:free",
+            "mistralai/mistral-small-24b-instruct-2501:free",
+            "qwen/qwen-2.5-72b-instruct:free",
+            "openrouter/free",
+            "ollama/qwen2.5:1.5b"
+          ]
         }
       },
       "qa": {
@@ -34,7 +50,15 @@
           "base": "./agents/qa"
         },
         "model": {
-          "primary": "openrouter/free"
+          "primary": "google/gemini-2.0-flash-exp:free",
+          "fallbacks": [
+            "meta-llama/llama-3.3-70b-instruct:free",
+            "deepseek/deepseek-r1:free",
+            "mistralai/mistral-small-24b-instruct-2501:free",
+            "qwen/qwen-2.5-72b-instruct:free",
+            "openrouter/free",
+            "ollama/qwen2.5:1.5b"
+          ]
         }
       }
     }
@@ -51,6 +75,10 @@
       "openrouter:default": {
         "provider": "openrouter",
         "mode": "api_key"
+      },
+      "ollama:default": {
+        "provider": "ollama",
+        "mode": "none"
       }
     }
   }
