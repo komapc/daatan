@@ -4,10 +4,10 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Activity, Loader2, TrendingUp, Clock, User } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
-import { Avatar } from '@/components/Avatar'
 import { createClientLogger } from '@/lib/client-logger'
 import { useTranslations } from 'next-intl'
 import EmptyState from '@/components/ui/EmptyState'
+import { UserLink } from '@/components/UserLink'
 
 const log = createClientLogger('ActivityFeed')
 
@@ -99,29 +99,36 @@ export default function ActivityFeedPage() {
               <div key={item.id} className="relative flex gap-4 pb-6 group">
                 {/* Timeline dot */}
                 <div className="relative z-10 shrink-0">
-                  <div className="w-10 h-10 rounded-full bg-white border-2 border-gray-200 flex items-center justify-center group-hover:border-blue-300 transition-colors">
-                    {item.user.image ? (
-                      <Avatar src={item.user.image} name={item.user.name} size={32} />
-                    ) : (
-                      <User className="w-5 h-5 text-gray-400" />
-                    )}
-                  </div>
+                  <UserLink 
+                    userId={item.user.id}
+                    username={item.user.username}
+                    name={item.user.name}
+                    image={item.user.image}
+                    showAvatar={true}
+                    avatarSize={32}
+                    className="w-10 h-10 rounded-full bg-white border-2 border-gray-200 flex items-center justify-center group-hover:border-blue-300 transition-colors"
+                  >
+                    {!item.user.image && <User className="w-5 h-5 text-gray-400" />}
+                  </UserLink>
                 </div>
 
                 {/* Content */}
                 <div className="flex-1 bg-white rounded-xl border border-gray-100 p-4 hover:border-blue-200 hover:shadow-sm transition-all">
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <p className="text-sm text-gray-700">
-                      <span className="font-semibold text-gray-900">
-                        {item.user.name || item.user.username || 'Anonymous'}
-                      </span>
+                    <div className="text-sm text-gray-700">
+                      <UserLink 
+                        userId={item.user.id}
+                        username={item.user.username}
+                        name={item.user.name}
+                        className="font-semibold text-gray-900"
+                      />
                       {' '}{t('committed')}{' '}
                       <span className="font-semibold text-amber-600">{item.cuCommitted} CU</span>
                       {' '}{t('cuOn')}{' '}
                       <span className="font-medium text-blue-600">
                         &quot;{getChoiceLabel(item)}&quot;
                       </span>
-                    </p>
+                    </div>
                     <div className="flex items-center gap-1 text-xs text-gray-400 shrink-0">
                       <Clock className="w-3 h-3" />
                       {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}
