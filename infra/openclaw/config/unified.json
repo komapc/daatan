@@ -2,9 +2,9 @@
   "$schema": "https://openclaw.ai/schema/v2.json",
   "gateway": {
     "mode": "local",
+    "bind": "loopback",
     "auth": {
-      "mode": "token",
-      "token": "daatan-control-pair-2026"
+      "mode": "none"
     },
     "trustedProxies": ["172.18.0.1", "127.0.0.1"]
   },

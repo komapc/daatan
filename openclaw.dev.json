@@ -4,7 +4,14 @@
   },
   "agents": {
     "defaults": {
-      "workspace": "/home/mark/projects/daatan"
+      "workspace": "/home/mark/projects/daatan",
+      "model": {
+        "primary": "openrouter/google/gemini-2.0-flash-lite-001",
+        "fallbacks": [
+          "openrouter/meta-llama/llama-3.3-70b-instruct:free",
+          "openrouter/free"
+        ]
+      }
     },
     "definitions": {
       "main": {
@@ -12,53 +19,20 @@
         "label": "Corvus (Dev)",
         "paths": {
           "base": "./agents/corvus"
-        },
-        "model": {
-          "primary": "google/gemini-2.0-flash-exp:free",
-          "fallbacks": [
-            "meta-llama/llama-3.3-70b-instruct:free",
-            "deepseek/deepseek-r1:free",
-            "mistralai/mistral-small-24b-instruct-2501:free",
-            "qwen/qwen-2.5-72b-instruct:free",
-            "openrouter/free",
-            "ollama/qwen2.5:1.5b"
-          ]
         }
       },
       "devops": {
         "id": "devops",
-        "label": "DevOps Agent (Dev)",
+        "label": "Infrastructure (Dev)",
         "paths": {
           "base": "./agents/devops"
-        },
-        "model": {
-          "primary": "google/gemini-2.0-flash-exp:free",
-          "fallbacks": [
-            "meta-llama/llama-3.3-70b-instruct:free",
-            "deepseek/deepseek-r1:free",
-            "mistralai/mistral-small-24b-instruct-2501:free",
-            "qwen/qwen-2.5-72b-instruct:free",
-            "openrouter/free",
-            "ollama/qwen2.5:1.5b"
-          ]
         }
       },
       "qa": {
         "id": "qa",
-        "label": "QA Agent (Dev)",
+        "label": "QA (Dev)",
         "paths": {
           "base": "./agents/qa"
-        },
-        "model": {
-          "primary": "google/gemini-2.0-flash-exp:free",
-          "fallbacks": [
-            "meta-llama/llama-3.3-70b-instruct:free",
-            "deepseek/deepseek-r1:free",
-            "mistralai/mistral-small-24b-instruct-2501:free",
-            "qwen/qwen-2.5-72b-instruct:free",
-            "openrouter/free",
-            "ollama/qwen2.5:1.5b"
-          ]
         }
       }
     }
@@ -75,10 +49,6 @@
       "openrouter:default": {
         "provider": "openrouter",
         "mode": "api_key"
-      },
-      "ollama:default": {
-        "provider": "ollama",
-        "mode": "none"
       }
     }
   }

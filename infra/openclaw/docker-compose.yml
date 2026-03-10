@@ -17,12 +17,11 @@ services:
     env_file:
       - .env
     environment:
-      - OPENCLAW_GATEWAY_BIND=lan
+      - OPENCLAW_GATEWAY_BIND=loopback
       - OPENCLAW_CONFIG_PATH=/app/openclaw.json
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    ports:
-      - "18789:18789"
+    network_mode: "host"
     healthcheck:
       test: [ "CMD", "pgrep", "-f", "openclaw" ]
       interval: 30s
