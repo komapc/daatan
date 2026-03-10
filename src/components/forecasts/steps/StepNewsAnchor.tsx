@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Link as LinkIcon, X, ExternalLink, Loader2, Wand2 } from 'lucide-react'
+import { Link as LinkIcon, X, ExternalLink, Loader2, Wand2, CheckCircle2 } from 'lucide-react'
 import type { PredictionFormData } from '../ForecastWizard'
 import { createClientLogger } from '@/lib/client-logger'
 
@@ -27,6 +27,7 @@ export const StepNewsAnchor = ({ formData, updateFormData }: Props) => {
   const [isSearching, setIsSearching] = useState(false)
   const [isExtracting, setIsExtracting] = useState(false)
   const [selectedAnchor, setSelectedAnchor] = useState<NewsAnchor | null>(null)
+  const [skipNews, setSkipNews] = useState(!formData.newsAnchorId && !formData.newsAnchorUrl)
 
   const isUrl = /^https?:\/\/[^\s]+$/i.test(url.trim())
 
@@ -174,6 +175,14 @@ export const StepNewsAnchor = ({ formData, updateFormData }: Props) => {
     })
   }
 
+  const handleSkipNewsToggle = (checked: boolean) => {
+    setSkipNews(checked)
+    if (checked) {
+      // Clear news anchor data when skipping
+      handleClear()
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -283,17 +292,50 @@ export const StepNewsAnchor = ({ formData, updateFormData }: Props) => {
         </div>
       )}
 
-      <div className="p-4 bg-blue-50 border border-blue-100 rounded-lg flex items-start gap-3">
-        <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
-          <Wand2 className="w-5 h-5" />
+      {!skipNews && (
+        <div className="p-4 bg-blue-50 border border-blue-100 rounded-lg flex items-start gap-3">
+          <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+            <Wand2 className="w-5 h-5" />
+          </div>
+          <div>
+            <h4 className="font-medium text-blue-900 text-sm">AI Magic Extract</h4>
+            <p className="text-sm text-blue-700 mt-0.5">
+              Paste a URL and click Magic Extract. We&apos;ll automatically identify the prediction, resolution date, and options for you.
+            </p>
+          </div>
         </div>
-        <div>
-          <h4 className="font-medium text-blue-900 text-sm">AI Magic Extract</h4>
-          <p className="text-sm text-blue-700 mt-0.5">
-            Paste a URL and click Magic Extract. We&apos;ll automatically identify the prediction, resolution date, and options for you.
-          </p>
-        </div>
+      )}
+
+      <div className="border-t pt-6">
+        <label className="flex items-center gap-3 cursor-pointer group">
+          <input
+            type="checkbox"
+            checked={skipNews}
+            onChange={(e) => handleSkipNewsToggle(e.target.checked)}
+            className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          />
+          <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
+            Create prediction without a URL
+          </span>
+        </label>
+        <p className="text-xs text-gray-500 mt-2 ml-8">
+          You can create a prediction based on your own analysis or general knowledge without linking to a specific article.
+        </p>
       </div>
+
+      {skipNews && (
+        <div className="p-4 bg-green-50 border border-green-100 rounded-lg flex items-start gap-3">
+          <div className="p-2 bg-green-100 rounded-lg text-green-600">
+            <CheckCircle2 className="w-5 h-5" />
+          </div>
+          <div>
+            <h4 className="font-medium text-green-900 text-sm">Ready to proceed</h4>
+            <p className="text-sm text-green-700 mt-0.5">
+              You can now write your prediction claim and define the resolution criteria.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
