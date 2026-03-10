@@ -3,7 +3,7 @@ import { withAuth } from '@/lib/api-middleware'
 import { apiError, handleRouteError } from '@/lib/api-error'
 import { prisma } from '@/lib/prisma'
 import { createCommitment } from '@/lib/services/commitment'
-import { notifyForecastPublished } from '@/lib/services/telegram'
+import { notifyBotForecastApproved } from '@/lib/services/telegram'
 
 export const dynamic = 'force-dynamic'
 
@@ -87,8 +87,14 @@ export const POST = withAuth(async (_request, user, { params }) => {
       }
     }
 
-    // Send notification about the published forecast
-    notifyForecastPublished(updated, updated.author)
+    // Fetch approver info for notification
+    const approver = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { name: true, username: true },
+    })
+    if (approver) {
+      notifyBotForecastApproved(updated, updated.author, approver)
+    }
 
     return NextResponse.json(updated)
   } catch (error) {

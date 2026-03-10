@@ -121,3 +121,31 @@ export function notifyForecastResolved(
 
   sendChannelNotification(msg)
 }
+
+export function notifyBotForecastApproved(
+  prediction: ForecastInfo,
+  botAuthor: UserInfo,
+  approver: UserInfo,
+): void {
+  const msg = [
+    `✅ <b>Bot forecast approved</b>`,
+    `"${truncate(prediction.claimText, 120)}"`,
+    `Bot: ${userName(botAuthor)} → approved by ${userName(approver)}`,
+  ].join('\n')
+
+  sendChannelNotification(msg)
+}
+
+export function notifyBotForecastRejected(
+  prediction: ForecastInfo,
+  botAuthor: UserInfo,
+  rejector: UserInfo,
+): void {
+  const msg = [
+    `❌ <b>Bot forecast rejected</b>`,
+    `"${truncate(prediction.claimText, 120)}"`,
+    `Bot: ${userName(botAuthor)} → rejected by ${userName(rejector)}`,
+  ].join('\n')
+
+  sendChannelNotification(msg)
+}

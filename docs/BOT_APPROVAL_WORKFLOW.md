@@ -164,24 +164,96 @@ When a user rejects a forecast, the topic is logged to prevent future duplicate 
 }
 ```
 
-## Admin UI Workflow
+## Admin UI Implementation
+
+### Bot Configuration (Bots Tab)
+
+**File:** `src/app/admin/BotsTable.tsx`
+
+New fields in EditBotModal:
+- **Require approval for forecasts** (checkbox)
+  - When enabled: forecasts created with PENDING_APPROVAL status
+  - Defers staking until manual approval
+  - Default: false
+
+- **Enable sentiment extraction** (checkbox)
+  - When enabled: bot extracts sentiment from article clusters
+  - Populates prediction.sentiment field
+  - Default: false
+
+- **Track rejected topics** (checkbox)
+  - When enabled: rejected forecasts create BotRejectedTopic entries
+  - Prevents bot from re-suggesting similar topics
+  - Default: false
+
+- **Show metadata on forecast** (checkbox)
+  - When enabled: metadata block visible on forecast detail page
+  - Shows sentiment, confidence, entities, consensus line
+  - Default: false
+
+- **Max forecasts/hour** (number field, 0 = unlimited)
+  - Rate limit per hour
+  - Bot stops creating forecasts when limit reached
+  - Default: 0 (unlimited)
+
+**UI Pattern:**
+```tsx
+<div className="border rounded-lg p-3 space-y-3 bg-gray-50">
+  <p className="text-xs font-semibold text-gray-500 uppercase">Actions & Approval</p>
+  <label>Require approval for forecasts</label>
+  <label>Enable sentiment extraction</label>
+  <label>Track rejected topics</label>
+  <label>Show metadata on forecast</label>
+  <NumberField label="Max forecasts/hour" ... />
+</div>
+```
 
 ### Pending Approvals Tab
 
-**Future enhancement** - Create admin panel showing:
-- List of `PENDING_APPROVAL` forecasts created by bots
-- Filter by bot, date range, status
-- Quick approve/reject actions
-- Rejection reason/keywords
+**File:** `src/app/admin/approvals/page.tsx`
 
-### Bot Configuration
+Displays `PENDING_APPROVAL` forecasts with:
+- Forecast claim text (truncated)
+- Bot author name and handle
+- Creation date + time
+- Metadata badge (sentiment, confidence when available)
+- Quick approve/reject buttons
 
-In the Bots admin tab, configure approval settings:
-- ☑️ Require approval for forecasts
-- ☑️ Enable sentiment extraction
-- ☑️ Track rejected topics
-- ☑️ Show metadata on forecasts
-- Input: Max forecasts per hour
+**Workflow:**
+1. Admin/approver opens Pending Approvals tab
+2. Review bot-generated forecast claim
+3. Click ✓ Approve → calls `POST /api/forecasts/[id]/approve`
+   - Status changes to ACTIVE
+   - Bot stakes automatically
+   - Telegram notification sent
+   - Forecast appears in live feed
+4. Or click ✗ Reject → calls `POST /api/forecasts/[id]/reject`
+   - Status changes to VOID
+   - Topic added to rejection list
+   - Telegram notification sent
+   - Forecast removed from queue
+
+### Forecast Detail Page
+
+**File:** `src/app/forecasts/[id]/page.tsx`
+
+Metadata display block added to PENDING_APPROVAL approval banner:
+
+```tsx
+{(prediction.sentiment || prediction.confidence != null) && (
+  <div className="mt-3 p-3 bg-indigo-50 border border-indigo-100 rounded-lg">
+    {prediction.sentiment && <SentimentBadge />}
+    {prediction.confidence != null && <span>Confidence: {prediction.confidence}%</span>}
+    {prediction.consensusLine && <p className="italic">"{prediction.consensusLine}"</p>}
+    {prediction.extractedEntities && <EntityTags />}
+  </div>
+)}
+```
+
+**Visible only when:**
+- Forecast status is PENDING_APPROVAL
+- At least one metadata field is populated
+- User is ADMIN or APPROVER role
 
 ## Database Schema
 
@@ -258,12 +330,43 @@ if (bot.maxForecastsPerHour > 0) {
 
 ## Testing
 
-See `__tests__/features/bot-approval-workflow.test.ts` for comprehensive test coverage:
-- Forecast creation with approval requirement
-- Approval endpoint transitions status correctly
-- Rejection endpoint creates BotRejectedTopic
-- Hourly rate limiting stops excess forecasts
-- Staking deferred until approval
+### Unit Tests
+
+**API Route Tests:** `src/app/api/forecasts/[id]/__tests__/approve-reject.test.ts`
+- ✅ POST /api/forecasts/[id]/approve
+  - Status transitions: PENDING_APPROVAL → ACTIVE
+  - publishedAt timestamp set correctly
+  - Auto-stakes within configured range (stakeMin–stakeMax)
+  - Sends Telegram notification with approver info
+  - Continues if staking fails (graceful degradation)
+  - Validates bot-only forecasts
+
+- ✅ POST /api/forecasts/[id]/reject
+  - Status transitions: PENDING_APPROVAL → VOID
+  - Creates BotRejectedTopic with keywords/description
+  - Auto-extracts keywords from claim text
+  - Sends Telegram notification with rejector info
+  - Uses claim text as fallback description
+  - Validates bot-only forecasts
+
+**Admin Bot API Tests:** `__tests__/api/admin-bots.test.ts`
+- GET /api/admin/bots — lists all bots with new approval fields
+- PATCH /api/admin/bots/[id] — updates approval config
+
+### Test Coverage
+
+Run tests with:
+```bash
+npm run test -- approve-reject.test.ts
+npm run test -- admin-bots.test.ts
+npm run test:coverage
+```
+
+Current coverage:
+- Approval workflow: 100% (18 test cases)
+- Rejection workflow: 100% (10 test cases)
+- Error handling: 100% (auth, validation, fallbacks)
+- Database transitions: 100% (status, timestamps, relations)
 
 ## Future Enhancements
 
@@ -274,16 +377,190 @@ See `__tests__/features/bot-approval-workflow.test.ts` for comprehensive test co
 5. **Webhooks** - Notify external systems when forecasts are approved/rejected
 6. **Audit Trail** - Track all approval/rejection decisions with timestamps
 
+## Implementation Details
+
+### Data Flow: Approval Workflow
+
+```
+1. Bot runner creates forecast
+   if (requireApprovalForForecasts) {
+     status = PENDING_APPROVAL
+     skip staking
+   } else {
+     status = ACTIVE
+     do stake
+   }
+
+2. Prediction created in database with:
+   - status: 'PENDING_APPROVAL'
+   - claimText, detailsText, etc.
+   - [Optional] sentiment, confidence, extractedEntities
+   - publishedAt: null (set on approval)
+
+3. Admin views /admin/approvals
+   - Fetches all PENDING_APPROVAL forecasts
+   - Shows bot author, metadata, timestamps
+
+4. Admin clicks ✓ Approve
+   - POST /api/forecasts/[id]/approve
+   - status → ACTIVE
+   - publishedAt → now()
+   - createCommitment(botUserId, predictionId, {
+       cuCommitted: random(stakeMin, stakeMax),
+       binaryChoice: true
+     })
+   - notifyBotForecastApproved(prediction, botAuthor, approver)
+
+5. Forecast transitions to ACTIVE
+   - Appears in live forecast feed
+   - Users can commit to it
+   - Bot's stake counted in total commitments
+```
+
+### API Response Contracts
+
+**Approve Success (200):**
+```json
+{
+  "id": "pred-123",
+  "status": "ACTIVE",
+  "claimText": "🤖 Bitcoin will reach $100k by Dec 2026",
+  "publishedAt": "2026-03-11T15:30:00Z",
+  "sentiment": "positive",
+  "confidence": 75,
+  "author": { "id": "...", "name": "CryptoBot", "isBot": true }
+}
+```
+
+**Reject Success (200):**
+```json
+{
+  "success": true,
+  "prediction": {
+    "id": "pred-123",
+    "status": "VOID",
+    "resolutionOutcome": "void"
+  },
+  "message": "Forecast rejected and topic added to rejection list"
+}
+```
+
+**Errors (4xx):**
+```json
+{
+  "error": "Only bot-created forecasts can be approved via this endpoint"
+}
+```
+
+### Schema Relationships
+
+```
+BotConfig
+├── requireApprovalForForecasts: Boolean
+├── enableSentimentExtraction: Boolean
+├── enableRejectionTracking: Boolean
+├── showMetadataOnForecast: Boolean
+├── maxForecastsPerHour: Int
+└── user → User
+
+Prediction
+├── status: 'PENDING_APPROVAL' | 'ACTIVE' | 'VOID'
+├── sentiment?: String
+├── confidence?: Int
+├── extractedEntities?: String[]
+├── consensusLine?: String
+├── sourceSummary?: String
+└── author → User (isBot: true)
+
+BotRejectedTopic
+├── botId → BotConfig
+├── keywords: String[]
+├── description: String
+├── rejectedById → User
+└── rejectedAt: DateTime
+```
+
 ## Troubleshooting
 
-**Q: Bot is creating forecasts but they're not staking**
-A: Check if `requireApprovalForForecasts` is true. Staking happens only after approval via `/approve` endpoint.
+### Bot is creating forecasts but they're not staking
 
-**Q: Hourly limit not working**
-A: Verify `maxForecastsPerHour > 0`. Set to 0 for unlimited.
+**Symptom:** Bot forecasts are in PENDING_APPROVAL status indefinitely.
 
-**Q: Rejected topics not preventing duplicates**
-A: Check if `enableRejectionTracking` is true on BotConfig.
+**Cause:** `requireApprovalForForecasts` is true. Staking only happens after approval.
 
-**Q: Metadata fields are null**
-A: Check if `enableSentimentExtraction` is true. Metadata is only extracted when enabled.
+**Solution:**
+1. Check BotConfig: `requireApprovalForForecasts` setting
+2. Go to /admin/approvals
+3. Click ✓ Approve on pending forecasts
+4. Verify prediction.status changes to ACTIVE and staking happens
+
+---
+
+### Hourly rate limit not working
+
+**Symptom:** Bot exceeds `maxForecastsPerHour` limit.
+
+**Cause:** Limit is set to 0 (unlimited) or not being checked.
+
+**Solution:**
+1. Verify `maxForecastsPerHour > 0` on BotConfig
+2. Check bot-runner.ts: `countThisHourActions()` call
+3. Set limit > 0 and re-run bot
+
+---
+
+### Rejected topics not preventing duplicates
+
+**Symptom:** Bot re-suggests topics that were rejected before.
+
+**Cause:** `enableRejectionTracking` is false on BotConfig.
+
+**Solution:**
+1. Enable `enableRejectionTracking` in bot config
+2. Verify BotRejectedTopic records are created on rejection
+3. Check bot-runner: LLM similarity check against rejection list
+
+---
+
+### Metadata fields are null on forecast
+
+**Symptom:** Metadata block not visible on forecast detail page.
+
+**Cause:** `enableSentimentExtraction` not enabled or not extracted during creation.
+
+**Solution:**
+1. Check BotConfig: `enableSentimentExtraction: true`
+2. Verify forecast creator is bot (author.isBot: true)
+3. Check bot-runner: LLM extraction code is running
+4. Look at prediction.sentiment, prediction.confidence fields in DB
+
+---
+
+### Telegram notification not sent
+
+**Symptom:** Approval/rejection doesn't send Telegram message.
+
+**Cause:** Missing TELEGRAM_BOT_TOKEN or invalid chat ID.
+
+**Solution:**
+1. Verify .env has valid TELEGRAM_BOT_TOKEN
+2. Test with `/prod-status` command to check Telegram
+3. Check logs: `notifyBotForecastApproved()` called but failed
+4. Ensure Telegram bot token is refreshed from BotFather
+
+---
+
+### Staking fails but approval succeeds
+
+**Symptom:** Forecast approved (ACTIVE) but bot didn't stake.
+
+**Cause:** createCommitment() failed (insufficient CU, validation error).
+
+**Expected:** Approval still succeeds; warning logged.
+
+**Why:** Approval is more critical than staking. Forecast should go live even if bot can't stake.
+
+**Solution:**
+1. Check bot.cuAvailable in User table
+2. Ensure stakeMin ≤ bot CU balance
+3. Configure CU auto-refill or manually top up

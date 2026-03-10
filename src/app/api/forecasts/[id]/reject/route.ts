@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-middleware'
 import { apiError, handleRouteError } from '@/lib/api-error'
 import { prisma } from '@/lib/prisma'
+import { notifyBotForecastRejected } from '@/lib/services/telegram'
 
 export const dynamic = 'force-dynamic'
 
@@ -82,6 +83,15 @@ export const POST = withAuth(async (request, user, { params }) => {
           rejectedById: user.id,
         },
       })
+    }
+
+    // Fetch rejector info for notification
+    const rejector = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { name: true, username: true },
+    })
+    if (rejector) {
+      notifyBotForecastRejected(updated, updated.author, rejector)
     }
 
     return NextResponse.json({
