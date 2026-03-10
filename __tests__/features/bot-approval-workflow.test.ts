@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { prisma } from '@/lib/prisma'
+import crypto from 'crypto'
 
 describe('Bot Approval Workflow - Integration Tests', () => {
   let botUser: any
@@ -56,6 +57,7 @@ describe('Bot Approval Workflow - Integration Tests', () => {
         data: {
           authorId: botUser.id,
           claimText: '🤖 Team will win championship',
+          shareToken: crypto.randomBytes(8).toString('hex'),
           status: 'PENDING_APPROVAL',
           outcomeType: 'BINARY',
           outcomePayload: { type: 'BINARY' },
@@ -73,6 +75,7 @@ describe('Bot Approval Workflow - Integration Tests', () => {
         data: {
           authorId: botUser.id,
           claimText: '🤖 Team will win',
+          shareToken: crypto.randomBytes(8).toString('hex'),
           status: 'PENDING_APPROVAL',
           outcomeType: 'BINARY',
           outcomePayload: { type: 'BINARY' },
@@ -97,6 +100,7 @@ describe('Bot Approval Workflow - Integration Tests', () => {
         data: {
           authorId: botUser.id,
           claimText: '🤖 News headline',
+          shareToken: crypto.randomBytes(8).toString('hex'),
           status: 'ACTIVE',
           outcomeType: 'BINARY',
           outcomePayload: { type: 'BINARY' },
@@ -115,6 +119,7 @@ describe('Bot Approval Workflow - Integration Tests', () => {
         data: {
           authorId: botUser.id,
           claimText: '🤖 Bitcoin price prediction',
+          shareToken: crypto.randomBytes(8).toString('hex'),
           status: 'PENDING_APPROVAL',
           outcomeType: 'BINARY',
           outcomePayload: { type: 'BINARY' },
@@ -140,6 +145,7 @@ describe('Bot Approval Workflow - Integration Tests', () => {
         data: {
           authorId: botUser.id,
           claimText: '🤖 Forecast without metadata',
+          shareToken: crypto.randomBytes(8).toString('hex'),
           status: 'PENDING_APPROVAL',
           outcomeType: 'BINARY',
           outcomePayload: { type: 'BINARY' },
