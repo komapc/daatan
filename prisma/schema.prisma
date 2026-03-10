@@ -217,7 +217,7 @@ model Prediction {
   // Bot-generated metadata (populated when source = 'bot')
   sentiment         String?    @db.VarChar(20) // "positive" | "negative" | "neutral"
   confidence        Int?                       // 0–100
-  extractedEntities String[]?                  // ["Israel", "Lebanon"]
+  extractedEntities String[]   @default([])    // ["Israel", "Lebanon"]
   consensusLine     String?    @db.Text        // "Based on 4 sources, 72% indicate escalation"
   sourceSummary     String?    @db.Text        // Aggregated summary from multi-source articles
 

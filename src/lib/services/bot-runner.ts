@@ -423,9 +423,10 @@ async function processTopic(
 
     // Only stake on forecast if NOT requiring approval
     // If approval is required, staking happens when user approves via /api/forecasts/[id]/approve
+    let stakeAmount: number | null = null
     if (!bot.requireApprovalForForecasts) {
       await ensureBotCU(bot, dryRun)
-      const stakeAmount = randomInt(bot.stakeMin, bot.stakeMax)
+      stakeAmount = randomInt(bot.stakeMin, bot.stakeMax)
       const result = await createCommitment(bot.userId, prediction.id, {
         cuCommitted: stakeAmount,
         binaryChoice: true, // Bot always votes "yes" on its own forecast
@@ -438,7 +439,11 @@ async function processTopic(
 
     await logBotAction(bot.id, 'CREATED_FORECAST', { title: topicTitle, urls: sourceUrls }, generatedText, null, false, prediction.id)
 
-    log.info({ botId: bot.id, predictionId: prediction.id, stakeAmount }, 'Bot created forecast and staked')
+    if (stakeAmount !== null) {
+      log.info({ botId: bot.id, predictionId: prediction.id, stakeAmount }, 'Bot created forecast and staked')
+    } else {
+      log.info({ botId: bot.id, predictionId: prediction.id }, 'Bot created forecast (approval required, staking deferred)')
+    }
     return 'created'
   } catch (err) {
     log.error({ err, botId: bot.id, topic: topicTitle }, 'Failed to process topic')
