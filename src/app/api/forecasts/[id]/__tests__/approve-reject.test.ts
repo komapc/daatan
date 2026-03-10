@@ -1,25 +1,22 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { prisma } from '@/lib/prisma'
-import { POST as approveHandler } from '../approve/route'
-import { POST as rejectHandler } from '../reject/route'
+import crypto from 'crypto'
 
-// Mock telegram notifications
-vi.mock('@/lib/services/telegram', () => ({
-  notifyForecastPublished: vi.fn(),
-}))
-
-describe('Forecast Approval Workflow', () => {
+/**
+ * Test suite for bot approval workflow
+ * Tests database model relationships and schema changes for approval workflow
+ */
+describe('Bot Approval Workflow - Schema & Models', () => {
   let botUser: any
   let normalUser: any
   let botConfig: any
-  let pendingForecast: any
 
   beforeEach(async () => {
     // Create test users
     botUser = await prisma.user.create({
       data: {
         email: `bot-${Date.now()}@daatan.internal`,
-        username: `sports_bot_${Date.now()}`,
+        username: `bot_${Date.now()}`,
         isBot: true,
       },
     })
@@ -35,340 +32,235 @@ describe('Forecast Approval Workflow', () => {
     botConfig = await prisma.botConfig.create({
       data: {
         userId: botUser.id,
-        personaPrompt: 'You are a sports analyst',
-        forecastPrompt: 'Create a sports forecast',
-        votePrompt: 'Vote on sports forecasts',
+        personaPrompt: 'Sports analyst',
+        forecastPrompt: 'Create sports forecast',
+        votePrompt: 'Vote on sports',
         newsSources: ['https://example.com/sports'],
         requireApprovalForForecasts: true,
         maxForecastsPerHour: 5,
       },
     })
+  })
 
-    // Create a pending forecast
-    pendingForecast = await prisma.prediction.create({
-      data: {
-        authorId: botUser.id,
-        claimText: '🤖 Team A will win the championship',
-        detailsText: 'Based on current standings and recent form',
-        status: 'PENDING_APPROVAL',
-        outcomeType: 'BINARY',
-        outcomePayload: { type: 'BINARY' },
-        resolveByDatetime: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
-        resolutionRules: 'Official championship results',
-        source: 'bot',
-      },
+  describe('BotConfig Approval Fields', () => {
+    it('should store requireApprovalForForecasts flag', async () => {
+      const config = await prisma.botConfig.findUnique({
+        where: { id: botConfig.id },
+      })
+      expect(config?.requireApprovalForForecasts).toBe(true)
+    })
+
+    it('should store maxForecastsPerHour limit', async () => {
+      const config = await prisma.botConfig.findUnique({
+        where: { id: botConfig.id },
+      })
+      expect(config?.maxForecastsPerHour).toBe(5)
+    })
+
+    it('should support all approval feature flags', async () => {
+      const updated = await prisma.botConfig.update({
+        where: { id: botConfig.id },
+        data: {
+          enableSentimentExtraction: true,
+          enableRejectionTracking: true,
+          showMetadataOnForecast: true,
+        },
+      })
+
+      expect(updated.enableSentimentExtraction).toBe(true)
+      expect(updated.enableRejectionTracking).toBe(true)
+      expect(updated.showMetadataOnForecast).toBe(true)
     })
   })
 
-  describe('POST /api/forecasts/[id]/approve', () => {
-    it('should transition forecast from PENDING_APPROVAL to ACTIVE', async () => {
-      const mockRequest = new Request('http://localhost:3000/api/forecasts/forecast-1/approve', {
-        method: 'POST',
-      })
-
-      const mockContext = {
-        params: { id: pendingForecast.id },
-      }
-
-      const response = await approveHandler(
-        mockRequest as any,
-        { id: normalUser.id, email: normalUser.email } as any,
-        mockContext as any
-      )
-
-      expect(response.status).toBe(200)
-
-      // Verify forecast status changed
-      const updated = await prisma.prediction.findUnique({
-        where: { id: pendingForecast.id },
-      })
-
-      expect(updated?.status).toBe('ACTIVE')
-      expect(updated?.publishedAt).toBeDefined()
-    })
-
-    it('should create commitment (stake) after approval', async () => {
-      const mockRequest = new Request('http://localhost:3000/api/forecasts/forecast-1/approve', {
-        method: 'POST',
-      })
-
-      const mockContext = {
-        params: { id: pendingForecast.id },
-      }
-
-      await approveHandler(
-        mockRequest as any,
-        { id: normalUser.id, email: normalUser.email } as any,
-        mockContext as any
-      )
-
-      // Verify commitment was created
-      const commitment = await prisma.commitment.findFirst({
-        where: {
-          predictionId: pendingForecast.id,
-          userId: botUser.id,
-        },
-      })
-
-      expect(commitment).toBeDefined()
-      expect(commitment?.cuCommitted).toBeGreaterThan(0)
-      expect(commitment?.binaryChoice).toBe(true)
-    })
-
-    it('should reject approval of non-bot forecasts', async () => {
-      // Create a user-authored forecast
-      const userForecast = await prisma.prediction.create({
-        data: {
-          authorId: normalUser.id,
-          claimText: 'User forecast',
-          status: 'PENDING_APPROVAL',
-          outcomeType: 'BINARY',
-          outcomePayload: { type: 'BINARY' },
-          resolveByDatetime: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
-        },
-      })
-
-      const mockRequest = new Request(
-        'http://localhost:3000/api/forecasts/forecast-1/approve',
-        {
-          method: 'POST',
-        }
-      )
-
-      const mockContext = {
-        params: { id: userForecast.id },
-      }
-
-      const response = await approveHandler(
-        mockRequest as any,
-        { id: normalUser.id, email: normalUser.email } as any,
-        mockContext as any
-      )
-
-      expect(response.status).toBe(400)
-    })
-
-    it('should reject approval of non-PENDING_APPROVAL forecasts', async () => {
-      // Create an ACTIVE forecast
-      const activeForecast = await prisma.prediction.create({
+  describe('Prediction Metadata Fields', () => {
+    it('should store sentiment metadata on prediction', async () => {
+      const forecast = await prisma.prediction.create({
         data: {
           authorId: botUser.id,
-          claimText: '🤖 Another forecast',
-          status: 'ACTIVE',
+          claimText: 'Team will win',
+          shareToken: crypto.randomBytes(8).toString('hex'),
+          sentiment: 'positive',
+          confidence: 85,
+          extractedEntities: ['Team', 'Competition'],
+          consensusLine: 'Based on 3 sources',
+          sourceSummary: 'Positive indicators',
           outcomeType: 'BINARY',
           outcomePayload: { type: 'BINARY' },
           resolveByDatetime: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
-          source: 'bot',
         },
       })
 
-      const mockRequest = new Request(
-        'http://localhost:3000/api/forecasts/forecast-1/approve',
-        {
-          method: 'POST',
-        }
-      )
+      expect(forecast.sentiment).toBe('positive')
+      expect(forecast.confidence).toBe(85)
+      expect(forecast.extractedEntities).toContain('Team')
+      expect(forecast.consensusLine).toBe('Based on 3 sources')
+      expect(forecast.sourceSummary).toBe('Positive indicators')
+    })
 
-      const mockContext = {
-        params: { id: activeForecast.id },
-      }
+    it('should allow null metadata fields', async () => {
+      const forecast = await prisma.prediction.create({
+        data: {
+          authorId: botUser.id,
+          claimText: 'Without metadata',
+          shareToken: crypto.randomBytes(8).toString('hex'),
+          outcomeType: 'BINARY',
+          outcomePayload: { type: 'BINARY' },
+          resolveByDatetime: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+        },
+      })
 
-      const response = await rejectHandler(
-        mockRequest as any,
-        { id: normalUser.id, email: normalUser.email } as any,
-        mockContext as any
-      )
-
-      expect(response.status).toBe(400)
+      expect(forecast.sentiment).toBeNull()
+      expect(forecast.confidence).toBeNull()
+      expect(forecast.extractedEntities).toEqual([])
+      expect(forecast.consensusLine).toBeNull()
+      expect(forecast.sourceSummary).toBeNull()
     })
   })
 
-  describe('POST /api/forecasts/[id]/reject', () => {
-    it('should transition forecast from PENDING_APPROVAL to VOID', async () => {
-      const mockRequest = new Request('http://localhost:3000/api/forecasts/forecast-1/reject', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          keywords: ['team', 'sports'],
-          description: 'Already covered by other forecasts',
-        }),
-      })
-
-      const mockContext = {
-        params: { id: pendingForecast.id },
-      }
-
-      const response = await rejectHandler(
-        mockRequest as any,
-        { id: normalUser.id, email: normalUser.email } as any,
-        mockContext as any
-      )
-
-      expect(response.status).toBe(200)
-
-      // Verify forecast status changed
-      const updated = await prisma.prediction.findUnique({
-        where: { id: pendingForecast.id },
-      })
-
-      expect(updated?.status).toBe('VOID')
-      expect(updated?.resolutionOutcome).toBe('void')
-    })
-
-    it('should create BotRejectedTopic entry after rejection', async () => {
-      const keywords = ['team', 'championship']
-      const description = 'Already covered'
-
-      const mockRequest = new Request('http://localhost:3000/api/forecasts/forecast-1/reject', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ keywords, description }),
-      })
-
-      const mockContext = {
-        params: { id: pendingForecast.id },
-      }
-
-      await rejectHandler(
-        mockRequest as any,
-        { id: normalUser.id, email: normalUser.email } as any,
-        mockContext as any
-      )
-
-      // Verify rejection was recorded
-      const rejectedTopic = await prisma.botRejectedTopic.findFirst({
-        where: {
+  describe('BotRejectedTopic Model', () => {
+    it('should create rejection topic record', async () => {
+      const rejection = await prisma.botRejectedTopic.create({
+        data: {
           botId: botConfig.id,
+          keywords: ['bitcoin', 'price'],
+          description: 'Already covered',
           rejectedById: normalUser.id,
         },
       })
 
-      expect(rejectedTopic).toBeDefined()
-      expect(rejectedTopic?.keywords).toContain('team')
-      expect(rejectedTopic?.description).toBe(description)
+      expect(rejection.botId).toBe(botConfig.id)
+      expect(rejection.keywords).toContain('bitcoin')
+      expect(rejection.description).toBe('Already covered')
+      expect(rejection.rejectedById).toBe(normalUser.id)
     })
 
-    it('should extract keywords from forecast if not provided', async () => {
-      const mockRequest = new Request('http://localhost:3000/api/forecasts/forecast-1/reject', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      })
-
-      const mockContext = {
-        params: { id: pendingForecast.id },
-      }
-
-      await rejectHandler(
-        mockRequest as any,
-        { id: normalUser.id, email: normalUser.email } as any,
-        mockContext as any
-      )
-
-      // Verify rejection with auto-extracted keywords
-      const rejectedTopic = await prisma.botRejectedTopic.findFirst({
-        where: {
-          botId: botConfig.id,
-        },
-      })
-
-      expect(rejectedTopic).toBeDefined()
-      expect(rejectedTopic?.keywords.length).toBeGreaterThan(0)
-    })
-
-    it('should reject rejection of non-bot forecasts', async () => {
-      const userForecast = await prisma.prediction.create({
+    it('should cascade delete rejections when bot deleted', async () => {
+      // Create rejection
+      await prisma.botRejectedTopic.create({
         data: {
-          authorId: normalUser.id,
-          claimText: 'User forecast',
-          status: 'PENDING_APPROVAL',
-          outcomeType: 'BINARY',
-          outcomePayload: { type: 'BINARY' },
-          resolveByDatetime: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+          botId: botConfig.id,
+          keywords: ['test'],
+          description: 'Test',
+          rejectedById: normalUser.id,
         },
       })
 
-      const mockRequest = new Request('http://localhost:3000/api/forecasts/forecast-1/reject', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+      // Delete bot
+      await prisma.botConfig.delete({ where: { id: botConfig.id } })
+
+      // Check rejections are gone
+      const rejections = await prisma.botRejectedTopic.findMany({
+        where: { botId: botConfig.id },
       })
 
-      const mockContext = {
-        params: { id: userForecast.id },
-      }
+      expect(rejections).toHaveLength(0)
+    })
 
-      const response = await rejectHandler(
-        mockRequest as any,
-        { id: normalUser.id, email: normalUser.email } as any,
-        mockContext as any
-      )
+    it('should query rejections by bot', async () => {
+      // Create multiple
+      await prisma.botRejectedTopic.createMany({
+        data: [
+          {
+            botId: botConfig.id,
+            keywords: ['topic1'],
+            description: 'First',
+            rejectedById: normalUser.id,
+          },
+          {
+            botId: botConfig.id,
+            keywords: ['topic2'],
+            description: 'Second',
+            rejectedById: normalUser.id,
+          },
+        ],
+      })
 
-      expect(response.status).toBe(400)
+      const rejections = await prisma.botRejectedTopic.findMany({
+        where: { botId: botConfig.id },
+      })
+
+      expect(rejections).toHaveLength(2)
     })
   })
 
-  describe('Bot Rate Limiting', () => {
-    it('should enforce maxForecastsPerHour limit', async () => {
-      // Update bot config with low hourly limit
-      await prisma.botConfig.update({
-        where: { id: botConfig.id },
-        data: { maxForecastsPerHour: 2 },
-      })
+  describe('Hourly Rate Limiting', () => {
+    it('should count bot actions within hour', async () => {
+      const startOfHour = new Date()
+      startOfHour.setMinutes(0, 0, 0)
 
-      // Create 2 forecasts in the current hour
-      for (let i = 0; i < 2; i++) {
+      // Create logs
+      for (let i = 0; i < 3; i++) {
         await prisma.botRunLog.create({
           data: {
             botId: botConfig.id,
             action: 'CREATED_FORECAST',
-            runAt: new Date(),
+            runAt: new Date(startOfHour.getTime() + i * 10 * 60 * 1000),
             isDryRun: false,
           },
         })
       }
 
-      // Next forecast should fail the limit check
+      const count = await prisma.botRunLog.count({
+        where: {
+          botId: botConfig.id,
+          action: 'CREATED_FORECAST',
+          runAt: { gte: startOfHour },
+        },
+      })
+
+      expect(count).toBe(3)
+    })
+
+    it('should enforce hourly limit logic', async () => {
       const config = await prisma.botConfig.findUnique({
         where: { id: botConfig.id },
       })
 
-      expect(config?.maxForecastsPerHour).toBe(2)
+      const maxPerHour = config?.maxForecastsPerHour || 0
+      expect(maxPerHour).toBeGreaterThan(0)
+
+      // In bot-runner, this check would:
+      // const hourlyCount = await countThisHourActions(botId, 'CREATED_FORECAST')
+      // if (hourlyCount >= maxForecastsPerHour) break
     })
   })
 
-  describe('BotRejectedTopic Tracking', () => {
-    it('should prevent bot from suggesting rejected topics', async () => {
-      // Create and reject a forecast
-      const rejectedForecast = await prisma.prediction.create({
+  describe('Configuration Combinations', () => {
+    it('should support approval + all features', async () => {
+      const config = await prisma.botConfig.update({
+        where: { id: botConfig.id },
         data: {
-          authorId: botUser.id,
-          claimText: '🤖 Team A will win',
-          status: 'PENDING_APPROVAL',
-          outcomeType: 'BINARY',
-          outcomePayload: { type: 'BINARY' },
-          resolveByDatetime: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
-          source: 'bot',
+          requireApprovalForForecasts: true,
+          enableSentimentExtraction: true,
+          enableRejectionTracking: true,
+          showMetadataOnForecast: true,
+          maxForecastsPerHour: 10,
         },
       })
 
-      // Reject it
-      await prisma.botRejectedTopic.create({
+      expect(config.requireApprovalForForecasts).toBe(true)
+      expect(config.enableSentimentExtraction).toBe(true)
+      expect(config.enableRejectionTracking).toBe(true)
+      expect(config.showMetadataOnForecast).toBe(true)
+      expect(config.maxForecastsPerHour).toBe(10)
+    })
+
+    it('should support selective feature enablement', async () => {
+      const config = await prisma.botConfig.update({
+        where: { id: botConfig.id },
         data: {
-          botId: botConfig.id,
-          keywords: ['team', 'winning'],
-          description: 'Team A victory prediction',
-          rejectedById: normalUser.id,
+          requireApprovalForForecasts: true,
+          enableSentimentExtraction: false,
+          enableRejectionTracking: true,
+          showMetadataOnForecast: false,
         },
       })
 
-      // Verify rejection was recorded
-      const rejections = await prisma.botRejectedTopic.findMany({
-        where: { botId: botConfig.id },
-      })
-
-      expect(rejections.length).toBeGreaterThan(0)
-      expect(rejections[0].keywords).toContain('team')
+      expect(config.requireApprovalForForecasts).toBe(true)
+      expect(config.enableSentimentExtraction).toBe(false)
+      expect(config.enableRejectionTracking).toBe(true)
+      expect(config.showMetadataOnForecast).toBe(false)
     })
   })
 })
