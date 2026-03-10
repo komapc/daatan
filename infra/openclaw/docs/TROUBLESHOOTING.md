@@ -37,7 +37,7 @@ docker exec openclaw env | grep OPENROUTER
 curl -X POST "https://openrouter.ai/api/v1/chat/completions" \
   -H "Authorization: Bearer YOUR_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"model":"qwen/qwen-2.5-7b-instruct","messages":[{"role":"user","content":"Hello"}]}'
+  -d '{"model":"google/gemini-2.0-flash-exp:free","messages":[{"role":"user","content":"Hello"}]}'
 ```
 
 **Expected result:** Should return a valid response with `choices[0].message.content`
@@ -181,7 +181,7 @@ curl -s -X POST "https://openrouter.ai/api/v1/chat/completions" \
   -H "Authorization: Bearer YOUR_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "qwen/qwen-2.5-7b-instruct",
+    "model": "google/gemini-2.0-flash-exp:free",
     "messages": [{"role": "user", "content": "Hello"}]
   }' | jq '.choices[0].message.content'
 ```

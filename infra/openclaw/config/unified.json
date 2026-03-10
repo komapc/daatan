@@ -40,6 +40,22 @@
           "nextjs",
           "daatan-deploy"
         ]
+      },
+      {
+        "id": "calendar",
+        "name": "Calendar Agent",
+        "workspace": "/workspace/year-shape",
+        "identity": {
+          "name": "Calendar Agent",
+          "theme": "YearWheel (Vite, TypeScript, Tailwind)",
+          "emoji": "📅"
+        },
+        "skills": [
+          "vite",
+          "typescript",
+          "cloudflare-pages",
+          "tailwind"
+        ]
       }
     ]
   },

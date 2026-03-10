@@ -7,7 +7,7 @@
 [![Live](https://img.shields.io/badge/Production-daatan.com-green)](https://daatan.com)
 [![Staging](https://img.shields.io/badge/Staging-staging.daatan.com-yellow)](https://staging.daatan.com)
 [![Version](https://img.shields.io/badge/Version-1.7.39-blue)](https://github.com/komapc/daatan/releases)
-[![Next.js](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js- black)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)](https://www.typescriptlang.org/)
 
 ---
@@ -49,7 +49,7 @@ DAaTAn is a reputation-based product that enables testing understanding and fore
 | Auth | NextAuth.js (Google OAuth) |
 | Hosting | AWS EC2 (eu-central-1) |
 | Storage | AWS S3 (avatars) |
-| LLM | Gemini (primary), Ollama (fallback), OpenRouter (bots) |
+| LLM | Gemini via OpenRouter (primary), Llama 3.3 (fallback) |
 | Prompt Mgmt | AWS Bedrock Prompt Management |
 | Container | Docker + Nginx |
 | CI/CD | GitHub Actions |

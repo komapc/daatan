@@ -59,9 +59,9 @@ cp .env.example .env
               ▼                         ▼
      ┌──────────────────┐      ┌──────────────┐
      │ OpenRouter (free)│      │ Ollama       │
-     │ qwen3-coder 480B │      │ (local)      │
+     │ gemini-2.0-flash │      │ (local)      │
      │ llama-3.3-70b    │      │ qwen2.5:1.5b │
-     │ + 3 more models  │      │              │
+     │ mistral-small    │      │              │
      └──────────────────┘      └──────────────┘
 ```
 
@@ -89,7 +89,8 @@ infra/openclaw/
 │   └── variables.tf
 ├── config/              # OpenClaw configuration
 │   ├── unified.json         # Active config (v2 schema) — deployed to EC2
-│   ├── openclaw.json        # DEPRECATED: old v1 format, superseded by unified.json
+│   ├── daatan.json          # Config fragment for Daatan agents
+│   ├── calendar.json        # Config fragment for Calendar agent
 │   └── openclaw.json.example # Template based on unified.json (v2 format)
 ├── docs/                # Documentation
 │   ├── RUNBOOK.md
@@ -115,11 +116,11 @@ infra/openclaw/
 
 | Role | Model | Notes |
 |------|-------|-------|
-| Agent (daatan, calendar) | `qwen/qwen3-coder:free` | 480B coding-specialized, 262k ctx |
-| Gateway default (compaction) | `meta-llama/llama-3.3-70b-instruct:free` | 70B, 128k ctx |
-| Available alternates | Qwen3 80B, Hermes 3 405B, GPT OSS 120B | selectable in UI |
+| Agent (daatan, calendar) | `google/gemini-2.0-flash-exp:free` | Primary, 1M context, high speed |
+| Gateway default | `google/gemini-2.0-flash-exp:free` | Unified model for all tasks |
+| Fallbacks | Llama 3.3 70B, Mistral Small 3, Ollama | Configured in `unified.json` |
 
-All models are free via OpenRouter. No Gemini or Anthropic API key required.
+All models are free via OpenRouter. No direct Gemini or Anthropic API key required. Note: model IDs must be prefixed with `openrouter/` in the configuration (e.g. `openrouter/google/gemini-2.0-flash-exp:free`).
 
 ### Terraform Variables (terraform.tfvars)
 
