@@ -180,6 +180,15 @@ async function runBot(bot: BotWithUser, dryRun: boolean, isManual: boolean = fal
             break
           }
 
+          // Hourly rate limiting: check if maxForecastsPerHour limit is reached
+          if (bot.maxForecastsPerHour > 0) {
+            const hourlyForecastCount = await countThisHourActions(bot.id, 'CREATED_FORECAST')
+            if (hourlyForecastCount >= bot.maxForecastsPerHour) {
+              log.info({ botId: bot.id, count: hourlyForecastCount }, 'Hourly forecast limit reached')
+              break
+            }
+          }
+
           const created = await processTopic(bot, topic.title, topic.items.map(i => i.url), llm, dryRun)
           if (created === 'created') summary.forecastsCreated++
           else if (created === 'skipped') summary.skipped++
@@ -402,23 +411,29 @@ async function processTopic(
       },
     })
 
-    // Publish: autoApprove → ACTIVE, otherwise → PENDING_APPROVAL
-    const publishStatus = bot.autoApprove ? 'ACTIVE' : 'PENDING_APPROVAL'
+    // Publish: determine status based on approval workflow
+    // If requireApprovalForForecasts is true, create as PENDING_APPROVAL (don't stake yet)
+    // If autoApprove is true, go directly to ACTIVE
+    // Otherwise, use PENDING_APPROVAL (standard bot behavior)
+    const publishStatus = bot.requireApprovalForForecasts ? 'PENDING_APPROVAL' : (bot.autoApprove ? 'ACTIVE' : 'PENDING_APPROVAL')
     await prisma.prediction.update({
       where: { id: prediction.id },
       data: { status: publishStatus, publishedAt: new Date() },
     })
 
-    // Auto-refill CU if balance is low, then stake on own forecast
-    await ensureBotCU(bot, dryRun)
-    const stakeAmount = randomInt(bot.stakeMin, bot.stakeMax)
-    const result = await createCommitment(bot.userId, prediction.id, {
-      cuCommitted: stakeAmount,
-      binaryChoice: true, // Bot always votes "yes" on its own forecast
-    })
+    // Only stake on forecast if NOT requiring approval
+    // If approval is required, staking happens when user approves via /api/forecasts/[id]/approve
+    if (!bot.requireApprovalForForecasts) {
+      await ensureBotCU(bot, dryRun)
+      const stakeAmount = randomInt(bot.stakeMin, bot.stakeMax)
+      const result = await createCommitment(bot.userId, prediction.id, {
+        cuCommitted: stakeAmount,
+        binaryChoice: true, // Bot always votes "yes" on its own forecast
+      })
 
-    if (!result.ok) {
-      log.warn({ botId: bot.id, predictionId: prediction.id, error: result.error }, 'Bot failed to stake on own forecast')
+      if (!result.ok) {
+        log.warn({ botId: bot.id, predictionId: prediction.id, error: result.error }, 'Bot failed to stake on own forecast')
+      }
     }
 
     await logBotAction(bot.id, 'CREATED_FORECAST', { title: topicTitle, urls: sourceUrls }, generatedText, null, false, prediction.id)
@@ -572,6 +587,20 @@ async function countTodayActions(botId: string, action: BotAction): Promise<numb
       action,
       isDryRun: false,
       runAt: { gte: startOfDay },
+    },
+  })
+}
+
+async function countThisHourActions(botId: string, action: BotAction): Promise<number> {
+  const startOfHour = new Date()
+  startOfHour.setMinutes(0, 0, 0)
+
+  return prisma.botRunLog.count({
+    where: {
+      botId,
+      action,
+      isDryRun: false,
+      runAt: { gte: startOfHour },
     },
   })
 }
