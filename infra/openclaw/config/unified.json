@@ -4,7 +4,7 @@
     "mode": "local",
     "auth": {
       "mode": "token",
-      "token": "internal-daatan-gateway-token"
+      "token": "daatan-control-pair-2026"
     },
     "trustedProxies": ["172.18.0.1", "127.0.0.1"]
   },
@@ -15,14 +15,10 @@
         "mode": "non-main"
       },
       "model": {
-        "primary": "google/gemini-2.0-flash-exp:free",
+        "primary": "openrouter/google/gemini-2.0-flash-lite-001",
         "fallbacks": [
-          "meta-llama/llama-3.3-70b-instruct:free",
-          "deepseek/deepseek-r1:free",
-          "mistralai/mistral-small-24b-instruct-2501:free",
-          "qwen/qwen-2.5-72b-instruct:free",
-          "openrouter/free",
-          "ollama/qwen2.5:1.5b"
+          "openrouter/meta-llama/llama-3.3-70b-instruct:free",
+          "openrouter/free"
         ]
       }
     },
@@ -43,64 +39,10 @@
           "github-actions",
           "nextjs",
           "daatan-deploy"
-        ],
-        "model": {
-        "primary": "google/gemini-2.0-flash-exp:free",
-        "fallbacks": [
-          "meta-llama/llama-3.3-70b-instruct:free",
-          "deepseek/deepseek-r1:free",
-          "mistralai/mistral-small-24b-instruct-2501:free",
-          "qwen/qwen-2.5-72b-instruct:free",
-          "openrouter/free",
-          "ollama/qwen2.5:1.5b"
         ]
-      }
-      },
-      {
-        "id": "calendar",
-        "name": "Calendar Agent",
-        "workspace": "/workspace/year-shape",
-        "identity": {
-          "name": "Calendar Agent",
-          "theme": "YearWheel (Vite, TypeScript, Tailwind)",
-          "emoji": "📅"
-        },
-        "skills": [
-          "vite",
-          "typescript",
-          "cloudflare-pages",
-          "tailwind"
-        ],
-        "model": {
-        "primary": "google/gemini-2.0-flash-exp:free",
-        "fallbacks": [
-          "meta-llama/llama-3.3-70b-instruct:free",
-          "deepseek/deepseek-r1:free",
-          "mistralai/mistral-small-24b-instruct-2501:free",
-          "qwen/qwen-2.5-72b-instruct:free",
-          "openrouter/free",
-          "ollama/qwen2.5:1.5b"
-        ]
-      }
       }
     ]
   },
-  "bindings": [
-    {
-      "agentId": "daatan",
-      "match": {
-        "channel": "telegram",
-        "accountId": "daatan"
-      }
-    },
-    {
-      "agentId": "calendar",
-      "match": {
-        "channel": "telegram",
-        "accountId": "calendar"
-      }
-    }
-  ],
   "models": {
     "providers": {
       "openrouter": {
@@ -109,47 +51,16 @@
         "api": "openai-completions",
         "models": [
           {
-            "id": "openrouter/free",
-            "name": "Best Available Free Model"
+            "id": "google/gemini-2.0-flash-lite-001",
+            "name": "Gemini 2.0 Flash Lite"
           },
           {
             "id": "meta-llama/llama-3.3-70b-instruct:free",
             "name": "Llama 3.3 70B Instruct (free)"
           },
           {
-            "id": "google/gemini-2.0-flash-exp:free",
-            "name": "Gemini 2.0 Flash Exp (free)"
-          },
-          {
-            "id": "deepseek/deepseek-r1:free",
-            "name": "DeepSeek R1 (free)"
-          },
-          {
-            "id": "mistralai/mistral-small-24b-instruct-2501:free",
-            "name": "Mistral Small 3 (free)"
-          },
-          {
-            "id": "qwen/qwen-2.5-72b-instruct:free",
-            "name": "Qwen 2.5 72B (free)"
-          },
-          {
-            "id": "stepfun/step-3.5-flash:free",
-            "name": "Step 3.5 Flash (free)"
-          },
-          {
-            "id": "z-ai/glm-4.5-air:free",
-            "name": "GLM 4.5 Air (free)"
-          }
-        ]
-      },
-      "ollama": {
-        "baseUrl": "http://host.docker.internal:11434/v1",
-        "apiKey": "ollama-local",
-        "api": "openai-responses",
-        "models": [
-          {
-            "id": "qwen2.5:1.5b",
-            "name": "Qwen 2.5 1.5B"
+            "id": "free",
+            "name": "Best Available Free Model"
           }
         ]
       }
@@ -164,10 +75,6 @@
         "daatan": {
           "name": "Daatan",
           "botToken": "${TELEGRAM_BOT_TOKEN_DAATAN}"
-        },
-        "calendar": {
-          "name": "Calendar",
-          "botToken": "${TELEGRAM_BOT_TOKEN_CALENDAR}"
         }
       }
     }
