@@ -30,6 +30,11 @@ const updateBotSchema = z
     cuRefillAmount: z.number().int().min(1).optional(),
     canCreateForecasts: z.boolean().optional(),
     canVote: z.boolean().optional(),
+    requireApprovalForForecasts: z.boolean().optional(),
+    enableSentimentExtraction: z.boolean().optional(),
+    enableRejectionTracking: z.boolean().optional(),
+    showMetadataOnForecast: z.boolean().optional(),
+    maxForecastsPerHour: z.number().int().min(0).optional(),
   })
   .refine(
     (d) => {

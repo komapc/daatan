@@ -54,6 +54,11 @@ type Prediction = {
   resolutionNote?: string
   evidenceLinks?: string[]
   resolutionRules?: string | null
+  sentiment?: string | null
+  confidence?: number | null
+  extractedEntities?: string[]
+  consensusLine?: string | null
+  sourceSummary?: string | null
   author: {
     id: string
     name: string
@@ -701,6 +706,37 @@ export default function PredictionDetailPage() {
               Reject
             </button>
           </div>
+          {(prediction.sentiment || prediction.confidence != null || prediction.consensusLine) && (
+            <div className="mt-3 p-3 bg-indigo-50 border border-indigo-100 rounded-lg space-y-1.5 text-sm">
+              {prediction.sentiment && (
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-indigo-900">Sentiment:</span>
+                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                    prediction.sentiment === 'positive' ? 'bg-green-100 text-green-700' :
+                    prediction.sentiment === 'negative' ? 'bg-red-100 text-red-700' :
+                    'bg-gray-100 text-gray-700'
+                  }`}>
+                    {prediction.sentiment}
+                  </span>
+                </div>
+              )}
+              {prediction.confidence != null && (
+                <div className="text-indigo-900">Confidence: <span className="font-medium">{prediction.confidence}%</span></div>
+              )}
+              {prediction.consensusLine && (
+                <p className="italic text-gray-600">&quot;{prediction.consensusLine}&quot;</p>
+              )}
+              {prediction.extractedEntities && prediction.extractedEntities.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {prediction.extractedEntities.map((entity, i) => (
+                    <span key={i} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">
+                      {entity}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 

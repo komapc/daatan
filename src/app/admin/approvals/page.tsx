@@ -54,10 +54,9 @@ export default function ApprovalsPage() {
     const handleApprove = async (id: string) => {
         setActioningId(id)
         try {
-            const res = await fetch(`/api/admin/forecasts/${id}`, {
-                method: 'PATCH',
+            const res = await fetch(`/api/forecasts/${id}/approve`, {
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: 'ACTIVE' }),
             })
             if (res.ok) {
                 setResolvedIds((prev) => ({ ...prev, [id]: 'approved' }))
@@ -82,10 +81,10 @@ export default function ApprovalsPage() {
         if (!confirm('Reject this forecast? It will be moved to VOID status.')) return
         setActioningId(id)
         try {
-            const res = await fetch(`/api/admin/forecasts/${id}`, {
-                method: 'PATCH',
+            const res = await fetch(`/api/forecasts/${id}/reject`, {
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: 'VOID' }),
+                body: JSON.stringify({ keywords: [], description: '' }),
             })
             if (res.ok) {
                 setResolvedIds((prev) => ({ ...prev, [id]: 'rejected' }))

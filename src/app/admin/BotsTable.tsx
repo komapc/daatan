@@ -66,6 +66,11 @@ interface Bot {
   canCreateForecasts: boolean
   canVote: boolean
   autoApprove: boolean
+  requireApprovalForForecasts: boolean
+  enableSentimentExtraction: boolean
+  enableRejectionTracking: boolean
+  showMetadataOnForecast: boolean
+  maxForecastsPerHour: number
   // Computed
   lastRunAt: string | null
   nextRunAt: string | null
@@ -565,6 +570,11 @@ function EditBotModal({ bot, allTags, onSave, onClose }: {
     canCreateForecasts: bot.canCreateForecasts ?? true,
     canVote: bot.canVote ?? true,
     autoApprove: bot.autoApprove ?? false,
+    requireApprovalForForecasts: bot.requireApprovalForForecasts ?? false,
+    enableSentimentExtraction: bot.enableSentimentExtraction ?? false,
+    enableRejectionTracking: bot.enableRejectionTracking ?? false,
+    showMetadataOnForecast: bot.showMetadataOnForecast ?? false,
+    maxForecastsPerHour: bot.maxForecastsPerHour ?? 0,
   })
   const [saving, setSaving] = useState(false)
   const [tagInput, setTagInput] = useState('')
@@ -599,6 +609,11 @@ function EditBotModal({ bot, allTags, onSave, onClose }: {
       canCreateForecasts: form.canCreateForecasts,
       canVote: form.canVote,
       autoApprove: form.autoApprove,
+      requireApprovalForForecasts: form.requireApprovalForForecasts,
+      enableSentimentExtraction: form.enableSentimentExtraction,
+      enableRejectionTracking: form.enableRejectionTracking,
+      showMetadataOnForecast: form.showMetadataOnForecast,
+      maxForecastsPerHour: form.maxForecastsPerHour,
     }
     onSave(updates)
     setSaving(false)
@@ -703,6 +718,8 @@ function EditBotModal({ bot, allTags, onSave, onClose }: {
               onChange={(v) => setForm({ ...form, hotnessMinSources: v })} />
             <NumberField label="Hotness window (h)" value={form.hotnessWindowHours} min={1}
               onChange={(v) => setForm({ ...form, hotnessWindowHours: v })} />
+            <NumberField label="Max forecasts/hour" value={form.maxForecastsPerHour} min={0}
+              onChange={(v) => setForm({ ...form, maxForecastsPerHour: v })} />
           </div>
 
           <div className="border rounded-lg p-3 space-y-3 bg-gray-50">
@@ -735,6 +752,44 @@ function EditBotModal({ bot, allTags, onSave, onClose }: {
                 />
                 Auto-approve forecasts
                 <span className="text-xs text-gray-400 font-normal">(skip approval queue)</span>
+              </label>
+            </div>
+            <div className="flex flex-wrap gap-4 pt-2 border-t border-gray-200">
+              <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={form.requireApprovalForForecasts}
+                  onChange={(e) => setForm({ ...form, requireApprovalForForecasts: e.target.checked })}
+                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                Require approval for forecasts
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={form.enableSentimentExtraction}
+                  onChange={(e) => setForm({ ...form, enableSentimentExtraction: e.target.checked })}
+                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                Enable sentiment extraction
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={form.enableRejectionTracking}
+                  onChange={(e) => setForm({ ...form, enableRejectionTracking: e.target.checked })}
+                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                Enable rejection tracking
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={form.showMetadataOnForecast}
+                  onChange={(e) => setForm({ ...form, showMetadataOnForecast: e.target.checked })}
+                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                Show metadata on forecast
               </label>
             </div>
             <div className="max-w-xs">
