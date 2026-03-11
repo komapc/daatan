@@ -23,6 +23,12 @@ None — all tracked tasks complete!
 <details>
 <summary>All completed tasks — click to expand</summary>
 
+### P1 — Infrastructure & Testing (Quality Focus)
+- [x] **Speed: Optimize local dev loop** — Removed `next build` from local pre-push and switched to `vitest related`. (v1.7.31)
+- [x] **Coverage: Automated tracking** — Configured Vitest with `v8` and established thresholds (80% global, 90% services). (v1.7.31)
+- [x] **Safety: DB Integration Pattern** — Implemented `docker-compose.test.yml` and integration helper for testing against real Postgres. (v1.7.31)
+- [x] **Safety: E2E "Golden Path"** — Implemented comprehensive Playwright test for the core user journey. (v1.7.31)
+
 ### P0
 - [x] Apply all 22 DB migrations to production (last: `20260225000000_add_context_snapshots`)
 - [x] Upgrade Next.js to ≥14.2.35 (CVE GHSA-f82v-jwr5-mffw middleware auth bypass). Now on 15.5.12.
@@ -48,12 +54,12 @@ None — all tracked tasks complete!
 - [x] **Security: No bot-count limit** — Added `MAX_BOTS` env var (default 50) and enforced it in `POST /api/admin/bots`. (v1.7.31)
 
 ### P3 — Completed
-- [x] **Docs: VAPID key rotation runbook** — Added comprehensive grace period strategy to SECRETS.md covering Stage 1 (generate keys), Stage 2 (72h grace period), Stage 3 (cleanup). Includes monitoring, monitoring, rollback, and FAQ. (v1.7.31)
-- [x] **Telegram CI/CD notifications** — Added notification steps to `.github/workflows/deploy.yml` for both staging and production deployments (success/failure messages with commit links). (v1.7.31)
-- [x] **Testing: E2E auth-gated flows** — Created `tests/e2e/auth.setup.ts` and `tests/e2e/authenticated.spec.ts` with a `CredentialsProvider` bypass for automated test logins. (v1.7.31)
+- [x] **Docs: VAPID key rotation runbook** — Added comprehensive grace period strategy to SECRETS.md. (v1.7.31)
+- [x] **Telegram CI/CD notifications** — Added notification steps to `.github/workflows/deploy.yml`. (v1.7.31)
+- [x] **Testing: E2E auth-gated flows** — Created `tests/e2e/auth.setup.ts` and `tests/e2e/authenticated.spec.ts`. (v1.7.31)
 - [x] **Testing: Slug collision & lockedAt race** — Added unit tests in `__tests__/lib/race-conditions.test.ts` and `__tests__/lib/slugify.test.ts`. (v1.7.31)
 - [x] **UX: Clickable username consistency** — Implemented `UserLink` across notifications, ForecastCard, and ForecastDetail pages. (v1.7.31)
-- [x] **Code: Shared `PrimaryLink` component** — Created `src/components/ui/PrimaryLink.tsx` and refactored inline Tailwind link styles. (v1.7.31)
+- [x] **Code: Shared `PrimaryLink` component** — Created `src/components/ui/PrimaryLink.tsx`. (v1.7.31)
 - [x] Notifications: in-app system (models, API, service, browser push, service worker, badge)
 - [x] Notifications: email via Resend
 - [x] Notifications: deduplication (same type+actor+prediction within 1h → update, not insert)
@@ -82,12 +88,12 @@ None — all tracked tasks complete!
 - [x] Analytics: custom event tracking (signIn, forecastCreated, commitmentMade, commentPosted)
 - [x] Analytics: user ID tracking (`gtag set user_id`)
 - [x] Analytics: GDPR/CCPA consent banner (GA4 defaults denied)
-- [x] Testing: 769 tests across 61 files (commitment service, admin routes, forecast CRUD, notifications)
+- [x] Testing: 769 tests across 61 files
 - [x] Testing: E2E smoke tests (Playwright — home, sign-in, 404, /api/health)
 - [x] About page (version, commit SHA, build date, link to repo)
-- [x] Docs: VAPID setup in SECRETS.md (key generation, build-time vs runtime, rotation caveats)
+- [x] Docs: VAPID setup in SECRETS.md
 - [x] Fix: resolve form double-submit (success banner replaces form immediately on 200)
-- [x] Feat: clickable usernames and avatars across the app (profile links, feed, comments)
+- [x] Feat: clickable usernames and avatars across the app
 - [x] Fix: preserve create-flow input on mode switch; refresh feed after forecast creation
 
 ### Verified

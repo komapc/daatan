@@ -1,13 +1,13 @@
 #!/bin/bash
-# Pre-push hook: full typecheck + build + test verification
+# Pre-push hook: full typecheck + targeted test verification
 
 set -e
 
 echo "🚀 Running pre-push verification..."
 
-# Set dummy environment variables for build (validation skipped via @t3-oss/env-nextjs)
+# Set dummy environment variables for build/test (validation skipped via @t3-oss/env-nextjs)
 export DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
-export NEXTAUTH_SECRET="dummy-secret-for-build"
+export NEXTAUTH_SECRET="dummy-secret-for-build-long-enough-32-chars-!!"
 export NEXTAUTH_URL="http://localhost:3000"
 export SKIP_ENV_VALIDATION=1
 
@@ -18,22 +18,27 @@ if ! npm run typecheck; then
   exit 1
 fi
 
-# 2. Build verification
-echo "📦 Building application..."
-if ! npm run build; then
-  echo "❌ Build failed. Please fix build errors before pushing."
-  exit 1
-fi
+# 2. Targeted test execution
+# We only run tests related to changed files to keep the local loop fast.
+# If no upstream is found or it's a new branch, we fall back to all tests.
+echo "🧪 Running tests related to changes..."
+STAGED_FILES=$(git diff --name-only origin/main...HEAD 2>/dev/null || echo "")
 
-# 3. Test execution
-echo "🧪 Running tests..."
-if ! npm test; then
-  echo "❌ Tests failed. Please fix failing tests before pushing."
-  exit 1
+if [ -z "$STAGED_FILES" ]; then
+  echo "   (No upstream changes found or origin/main missing, running all tests)"
+  if ! npm test; then
+    echo "❌ Tests failed. Please fix failing tests before pushing."
+    exit 1
+  fi
+else
+  if ! npm run test:related -- $STAGED_FILES; then
+    echo "❌ Related tests failed. Please fix failing tests before pushing."
+    exit 1
+  fi
 fi
 
 # Check if auth-related files changed (informational warning, non-blocking)
-AUTH_FILES_CHANGED=$(git diff --name-only origin/main...HEAD 2>/dev/null | grep -E "(auth|session|login)" || true)
+AUTH_FILES_CHANGED=$(echo "$STAGED_FILES" | grep -E "(auth|session|login)" || true)
 
 if [ -n "$AUTH_FILES_CHANGED" ]; then
   echo ""

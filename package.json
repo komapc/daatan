@@ -9,6 +9,8 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:related": "vitest related --run",
+    "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "postinstall": "prisma generate",
     "prepare": "husky"
