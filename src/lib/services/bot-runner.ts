@@ -57,9 +57,10 @@ async function callLLMWithTimeout(
   const { prompt, temperature = 0, schema, timeoutMs = LLM_CALL_TIMEOUT_MS, maxAttempts = LLM_RETRY_ATTEMPTS } = options
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    let timeoutId: NodeJS.Timeout | undefined
     try {
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+      timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
       const result = await Promise.race([
         llm.generateContent({ prompt, temperature, schema }),
@@ -73,7 +74,7 @@ async function callLLMWithTimeout(
       clearTimeout(timeoutId)
       return result
     } catch (err) {
-      clearTimeout(timeoutId)
+      if (timeoutId) clearTimeout(timeoutId)
       const isTimeout = err instanceof Error && err.message.includes('timeout')
       const isLastAttempt = attempt === maxAttempts
 

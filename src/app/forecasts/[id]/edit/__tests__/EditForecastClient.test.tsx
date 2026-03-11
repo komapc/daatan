@@ -46,7 +46,7 @@ describe('EditForecastClient', () => {
 
   it('shows loading spinner initially', () => {
     vi.spyOn(globalThis, 'fetch').mockReturnValue(new Promise(() => {})) // never resolves
-    render(<EditForecastClient />)
+    render(<EditForecastClient id="pred-1" />)
     // Spinner renders during load — no form fields yet
     expect(screen.queryByLabelText(/Claim Text/)).not.toBeInTheDocument()
   })
@@ -55,7 +55,7 @@ describe('EditForecastClient', () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
       new Response('Not Found', { status: 404 })
     )
-    render(<EditForecastClient />)
+    render(<EditForecastClient id="pred-1" />)
     await waitFor(() => {
       expect(screen.getByText('Failed to load forecast')).toBeInTheDocument()
     })
@@ -63,7 +63,7 @@ describe('EditForecastClient', () => {
 
   it('loads form fields from API data', async () => {
     mockFetchLoad()
-    render(<EditForecastClient />)
+    render(<EditForecastClient id="pred-1" />)
 
     await waitFor(() => {
       expect(screen.getByDisplayValue('Bitcoin will reach $100k')).toBeInTheDocument()
@@ -74,7 +74,7 @@ describe('EditForecastClient', () => {
 
   it('shows forecast status in header', async () => {
     mockFetchLoad()
-    render(<EditForecastClient />)
+    render(<EditForecastClient id="pred-1" />)
 
     await waitFor(() => {
       expect(screen.getByText(/active/i)).toBeInTheDocument()
@@ -84,7 +84,7 @@ describe('EditForecastClient', () => {
 
   it('shows "Public" visibility button when isPublic is true', async () => {
     mockFetchLoad()
-    render(<EditForecastClient />)
+    render(<EditForecastClient id="pred-1" />)
 
     await waitFor(() => {
       expect(screen.getByText('Public')).toBeInTheDocument()
@@ -94,7 +94,7 @@ describe('EditForecastClient', () => {
 
   it('shows "Unlisted" when loaded with isPublic: false', async () => {
     mockFetchLoad({ ...BASE_PREDICTION, isPublic: false })
-    render(<EditForecastClient />)
+    render(<EditForecastClient id="pred-1" />)
 
     await waitFor(() => {
       expect(screen.getByText('Unlisted')).toBeInTheDocument()
@@ -104,7 +104,7 @@ describe('EditForecastClient', () => {
 
   it('toggles visibility from Public to Unlisted', async () => {
     mockFetchLoad()
-    render(<EditForecastClient />)
+    render(<EditForecastClient id="pred-1" />)
 
     await waitFor(() => screen.getByText('Public'))
 
@@ -116,7 +116,7 @@ describe('EditForecastClient', () => {
 
   it('toggles visibility from Unlisted back to Public', async () => {
     mockFetchLoad({ ...BASE_PREDICTION, isPublic: false })
-    render(<EditForecastClient />)
+    render(<EditForecastClient id="pred-1" />)
 
     await waitFor(() => screen.getByText('Unlisted'))
 
@@ -128,7 +128,7 @@ describe('EditForecastClient', () => {
 
   it('shows "No changes to save" when nothing changed', async () => {
     mockFetchLoad()
-    render(<EditForecastClient />)
+    render(<EditForecastClient id="pred-1" />)
 
     await waitFor(() => screen.getByText('Save Changes'))
 
@@ -141,7 +141,7 @@ describe('EditForecastClient', () => {
 
   it('sends only changed fields in PATCH payload', async () => {
     mockFetchLoad()
-    render(<EditForecastClient />)
+    render(<EditForecastClient id="pred-1" />)
 
     await waitFor(() => screen.getByDisplayValue('Bitcoin will reach $100k'))
 
@@ -171,7 +171,7 @@ describe('EditForecastClient', () => {
 
   it('includes isPublic in PATCH payload when toggled', async () => {
     mockFetchLoad()
-    render(<EditForecastClient />)
+    render(<EditForecastClient id="pred-1" />)
 
     await waitFor(() => screen.getByText('Public'))
 
@@ -195,7 +195,7 @@ describe('EditForecastClient', () => {
 
   it('shows error message when PATCH fails', async () => {
     mockFetchLoad()
-    render(<EditForecastClient />)
+    render(<EditForecastClient id="pred-1" />)
 
     await waitFor(() => screen.getByDisplayValue('Bitcoin will reach $100k'))
 
@@ -216,7 +216,7 @@ describe('EditForecastClient', () => {
 
   it('shows "Saving..." while request is in flight', async () => {
     mockFetchLoad()
-    render(<EditForecastClient />)
+    render(<EditForecastClient id="pred-1" />)
 
     await waitFor(() => screen.getByDisplayValue('Bitcoin will reach $100k'))
 
@@ -244,7 +244,7 @@ describe('EditForecastClient', () => {
 
   it('navigates to forecast page when Cancel is clicked', async () => {
     mockFetchLoad()
-    render(<EditForecastClient />)
+    render(<EditForecastClient id="pred-1" />)
 
     await waitFor(() => screen.getByText('Cancel'))
 
@@ -256,7 +256,7 @@ describe('EditForecastClient', () => {
   it('falls back to id in cancel navigation when slug is absent', async () => {
     const noSlug = { ...BASE_PREDICTION, slug: undefined }
     mockFetchLoad(noSlug as any)
-    render(<EditForecastClient />)
+    render(<EditForecastClient id="pred-1" />)
 
     await waitFor(() => screen.getByText('Cancel'))
 
@@ -267,7 +267,7 @@ describe('EditForecastClient', () => {
 
   it('disables Save when claimText is empty', async () => {
     mockFetchLoad()
-    render(<EditForecastClient />)
+    render(<EditForecastClient id="pred-1" />)
 
     await waitFor(() => screen.getByDisplayValue('Bitcoin will reach $100k'))
 

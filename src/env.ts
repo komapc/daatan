@@ -45,7 +45,7 @@ export const env = createEnv({
     VAPID_PRIVATE_KEY: z.string().min(1).optional(),
 
     // Bot system limits
-    MAX_BOTS: z.string().transform((s) => parseInt(s, 10)).default('50'),
+    MAX_BOTS: z.coerce.number().default(50),
   },
   client: {
     NEXT_PUBLIC_APP_VERSION: z.string().optional(),
