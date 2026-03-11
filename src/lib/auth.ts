@@ -1,6 +1,7 @@
 import type { NextAuthOptions } from 'next-auth'
 import type { Adapter } from 'next-auth/adapters'
 import GoogleProvider from 'next-auth/providers/google'
+import CredentialsProvider from 'next-auth/providers/credentials'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
@@ -8,6 +9,7 @@ import { env } from '@/env'
 
 const log = createLogger('auth')
 
+const isTest = process.env.PLAYWRIGHT_TEST === 'true'
 const isStaging = env.NEXT_PUBLIC_ENV === 'staging'
 /** Staging and production both run behind nginx; use explicit cookie options for both. */
 const isHosted = env.NEXT_PUBLIC_ENV === 'staging' || env.NEXT_PUBLIC_ENV === 'production'
@@ -23,6 +25,41 @@ export const authOptions: NextAuthOptions = {
       clientSecret: env.GOOGLE_CLIENT_SECRET,
       allowDangerousEmailAccountLinking: false,
     }),
+    // Playwright test provider: only available in test mode
+    ...(isTest ? [
+      CredentialsProvider({
+        name: 'Playwright Test',
+        credentials: {
+          userId: { label: "User ID", type: "text" },
+          role: { label: "Role", type: "text" }
+        },
+        async authorize(credentials) {
+          if (!credentials?.userId) return null
+          
+          // Find or create the test user
+          const user = await prisma.user.upsert({
+            where: { id: credentials.userId },
+            update: { role: (credentials.role as any) || 'USER' },
+            create: {
+              id: credentials.userId,
+              email: `${credentials.userId}@test.daatan.com`,
+              name: `Test User ${credentials.userId}`,
+              username: `testuser_${credentials.userId}`,
+              role: (credentials.role as any) || 'USER',
+              cuAvailable: 1000, // Give plenty of CU for tests
+            }
+          })
+          
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            image: user.image,
+            role: user.role,
+          }
+        }
+      })
+    ] : [])
   ],
   session: {
     strategy: 'jwt',

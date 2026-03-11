@@ -98,6 +98,25 @@
     "commitToPrompt": "Want to commit to this prediction?",
     "signInToCommit": "Sign In to Commit"
   },
+  "Forecasts": {
+    "title": "Edit Forecast",
+    "backToForecast": "Back to Forecast",
+    "claimLabel": "Claim Text",
+    "detailsLabel": "Details / Context",
+    "resolutionRulesLabel": "Resolution Rules",
+    "resolveByLabel": "Resolve By Date & Time",
+    "visibilityLabel": "Visibility",
+    "public": "Public",
+    "publicDesc": "Visible to everyone and on feed",
+    "unlisted": "Unlisted",
+    "unlistedDesc": "Only visible via direct link",
+    "saveChanges": "Save Changes",
+    "cancel": "Cancel",
+    "saveSuccess": "Changes saved successfully!",
+    "saveError": "Failed to save",
+    "notFound": "Forecast not found",
+    "backToFeed": "Back to Feed"
+  },
   "commitment": {
     "title": "Commitment History",
     "makeCommitment": "Make your commitment",

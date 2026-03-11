@@ -1,52 +1,54 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import Link from 'next/link'
-import {
+import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { 
+  Save, 
+  AlertCircle, 
+  CheckCircle2, 
+  Loader2, 
   ChevronLeft,
-  Loader2,
-  AlertCircle,
-  Save,
-  X,
-  Eye,
-  EyeOff,
+  Calendar,
+  Lock,
+  Unlock,
+  Info,
 } from 'lucide-react'
+import Link from 'next/link'
+import { useTranslations } from 'next-intl'
+import { Button } from '@/components/ui/Button'
+import { PrimaryLink } from '@/components/ui/PrimaryLink'
 import { createClientLogger } from '@/lib/client-logger'
 
 const log = createClientLogger('EditForecast')
 
-type PredictionData = {
+interface Prediction {
   id: string
-  slug?: string
+  slug: string | null
   claimText: string
-  detailsText?: string | null
-  outcomeType: string
-  resolutionRules?: string | null
+  detailsText: string | null
+  resolutionRules: string | null
   resolveByDatetime: string
   status: string
   isPublic: boolean
-  author: { id: string }
+  userId: string
 }
 
-type EditFormData = {
-  claimText: string
-  detailsText: string
-  resolutionRules: string
-  resolveByDatetime: string
-  isPublic: boolean
+interface EditForecastClientProps {
+  id: string
 }
 
-export default function EditForecastClient() {
-  const params = useParams()
+export default function EditForecastClient({ id }: EditForecastClientProps) {
   const router = useRouter()
-  const [prediction, setPrediction] = useState<PredictionData | null>(null)
+  const t = useTranslations('Forecasts')
+  const f = useTranslations('forecast')
+  const [prediction, setPrediction] = useState<Prediction | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [saveError, setSaveError] = useState<string | null>(null)
   const [saveSuccess, setSaveSuccess] = useState(false)
-  const [formData, setFormData] = useState<EditFormData>({
+  const [saveError, setSaveError] = useState<string | null>(null)
+
+  const [formData, setFormData] = useState({
     claimText: '',
     detailsText: '',
     resolutionRules: '',
@@ -55,24 +57,24 @@ export default function EditForecastClient() {
   })
 
   useEffect(() => {
-    const fetchPrediction = async () => {
+    async function fetchPrediction() {
       try {
-        const response = await fetch(`/api/forecasts/${params.id}`)
+        const response = await fetch(`/api/forecasts/${id}`)
         if (!response.ok) {
+          if (response.status === 404) throw new Error(t('notFound'))
+          if (response.status === 403) throw new Error('You do not have permission to edit this forecast')
           throw new Error('Failed to load forecast')
         }
         const data = await response.json()
         setPrediction(data)
-
-        // Format the date for datetime-local input
+        
+        // Initialize form
         const resolveDate = new Date(data.resolveByDatetime)
-        const localDatetime = resolveDate.toISOString().slice(0, 16)
-
         setFormData({
           claimText: data.claimText || '',
           detailsText: data.detailsText || '',
           resolutionRules: data.resolutionRules || '',
-          resolveByDatetime: localDatetime,
+          resolveByDatetime: resolveDate.toISOString().slice(0, 16),
           isPublic: data.isPublic !== false,
         })
       } catch (err) {
@@ -82,52 +84,25 @@ export default function EditForecastClient() {
       }
     }
 
-    if (params.id) {
-      fetchPrediction()
-    }
-  }, [params.id])
+    fetchPrediction()
+  }, [id, t])
 
-  const handleChange = (field: keyof EditFormData, value: string) => {
+  const handleChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }))
-    setSaveError(null)
     setSaveSuccess(false)
+    setSaveError(null)
   }
 
   const handleSave = async () => {
     if (!prediction) return
-
     setIsSaving(true)
     setSaveError(null)
     setSaveSuccess(false)
 
     try {
-      // Build the update payload — only send changed fields
-      const payload: Record<string, unknown> = {}
-
-      if (formData.claimText !== (prediction.claimText || '')) {
-        payload.claimText = formData.claimText
-      }
-      if (formData.detailsText !== (prediction.detailsText || '')) {
-        payload.detailsText = formData.detailsText || null
-      }
-      if (formData.resolutionRules !== (prediction.resolutionRules || '')) {
-        payload.resolutionRules = formData.resolutionRules || null
-      }
-
-      // Convert local datetime to ISO
-      const newDate = new Date(formData.resolveByDatetime).toISOString()
-      const origDate = new Date(prediction.resolveByDatetime).toISOString()
-      if (newDate !== origDate) {
-        payload.resolveByDatetime = newDate
-      }
-
-      if (formData.isPublic !== prediction.isPublic) {
-        payload.isPublic = formData.isPublic
-      }
-
-      if (Object.keys(payload).length === 0) {
-        setSaveError('No changes to save')
-        return
+      const payload = {
+        ...formData,
+        resolveByDatetime: new Date(formData.resolveByDatetime).toISOString()
       }
 
       const response = await fetch(`/api/forecasts/${prediction.id}`, {
@@ -138,7 +113,7 @@ export default function EditForecastClient() {
 
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}))
-        throw new Error(errData?.error || `Save failed (${response.status})`)
+        throw new Error(errData?.error || `${t('saveError')} (${response.status})`)
       }
 
       const updated = await response.json()
@@ -156,7 +131,7 @@ export default function EditForecastClient() {
       })
     } catch (err) {
       log.error({ err }, 'Error saving forecast')
-      setSaveError(err instanceof Error ? err.message : 'Failed to save')
+      setSaveError(err instanceof Error ? err.message : t('saveError'))
     } finally {
       setIsSaving(false)
     }
@@ -176,11 +151,11 @@ export default function EditForecastClient() {
         <div className="text-center py-12">
           <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            {error || 'Forecast not found'}
+            {error || t('notFound')}
           </h2>
-          <Link href="/" className="text-blue-600 hover:underline">
-            Back to Feed
-          </Link>
+          <PrimaryLink href="/">
+            {t('backToFeed')}
+          </PrimaryLink>
         </div>
       </div>
     )
@@ -194,16 +169,16 @@ export default function EditForecastClient() {
         className="inline-flex items-center gap-1 text-gray-500 hover:text-gray-700 mb-6"
       >
         <ChevronLeft className="w-4 h-4" />
-        Back to Forecast
+        {t('backToForecast')}
       </Link>
 
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
-          Edit Forecast
+          {t('title')}
         </h1>
         <p className="text-sm text-gray-500 mt-1">
-          Status: <span className="font-medium capitalize">{prediction.status.replace('_', ' ').toLowerCase()}</span>
+          Status: <span className="font-medium capitalize">{f(prediction.status.toLowerCase()).toLowerCase()}</span>
         </p>
       </div>
 
@@ -212,7 +187,7 @@ export default function EditForecastClient() {
         {/* Claim Text */}
         <div>
           <label htmlFor="claimText" className="block text-sm font-medium text-gray-700 mb-2">
-            Claim Text <span className="text-red-500">*</span>
+            {t('claimLabel')} <span className="text-red-500">*</span>
           </label>
           <textarea
             id="claimText"
@@ -229,116 +204,130 @@ export default function EditForecastClient() {
         {/* Details Text */}
         <div>
           <label htmlFor="detailsText" className="block text-sm font-medium text-gray-700 mb-2">
-            Details / Context
-            <span className="text-gray-400 font-normal ml-2">(optional)</span>
+            {t('detailsLabel')}
           </label>
           <textarea
             id="detailsText"
             value={formData.detailsText}
             onChange={(e) => handleChange('detailsText', e.target.value)}
-            rows={4}
-            maxLength={5000}
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-            placeholder="Additional context or background..."
+            rows={5}
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="Add more details, links, or context..."
           />
-          <p className="text-xs text-gray-400 mt-1 text-right">{formData.detailsText.length}/5000</p>
         </div>
 
         {/* Resolution Rules */}
         <div>
           <label htmlFor="resolutionRules" className="block text-sm font-medium text-gray-700 mb-2">
-            Resolution Rules
-            <span className="text-gray-400 font-normal ml-2">(optional)</span>
+            {t('resolutionRulesLabel')}
           </label>
           <textarea
             id="resolutionRules"
             value={formData.resolutionRules}
             onChange={(e) => handleChange('resolutionRules', e.target.value)}
             rows={3}
-            maxLength={2000}
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-            placeholder="How will this prediction be resolved?"
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="How will this be resolved? Which sources will be used?"
           />
         </div>
 
-        {/* Resolution Deadline */}
+        {/* Resolve By Date */}
         <div>
           <label htmlFor="resolveByDatetime" className="block text-sm font-medium text-gray-700 mb-2">
-            Resolution Deadline <span className="text-red-500">*</span>
+            {t('resolveByLabel')} <span className="text-red-500">*</span>
           </label>
-          <input
-            id="resolveByDatetime"
-            type="datetime-local"
-            value={formData.resolveByDatetime}
-            onChange={(e) => handleChange('resolveByDatetime', e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
+          <div className="relative">
+            <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="datetime-local"
+              id="resolveByDatetime"
+              value={formData.resolveByDatetime}
+              onChange={(e) => handleChange('resolveByDatetime', e.target.value)}
+              className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+            <Info className="w-3 h-3" />
+            Predictions are usually resolved within 24 hours of this date.
+          </p>
         </div>
 
-        {/* Visibility Toggle */}
-        <div className="border border-gray-200 rounded-xl p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Visibility</label>
-              <p className="text-sm text-gray-500 mt-0.5">
-                {formData.isPublic
-                  ? 'Visible in the public feed'
-                  : 'Only people with the link can see this'}
-              </p>
-            </div>
+        {/* Visibility */}
+        <div className="pt-2">
+          <label className="block text-sm font-medium text-gray-700 mb-3">
+            {t('visibilityLabel')}
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <button
-              type="button"
-              onClick={() => setFormData(prev => ({ ...prev, isPublic: !prev.isPublic }))}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
-                formData.isPublic
-                  ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
-                  : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+              onClick={() => handleChange('isPublic', true)}
+              className={`flex items-center gap-3 p-4 border rounded-xl transition-all ${
+                formData.isPublic 
+                  ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' 
+                  : 'border-gray-200 bg-white hover:border-gray-300'
               }`}
             >
-              {formData.isPublic ? (
-                <><Eye className="w-4 h-4" /> Public</>
-              ) : (
-                <><EyeOff className="w-4 h-4" /> Unlisted</>
-              )}
+              <div className={`p-2 rounded-lg ${formData.isPublic ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
+                <Unlock className="w-5 h-5" />
+              </div>
+              <div className="text-left">
+                <div className="text-sm font-bold">{t('public')}</div>
+                <div className="text-xs text-gray-500">{t('publicDesc')}</div>
+              </div>
+            </button>
+
+            <button
+              onClick={() => handleChange('isPublic', false)}
+              className={`flex items-center gap-3 p-4 border rounded-xl transition-all ${
+                !formData.isPublic 
+                  ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' 
+                  : 'border-gray-200 bg-white hover:border-gray-300'
+              }`}
+            >
+              <div className={`p-2 rounded-lg ${!formData.isPublic ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
+                <Lock className="w-5 h-5" />
+              </div>
+              <div className="text-left">
+                <div className="text-sm font-bold">{t('unlisted')}</div>
+                <div className="text-xs text-gray-500">{t('unlistedDesc')}</div>
+              </div>
             </button>
           </div>
         </div>
 
-        {/* Error / Success Messages */}
-        {saveError && (
-          <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
-            <AlertCircle className="w-4 h-4 flex-shrink-0" />
-            {saveError}
-          </div>
-        )}
+        {/* Action Buttons */}
+        <div className="pt-6 border-t border-gray-100 flex flex-col sm:flex-row gap-3">
+          <Button
+            onClick={handleSave}
+            loading={isSaving}
+            disabled={!formData.claimText || !formData.resolveByDatetime}
+            className="sm:flex-1"
+            leftIcon={<Save className="w-4 h-4" />}
+          >
+            {t('saveChanges')}
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => router.push(`/forecasts/${prediction.slug || prediction.id}`)}
+            className="sm:flex-none"
+          >
+            {t('cancel')}
+          </Button>
+        </div>
+
+        {/* Status Messages */}
         {saveSuccess && (
-          <div className="p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm">
-            Forecast updated successfully.
+          <div className="bg-green-50 border border-green-100 text-green-700 px-4 py-3 rounded-xl flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+            <CheckCircle2 className="w-4 h-4" />
+            <span className="text-sm font-medium">{t('saveSuccess')}</span>
           </div>
         )}
 
-        {/* Actions */}
-        <div className="flex items-center gap-3 pt-4 border-t border-gray-200">
-          <button
-            onClick={handleSave}
-            disabled={isSaving || !formData.claimText.trim() || !formData.resolveByDatetime}
-            className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-xl font-semibold shadow-sm hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSaving ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Save className="w-4 h-4" />
-            )}
-            {isSaving ? 'Saving...' : 'Save Changes'}
-          </button>
-          <button
-            onClick={() => router.push(`/forecasts/${prediction.slug || prediction.id}`)}
-            className="flex items-center gap-2 px-6 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-all"
-          >
-            <X className="w-4 h-4" />
-            Cancel
-          </button>
-        </div>
+        {saveError && (
+          <div className="bg-red-50 border border-red-100 text-red-700 px-4 py-3 rounded-xl flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+            <AlertCircle className="w-4 h-4" />
+            <span className="text-sm font-medium">{saveError}</span>
+          </div>
+        )}
       </div>
     </div>
   )

@@ -7,6 +7,7 @@ import { createBotLLMService } from '@/lib/llm'
 import { getPromptTemplate, fillPrompt } from '@/lib/llm/bedrock-prompts'
 import { botConfigGenerationSchema } from '@/lib/llm/schemas'
 import { createLogger } from '@/lib/logger'
+import { env } from '@/env'
 
 const log = createLogger('admin-bots')
 
@@ -177,6 +178,14 @@ export const POST = withAuth(
     try {
       const body = await request.json()
       const data = createBotSchema.parse(body)
+
+      // Enforce MAX_BOTS limit
+      const botCount = await prisma.botConfig.count()
+      if (botCount >= env.MAX_BOTS) {
+        return NextResponse.json({ 
+          error: `Bot limit reached (${env.MAX_BOTS}). Delete existing bots to create new ones.` 
+        }, { status: 400 })
+      }
 
       // Validate stakeMin <= stakeMax
       if (data.stakeMin > data.stakeMax) {

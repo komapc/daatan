@@ -1,5 +1,7 @@
 # Bot Approval Workflow
 
+**Status:** ✅ Complete (v1.7.30, March 10–11, 2026)
+
 ## Overview
 
 The bot approval workflow allows administrators to configure bots that create predictions requiring manual approval before staking. This is useful for scoped bots (e.g., sports_bot, economics_bot) where human review ensures forecast quality.
@@ -192,9 +194,9 @@ New fields in EditBotModal:
   - Default: false
 
 - **Max forecasts/hour** (number field, 0 = unlimited)
-  - Rate limit per hour
-  - Bot stops creating forecasts when limit reached
-  - Default: 0 (unlimited)
+  - Rate limit per hour; prevents runaway bot creation
+  - Bot stops creating forecasts when hourly limit reached
+  - Default: 0 (no limit, unlimited forecasts per hour)
 
 **UI Pattern:**
 ```tsx
@@ -252,8 +254,7 @@ Metadata display block added to PENDING_APPROVAL approval banner:
 
 **Visible only when:**
 - Forecast status is PENDING_APPROVAL
-- At least one metadata field is populated
-- User is ADMIN or APPROVER role
+- At least one metadata field is populated (no role restriction)
 
 ## Database Schema
 
@@ -300,10 +301,10 @@ CREATE INDEX "bot_rejected_topics_rejectedAt_idx" ON "bot_rejected_topics"("reje
 ### Approval Workflow in bot-runner.ts
 
 ```typescript
-// When requireApprovalForForecasts is true
+// Immediately stake if approval NOT required
 if (!bot.requireApprovalForForecasts) {
-  // Immediately stake on forecast
   await ensureBotCU(bot, dryRun)
+  // Randomize stake within configured range (stakeMin–stakeMax)
   const stakeAmount = randomInt(bot.stakeMin, bot.stakeMax)
   await createCommitment(bot.userId, prediction.id, {
     cuCommitted: stakeAmount,
@@ -336,18 +337,17 @@ if (bot.maxForecastsPerHour > 0) {
 - ✅ POST /api/forecasts/[id]/approve
   - Status transitions: PENDING_APPROVAL → ACTIVE
   - publishedAt timestamp set correctly
-  - Auto-stakes within configured range (stakeMin–stakeMax)
+  - Auto-stakes using randomInt(stakeMin, stakeMax)
   - Sends Telegram notification with approver info
-  - Continues if staking fails (graceful degradation)
   - Validates bot-only forecasts
+  - Gracefully continues if staking fails (logs warning)
 
 - ✅ POST /api/forecasts/[id]/reject
   - Status transitions: PENDING_APPROVAL → VOID
-  - Creates BotRejectedTopic with keywords/description
-  - Auto-extracts keywords from claim text
+  - Creates BotRejectedTopic with provided keywords/description
   - Sends Telegram notification with rejector info
-  - Uses claim text as fallback description
   - Validates bot-only forecasts
+  - Returns success=true with prediction data
 
 **Admin Bot API Tests:** `__tests__/api/admin-bots.test.ts`
 - GET /api/admin/bots — lists all bots with new approval fields
@@ -363,19 +363,19 @@ npm run test:coverage
 ```
 
 Current coverage:
-- Approval workflow: 100% (18 test cases)
-- Rejection workflow: 100% (10 test cases)
-- Error handling: 100% (auth, validation, fallbacks)
-- Database transitions: 100% (status, timestamps, relations)
+- Approval workflow: 100% (5 test cases)
+- Rejection workflow: 100% (3 test cases)
+- Error handling: 100% (auth, validation, forecast type validation)
+- Database transitions: 100% (status, timestamps)
 
 ## Future Enhancements
 
-1. **Admin UI** - "Pending Approvals" tab with bulk approve/reject
-2. **Sentiment Extraction** - LLM-based sentiment analysis from article clusters
-3. **Community Voting** - Allow users to vote on pending forecasts before approval
-4. **Batch Operations** - Approve/reject multiple forecasts at once
-5. **Webhooks** - Notify external systems when forecasts are approved/rejected
-6. **Audit Trail** - Track all approval/rejection decisions with timestamps
+1. **Batch Operations** - Approve/reject multiple forecasts at once
+2. **Community Voting** - Allow users to vote on pending forecasts before approval
+3. **Webhooks** - Notify external systems when forecasts are approved/rejected
+4. **Audit Trail** - Track all approval/rejection decisions with detailed logs
+5. **Sentiment Auto-Generation** - LLM extraction from article clusters (Stage 2)
+6. **Approval Analytics** - Dashboard showing approval rates, common rejection reasons
 
 ## Implementation Details
 

@@ -32,6 +32,100 @@ import { forecastBatchSchema, voteDecisionSchema } from '@/lib/llm/schemas'
 
 const log = createLogger('bot-runner')
 
+// ─── Error Types for Better Diagnostics ───────────────────────────────────
+
+class TopicProcessingError extends Error {
+  constructor(
+    readonly stage: 'dedup' | 'generation' | 'quality_gate' | 'validation' | 'database' | 'staking',
+    readonly type: 'timeout' | 'parse' | 'validation' | 'database' | 'other',
+    message: string,
+  ) {
+    super(message)
+    this.name = 'TopicProcessingError'
+  }
+}
+
+// ─── Metrics for Observability ──────────────────────────────────────────────
+
+interface RunMetrics {
+  startedAt: number
+  rssFeatchDurationMs?: number
+  hotTopicsDetectionMs?: number
+  totalProcessingMs?: number
+  databaseQueryMs?: number
+  llmCallsMs?: number
+}
+
+function startMetrics(): RunMetrics {
+  return { startedAt: Date.now() }
+}
+
+function endMetrics(metrics: RunMetrics): RunMetrics {
+  metrics.totalProcessingMs = Date.now() - metrics.startedAt
+  return metrics
+}
+
+// ─── LLM Call Helpers with Timeout & Retry ─────────────────────────────────
+
+const LLM_CALL_TIMEOUT_MS = 10000 // 10 second timeout per LLM call
+const LLM_RETRY_ATTEMPTS = 2 // Total of 2 attempts (1 initial + 1 retry)
+const LLM_RETRY_DELAY_MS = 1000 // 1 second delay before retry
+
+interface LLMCallOptions {
+  prompt: string
+  temperature?: number
+  schema?: any
+  timeoutMs?: number
+  maxAttempts?: number
+}
+
+/**
+ * Call LLM with timeout and retry logic.
+ * Throws on timeout or after max retries, allowing caller to decide handling.
+ */
+async function callLLMWithTimeout(
+  llm: ReturnType<typeof createBotLLMService>,
+  options: LLMCallOptions,
+): Promise<{ text: string }> {
+  const { prompt, temperature = 0, schema, timeoutMs = LLM_CALL_TIMEOUT_MS, maxAttempts = LLM_RETRY_ATTEMPTS } = options
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    let timeoutId: NodeJS.Timeout | undefined
+    try {
+      const controller = new AbortController()
+      timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+
+      const result = await Promise.race([
+        llm.generateContent({ prompt, temperature, schema }),
+        new Promise<never>((_, reject) => {
+          controller.signal.addEventListener('abort', () => {
+            reject(new Error(`LLM call timeout after ${timeoutMs}ms`))
+          })
+        }),
+      ])
+
+      clearTimeout(timeoutId)
+      return result
+    } catch (err) {
+      if (timeoutId) clearTimeout(timeoutId)
+      const isTimeout = err instanceof Error && err.message.includes('timeout')
+      const isLastAttempt = attempt === maxAttempts
+
+      if (isTimeout) {
+        log.warn({ attempt, maxAttempts, timeoutMs }, `LLM call timeout (attempt ${attempt}/${maxAttempts})`)
+        if (isLastAttempt) throw err
+        await new Promise(resolve => setTimeout(resolve, LLM_RETRY_DELAY_MS))
+        continue
+      }
+
+      // Non-timeout errors: fail immediately
+      throw err
+    }
+  }
+
+  throw new Error(`LLM call failed after ${maxAttempts} attempts`)
+}
+
 export interface BotRunSummary {
   botId: string
   botName: string
@@ -40,6 +134,7 @@ export interface BotRunSummary {
   skipped: number
   errors: number
   dryRun: boolean
+  gatedByActiveHours: boolean
   hotTopics?: HotTopic[]
   fetchedCount?: number
   sampleItems?: string[]
@@ -72,11 +167,8 @@ export async function runDueBots(dryRun = false): Promise<BotRunSummary[]> {
     const summary = await runBot(bot, dryRun, false)
     summaries.push(summary)
 
-    // Only update lastRunAt if the bot actually ran (not skipped by active hours gate).
-    // runBot() returns early without setting a flag, so we use forecastsCreated+votes+skipped+errors
-    // to distinguish "ran but did nothing" from "was gated out".
-    // The gate sets summary.skipped = -1 as a sentinel to signal no-update.
-    if (!dryRun && summary.skipped !== -1) {
+    // Only update lastRunAt if the bot actually ran (not gated out by active hours).
+    if (!dryRun && !summary.gatedByActiveHours) {
       await prisma.botConfig.update({
         where: { id: bot.id },
         data: { lastRunAt: now },
@@ -100,7 +192,7 @@ export async function runBotById(botId: string, dryRun = false): Promise<BotRunS
 
   const summary = await runBot(bot, dryRun, true)
 
-  if (!dryRun && summary.skipped !== -1) {
+  if (!dryRun && !summary.gatedByActiveHours) {
     await prisma.botConfig.update({
       where: { id: bot.id },
       data: { lastRunAt: new Date() },
@@ -125,6 +217,7 @@ async function runBot(bot: BotWithUser, dryRun: boolean, isManual: boolean = fal
     skipped: 0,
     errors: 0,
     dryRun,
+    gatedByActiveHours: false,
   }
 
   // ── Active hours gate ────────────────────────────────────────────────────
@@ -141,7 +234,7 @@ async function runBot(bot: BotWithUser, dryRun: boolean, isManual: boolean = fal
         { botId: bot.id, hour, activeHoursStart: bot.activeHoursStart, activeHoursEnd: bot.activeHoursEnd },
         'Bot outside active window, skipping without updating lastRunAt',
       )
-      summary.skipped = -1 // sentinel: tell caller not to update lastRunAt
+      summary.gatedByActiveHours = true
       return summary
     }
   }
@@ -157,11 +250,18 @@ async function runBot(bot: BotWithUser, dryRun: boolean, isManual: boolean = fal
 
       const initialForecastCount = await countTodayActions(bot.id, 'CREATED_FORECAST')
       if (feedUrls.length > 0 && initialForecastCount < bot.maxForecastsPerDay) {
+        const metrics = startMetrics()
+
+        const rssFetchStart = Date.now()
         const items = await fetchRssFeeds(feedUrls)
+        metrics.rssFeatchDurationMs = Date.now() - rssFetchStart
+
         summary.fetchedCount = items.length
         summary.sampleItems = items.slice(0, 5).map(i => i.title)
 
+        const hotTopicsStart = Date.now()
         const hotTopics = detectHotTopics(items, bot.hotnessMinSources, bot.hotnessWindowHours)
+        metrics.hotTopicsDetectionMs = Date.now() - hotTopicsStart
         summary.hotTopics = hotTopics
 
         log.info({
@@ -172,11 +272,24 @@ async function runBot(bot: BotWithUser, dryRun: boolean, isManual: boolean = fal
           fetchedCount: items.length
         }, 'Hot topics detection result')
 
+        // Fetch recent forecasts ONCE before processing topics (avoid N+1 queries)
+        // Only fetch predictions that are ACTIVE or in approval workflows
+        const recentForecasts = await prisma.prediction.findMany({
+          where: { status: { in: ['ACTIVE', 'PENDING_APPROVAL', 'PENDING'] } },
+          select: { claimText: true },
+          orderBy: { createdAt: 'desc' },
+          take: 50,
+        })
+        const existingTitles = recentForecasts.map(f => f.claimText).join('\n- ')
+
         for (const topic of hotTopics) {
-          // Atomic slot check: re-fetch count before each creation to prevent race conditions
+          // Rate limit check (note: subject to TOCTOU if multiple instances run simultaneously)
+          // We check before creation but another instance could create between check and our creation
+          // This is acceptable: occasional overage is better than blocking all creation
+
           const todayForecastCount = await countTodayActions(bot.id, 'CREATED_FORECAST')
           if (todayForecastCount >= bot.maxForecastsPerDay) {
-            log.info({ botId: bot.id, count: todayForecastCount }, 'Daily forecast limit reached')
+            log.info({ botId: bot.id, count: todayForecastCount, limit: bot.maxForecastsPerDay }, 'Daily forecast limit reached')
             break
           }
 
@@ -184,14 +297,35 @@ async function runBot(bot: BotWithUser, dryRun: boolean, isManual: boolean = fal
           if (bot.maxForecastsPerHour > 0) {
             const hourlyForecastCount = await countThisHourActions(bot.id, 'CREATED_FORECAST')
             if (hourlyForecastCount >= bot.maxForecastsPerHour) {
-              log.info({ botId: bot.id, count: hourlyForecastCount }, 'Hourly forecast limit reached')
+              log.info({ botId: bot.id, count: hourlyForecastCount, limit: bot.maxForecastsPerHour }, 'Hourly forecast limit reached')
               break
             }
           }
 
-          const created = await processTopic(bot, topic.title, topic.items.map(i => i.url), llm, dryRun)
-          if (created === 'created') summary.forecastsCreated++
-          else if (created === 'skipped') summary.skipped++
+          const created = await processTopic(bot, topic.title, topic.items.map(i => i.url), llm, dryRun, existingTitles)
+          if (created === 'created') {
+            summary.forecastsCreated++
+
+            // Post-check: verify we didn't exceed limits due to race condition
+            if (!dryRun) {
+              const finalTodayCount = await countTodayActions(bot.id, 'CREATED_FORECAST')
+              const finalHourlyCount = bot.maxForecastsPerHour > 0 ? await countThisHourActions(bot.id, 'CREATED_FORECAST') : 0
+
+              if (finalTodayCount > bot.maxForecastsPerDay) {
+                log.warn(
+                  { botId: bot.id, count: finalTodayCount, limit: bot.maxForecastsPerDay },
+                  'Daily forecast limit exceeded (TOCTOU race: concurrent instances)',
+                )
+              }
+
+              if (bot.maxForecastsPerHour > 0 && finalHourlyCount > bot.maxForecastsPerHour) {
+                log.warn(
+                  { botId: bot.id, count: finalHourlyCount, limit: bot.maxForecastsPerHour },
+                  'Hourly forecast limit exceeded (TOCTOU race: concurrent instances)',
+                )
+              }
+            }
+          } else if (created === 'skipped') summary.skipped++
           else summary.errors++
         }
 
@@ -200,6 +334,19 @@ async function runBot(bot: BotWithUser, dryRun: boolean, isManual: boolean = fal
           await logBotAction(bot.id, 'SKIPPED', { reason: 'No hot topics detected', fetchedCount: items.length }, null, null, dryRun)
           summary.skipped++
         }
+
+        // Log performance metrics
+        endMetrics(metrics)
+        log.debug(
+          {
+            botId: bot.id,
+            rssFetchMs: metrics.rssFeatchDurationMs,
+            hotTopicsMs: metrics.hotTopicsDetectionMs,
+            totalMs: metrics.totalProcessingMs,
+            topicsProcessed: summary.forecastsCreated + summary.skipped + summary.errors,
+          },
+          'Forecast creation batch completed (performance metrics)',
+        )
       } else if (feedUrls.length === 0) {
         log.warn({ botId: bot.id }, 'No RSS sources configured')
       }
@@ -230,24 +377,29 @@ async function processTopic(
   sourceUrls: string[],
   llm: ReturnType<typeof createBotLLMService>,
   dryRun: boolean,
+  existingTitles: string,
 ): Promise<'created' | 'skipped' | 'error'> {
   try {
-    // Dedup check: fetch recent forecast titles and ask LLM
-    const recentForecasts = await prisma.prediction.findMany({
-      where: { status: { in: ['ACTIVE', 'PENDING'] } },
-      select: { claimText: true },
-      orderBy: { createdAt: 'desc' },
-      take: 50,
-    })
-
-    const existingTitles = recentForecasts.map(f => f.claimText).join('\n- ')
+    // Dedup check: use cached existing titles to avoid N+1 query
     const dedupTemplate = await getPromptTemplate('dedupe-check')
     const dedupPrompt = fillPrompt(dedupTemplate, {
       topicTitle,
       existingTitles,
     })
 
-    const dedupResult = await llm.generateContent({ prompt: dedupPrompt, temperature: 0 })
+    let dedupResult
+    try {
+      dedupResult = await callLLMWithTimeout(llm, { prompt: dedupPrompt, temperature: 0 })
+    } catch (dedupErr) {
+      const isTimeout = dedupErr instanceof Error && dedupErr.message.includes('timeout')
+      log.warn(
+        { botId: bot.id, topic: topicTitle, err: dedupErr, errorType: isTimeout ? 'timeout' : 'unknown' },
+        'Dedup check failed, treating as unique topic (fail-open strategy)',
+      )
+      // Treat timeout/failure as "not duplicate" to allow forecast creation (fail open)
+      dedupResult = { text: 'no' }
+    }
+
     const alreadyExists = dedupResult.text.trim().toLowerCase().startsWith('yes')
 
     if (alreadyExists) {
@@ -277,7 +429,18 @@ async function processTopic(
       tagConstraint,
     })
 
-    const response = await llm.generateContent({ prompt: forecastPrompt, temperature: 0.7, schema: forecastBatchSchema })
+    let response
+    try {
+      response = await callLLMWithTimeout(llm, { prompt: forecastPrompt, temperature: 0.7, schema: forecastBatchSchema })
+    } catch (genErr) {
+      const isTimeout = genErr instanceof Error && genErr.message.includes('timeout')
+      log.error(
+        { botId: bot.id, topic: topicTitle, err: genErr, errorType: isTimeout ? 'timeout' : 'other' },
+        `Forecast generation failed (core operation - cannot proceed): ${isTimeout ? 'timeout' : 'error'}`,
+      )
+      await logBotAction(bot.id, 'ERROR', { title: topicTitle, reason: isTimeout ? 'generation_timeout' : 'generation_error' }, null, String(genErr), dryRun)
+      return 'error'
+    }
 
     // Check for skip signal before full parse (LLM can set skip:true when topic is out of scope)
     const rawText = response.text.trim()
@@ -335,7 +498,19 @@ async function processTopic(
     })
 
     try {
-      const qualityResult = await llm.generateContent({ prompt: qualityPrompt, temperature: 0 })
+      let qualityResult
+      try {
+        qualityResult = await callLLMWithTimeout(llm, { prompt: qualityPrompt, temperature: 0 })
+      } catch (qualityTimeoutErr) {
+        const isTimeout = qualityTimeoutErr instanceof Error && qualityTimeoutErr.message.includes('timeout')
+        log.warn(
+          { botId: bot.id, topic: topicTitle, err: qualityTimeoutErr, errorType: isTimeout ? 'timeout' : 'other' },
+          'Quality gate failed, allowing forecast through (fail-open strategy)',
+        )
+        // On any failure: allow forecast through (fail open, lower priority check)
+        qualityResult = { text: '{"pass": true}' }
+      }
+
       const qText = qualityResult.text.trim()
       const qMatch = qText.match(/\{[\s\S]*\}/)
       const qualityCheck = JSON.parse(qMatch ? qMatch[0] : qText)
@@ -345,8 +520,8 @@ async function processTopic(
         await logBotAction(bot.id, 'SKIPPED', { title: topicTitle, urls: sourceUrls, qualityReason: qualityCheck.reason }, null, null, dryRun)
         return 'skipped'
       }
-    } catch (err) {
-      log.warn({ botId: bot.id, topic: topicTitle, err }, 'Quality gate check failed to parse, allowing forecast')
+    } catch (parseErr) {
+      log.warn({ botId: bot.id, topic: topicTitle, err: parseErr, errorType: 'parse' }, 'Quality gate response unparseable, allowing forecast (fail-open)')
       // On parse failure, allow the forecast through (fail open) to avoid blocking all forecasts
     }
 
@@ -374,6 +549,51 @@ async function processTopic(
     const maxDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
     if (resolveBy > maxDate) {
       resolveBy.setTime(maxDate.getTime())
+    }
+
+    // ── Rejection tracking: check if topic was previously rejected ──────────
+    // Prevents bot from suggesting similar topics that admins have rejected
+    if (bot.enableRejectionTracking) {
+      const rejectedTopics = await prisma.botRejectedTopic.findMany({
+        where: { botId: bot.id },
+        select: { keywords: true, description: true },
+        orderBy: { rejectedAt: 'desc' },
+        take: 20, // Check most recent rejections
+      })
+
+      if (rejectedTopics.length > 0) {
+        // Simple keyword-based similarity check (lightweight, no LLM)
+        const claimLower = forecast.claimText.toLowerCase()
+        const detailsLower = (forecast.detailsText || '').toLowerCase()
+        const combinedText = `${claimLower} ${detailsLower}`
+
+        for (const rejected of rejectedTopics) {
+          // Check if any rejected keywords appear in the new forecast
+          const keywordMatches = (rejected.keywords || []).filter(kw =>
+            combinedText.includes(kw.toLowerCase()),
+          )
+
+          // If 50% or more of keywords match, consider it a similar topic
+          if (rejected.keywords && rejected.keywords.length > 0) {
+            const matchPercentage = (keywordMatches.length / rejected.keywords.length) * 100
+            if (matchPercentage >= 50) {
+              log.info(
+                { botId: bot.id, topic: topicTitle, rejectedDescription: rejected.description, matchPercentage },
+                'Forecast matches rejected topic, skipping (rejection tracking)',
+              )
+              await logBotAction(
+                bot.id,
+                'SKIPPED',
+                { title: topicTitle, urls: sourceUrls, rejectionMatch: rejected.description },
+                null,
+                null,
+                dryRun,
+              )
+              return 'skipped'
+            }
+          }
+        }
+      }
     }
 
     const baseSlug = slugify(forecast.claimText)
@@ -423,6 +643,15 @@ async function processTopic(
 
     // Only stake on forecast if NOT requiring approval
     // If approval is required, staking happens when user approves via /api/forecasts/[id]/approve
+    //
+    // NOTE: Forecast creation and staking are separate operations (not transactional).
+    // If staking fails after forecast creation, the forecast exists without bot's stake.
+    // This is acceptable because:
+    // - For approval workflow: staking is deferred to approval time anyway
+    // - For auto-approve bots: occasional orphaned forecasts are acceptable vs. blocking all creation
+    // - The commitment service logs staking failures
+    // TODO: Consider wrapping in transaction for autoApprove=true bots in future refactor
+    //
     let stakeAmount: number | null = null
     if (!bot.requireApprovalForForecasts) {
       await ensureBotCU(bot, dryRun)
@@ -433,7 +662,10 @@ async function processTopic(
       })
 
       if (!result.ok) {
-        log.warn({ botId: bot.id, predictionId: prediction.id, error: result.error }, 'Bot failed to stake on own forecast')
+        log.warn(
+          { botId: bot.id, predictionId: prediction.id, error: result.error, forecastStatus: publishStatus },
+          'Staking failed on forecast (forecast created but not staked - potential orphan)',
+        )
       }
     }
 
@@ -500,22 +732,43 @@ async function runVoting(
         biasHint,
       })
 
-      const response = await llm.generateContent({ prompt: votePrompt, temperature: 0.5, schema: voteDecisionSchema })
+      let response
+      try {
+        response = await callLLMWithTimeout(llm, { prompt: votePrompt, temperature: 0.5, schema: voteDecisionSchema })
+      } catch (voteErr) {
+        log.warn({ botId: bot.id, forecastId: forecast.id, err: voteErr }, 'Vote decision timed out, skipping')
+        continue // Skip this forecast on timeout
+      }
 
       let decision: { shouldVote: boolean; binaryChoice: boolean; reason?: string }
       try {
         const text = response.text.trim()
         const jsonMatch = text.match(/\{[\s\S]*\}/)
         decision = JSON.parse(jsonMatch ? jsonMatch[0] : text)
-      } catch {
+      } catch (parseErr) {
+        log.warn(
+          { botId: bot.id, forecastId: forecast.id, err: parseErr, responseLength: response.text.length },
+          'Vote decision unparseable, skipping',
+        )
+        continue
+      }
+
+      // Validate decision structure
+      if (typeof decision.shouldVote !== 'boolean') {
+        log.warn({ botId: bot.id, forecastId: forecast.id, decision }, 'Invalid shouldVote type, skipping')
         continue
       }
 
       if (!decision.shouldVote) continue
 
+      if (typeof decision.binaryChoice !== 'boolean') {
+        log.warn({ botId: bot.id, forecastId: forecast.id, decision }, 'Invalid binaryChoice type, defaulting to true')
+        decision.binaryChoice = true
+      }
+
       const generatedText = JSON.stringify(decision, null, 2)
 
-      // Auto-refill CU if balance is low, then stake
+      // Auto-refill CU if balance is low, then vote
       await ensureBotCU(bot, dryRun)
       const stakeAmount = randomInt(bot.stakeMin, bot.stakeMax)
 

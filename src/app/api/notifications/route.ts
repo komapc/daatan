@@ -29,8 +29,24 @@ export const GET = withAuth(async (request, user) => {
     prisma.notification.count({ where: { userId: user.id, read: false } }),
   ])
 
+  // Enrich with actor info
+  const actorIds = [...new Set(notifications.map(n => n.actorId).filter(Boolean) as string[])]
+  const actors = actorIds.length > 0 
+    ? await prisma.user.findMany({
+        where: { id: { in: actorIds } },
+        select: { id: true, name: true, username: true, image: true, avatarUrl: true }
+      })
+    : []
+  
+  const actorMap = Object.fromEntries(actors.map(a => [a.id, a]))
+
+  const enrichedNotifications = notifications.map(n => ({
+    ...n,
+    actor: n.actorId ? actorMap[n.actorId] : null
+  }))
+
   return NextResponse.json({
-    notifications,
+    notifications: enrichedNotifications,
     unreadCount,
     pagination: {
       page,

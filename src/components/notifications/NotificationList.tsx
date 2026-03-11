@@ -16,6 +16,7 @@ import {
 import { formatDistanceToNow } from 'date-fns'
 import type { NotificationType } from '@prisma/client'
 import EmptyState from '@/components/ui/EmptyState'
+import { UserLink } from '@/components/UserLink'
 
 interface Notification {
   id: string
@@ -25,6 +26,14 @@ interface Notification {
   link: string | null
   read: boolean
   createdAt: string
+  actorId?: string | null
+  actor?: {
+    id: string
+    name: string | null
+    username: string | null
+    image: string | null
+    avatarUrl?: string | null
+  } | null
 }
 
 interface NotificationListProps {
@@ -174,21 +183,26 @@ export default function NotificationList({
           const Icon = TYPE_ICONS[notification.type] || Bell
 
           return (
-            <button
+            <div
               key={notification.id}
-              onClick={() => handleClick(notification)}
-              aria-label={`${notification.title}${!notification.read ? ', unread' : ''}`}
-              aria-pressed={notification.read}
-              className={`w-full text-left flex items-start gap-3 p-4 rounded-lg transition-colors hover:bg-gray-50 ${
-                !notification.read ? 'bg-blue-50/50' : ''
+              className={`w-full flex items-start gap-3 p-4 rounded-lg transition-colors group relative ${
+                !notification.read ? 'bg-blue-50/50' : 'hover:bg-gray-50'
               }`}
             >
-              <div className={`mt-0.5 p-2 rounded-full shrink-0 ${
+              {/* Entire notification area links to target */}
+              <button
+                onClick={() => handleClick(notification)}
+                className="absolute inset-0 z-0"
+                aria-label={`${notification.title}${!notification.read ? ', unread' : ''}`}
+              />
+              
+              <div className={`mt-0.5 p-2 rounded-full shrink-0 z-10 ${
                 !notification.read ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'
               }`}>
                 <Icon className="w-4 h-4" />
               </div>
-              <div className="flex-1 min-w-0">
+              
+              <div className="flex-1 min-w-0 z-10 pointer-events-none">
                 <div className="flex items-start justify-between gap-2">
                   <p className={`text-sm ${!notification.read ? 'font-semibold text-gray-900' : 'font-medium text-gray-700'}`}>
                     {notification.title}
@@ -198,11 +212,28 @@ export default function NotificationList({
                   )}
                 </div>
                 <p className="text-sm text-gray-500 mt-0.5 line-clamp-2">{notification.message}</p>
-                <p className="text-xs text-gray-400 mt-1">
-                  {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
-                </p>
+                
+                <div className="flex items-center gap-2 mt-2">
+                  {notification.actor && (
+                    <div className="pointer-events-auto">
+                      <UserLink
+                        userId={notification.actor.id}
+                        username={notification.actor.username}
+                        name={notification.actor.name}
+                        image={notification.actor.image || notification.actor.avatarUrl}
+                        showAvatar={true}
+                        avatarSize={16}
+                        className="text-[10px] text-gray-400 font-medium hover:text-blue-600"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                  )}
+                  <p className="text-[10px] text-gray-400">
+                    {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                  </p>
+                </div>
               </div>
-            </button>
+            </div>
           )
         })}
       </div>

@@ -1,4 +1,5 @@
 import { notFound, redirect } from 'next/navigation'
+import type { Metadata } from 'next'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -9,6 +10,46 @@ export const dynamic = 'force-dynamic'
 
 interface ProfilePageProps {
   params: Promise<{ id: string }>
+}
+
+export async function generateMetadata({ params }: ProfilePageProps): Promise<Metadata> {
+  const { id } = await params
+  const user = await prisma.user.findFirst({
+    where: {
+      OR: [
+        { id: id },
+        { username: id }
+      ]
+    },
+    select: {
+      name: true,
+      username: true,
+    }
+  })
+
+  if (!user) {
+    return {
+      title: 'User Not Found - DAATAN',
+    }
+  }
+
+  const title = `${user.name} (@${user.username}) - DAATAN Profile`
+  const description = `Check out ${user.name}'s prediction track record on DAATAN.`
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: 'profile',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+    },
+  }
 }
 
 export default async function PublicProfilePage({ params }: ProfilePageProps) {

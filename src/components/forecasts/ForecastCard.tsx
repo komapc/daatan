@@ -26,6 +26,7 @@ import {
   MoreHorizontal,
 } from 'lucide-react'
 import { RoleBadge } from '@/components/RoleBadge'
+import { UserLink } from '@/components/UserLink'
 import Speedometer from './Speedometer'
 
 export type Prediction = {
@@ -360,27 +361,16 @@ export default function ForecastCard({
           {/* Footer Metadata */}
           <div className="flex items-center flex-wrap gap-y-2 gap-x-4 text-xs sm:text-sm text-gray-500">
             {/* Author */}
-            <div className="flex items-center gap-2 pr-4 border-r border-gray-100 last:border-0">
-              <div className="relative">
-                {prediction.author.image ? (
-                  <Image
-                    src={prediction.author.image}
-                    alt=""
-                    width={24}
-                    height={24}
-                    className="rounded-full ring-1 ring-gray-100"
-                  />
-                ) : (
-                  <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-blue-100 flex items-center justify-center text-[10px] font-bold text-blue-600 ring-1 ring-gray-100">
-                    {prediction.author.name?.charAt(0) || '?'}
-                  </div>
-                )}
-                {prediction.author.rs !== undefined && (
-                  <div className="absolute -top-1 -right-1 px-1 bg-white rounded-full text-[8px] font-bold text-gray-400 border border-gray-50 shadow-sm">
-                    {prediction.author.rs}
-                  </div>
-                )}
-              </div>
+            <UserLink
+              userId={prediction.author.id}
+              username={prediction.author.username}
+              name={prediction.author.name}
+              image={prediction.author.image}
+              showAvatar={true}
+              avatarSize={24}
+              className="pr-4 border-r border-gray-100 last:border-0"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="flex flex-col">
                 <span className="font-medium text-gray-700 truncate max-w-[120px]">
                   {prediction.author.name || t('anonymous')}
@@ -391,7 +381,7 @@ export default function ForecastCard({
                   </span>
                 )}
               </div>
-            </div>
+            </UserLink>
 
             {/* Resolve By Date */}
             {(() => {

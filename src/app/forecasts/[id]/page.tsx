@@ -1,814 +1,116 @@
-'use client'
+import { Suspense } from 'react'
+import { notFound } from 'next/navigation'
+import type { Metadata } from 'next'
+import { prisma } from '@/lib/prisma'
+import ForecastDetailClient from './ForecastDetailClient'
+import { Loader2 } from 'lucide-react'
 
-import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
-import { useSession } from 'next-auth/react'
-import type { Session } from 'next-auth'
-import Link from 'next/link'
-import Image from 'next/image'
-import { createClientLogger } from '@/lib/client-logger'
-import {
-  Newspaper,
-  User,
-  Calendar,
-  Target,
-  Users,
-  ExternalLink,
-  Loader2,
-  AlertCircle,
-  ChevronLeft,
-  Edit2,
-  Trash2,
-  EyeOff,
-  Copy,
-} from 'lucide-react'
-import { useRouter } from 'next/navigation'
-import { toast } from 'react-hot-toast'
-import { useLocale, useTranslations } from 'next-intl'
-import { ModeratorResolutionSection } from './ModeratorResolutionSection'
-import CommentThread from '@/components/comments/CommentThread'
-import CommitmentForm from '@/components/forecasts/CommitmentForm'
-import CommitmentDisplay from '@/components/forecasts/CommitmentDisplay'
-import CUBalanceIndicator from '@/components/forecasts/CUBalanceIndicator'
-import Speedometer from '@/components/forecasts/Speedometer'
-import ContextTimeline from '@/components/forecasts/ContextTimeline'
-import { RoleBadge } from '@/components/RoleBadge'
+export const dynamic = 'force-dynamic'
 
-const log = createClientLogger('ForecastDetail')
+interface Props {
+  params: Promise<{ id: string }>
+}
 
-type Prediction = {
-  id: string
-  slug?: string
-  isPublic: boolean
-  shareToken: string
-  claimText: string
-  detailsText?: string
-  outcomeType: 'BINARY' | 'MULTIPLE_CHOICE' | 'NUMERIC_THRESHOLD'
-  outcomePayload?: Record<string, unknown>
-  status: string
-  resolveByDatetime: string
-  contextUpdatedAt?: string
-  publishedAt?: string
-  resolvedAt?: string
-  resolutionOutcome?: string
-  resolutionNote?: string
-  evidenceLinks?: string[]
-  resolutionRules?: string | null
-  sentiment?: string | null
-  confidence?: number | null
-  extractedEntities?: string[]
-  consensusLine?: string | null
-  sourceSummary?: string | null
-  author: {
-    id: string
-    name: string
-    username?: string
-    image?: string
-    rs: number
-    role?: 'USER' | 'RESOLVER' | 'ADMIN'
-  }
-  newsAnchor?: {
-    id: string
-    title: string
-    url: string
-    source?: string
-  }
-  options: Array<{
-    id: string
-    text: string
-    isCorrect?: boolean
-  }>
-  commitments: Array<{
-    id: string
-    cuCommitted: number
-    binaryChoice?: boolean
-    rsSnapshot: number
-    createdAt: string
-    cuReturned?: number | null
-    rsChange?: number | null
-    user: {
-      id: string
-      name: string
-      username?: string
-      image?: string
-    }
-    option?: {
-      id: string
-      text: string
-    }
-  }>
-  totalCuCommitted: number
-  _count: {
-    commitments: number
+async function getPrediction(id: string) {
+  const prediction = await prisma.prediction.findUnique({
+    where: { id },
+    include: {
+      author: {
+        select: {
+          id: true,
+          name: true,
+          username: true,
+          image: true,
+          rs: true,
+          role: true,
+        },
+      },
+      newsAnchor: true,
+      options: {
+        orderBy: { displayOrder: 'asc' },
+      },
+      commitments: {
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: {
+            select: { id: true, name: true, username: true, image: true },
+          },
+          option: {
+            select: { id: true, text: true },
+          },
+        },
+      },
+      _count: {
+        select: { commitments: true },
+      },
+    },
+  })
+
+  if (!prediction) return null
+
+  // Format date to ISO string for JSON serialization
+  return {
+    ...prediction,
+    resolveByDatetime: prediction.resolveByDatetime.toISOString(),
+    contextUpdatedAt: prediction.contextUpdatedAt?.toISOString(),
+    publishedAt: prediction.publishedAt?.toISOString(),
+    resolvedAt: prediction.resolvedAt?.toISOString(),
+    lockedAt: prediction.lockedAt?.toISOString(),
+    commitments: prediction.commitments.map(c => ({
+      ...c,
+      createdAt: c.createdAt.toISOString(),
+    })),
   }
 }
 
-type TranslatedFields = {
-  claimText?: string
-  detailsText?: string
-  resolutionRules?: string
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params
+  const prediction = await prisma.prediction.findUnique({
+    where: { id },
+    select: { claimText: true, detailsText: true },
+  })
+
+  if (!prediction) {
+    return {
+      title: 'Forecast Not Found - DAATAN',
+    }
+  }
+
+  return {
+    title: `${prediction.claimText} - DAATAN Forecast`,
+    description: prediction.detailsText || 'Make your prediction on DAATAN.',
+    openGraph: {
+      title: prediction.claimText,
+      description: prediction.detailsText || 'Make your prediction on DAATAN.',
+      type: 'article',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: prediction.claimText,
+      description: prediction.detailsText || 'Make your prediction on DAATAN.',
+    },
+  }
 }
 
-function ForecastInfoPanel({
-  prediction,
-  session,
-  userCommitment,
-  showCommitmentForm,
-  onSetShowForm,
-  onSuccess,
-  formattedDeadline,
-  variant = 'desktop',
-}: {
-  prediction: Prediction
-  session: Session | null
-  userCommitment: Prediction['commitments'][0] | undefined
-  showCommitmentForm: boolean
-  onSetShowForm: (show: boolean) => void
-  onSuccess: () => void
-  formattedDeadline: string
-  variant?: 'mobile' | 'desktop'
-}) {
-  const t = useTranslations('forecast')
-  const mb = variant === 'mobile' ? 'mb-8 ' : ''
+function ForecastLoading() {
   return (
-    <>
-      <div className={variant === 'mobile' ? 'grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8' : 'grid grid-cols-1 gap-3'}>
-        {/* Author */}
-        <div className="p-4 border border-gray-200 rounded-xl bg-white shadow-sm">
-          <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-gray-400 mb-2">
-            <User className="w-3.5 h-3.5" />
-            {t('author')}
-          </div>
-          <div className="flex items-center gap-2">
-            {prediction.author.image && (
-              <Image
-                src={prediction.author.image}
-                alt=""
-                width={32}
-                height={32}
-                className="rounded-full"
-              />
-            )}
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-gray-900">{prediction.author.name}</span>
-                {prediction.author.role && (
-                  <RoleBadge role={prediction.author.role} size="sm" />
-                )}
-              </div>
-              <div className="text-xs text-gray-500">RS: {prediction.author.rs.toFixed(0)}</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Deadline */}
-        <div className="p-4 border border-gray-200 rounded-xl bg-white shadow-sm">
-          <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-gray-400 mb-2">
-            <Calendar className="w-3.5 h-3.5" />
-            {t('resolutionDeadline')}
-          </div>
-          <div className="font-semibold text-gray-900">
-            {formattedDeadline}
-          </div>
-        </div>
-
-        {/* Commitments */}
-        <div className="p-4 border border-gray-200 rounded-xl bg-white shadow-sm">
-          <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-gray-400 mb-2">
-            <Users className="w-3.5 h-3.5" />
-            {t('commitmentsLabel')}
-          </div>
-          <div className="font-semibold text-gray-900">
-            {prediction._count.commitments} {t('usersLabel')} &middot; {prediction.totalCuCommitted} CU
-          </div>
-        </div>
-      </div>
-
-      {session?.user && prediction.status === 'ACTIVE' && (
-        <div className={`${mb}space-y-4`}>
-          <CUBalanceIndicator
-            cuAvailable={session.user.cuAvailable || 0}
-            cuLocked={session.user.cuLocked || 0}
-          />
-          {userCommitment && !showCommitmentForm ? (
-            <CommitmentDisplay
-              commitment={userCommitment}
-              prediction={prediction}
-              onEdit={() => onSetShowForm(true)}
-              onRemove={onSuccess}
-            />
-          ) : userCommitment && showCommitmentForm ? (
-            <CommitmentForm
-              prediction={prediction}
-              existingCommitment={userCommitment}
-              userCuAvailable={session.user.cuAvailable || 0}
-              onSuccess={onSuccess}
-              onCancel={() => onSetShowForm(false)}
-            />
-          ) : (
-            <CommitmentForm
-              prediction={prediction}
-              userCuAvailable={session.user.cuAvailable || 0}
-              onSuccess={onSuccess}
-            />
-          )}
-        </div>
-      )}
-
-      {!session?.user && prediction.status === 'ACTIVE' && (
-        <div className={`${mb}p-5 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl text-center`}>
-          <p className="text-gray-600 mb-3">{t('commitToPrompt')}</p>
-          <Link
-            href="/auth/signin"
-            className="inline-block py-2.5 px-5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-sm hover:shadow-md"
-          >
-            {t('signInToCommit')}
-          </Link>
-        </div>
-      )}
-    </>
-  )
-}
-
-export default function PredictionDetailPage() {
-  const params = useParams()
-  const router = useRouter()
-  const { data: session, update: updateSession } = useSession()
-  const locale = useLocale()
-  const t = useTranslations('translate')
-  const [prediction, setPrediction] = useState<Prediction | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [showCommitmentForm, setShowCommitmentForm] = useState(false)
-  const [translated, setTranslated] = useState<TranslatedFields | null>(null)
-  const [isTranslating, setIsTranslating] = useState(false)
-  const [isApproving, setIsApproving] = useState(false)
-
-  const showTranslateButton = locale !== 'en'
-
-  const handleTranslate = async () => {
-    if (!prediction) return
-    if (translated) {
-      setTranslated(null)
-      return
-    }
-    setIsTranslating(true)
-    try {
-      const response = await fetch(`/api/forecasts/${prediction.id}/translate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ language: locale }),
-      })
-      if (response.ok) {
-        const data = await response.json()
-        setTranslated(data)
-      }
-    } catch (err) {
-      log.error({ err }, 'Failed to translate prediction')
-    } finally {
-      setIsTranslating(false)
-    }
-  }
-
-  useEffect(() => {
-    const fetchPrediction = async () => {
-      try {
-        // Support both ID and slug
-        const response = await fetch(`/api/forecasts/${params.id}`)
-        if (!response.ok) {
-          throw new Error('Failed to load prediction')
-        }
-        const data = await response.json()
-        setPrediction(data)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Something went wrong')
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    if (params.id) {
-      fetchPrediction()
-    }
-  }, [params.id])
-
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    })
-  }
-
-  const getStatusBadge = (status: string) => {
-    const styles: Record<string, string> = {
-      DRAFT: 'bg-gray-100 text-gray-700',
-      ACTIVE: 'bg-green-100 text-green-700',
-      PENDING: 'bg-yellow-100 text-yellow-700',
-      PENDING_APPROVAL: 'bg-amber-100 text-amber-700',
-      RESOLVED_CORRECT: 'bg-blue-100 text-blue-700',
-      RESOLVED_WRONG: 'bg-red-100 text-red-700',
-      VOID: 'bg-gray-100 text-gray-700',
-      UNRESOLVABLE: 'bg-orange-100 text-orange-700',
-    }
-    return styles[status] || 'bg-gray-100 text-gray-700'
-  }
-
-  const handleCommitmentSuccess = async () => {
-    setShowCommitmentForm(false)
-    // Update session to get fresh CU balance
-    await updateSession()
-
-    // Refetch prediction to get updated commitments
-    const fetchPrediction = async () => {
-      try {
-        const response = await fetch(`/api/forecasts/${params.id}`)
-        if (response.ok) {
-          const data = await response.json()
-          setPrediction(data)
-        }
-      } catch (err) {
-        log.error({ err }, 'Failed to refetch prediction')
-      }
-    }
-    fetchPrediction()
-  }
-
-  const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this prediction? This action cannot be undone.')) return
-
-    try {
-      const response = await fetch(`/api/admin/forecasts/${prediction?.id}`, {
-        method: 'DELETE',
-      })
-      if (response.ok) {
-        router.push('/')
-        toast.success('Prediction deleted successfully')
-      } else {
-        toast.error('Failed to delete prediction')
-      }
-    } catch (error) {
-      log.error({ err: error }, 'Error deleting prediction')
-      toast.error('Error deleting prediction')
-    }
-  }
-
-  const handleEdit = () => {
-    if (!prediction?.id) return
-    router.push(`/forecasts/${prediction.slug || prediction.id}/edit`)
-  }
-
-  const canAdminister = session?.user?.role === 'ADMIN'
-  const isAuthor = session?.user?.id === prediction?.author.id
-  const canApprove =
-    prediction?.status === 'PENDING_APPROVAL' &&
-    (session?.user?.role === 'ADMIN' || session?.user?.role === 'APPROVER')
-
-  const handleApproveAction = async (newStatus: 'ACTIVE' | 'VOID') => {
-    if (newStatus === 'VOID' && !confirm('Reject this forecast? It will be moved to VOID status.')) return
-    setIsApproving(true)
-    try {
-      const response = await fetch(`/api/admin/forecasts/${prediction?.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
-      })
-      if (response.ok) {
-        toast.success(newStatus === 'ACTIVE' ? 'Forecast approved' : 'Forecast rejected')
-        // Refetch — canApprove will become false once status changes
-        const res = await fetch(`/api/forecasts/${params.id}`)
-        if (res.ok) setPrediction(await res.json())
-      } else {
-        toast.error('Failed to update forecast')
-        setIsApproving(false)
-      }
-    } catch (error) {
-      log.error({ err: error }, 'Error updating forecast status')
-      toast.error('Error updating forecast')
-      setIsApproving(false)
-    }
-  }
-
-  // Find user's commitment if exists
-  const userCommitment = session?.user?.id
-    ? prediction?.commitments.find(c => c.user.id === session.user.id)
-    : undefined
-
-  const canCommit = session?.user?.id &&
-    prediction?.status === 'ACTIVE' &&
-    !userCommitment
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
-      </div>
-    )
-  }
-
-  if (error || !prediction) {
-    return (
-      <div className="p-4 sm:p-6 lg:p-8">
-        <div className="text-center py-12">
-          <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            {error || 'Prediction not found'}
-          </h2>
-          <button 
-            onClick={() => { router.push('/'); router.refresh(); }}
-            className="text-blue-600 hover:underline"
-          >
-            Back to Feed
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">
-      {/* Back Link */}
-      <button
-        onClick={() => { router.push('/'); router.refresh(); }}
-        className="inline-flex items-center gap-1 text-gray-500 hover:text-gray-700 mb-6"
-      >
-        <ChevronLeft className="w-4 h-4" />
-        Back to Feed
-      </button>
-
-      <div className="lg:grid lg:grid-cols-[1fr_360px] lg:gap-8 lg:items-start">
-        {/* Left column */}
-        <div className="min-w-0">
-
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusBadge(prediction.status)}`}>
-              {prediction.status.replace('_', ' ')}
-            </span>
-          </div>
-
-          {canAdminister && (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleEdit}
-                className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
-                title="Edit Prediction"
-              >
-                <Edit2 className="w-5 h-5" />
-              </button>
-              <button
-                onClick={handleDelete}
-                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
-                title="Delete Forecast"
-              >
-                <Trash2 className="w-5 h-5" />
-              </button>
-            </div>
-          )}
-        </div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">
-          {translated?.claimText ?? prediction.claimText}
-        </h1>
-
-        {/* Unlisted share-link banner (visible only to author / admin) */}
-        {!prediction.isPublic && (isAuthor || canAdminister) && (
-          <div className="mb-4 flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-            <EyeOff className="w-4 h-4 text-amber-600 flex-shrink-0" />
-            <div className="flex-1 min-w-0">
-              <span className="text-sm font-medium text-amber-800">Unlisted — share via link:</span>
-              <span className="ml-2 text-sm text-amber-700 font-mono truncate">
-                {typeof window !== 'undefined' ? `${window.location.origin}/forecasts/${prediction.shareToken}` : `/forecasts/${prediction.shareToken}`}
-              </span>
-            </div>
-            <button
-              onClick={() => {
-                const url = `${window.location.origin}/forecasts/${prediction.shareToken}`
-                navigator.clipboard.writeText(url)
-                toast.success('Link copied!')
-              }}
-              className="flex-shrink-0 p-1.5 text-amber-600 hover:bg-amber-100 rounded-lg transition-colors"
-              title="Copy share link"
-            >
-              <Copy className="w-4 h-4" />
-            </button>
-          </div>
-        )}
-        {showTranslateButton && (
-          <button
-            onClick={handleTranslate}
-            disabled={isTranslating}
-            className="mb-3 inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 disabled:opacity-50"
-          >
-            {isTranslating ? (
-              <><Loader2 className="w-3.5 h-3.5 animate-spin" />{t('translating')}</>
-            ) : translated ? (
-              t('showOriginal')
-            ) : (
-              t('translate')
-            )}
-          </button>
-        )}
-        {translated && (
-          <p className="text-xs text-gray-400 mb-3">{t('translatedTo')}</p>
-        )}
-        <ContextTimeline
-          predictionId={prediction.id}
-          initialContext={translated?.detailsText ?? prediction.detailsText}
-          initialContextUpdatedAt={prediction.contextUpdatedAt}
-          canAnalyze={!!((canAdminister || session?.user?.id === prediction.author.id) && prediction.status === 'ACTIVE')}
-        />
-        {prediction.resolutionRules && (
-          <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-lg text-sm text-gray-700">
-            <div className="font-semibold text-blue-900 mb-1 flex items-center gap-1.5">
-              <AlertCircle className="w-4 h-4" />
-              Resolution Rules
-            </div>
-            {translated?.resolutionRules ?? prediction.resolutionRules}
-          </div>
-        )}
-      </div>
-
-      {/* News Anchor */}
-      {prediction.newsAnchor && (
-        <div className="p-4 bg-gray-50 rounded-lg mb-6">
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
-            <Newspaper className="w-4 h-4" />
-            Related News
-          </div>
-          <a
-            href={prediction.newsAnchor.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-medium text-gray-900 hover:text-blue-600 flex items-center gap-1"
-          >
-            {prediction.newsAnchor.title}
-            <ExternalLink className="w-4 h-4" />
-          </a>
-          <span className="text-sm text-gray-500">
-            {prediction.newsAnchor.source || new URL(prediction.newsAnchor.url).hostname}
-          </span>
-        </div>
-      )}
-
-      {/* Info Grid + Commitment Section — mobile only (desktop: right sticky column) */}
-      <div className="lg:hidden">
-        <ForecastInfoPanel
-          prediction={prediction}
-          session={session}
-          userCommitment={userCommitment}
-          showCommitmentForm={showCommitmentForm}
-          onSetShowForm={setShowCommitmentForm}
-          onSuccess={handleCommitmentSuccess}
-          formattedDeadline={formatDate(prediction.resolveByDatetime)}
-          variant="mobile"
-        />
-      </div>{/* end lg:hidden */}
-
-      {/* Outcome Type */}
-      <div className="mb-8">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <Target className="w-5 h-5" />
-          Outcome
-        </h2>
-
-        {prediction.outcomeType === 'BINARY' && (() => {
-          const yesCount = prediction.commitments.filter(c => c.binaryChoice === true).length
-          const noCount = prediction.commitments.filter(c => c.binaryChoice === false).length
-          const total = yesCount + noCount
-          const yesPct = total > 0 ? Math.round((yesCount / total) * 100) : 50
-          const noPct = total > 0 ? 100 - yesPct : 50
-
-          return (
-            <div className="space-y-4">
-              <div className="flex justify-center">
-                <div className="w-full max-w-sm relative rounded-xl border border-gray-200 bg-white p-6 flex flex-col items-center justify-center hover:border-green-300 transition-colors shadow-sm">
-                  <Speedometer
-                    percentage={yesPct}
-                    label="Community Forecast: Will Happen"
-                    color="green"
-                    size="xl"
-                  />
-                  <div className="mt-4 flex flex-col items-center gap-1">
-                    <p className="text-sm font-semibold text-gray-900">
-                      {yesCount} YES &middot; {noCount} NO
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Based on {total} total commitment{total !== 1 ? 's' : ''}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )
-        })()}
-
-        {prediction.outcomeType === 'MULTIPLE_CHOICE' && prediction.options.length > 0 && (() => {
-          const totalCommits = prediction.commitments.length
-          const optionsWithStats = prediction.options.map(opt => ({
-            ...opt,
-            commitCount: prediction.commitments.filter(c => c.option?.id === opt.id).length,
-            pct: totalCommits > 0 ? Math.round((prediction.commitments.filter(c => c.option?.id === opt.id).length / totalCommits) * 100) : 0
-          })).sort((a, b) => b.commitCount - a.commitCount)
-
-          const leadingOption = optionsWithStats[0]
-          const otherOptions = optionsWithStats.slice(1)
-
-          return (
-            <div className="flex flex-col items-center">
-              <div className="w-full max-w-sm relative rounded-xl border border-gray-200 bg-white p-6 flex flex-col items-center justify-center hover:border-blue-300 transition-colors shadow-sm mb-6">
-                <Speedometer
-                  percentage={leadingOption.pct}
-                  label={`Leading: ${leadingOption.text}`}
-                  color={leadingOption.isCorrect ? 'green' : 'green'} // Keep leading as green for "leading" context
-                  size="lg"
-                />
-                <p className="mt-4 text-sm text-gray-500">
-                  <span className="font-semibold text-gray-900">{leadingOption.commitCount}</span> commitment{leadingOption.commitCount !== 1 ? 's' : ''} ({leadingOption.pct}%)
-                </p>
-              </div>
-
-              {otherOptions.length > 0 && (
-                <div className="w-full max-w-sm space-y-2">
-                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest text-center mb-3">Other Options</h4>
-                  <div className="bg-gray-50/50 rounded-xl border border-gray-100 p-3 divide-y divide-gray-100">
-                    {otherOptions.map(option => (
-                      <div key={option.id} className="flex items-center justify-between py-2 text-sm">
-                        <span className="text-gray-700 font-medium truncate pr-4">{option.text}</span>
-                        <span className="text-gray-500 shrink-0 font-mono">{option.pct}%</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )
-        })()}
-      </div>
-
-      {/* Resolution Info (if resolved) */}
-      {prediction.resolvedAt && (
-        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-8">
-          <h3 className="font-semibold text-blue-800 mb-2">Resolution</h3>
-          <p className="text-blue-700 mb-2">
-            Resolved as <strong className={prediction.resolutionOutcome === 'wrong' ? 'text-red-600' : undefined}>{prediction.resolutionOutcome}</strong> on {formatDate(prediction.resolvedAt)}
-          </p>
-          {prediction.resolutionNote && (
-            <p className="text-sm text-blue-600">{prediction.resolutionNote}</p>
-          )}
-          {prediction.evidenceLinks && prediction.evidenceLinks.length > 0 && (
-            <div className="mt-3">
-              <div className="text-sm font-medium text-blue-800 mb-1">Evidence:</div>
-              <ul className="space-y-1">
-                {prediction.evidenceLinks.map((link, i) => (
-                  <li key={i}>
-                    <a
-                      href={link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-blue-600 hover:underline flex items-center gap-1"
-                    >
-                      {link}
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Approval Section for PENDING_APPROVAL forecasts */}
-      {canApprove && (
-        <div className="mb-8 p-5 bg-amber-50 border border-amber-200 rounded-xl">
-          <div className="flex items-center gap-2 mb-3">
-            <AlertCircle className="w-5 h-5 text-amber-600" />
-            <h3 className="text-lg font-semibold text-amber-900">Pending Approval</h3>
-          </div>
-          <p className="text-sm text-amber-700 mb-4">
-            This bot-generated forecast is awaiting human review before going live.
-          </p>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => handleApproveAction('ACTIVE')}
-              disabled={isApproving}
-              className="flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
-            >
-              {isApproving ? 'Approving…' : 'Approve'}
-            </button>
-            <button
-              onClick={() => handleApproveAction('VOID')}
-              disabled={isApproving}
-              className="flex items-center gap-1.5 px-4 py-2 bg-white border border-red-200 text-red-600 text-sm font-medium rounded-lg hover:bg-red-50 disabled:opacity-50 transition-colors"
-            >
-              Reject
-            </button>
-          </div>
-          {(prediction.sentiment || prediction.confidence != null || prediction.consensusLine) && (
-            <div className="mt-3 p-3 bg-indigo-50 border border-indigo-100 rounded-lg space-y-1.5 text-sm">
-              {prediction.sentiment && (
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-indigo-900">Sentiment:</span>
-                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                    prediction.sentiment === 'positive' ? 'bg-green-100 text-green-700' :
-                    prediction.sentiment === 'negative' ? 'bg-red-100 text-red-700' :
-                    'bg-gray-100 text-gray-700'
-                  }`}>
-                    {prediction.sentiment}
-                  </span>
-                </div>
-              )}
-              {prediction.confidence != null && (
-                <div className="text-indigo-900">Confidence: <span className="font-medium">{prediction.confidence}%</span></div>
-              )}
-              {prediction.consensusLine && (
-                <p className="italic text-gray-600">&quot;{prediction.consensusLine}&quot;</p>
-              )}
-              {prediction.extractedEntities && prediction.extractedEntities.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {prediction.extractedEntities.map((entity, i) => (
-                    <span key={i} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">
-                      {entity}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Moderator Resolution Section */}
-      <ModeratorResolutionSection
-        predictionId={prediction.id}
-        predictionStatus={prediction.status}
-        outcomeType={prediction.outcomeType}
-        options={prediction.options}
-      />
-
-      {/* Commitments List */}
-      {prediction.commitments.length > 0 && (
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Users className="w-5 h-5" />
-            All Commitments
-          </h2>
-          <div className="border border-gray-200 rounded-lg divide-y divide-gray-100">
-            {prediction.commitments.map((commitment) => (
-              <div key={commitment.id} className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  {commitment.user.image && (
-                    <Image
-                      src={commitment.user.image}
-                      alt=""
-                      width={32}
-                      height={32}
-                      className="rounded-full"
-                    />
-                  )}
-                  <div>
-                    <div className="font-medium">{commitment.user.name}</div>
-                    <div className="text-sm text-gray-500">
-                      {prediction.outcomeType === 'BINARY'
-                        ? (commitment.binaryChoice ? 'Will happen' : 'Won\'t happen')
-                        : commitment.option?.text
-                      }
-                    </div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="font-semibold text-blue-600">{commitment.cuCommitted} CU</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Comments Section */}
-      <div className="border-t border-gray-200 pt-8">
-        <CommentThread predictionId={prediction.id} />
-      </div>
-
-        </div>{/* end left column */}
-
-        {/* Right column — sticky on desktop */}
-        <div className="hidden lg:block lg:sticky lg:top-8 space-y-4">
-          <ForecastInfoPanel
-            prediction={prediction}
-            session={session}
-            userCommitment={userCommitment}
-            showCommitmentForm={showCommitmentForm}
-            onSetShowForm={setShowCommitmentForm}
-            onSuccess={handleCommitmentSuccess}
-            formattedDeadline={formatDate(prediction.resolveByDatetime)}
-          />
-        </div>{/* end right column */}
-
-      </div>{/* end lg:grid */}
+    <div className="flex items-center justify-center min-h-[50vh]">
+      <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
     </div>
   )
 }
 
+export default async function ForecastDetailPage({ params }: Props) {
+  const { id } = await params
+  const prediction = await getPrediction(id)
+
+  if (!prediction) {
+    notFound()
+  }
+
+  return (
+    <Suspense fallback={<ForecastLoading />}>
+      <ForecastDetailClient initialData={prediction as any} />
+    </Suspense>
+  )
+}

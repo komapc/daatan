@@ -98,6 +98,25 @@
     "commitToPrompt": "רוצה להתחייב לתחזית זו?",
     "signInToCommit": "התחבר להתחייב"
   },
+  "Forecasts": {
+    "title": "עריכת תחזית",
+    "backToForecast": "חזרה לתחזית",
+    "claimLabel": "טקסט התחזית",
+    "detailsLabel": "פרטים / הקשר",
+    "resolutionRulesLabel": "כללי הכרעה",
+    "resolveByLabel": "תאריך ושעת הכרעה",
+    "visibilityLabel": "נראות",
+    "public": "ציבורי",
+    "publicDesc": "גלוי לכולם ובפיד",
+    "unlisted": "לא רשום",
+    "unlistedDesc": "גלוי רק באמצעות קישור ישיר",
+    "saveChanges": "שמור שינויים",
+    "cancel": "ביטול",
+    "saveSuccess": "השינויים נשמרו בהצלחה!",
+    "saveError": "השמירה נכשלה",
+    "notFound": "התחזית לא נמצאה",
+    "backToFeed": "חזרה לפיד"
+  },
   "commitment": {
     "title": "היסטוריית התחייבויות",
     "makeCommitment": "הגש את התחייבותך",

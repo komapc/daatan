@@ -1,26 +1,12 @@
 # TODO.md — Task Queue
 
-*Last updated: March 2026 · v1.7.30*
+*Last updated: March 2026 · v1.7.31*
 
 ---
 
 ## Open Tasks
 
-### P2 — Medium Priority
-
-- [ ] **Security: No bot-count limit** — `POST /api/admin/bots` has no cap; an admin can spin up thousands of bots each auto-granted 100 CU; add a configurable guard (e.g. `MAX_BOTS=50`) checked before creation.
-
-- [ ] **Testing: E2E auth-gated flows** — `tests/e2e/smoke.spec.ts` covers public routes only; login, create-forecast, and commit flows need a seeded test DB and auth fixtures (mock Google OAuth or test credentials).
-
-- [ ] **Testing: Slug collision & lockedAt race** — slug uniqueness collision (two concurrent creates) and the CU `lockedAt` race condition are untested; add unit tests for both.
-
-- [ ] **UX: Clickable username consistency** — usernames/avatars are now clickable in most surfaces (v1.7.30); audit remaining spots (notification actor, bot attribution in feed, resolve confirmation) for consistency.
-
 ### P3 — Low Priority / Nice to Have
-
-- [ ] **Security: Enforce CSP headers on production** — nginx is currently serving `Content-Security-Policy-Report-Only`; flip to enforcing once no violations are observed on staging for 2 weeks.
-
-- [ ] **Code: Shared `PrimaryLink` component** — three slightly-different Tailwind class strings for blue CTA link-buttons remain inline in the app; create `src/components/ui/PrimaryLink.tsx` to prevent further drift.
 
 - [ ] **Docs: VAPID key rotation runbook** — SECRETS.md documents key generation but not the operational procedure for rotating in production with zero subscription loss (grace period strategy).
 
@@ -57,7 +43,15 @@
 - [x] Bedrock Phase 1 — `scripts/promote-prompt.sh` with rollback support
 - [x] Bedrock Phase 2 — migrate all 9 remaining inline prompts to Bedrock Prompt Management
 
+### Phase 2: Widget & Sharing
+- [x] **Sharing cards with OG images** — Implemented dynamic OG images for forecasts (`src/app/forecasts/[id]/opengraph-image.tsx`) and user profiles (`src/app/profile/[id]/opengraph-image.tsx`). (v1.7.31)
+
 ### P2
+- [x] **Security: No bot-count limit** — Added `MAX_BOTS` env var (default 50) and enforced it in `POST /api/admin/bots`. (v1.7.31)
+- [x] **Testing: E2E auth-gated flows** — Created `tests/e2e/auth.setup.ts` and `tests/e2e/authenticated.spec.ts` with a `CredentialsProvider` bypass for automated test logins. (v1.7.31)
+- [x] **Testing: Slug collision & lockedAt race** — Added unit tests in `__tests__/lib/race-conditions.test.ts` and `__tests__/lib/slugify.test.ts`. (v1.7.31)
+- [x] **UX: Clickable username consistency** — Implemented `UserLink` across notifications, ForecastCard, and ForecastDetail pages. (v1.7.31)
+- [x] **Code: Shared `PrimaryLink` component** — Created `src/components/ui/PrimaryLink.tsx` and refactored inline Tailwind link styles. (v1.7.31)
 - [x] Notifications: in-app system (models, API, service, browser push, service worker, badge)
 - [x] Notifications: email via Resend
 - [x] Notifications: deduplication (same type+actor+prediction within 1h → update, not insert)
