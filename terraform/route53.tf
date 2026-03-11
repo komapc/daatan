@@ -51,8 +51,7 @@ resource "aws_route53_record" "google_verification" {
   type    = "TXT"
   ttl     = 300
   records = [
-    "v=spf1 include:spf.privateemail.com ~all",
-    "google-site-verification=ATwti6XWdVyDu_RJlJhqcBsq-Z_lkjA7nq8ooac"
+    "google-site-verification=ATwti6XWdVyDu_RJlJhqcBsq-Z_lkjA7nq8ooac",
+    "v=spf1 include:spf.privateemail.com ~all"
   ]
 }
-
