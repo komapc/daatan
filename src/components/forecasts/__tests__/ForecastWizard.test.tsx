@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, act, fireEvent } from '@testing-library/react'
 import { ForecastWizard } from '../ForecastWizard'
 
 // Mock next/navigation
@@ -39,7 +39,9 @@ describe('ForecastWizard', () => {
 
     localStorage.setItem('expressPredictionData', JSON.stringify(expressData))
 
-    render(<ForecastWizard isExpressFlow={true} />)
+    await act(async () => {
+      render(<ForecastWizard isExpressFlow={true} />)
+    })
 
     // Data should be removed from localStorage after loading
     await waitFor(() => {
@@ -90,11 +92,16 @@ describe('ForecastWizard', () => {
 
     localStorage.setItem('expressPredictionData', JSON.stringify(expressData))
 
-    render(<ForecastWizard isExpressFlow={true} />)
+    await act(async () => {
+      render(<ForecastWizard isExpressFlow={true} />)
+    })
 
     // Navigate to step 3 (Outcome) where the date input is
     const nextButton = screen.getByRole('button', { name: /next/i })
-    nextButton.click()
+    
+    await act(async () => {
+      fireEvent.click(nextButton)
+    })
 
     await waitFor(() => {
       const dateInput = screen.getByLabelText(/Resolution Deadline/i) as HTMLInputElement

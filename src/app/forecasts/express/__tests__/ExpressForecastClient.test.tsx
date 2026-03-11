@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 import ExpressForecastClient from '../ExpressForecastClient'
 
 // Mock next/navigation
@@ -129,7 +129,10 @@ describe('ExpressForecastClient', () => {
 
       const input = screen.getByPlaceholderText(/Describe your event OR paste/)
       fireEvent.change(input, { target: { value: 'Bitcoin will reach $100k this year' } })
-      fireEvent.click(screen.getByText('Generate Forecast'))
+      
+      await act(async () => {
+        fireEvent.click(screen.getByText('Generate Forecast'))
+      })
 
       return await screen.findByText('Confirm & Publish', {}, { timeout: 3000 })
     }
@@ -146,7 +149,9 @@ describe('ExpressForecastClient', () => {
         new Response(JSON.stringify({ id: 'new-id', status: 'ACTIVE' }), { status: 200 })
       )
 
-      fireEvent.click(confirmButton)
+      await act(async () => {
+        fireEvent.click(confirmButton)
+      })
 
       // Verify immediate feedback (button is disabled while loading)
       expect(confirmButton).toBeDisabled()
@@ -189,7 +194,9 @@ describe('ExpressForecastClient', () => {
         .mockResolvedValueOnce(new Response(JSON.stringify({ id: 'new-id' }), { status: 201 }))
         .mockResolvedValueOnce(new Response(JSON.stringify({ id: 'new-id', status: 'ACTIVE' }), { status: 200 }))
 
-      fireEvent.click(screen.getByText('Confirm & Publish'))
+      await act(async () => {
+        fireEvent.click(screen.getByText('Confirm & Publish'))
+      })
 
       await vi.waitFor(() => {
         expect(mockRouter.push).toHaveBeenCalled()
@@ -209,7 +216,9 @@ describe('ExpressForecastClient', () => {
     it('toggles to Unlisted when visibility button is clicked', async () => {
       await renderInReviewState()
 
-      fireEvent.click(screen.getByText(/Public — visible in the feed/))
+      await act(async () => {
+        fireEvent.click(screen.getByText(/Public — visible in the feed/))
+      })
       expect(screen.getByText(/Unlisted — only people with the link/)).toBeInTheDocument()
     })
 
@@ -217,13 +226,17 @@ describe('ExpressForecastClient', () => {
       await renderInReviewState()
 
       // Toggle to unlisted
-      fireEvent.click(screen.getByText(/Public — visible in the feed/))
+      await act(async () => {
+        fireEvent.click(screen.getByText(/Public — visible in the feed/))
+      })
 
       vi.spyOn(globalThis, 'fetch')
         .mockResolvedValueOnce(new Response(JSON.stringify({ id: 'new-id' }), { status: 201 }))
         .mockResolvedValueOnce(new Response(JSON.stringify({ id: 'new-id', status: 'ACTIVE' }), { status: 200 }))
 
-      fireEvent.click(screen.getByText('Confirm & Publish'))
+      await act(async () => {
+        fireEvent.click(screen.getByText('Confirm & Publish'))
+      })
 
       await vi.waitFor(() => {
         expect(mockRouter.push).toHaveBeenCalled()
@@ -238,7 +251,9 @@ describe('ExpressForecastClient', () => {
     it('shows edit form when Edit button clicked', async () => {
       await renderInReviewState()
 
-      fireEvent.click(screen.getByRole('button', { name: /^edit$/i }))
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /^edit$/i }))
+      })
 
       expect(screen.getByText('Save Changes')).toBeInTheDocument()
     })
@@ -247,7 +262,9 @@ describe('ExpressForecastClient', () => {
       await renderInReviewState()
 
       const editBtn = screen.getByRole('button', { name: /edit/i })
-      fireEvent.click(editBtn)
+      await act(async () => {
+        fireEvent.click(editBtn)
+      })
 
       expect(screen.queryByText(/Public — visible in the feed/)).not.toBeInTheDocument()
       expect(screen.queryByText(/Unlisted — only people with the link/)).not.toBeInTheDocument()
@@ -260,7 +277,9 @@ describe('ExpressForecastClient', () => {
         new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
       )
 
-      fireEvent.click(screen.getByText('Confirm & Publish'))
+      await act(async () => {
+        fireEvent.click(screen.getByText('Confirm & Publish'))
+      })
 
       // Button should revert from "Publishing..." back to normal after failure
       await vi.waitFor(() => {
