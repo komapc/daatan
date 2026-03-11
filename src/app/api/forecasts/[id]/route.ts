@@ -1,30 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import { updatePredictionSchema } from '@/lib/validations/prediction'
+import { auth } from '@/auth'
 import { apiError, handleRouteError } from '@/lib/api-error'
-import { withAuth } from '@/lib/api-middleware'
 import { prisma } from '@/lib/prisma'
-import { transitionIfExpired } from '@/lib/services/prediction-lifecycle'
+import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
 
-// GET /api/predictions/[id] - Get a single prediction (supports ID or slug)
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+const patchPredictionSchema = z.object({
+  claimText: z.string().min(5).max(500).optional(),
+  detailsText: z.string().max(2000).optional().nullable(),
+  resolutionRules: z.string().max(1000).optional().nullable(),
+  resolveByDatetime: z.string().datetime().optional(),
+  isPublic: z.boolean().optional(),
+})
+
+// GET /api/forecasts/[id] - Get single forecast details
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const { id } = await params
 
-    // Transition this prediction to PENDING if it's past its deadline
-    await transitionIfExpired(id)
-
-    // Try to find by ID, slug, or shareToken
-    const prediction = await prisma.prediction.findFirst({
-      where: {
-        OR: [
-          { id },
-          { slug: id },
-          { shareToken: id },
-        ],
+    const prediction = await prisma.prediction.findUnique({
+      where: { 
+        id: id.includes('-') ? undefined : id,
+        slug: id.includes('-') ? id : undefined
       },
       include: {
         author: {
@@ -42,30 +43,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           orderBy: { displayOrder: 'asc' },
         },
         commitments: {
+          orderBy: { createdAt: 'desc' },
           include: {
             user: {
-              select: {
-                id: true,
-                name: true,
-                username: true,
-                image: true,
-                rs: true,
-              },
+              select: { id: true, name: true, username: true, image: true },
             },
             option: {
-              select: {
-                id: true,
-                text: true,
-              },
+              select: { id: true, text: true },
             },
-          },
-          orderBy: { createdAt: 'desc' },
-        },
-        resolvedBy: {
-          select: {
-            id: true,
-            name: true,
-            username: true,
           },
         },
         _count: {
@@ -78,126 +63,171 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return apiError('Prediction not found', 404)
     }
 
-    // Access gate for private forecasts
-    if (!prediction.isPublic) {
-      const accessedViaToken = id === prediction.shareToken
-      const session = await getServerSession(authOptions)
-      const isAuthor = session?.user?.id === prediction.authorId
-      const isAdmin = session?.user?.role === 'ADMIN'
-      if (!accessedViaToken && !isAuthor && !isAdmin) {
-        return apiError('Prediction not found', 404)
-      }
+    // Get current user ID for personal commitment context
+    let session = null
+    try {
+      session = await auth()
+    } catch {
+      // Ignore session errors
+    }
+    
+    const userId = session?.user?.id
+    const isAdmin = session?.user?.role === 'ADMIN'
+
+    // Security: check visibility
+    if (!prediction.isPublic && prediction.authorId !== userId && !isAdmin) {
+      // If it's a private forecast, only author and admin can see it
+      return apiError('Prediction not found', 404)
+    }
+
+    // Find user's specific commitment to this prediction if it exists
+    let userCommitment = null
+    if (userId) {
+      userCommitment = await prisma.commitment.findFirst({
+        where: {
+          predictionId: prediction.id,
+          userId: userId,
+        },
+        select: {
+          id: true,
+          cuCommitted: true,
+          binaryChoice: true,
+          optionId: true,
+        }
+      })
     }
 
     // Calculate total CU committed
-    const totalCuCommitted = prediction.commitments.reduce(
-      (sum, c) => sum + c.cuCommitted,
-      0
-    )
+    const totalCuCommitted = prediction.commitments.reduce((sum, c) => sum + c.cuCommitted, 0)
 
     return NextResponse.json({
       ...prediction,
       totalCuCommitted,
+      userCommitment,
     })
   } catch (error) {
     return handleRouteError(error, 'Failed to fetch prediction')
   }
 }
 
-// PATCH /api/predictions/[id] - Update a prediction (draft only)
-export const PATCH = withAuth(async (request, user, { params }) => {
-  const prediction = await prisma.prediction.findUnique({
-    where: { id: params.id },
-    select: { authorId: true, status: true, lockedAt: true },
-  })
-
-  if (!prediction) {
-    return apiError('Prediction not found', 404)
-  }
-
-  // Only author or admin can update
-  if (prediction.authorId !== user.id && user.role !== 'ADMIN') {
-    return apiError('Forbidden', 403)
-  }
-
-  const body = await request.json()
-
-  // Can only update drafts (unless admin), except isPublic toggle is always allowed
-  if (prediction.status !== 'DRAFT' && user.role !== 'ADMIN') {
-    const nonVisibilityKeys = Object.keys(body).filter(k => k !== 'isPublic')
-    if (nonVisibilityKeys.length > 0) {
-      return apiError('Cannot update published predictions', 400)
+// PATCH /api/forecasts/[id] - Update forecast (author only)
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth()
+    if (!session?.user?.id) {
+      return apiError('Unauthorized', 401)
     }
-  }
 
-  // Enforce immutability for locked forecasts
-  if (prediction.lockedAt && user.role !== 'ADMIN') {
-    const restrictedFields = ['claimText', 'detailsText', 'outcomePayload']
-    const attemptedRestrictedUpdates = Object.keys(body).filter(key => restrictedFields.includes(key))
-    if (attemptedRestrictedUpdates.length > 0) {
-      return apiError(`Cannot update restricted fields (${attemptedRestrictedUpdates.join(', ')}) on a locked forecast`, 400)
+    const { id } = await params
+    const body = await request.json()
+    const data = patchPredictionSchema.parse(body)
+
+    // Check ownership
+    const prediction = await prisma.prediction.findUnique({
+      where: { id },
+      select: { authorId: true, status: true, lockedAt: true },
+    })
+
+    if (!prediction) {
+      return apiError('Forecast not found', 404)
     }
-  }
 
-  const data = updatePredictionSchema.parse(body)
+    const isAdmin = session.user.role === 'ADMIN'
+    const isOwner = prediction.authorId === session.user.id
 
-  // Validate resolve-by if provided
-  if (data.resolveByDatetime && new Date(data.resolveByDatetime) <= new Date()) {
-    return apiError('Resolution date must be in the future', 400)
-  }
+    if (!isOwner && !isAdmin) {
+      return apiError('Forbidden', 403)
+    }
 
-  const updateData: Record<string, unknown> = {}
-  if (data.claimText) updateData.claimText = data.claimText
-  if (data.detailsText !== undefined) updateData.detailsText = data.detailsText
-  if (data.outcomePayload) updateData.outcomePayload = data.outcomePayload
-  if (data.resolutionRules !== undefined) updateData.resolutionRules = data.resolutionRules
-  if (data.resolveByDatetime) updateData.resolveByDatetime = new Date(data.resolveByDatetime)
-  if (data.isPublic !== undefined) updateData.isPublic = data.isPublic
+    // Rules:
+    // 1. Can only update claimText/details/resolutionRules/resolveBy if it's a DRAFT
+    // 2. ACTIVE/PENDING forecasts can ONLY update isPublic
+    const isPublished = ['ACTIVE', 'PENDING', 'PENDING_APPROVAL'].includes(prediction.status)
+    const hasRestrictedChanges = data.claimText || data.detailsText || data.resolutionRules || data.resolveByDatetime
 
-  const updated = await prisma.prediction.update({
-    where: { id: params.id },
-    data: updateData,
-    include: {
-      author: {
-        select: {
-          id: true,
-          name: true,
-          username: true,
-          image: true,
+    if (isPublished && hasRestrictedChanges && !isAdmin) {
+      return apiError(`Cannot edit core fields of a published forecast. Status: ${prediction.status}`, 400)
+    }
+
+    // 3. Can't edit if lockedAt is set (unless admin)
+    if (prediction.lockedAt && !isAdmin) {
+      return apiError('Forecast is locked and cannot be edited', 400)
+    }
+
+    // Perform update
+    const updated = await prisma.prediction.update({
+      where: { id },
+      data: {
+        claimText: data.claimText,
+        detailsText: data.detailsText,
+        resolutionRules: data.resolutionRules,
+        resolveByDatetime: data.resolveByDatetime ? new Date(data.resolveByDatetime) : undefined,
+        isPublic: data.isPublic,
+      },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            username: true,
+            image: true,
+          },
         },
+        newsAnchor: true,
+        options: true,
       },
-      newsAnchor: true,
-      options: {
-        orderBy: { displayOrder: 'asc' },
-      },
-    },
-  })
+    })
 
-  return NextResponse.json(updated)
-})
-
-// DELETE /api/predictions/[id] - Delete a prediction (draft only)
-export const DELETE = withAuth(async (_request, user, { params }) => {
-  const prediction = await prisma.prediction.findUnique({
-    where: { id: params.id },
-    select: { authorId: true, status: true },
-  })
-
-  if (!prediction) {
-    return apiError('Prediction not found', 404)
+    return NextResponse.json(updated)
+  } catch (error) {
+    return handleRouteError(error, 'Failed to update prediction')
   }
+}
 
-  if (prediction.authorId !== user.id && user.role !== 'ADMIN') {
-    return apiError('Forbidden', 403)
+// DELETE /api/forecasts/[id] - Delete forecast (DRAFT only, author or admin)
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth()
+    if (!session?.user?.id) {
+      return apiError('Unauthorized', 401)
+    }
+
+    const { id } = await params
+
+    // Check ownership and status
+    const prediction = await prisma.prediction.findUnique({
+      where: { id },
+      select: { authorId: true, status: true },
+    })
+
+    if (!prediction) {
+      return apiError('Forecast not found', 404)
+    }
+
+    const isAdmin = session.user.role === 'ADMIN'
+    const isOwner = prediction.authorId === session.user.id
+
+    if (!isOwner && !isAdmin) {
+      return apiError('Forbidden', 403)
+    }
+
+    // Only DRAFT forecasts can be deleted to prevent pool manipulation
+    if (prediction.status !== 'DRAFT' && !isAdmin) {
+      return apiError('Only draft forecasts can be deleted', 400)
+    }
+
+    await prisma.prediction.delete({
+      where: { id },
+    })
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    return handleRouteError(error, 'Failed to delete prediction')
   }
-
-  if (prediction.status !== 'DRAFT' && user.role !== 'ADMIN') {
-    return apiError('Can only delete draft predictions', 400)
-  }
-
-  await prisma.prediction.delete({
-    where: { id: params.id },
-  })
-
-  return NextResponse.json({ success: true })
-})
+}

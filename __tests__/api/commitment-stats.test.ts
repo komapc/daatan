@@ -2,12 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET } from '@/app/api/commitments/stats/route'
 
-const { mockGetServerSession } = vi.hoisted(() => ({
-  mockGetServerSession: vi.fn(),
+const { mockAuth } = vi.hoisted(() => ({
+  mockAuth: vi.fn(),
 }))
 
-vi.mock('next-auth', () => ({ getServerSession: mockGetServerSession }))
-vi.mock('next-auth/next', () => ({ getServerSession: mockGetServerSession }))
+vi.mock('@/auth', () => ({ auth: mockAuth }))
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
@@ -23,7 +22,7 @@ describe('GET /api/commitments/stats', () => {
   })
 
   it('returns 401 when not authenticated', async () => {
-    mockGetServerSession.mockResolvedValue(null)
+    mockAuth.mockResolvedValue(null)
 
     const request = new NextRequest('http://localhost/api/commitments/stats')
     const response = await GET(request, { params: Promise.resolve({}) } as any)
@@ -32,7 +31,7 @@ describe('GET /api/commitments/stats', () => {
   })
 
   it('returns correct stats for a user with mixed commitments', async () => {
-    mockGetServerSession.mockResolvedValue({
+    mockAuth.mockResolvedValue({
       user: { id: 'user1', email: 'test@example.com', role: 'USER' },
     })
 
@@ -69,7 +68,7 @@ describe('GET /api/commitments/stats', () => {
   })
 
   it('returns null accuracy when no commitments are resolved', async () => {
-    mockGetServerSession.mockResolvedValue({
+    mockAuth.mockResolvedValue({
       user: { id: 'user1', email: 'test@example.com', role: 'USER' },
     })
 
@@ -89,7 +88,7 @@ describe('GET /api/commitments/stats', () => {
   })
 
   it('returns zeros when user has no commitments', async () => {
-    mockGetServerSession.mockResolvedValue({
+    mockAuth.mockResolvedValue({
       user: { id: 'user1', email: 'test@example.com', role: 'USER' },
     })
 

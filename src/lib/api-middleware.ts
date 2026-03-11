@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/auth'
 import { apiError, handleRouteError } from '@/lib/api-error'
 import type { UserRole } from '@prisma/client'
 import { createLogger } from '@/lib/logger'
@@ -37,13 +36,7 @@ interface WithAuthOptions {
 
 /**
  * Wrap a route handler with authentication and optional role checks.
- * Eliminates the getServerSession + null check + role check boilerplate.
- *
- * Usage:
- *   export const POST = withAuth(async (req, user, ctx) => {
- *     // user is guaranteed to exist and have the right role
- *     return NextResponse.json({ ok: true })
- *   }, { roles: ['ADMIN', 'RESOLVER'] })
+ * Eliminates the auth() + null check + role check boilerplate.
  */
 export function withAuth(
   handler: (
@@ -56,11 +49,11 @@ export function withAuth(
   return async (request: NextRequest, rawContext: RawRouteContext) => {
     let session: any = null
     try {
-      session = await getServerSession(authOptions)
+      session = await auth()
 
       if (!session?.user?.id) {
         const pathname = request.nextUrl.pathname
-        log.warn({ pathname, hasCookie: !!request.cookies.has('next-auth.session-token') }, 'Missing session in withAuth')
+        log.warn({ pathname }, 'Missing session in withAuth')
         return apiError('Unauthorized', 401)
       }
 

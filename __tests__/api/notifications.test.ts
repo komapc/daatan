@@ -3,12 +3,11 @@ import { NextRequest } from 'next/server'
 import { GET, POST } from '@/app/api/notifications/route'
 import { PATCH } from '@/app/api/notifications/[id]/route'
 
-const { mockGetServerSession } = vi.hoisted(() => ({
-  mockGetServerSession: vi.fn(),
+const { mockAuth } = vi.hoisted(() => ({
+  mockAuth: vi.fn(),
 }))
 
-vi.mock('next-auth', () => ({ getServerSession: mockGetServerSession }))
-vi.mock('next-auth/next', () => ({ getServerSession: mockGetServerSession }))
+vi.mock('@/auth', () => ({ auth: mockAuth }))
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
@@ -17,6 +16,9 @@ vi.mock('@/lib/prisma', () => ({
       count: vi.fn(),
       updateMany: vi.fn(),
     },
+    user: {
+      findMany: vi.fn(),
+    }
   },
 }))
 
@@ -33,7 +35,7 @@ describe('Notifications API', () => {
 
   describe('GET /api/notifications', () => {
     it('returns 401 when not authenticated', async () => {
-      mockGetServerSession.mockResolvedValue(null)
+      mockAuth.mockResolvedValue(null)
 
       const request = new NextRequest('http://localhost/api/notifications')
       const response = await GET(request, { params: Promise.resolve({}) } as any)
@@ -42,7 +44,7 @@ describe('Notifications API', () => {
     })
 
     it('returns notifications with pagination and unread count', async () => {
-      mockGetServerSession.mockResolvedValue({
+      mockAuth.mockResolvedValue({
         user: { id: 'user1', email: 'test@example.com', role: 'USER' },
       })
 
@@ -57,6 +59,7 @@ describe('Notifications API', () => {
       vi.mocked(prisma.notification.count)
         .mockResolvedValueOnce(2) // total
         .mockResolvedValueOnce(1) // unread
+      vi.mocked(prisma.user.findMany).mockResolvedValue([])
 
       const request = new NextRequest('http://localhost/api/notifications?page=1&limit=20')
       const response = await GET(request, { params: Promise.resolve({}) } as any)
@@ -74,7 +77,7 @@ describe('Notifications API', () => {
     })
 
     it('filters by unreadOnly when requested', async () => {
-      mockGetServerSession.mockResolvedValue({
+      mockAuth.mockResolvedValue({
         user: { id: 'user1', email: 'test@example.com', role: 'USER' },
       })
 
@@ -97,7 +100,7 @@ describe('Notifications API', () => {
 
   describe('POST /api/notifications (mark all read)', () => {
     it('marks all notifications as read', async () => {
-      mockGetServerSession.mockResolvedValue({
+      mockAuth.mockResolvedValue({
         user: { id: 'user1', email: 'test@example.com', role: 'USER' },
       })
 
@@ -115,7 +118,7 @@ describe('Notifications API', () => {
     })
 
     it('returns 401 when not authenticated', async () => {
-      mockGetServerSession.mockResolvedValue(null)
+      mockAuth.mockResolvedValue(null)
 
       const request = new NextRequest('http://localhost/api/notifications', {
         method: 'POST',
@@ -128,7 +131,7 @@ describe('Notifications API', () => {
 
   describe('PATCH /api/notifications/[id]', () => {
     it('marks a single notification as read', async () => {
-      mockGetServerSession.mockResolvedValue({
+      mockAuth.mockResolvedValue({
         user: { id: 'user1', email: 'test@example.com', role: 'USER' },
       })
 
@@ -144,7 +147,7 @@ describe('Notifications API', () => {
     })
 
     it('returns 404 when notification not found or not owned', async () => {
-      mockGetServerSession.mockResolvedValue({
+      mockAuth.mockResolvedValue({
         user: { id: 'user1', email: 'test@example.com', role: 'USER' },
       })
       const { markNotificationRead } = await import('@/lib/services/notification')
@@ -158,7 +161,7 @@ describe('Notifications API', () => {
     })
 
     it('returns 401 when not authenticated', async () => {
-      mockGetServerSession.mockResolvedValue(null)
+      mockAuth.mockResolvedValue(null)
 
       const request = new NextRequest('http://localhost/api/notifications/n1', {
         method: 'PATCH',

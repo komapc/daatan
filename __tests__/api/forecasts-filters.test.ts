@@ -2,21 +2,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET } from '@/app/api/forecasts/route'
 
-const { mockGetServerSession, mockFindMany, mockCount, mockUpdateMany, mockTransition } = vi.hoisted(() => ({
-  mockGetServerSession: vi.fn(),
+const { mockAuth, mockFindMany, mockCount, mockUpdateMany, mockTransition } = vi.hoisted(() => ({
+  mockAuth: vi.fn(),
   mockFindMany: vi.fn().mockResolvedValue([]),
   mockCount: vi.fn().mockResolvedValue(0),
   mockUpdateMany: vi.fn().mockResolvedValue({ count: 0 }),
   mockTransition: vi.fn().mockResolvedValue(0),
 }))
 
-vi.mock('next-auth/next', () => ({
-  getServerSession: mockGetServerSession,
-}))
-
-vi.mock('next-auth', () => ({
-  getServerSession: mockGetServerSession,
-}))
+vi.mock('@/auth', () => ({ auth: mockAuth }))
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
@@ -37,7 +31,7 @@ describe('GET /api/forecasts - Status Filters', () => {
     vi.clearAllMocks()
     mockFindMany.mockResolvedValue([])
     mockCount.mockResolvedValue(0)
-    mockGetServerSession.mockResolvedValue(null)
+    mockAuth.mockResolvedValue(null)
     mockTransition.mockResolvedValue(0)
   })
 
@@ -153,7 +147,7 @@ describe('GET /api/forecasts - Status Filters', () => {
 
   describe('Security / Auth', () => {
     it('allows Admin to fetch PENDING_APPROVAL forecasts', async () => {
-      mockGetServerSession.mockResolvedValue({ user: { role: 'ADMIN' } })
+      mockAuth.mockResolvedValue({ user: { role: 'ADMIN' } })
       const request = new NextRequest('http://localhost/api/forecasts?status=PENDING_APPROVAL')
       await GET(request)
 
@@ -167,7 +161,7 @@ describe('GET /api/forecasts - Status Filters', () => {
     })
 
     it('allows Approver to fetch PENDING_APPROVAL forecasts', async () => {
-      mockGetServerSession.mockResolvedValue({ user: { role: 'APPROVER' } })
+      mockAuth.mockResolvedValue({ user: { role: 'APPROVER' } })
       const request = new NextRequest('http://localhost/api/forecasts?status=PENDING_APPROVAL')
       await GET(request)
 
@@ -181,7 +175,7 @@ describe('GET /api/forecasts - Status Filters', () => {
     })
 
     it('falls back to ACTIVE for regular users requesting PENDING_APPROVAL', async () => {
-      mockGetServerSession.mockResolvedValue({ user: { role: 'USER' } })
+      mockAuth.mockResolvedValue({ user: { role: 'USER' } })
       const request = new NextRequest('http://localhost/api/forecasts?status=PENDING_APPROVAL')
       await GET(request)
 
@@ -195,7 +189,7 @@ describe('GET /api/forecasts - Status Filters', () => {
     })
 
     it('falls back to ACTIVE for guests requesting PENDING_APPROVAL', async () => {
-      mockGetServerSession.mockResolvedValue(null)
+      mockAuth.mockResolvedValue(null)
       const request = new NextRequest('http://localhost/api/forecasts?status=PENDING_APPROVAL')
       await GET(request)
 

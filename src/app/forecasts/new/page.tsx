@@ -1,31 +1,23 @@
 import { redirect } from 'next/navigation'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/lib/auth'
-import { PlusCircle } from 'lucide-react'
+import { auth } from '@/auth'
 import { ForecastWizard } from '@/components/forecasts/ForecastWizard'
 
-interface PageProps {
-  searchParams: Promise<{ from?: string }>
-}
+export const dynamic = 'force-dynamic'
 
-export default async function NewPredictionPage({ searchParams }: PageProps) {
-  const session = await getServerSession(authOptions)
+export default async function NewForecastPage() {
+  const session = await auth()
 
-  if (!session) {
-    redirect('/auth/signin?callbackUrl=/predictions/new')
+  if (!session?.user?.id) {
+    redirect('/auth/signin?callbackUrl=/forecasts/new')
   }
 
-  const { from } = await searchParams
-
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
-      <div className="flex items-center gap-3 mb-6 lg:mb-8">
-        <PlusCircle className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">New Prediction</h1>
+    <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
+      <div className="mb-8 text-center sm:text-left">
+        <h1 className="text-3xl font-black text-gray-900 tracking-tight">Create Manual Forecast</h1>
+        <p className="text-gray-500 mt-2">Design your own prediction with custom resolution rules.</p>
       </div>
-
-      <ForecastWizard isExpressFlow={from === 'express'} />
+      <ForecastWizard />
     </div>
   )
 }
-

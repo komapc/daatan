@@ -1,18 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET, POST } from '../route'
-import { getServerSession } from 'next-auth'
 
-const { mockGetServerSession } = vi.hoisted(() => ({
-    mockGetServerSession: vi.fn(),
+const { mockAuth } = vi.hoisted(() => ({
+    mockAuth: vi.fn(),
 }))
 
-vi.mock('next-auth', () => ({
-    getServerSession: mockGetServerSession,
-}))
-
-vi.mock('next-auth/next', () => ({
-    getServerSession: mockGetServerSession,
+vi.mock('@/auth', () => ({
+    auth: mockAuth,
 }))
 
 vi.mock('@/lib/prisma', () => ({
@@ -149,7 +144,7 @@ describe('/api/forecasts', () => {
         it('creates a new forecast when authenticated', async () => {
             const { prisma } = await import('@/lib/prisma')
 
-            vi.mocked(getServerSession).mockResolvedValue({
+            mockAuth.mockResolvedValue({
                 user: { id: 'user1', email: 'user@example.com' },
             } as any)
 
@@ -189,7 +184,7 @@ describe('/api/forecasts', () => {
         })
 
         it('returns 401 when not authenticated', async () => {
-            vi.mocked(getServerSession).mockResolvedValue(null)
+            mockAuth.mockResolvedValue(null)
 
             const body = {
                 claimText: 'New Forecast',
@@ -207,7 +202,7 @@ describe('/api/forecasts', () => {
         it('creates forecast with tags using connectOrCreate', async () => {
             const { prisma } = await import('@/lib/prisma')
 
-            vi.mocked(getServerSession).mockResolvedValue({
+            mockAuth.mockResolvedValue({
                 user: { id: 'user1', email: 'user@example.com', role: 'USER' },
             } as any)
 
@@ -251,7 +246,7 @@ describe('/api/forecasts', () => {
         it('creates forecast without tags when tags not provided', async () => {
             const { prisma } = await import('@/lib/prisma')
 
-            vi.mocked(getServerSession).mockResolvedValue({
+            mockAuth.mockResolvedValue({
                 user: { id: 'user1', email: 'user@example.com', role: 'USER' },
             } as any)
 
@@ -291,7 +286,7 @@ describe('/api/forecasts', () => {
         it('includes tags in forecast response', async () => {
             const { prisma } = await import('@/lib/prisma')
 
-            vi.mocked(getServerSession).mockResolvedValue({
+            mockAuth.mockResolvedValue({
                 user: { id: 'user1', email: 'user@example.com', role: 'USER' },
             } as any)
 

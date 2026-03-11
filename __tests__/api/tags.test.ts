@@ -12,12 +12,13 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
-// Mock next-auth
-vi.mock('next-auth/next', () => ({
-  getServerSession: vi.fn(),
+// Mock session/auth
+const { mockAuth } = vi.hoisted(() => ({
+  mockAuth: vi.fn(),
 }))
+vi.mock('@/auth', () => ({ auth: mockAuth }))
 
-// Mock auth
+// Mock authOptions for backward compatibility if any middleware/helper needs it
 vi.mock('@/lib/auth', () => ({
   authOptions: {},
 }))
@@ -150,9 +151,8 @@ describe('POST /api/tags', () => {
 
   it('creates a new tag for admin user', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { getServerSession } = await import('next-auth/next')
 
-    vi.mocked(getServerSession).mockResolvedValue({ user: createMockUser() } as any)
+    mockAuth.mockResolvedValue({ user: createMockUser() } as any)
     vi.mocked(prisma.tag.findUnique).mockResolvedValue(null)
     vi.mocked(prisma.tag.create).mockResolvedValue({
       id: 'new-tag',
@@ -175,9 +175,8 @@ describe('POST /api/tags', () => {
 
   it('rejects non-admin users', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { getServerSession } = await import('next-auth/next')
 
-    vi.mocked(getServerSession).mockResolvedValue({ user: createMockUser({ role: 'USER' }) } as any)
+    mockAuth.mockResolvedValue({ user: createMockUser({ role: 'USER' }) } as any)
 
     const request = createRequest({ name: 'Technology' })
     const response = await POST(request, { params: Promise.resolve({}) } as any)
@@ -189,9 +188,8 @@ describe('POST /api/tags', () => {
 
   it('rejects tag with empty name', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { getServerSession } = await import('next-auth/next')
 
-    vi.mocked(getServerSession).mockResolvedValue({ user: createMockUser() } as any)
+    mockAuth.mockResolvedValue({ user: createMockUser() } as any)
 
     const request = createRequest({ name: '' })
     const response = await POST(request, { params: Promise.resolve({}) } as any)
@@ -203,9 +201,8 @@ describe('POST /api/tags', () => {
 
   it('rejects tag with name exceeding 50 characters', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { getServerSession } = await import('next-auth/next')
 
-    vi.mocked(getServerSession).mockResolvedValue({ user: createMockUser() } as any)
+    mockAuth.mockResolvedValue({ user: createMockUser() } as any)
 
     const longName = 'a'.repeat(51)
     const request = createRequest({ name: longName })
@@ -218,9 +215,8 @@ describe('POST /api/tags', () => {
 
   it('rejects duplicate tag names', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { getServerSession } = await import('next-auth/next')
 
-    vi.mocked(getServerSession).mockResolvedValue({ user: createMockUser() } as any)
+    mockAuth.mockResolvedValue({ user: createMockUser() } as any)
     vi.mocked(prisma.tag.findUnique).mockResolvedValue({
       id: 'existing', createdAt: new Date(),
       name: 'Politics',
@@ -237,9 +233,8 @@ describe('POST /api/tags', () => {
 
   it('trims whitespace from tag name', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { getServerSession } = await import('next-auth/next')
 
-    vi.mocked(getServerSession).mockResolvedValue({ user: createMockUser() } as any)
+    mockAuth.mockResolvedValue({ user: createMockUser() } as any)
     vi.mocked(prisma.tag.findUnique).mockResolvedValue(null)
     vi.mocked(prisma.tag.create).mockResolvedValue({
       id: 'new-tag',
@@ -261,9 +256,8 @@ describe('POST /api/tags', () => {
 
   it('generates URL-friendly slug', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { getServerSession } = await import('next-auth/next')
 
-    vi.mocked(getServerSession).mockResolvedValue({ user: createMockUser() } as any)
+    mockAuth.mockResolvedValue({ user: createMockUser() } as any)
     vi.mocked(prisma.tag.findUnique).mockResolvedValue(null)
     vi.mocked(prisma.tag.create).mockResolvedValue({
       id: 'new-tag',
@@ -286,9 +280,8 @@ describe('POST /api/tags', () => {
 
   it('handles database errors gracefully', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { getServerSession } = await import('next-auth/next')
 
-    vi.mocked(getServerSession).mockResolvedValue({ user: createMockUser() } as any)
+    mockAuth.mockResolvedValue({ user: createMockUser() } as any)
     vi.mocked(prisma.tag.findUnique).mockRejectedValue(new Error('DB error'))
 
     const request = createRequest({ name: 'Technology' })

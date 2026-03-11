@@ -1,26 +1,19 @@
-import { withAuth } from "next-auth/middleware"
+import { auth } from "@/auth"
 import { NextResponse } from "next/server"
 
-export default withAuth(
-  function middleware(req) {
-    return NextResponse.next()
-  },
-  {
-    callbacks: {
-      authorized: ({ req, token }) => {
-        const pathname = req.nextUrl.pathname
-        
-        // Admin routes require ADMIN role
-        if (pathname.startsWith('/admin')) {
-          return token?.role === 'ADMIN'
-        }
+export default auth((req) => {
+  const isAuth = !!req.auth
+  const pathname = req.nextUrl.pathname
 
-        // Default: require authentication for matched routes
-        return !!token
-      },
-    },
+  // Admin routes require ADMIN role
+  if (pathname.startsWith('/admin')) {
+    if (!isAuth || req.auth?.user?.role !== 'ADMIN') {
+      return NextResponse.redirect(new URL('/auth/signin', req.url))
+    }
   }
-)
+
+  return NextResponse.next()
+})
 
 export const config = {
   matcher: [

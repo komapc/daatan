@@ -12,7 +12,7 @@ None — all tracked tasks complete!
 
 ## Upgrades (evaluate when ready)
 
-- [ ] **Auth.js v5** — breaking config changes from NextAuth 4; needs a dedicated migration plan (adapter, session shape, callbacks).
+- [x] **Auth.js v5** — Migrated from NextAuth 4 to Auth.js v5 beta. Standardized `auth()` helper usage across API routes and components. Updated middleware and testing mocks. (v1.7.31)
 - [ ] **Prisma 7** — major version available (5.22 → 7.x); review migration guide before upgrading.
 - [ ] **Drizzle ORM** — lighter runtime and SQL-first API vs Prisma; evaluate when Prisma becomes a bottleneck.
 
