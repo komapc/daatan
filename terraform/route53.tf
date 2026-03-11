@@ -44,12 +44,15 @@ resource "aws_route53_record" "staging" {
   records = [aws_eip.backend.public_ip]
 }
 
-# Google Site Verification TXT record
+# Google Site Verification and SPF TXT record
 resource "aws_route53_record" "google_verification" {
   zone_id = aws_route53_zone.main.zone_id
   name    = var.domain_name
   type    = "TXT"
   ttl     = 300
-  records = ["google-site-verification=ATwti6XWdVyDu_RJlJhqcBsq-Z_lkjA7nq8ooac"]
+  records = [
+    "v=spf1 include:spf.privateemail.com ~all",
+    "google-site-verification=ATwti6XWdVyDu_RJlJhqcBsq-Z_lkjA7nq8ooac"
+  ]
 }
 
