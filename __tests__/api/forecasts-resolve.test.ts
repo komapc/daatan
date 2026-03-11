@@ -2,17 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { POST as resolvePrediction } from '@/app/api/forecasts/[id]/resolve/route'
 
-const { mockGetServerSession } = vi.hoisted(() => ({
-  mockGetServerSession: vi.fn(),
+// Mock session/auth
+const { mockAuth } = vi.hoisted(() => ({
+  mockAuth: vi.fn(),
 }))
-
-vi.mock('next-auth/next', () => ({
-  getServerSession: mockGetServerSession,
-}))
-
-vi.mock('next-auth', () => ({
-  getServerSession: mockGetServerSession,
-}))
+vi.mock('@/auth', () => ({ auth: mockAuth }))
 
 vi.mock('@/lib/services/telegram', () => ({
   notifyForecastResolved: vi.fn(),
@@ -65,7 +59,7 @@ describe('POST /api/predictions/[id]/resolve', () => {
   })
 
   it('returns 401 when not authenticated', async () => {
-    mockGetServerSession.mockResolvedValue(null)
+    mockAuth.mockResolvedValue(null)
 
     const request = new NextRequest('http://localhost/api/predictions/pred-1/resolve', {
       method: 'POST',
@@ -82,7 +76,7 @@ describe('POST /api/predictions/[id]/resolve', () => {
 
   it('returns 403 when user is not RESOLVER or ADMIN', async () => {
     // withAuth checks role from session — USER role is not in allowed roles
-    mockGetServerSession.mockResolvedValue({
+    mockAuth.mockResolvedValue({
       user: { id: 'user1', email: 'user@example.com', role: 'USER' },
     })
 
@@ -104,7 +98,7 @@ describe('POST /api/predictions/[id]/resolve', () => {
   it('allows RESOLVER to resolve prediction', async () => {
     const { prisma } = await import('@/lib/prisma')
 
-    mockGetServerSession.mockResolvedValue({
+    mockAuth.mockResolvedValue({
       user: { id: 'resolver1', email: 'resolver@example.com', role: 'RESOLVER' },
     })
 
@@ -143,7 +137,7 @@ describe('POST /api/predictions/[id]/resolve', () => {
   it('allows ADMIN to resolve prediction', async () => {
     const { prisma } = await import('@/lib/prisma')
 
-    mockGetServerSession.mockResolvedValue({
+    mockAuth.mockResolvedValue({
       user: { id: 'admin1', email: 'admin@example.com', role: 'ADMIN' },
     })
 
@@ -182,7 +176,7 @@ describe('POST /api/predictions/[id]/resolve', () => {
   it('returns 404 when prediction not found', async () => {
     const { prisma } = await import('@/lib/prisma')
 
-    mockGetServerSession.mockResolvedValue({
+    mockAuth.mockResolvedValue({
       user: { id: 'resolver1', email: 'resolver@example.com', role: 'RESOLVER' },
     })
 
@@ -206,7 +200,7 @@ describe('POST /api/predictions/[id]/resolve', () => {
   it('uses params.id for prediction lookup (not URL parsing)', async () => {
     const { prisma } = await import('@/lib/prisma')
 
-    mockGetServerSession.mockResolvedValue({
+    mockAuth.mockResolvedValue({
       user: { id: 'resolver1', email: 'resolver@example.com', role: 'RESOLVER' },
     })
 
@@ -237,7 +231,7 @@ describe('POST /api/predictions/[id]/resolve', () => {
     }>) => {
       const { prisma } = await import('@/lib/prisma')
 
-      mockGetServerSession.mockResolvedValue({
+      mockAuth.mockResolvedValue({
         user: { id: 'resolver1', email: 'resolver@example.com', role: 'RESOLVER' },
       })
 
@@ -433,7 +427,7 @@ describe('POST /api/predictions/[id]/resolve', () => {
   it('returns 400 when prediction is already resolved', async () => {
     const { prisma } = await import('@/lib/prisma')
 
-    mockGetServerSession.mockResolvedValue({
+    mockAuth.mockResolvedValue({
       user: { id: 'resolver1', email: 'resolver@example.com', role: 'RESOLVER' },
     })
 

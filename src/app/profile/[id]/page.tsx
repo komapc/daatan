@@ -1,7 +1,6 @@
 import { notFound, redirect } from 'next/navigation'
 import type { Metadata } from 'next'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
 import { UserProfileView } from '@/components/profile/UserProfileView'
@@ -56,7 +55,7 @@ export default async function PublicProfilePage({ params }: ProfilePageProps) {
   const { id } = await params
   
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
 
     // If it's the current user's ID, redirect to their private profile
     if (session?.user?.id === id) {

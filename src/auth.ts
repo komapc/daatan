@@ -1,33 +1,33 @@
-import type { NextAuthOptions } from 'next-auth'
-import type { Adapter } from 'next-auth/adapters'
-import GoogleProvider from 'next-auth/providers/google'
-import CredentialsProvider from 'next-auth/providers/credentials'
-import { PrismaAdapter } from '@auth/prisma-adapter'
-import { prisma } from '@/lib/prisma'
-import { createLogger } from '@/lib/logger'
-import { env } from '@/env'
+import NextAuth from "next-auth"
+import type { NextAuthConfig, Session } from "next-auth"
+import type { JWT } from "next-auth/jwt"
+import Google from "next-auth/providers/google"
+import Credentials from "next-auth/providers/credentials"
+import { PrismaAdapter } from "@auth/prisma-adapter"
+import { prisma } from "@/lib/prisma"
+import { createLogger } from "@/lib/logger"
+import { env } from "@/env"
+import type { Adapter } from "next-auth/adapters"
 
 const log = createLogger('auth')
 
 const isTest = process.env.PLAYWRIGHT_TEST === 'true'
 const isStaging = env.NEXT_PUBLIC_ENV === 'staging'
-/** Staging and production both run behind nginx; use explicit cookie options for both. */
 const isHosted = env.NEXT_PUBLIC_ENV === 'staging' || env.NEXT_PUBLIC_ENV === 'production'
 
-export const authOptions: NextAuthOptions = {
+export const authOptions: NextAuthConfig = {
   adapter: PrismaAdapter(prisma) as Adapter,
   secret: env.NEXTAUTH_SECRET,
   debug: isStaging || env.NEXTAUTH_DEBUG === 'true',
-  // Trust Host header: set AUTH_TRUST_HOST=true when behind nginx (see docker-compose.prod.yml)
   providers: [
-    GoogleProvider({
+    Google({
       clientId: env.GOOGLE_CLIENT_ID,
       clientSecret: env.GOOGLE_CLIENT_SECRET,
       allowDangerousEmailAccountLinking: false,
     }),
     // Playwright test provider: only available in test mode
     ...(isTest ? [
-      CredentialsProvider({
+      Credentials({
         name: 'Playwright Test',
         credentials: {
           userId: { label: "User ID", type: "text" },
@@ -38,15 +38,15 @@ export const authOptions: NextAuthOptions = {
           
           // Find or create the test user
           const user = await prisma.user.upsert({
-            where: { id: credentials.userId },
+            where: { id: credentials.userId as string },
             update: { role: (credentials.role as any) || 'USER' },
             create: {
-              id: credentials.userId,
+              id: credentials.userId as string,
               email: `${credentials.userId}@test.daatan.com`,
               name: `Test User ${credentials.userId}`,
               username: `testuser_${credentials.userId}`,
               role: (credentials.role as any) || 'USER',
-              cuAvailable: 1000, // Give plenty of CU for tests
+              cuAvailable: 1000,
             }
           })
           
@@ -71,40 +71,32 @@ export const authOptions: NextAuthOptions = {
       }
       return true
     },
-    async redirect({ url, baseUrl }) {
-      if (isStaging || env.NEXTAUTH_DEBUG === 'true') {
-        log.info({ url, baseUrl }, 'redirect callback')
-      }
-      if (url.startsWith('/')) return `${baseUrl}${url}`
-      if (new URL(url).origin === baseUrl) return url
-      return baseUrl
-    },
-    async session({ session, token }) {
+    async session({ session, token }: { session: Session; token: JWT }) {
       if (session.user && token.sub) {
         session.user.id = token.sub
 
         if (token.userDeleted) {
           log.warn({ userId: token.sub }, 'Session user not found in DB — invalidating session')
-          session.expires = new Date(0).toISOString()
+          session.expires = new Date(0).toISOString() as any
           return session
         }
 
-        // Read cached values from JWT — no DB round-trip needed
-        session.user.role = token.role ?? 'USER'
-        session.user.username = token.username
-        session.user.rs = token.rs
-        session.user.cuAvailable = token.cuAvailable
-        session.user.cuLocked = token.cuLocked
+        // Read cached values from JWT
+        session.user.role = (token.role as any) ?? 'USER'
+        session.user.username = token.username as string | undefined
+        session.user.rs = token.rs as number | undefined
+        session.user.cuAvailable = token.cuAvailable as number | undefined
+        session.user.cuLocked = token.cuLocked as number | undefined
         if (token.name) session.user.name = token.name
         if (token.picture) session.user.image = token.picture as string
       }
       return session
     },
     async jwt({ token, user }) {
-      // On sign-in the `user` object is present; otherwise only refresh when cache is stale
       const TTL = 5 * 60 * 1000 // 5 minutes
       const isSignIn = !!user
-      const stale = !token.cachedAt || Date.now() - token.cachedAt > TTL
+      const cachedAt = token.cachedAt as number | undefined
+      const stale = !cachedAt || Date.now() - cachedAt > TTL
 
       if ((isSignIn || stale) && token.sub) {
         try {
@@ -139,7 +131,7 @@ export const authOptions: NextAuthOptions = {
       try {
         await prisma.cuTransaction.create({
           data: {
-            userId: user.id,
+            userId: user.id!,
             type: 'INITIAL_GRANT',
             amount: 100,
             balanceAfter: 100,
@@ -155,25 +147,10 @@ export const authOptions: NextAuthOptions = {
     signIn: '/auth/signin',
     error: '/auth/error',
   },
-  // Route NextAuth errors/warnings to our logger (helps diagnose OAuthCallback / cookie issues in prod)
-  logger: {
-    error(code, metadata) {
-      log.error({ code, metadata: metadata ?? {} }, `NextAuth error: ${code}`)
-    },
-    warn(code) {
-      log.warn({ code }, `NextAuth warn: ${code}`)
-    },
-    debug(code, metadata) {
-      log.debug({ code, metadata: metadata ?? {} }, `NextAuth debug: ${code}`)
-    },
-  },
-  // When behind nginx: use secure cookies and explicit cookie options so state/PKCE
-  // cookies are set and sent on OAuth callback (avoids OAuthCallback / "state cookie missing")
   ...(isHosted && {
-    useSecureCookies: true,
     cookies: {
-      csrfToken: {
-        name: `__Secure-next-auth.csrf-token`,
+      sessionToken: {
+        name: `__Secure-next-auth.session-token`,
         options: {
           httpOnly: true,
           sameSite: 'lax',
@@ -184,6 +161,15 @@ export const authOptions: NextAuthOptions = {
       callbackUrl: {
         name: `__Secure-next-auth.callback-url`,
         options: {
+          sameSite: 'lax',
+          path: '/',
+          secure: true,
+        },
+      },
+      csrfToken: {
+        name: `__Secure-next-auth.csrf-token`,
+        options: {
+          httpOnly: true,
           sameSite: 'lax',
           path: '/',
           secure: true,
@@ -221,3 +207,5 @@ export const authOptions: NextAuthOptions = {
     },
   }),
 }
+
+export const { handlers, auth, signIn, signOut } = NextAuth(authOptions)

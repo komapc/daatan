@@ -6,12 +6,11 @@ import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
 // ─── Session mock ─────────────────────────────────────────────────────────────
-const { mockGetServerSession } = vi.hoisted(() => ({
-  mockGetServerSession: vi.fn(),
+const { mockAuth } = vi.hoisted(() => ({
+  mockAuth: vi.fn(),
 }))
 
-vi.mock('next-auth/next', () => ({ getServerSession: mockGetServerSession }))
-vi.mock('next-auth', () => ({ getServerSession: mockGetServerSession }))
+vi.mock('@/auth', () => ({ auth: mockAuth }))
 
 // ─── Auth options mock ────────────────────────────────────────────────────────
 vi.mock('@/lib/auth', () => ({ authOptions: {} }))
@@ -138,7 +137,7 @@ describe('GET /api/admin/bots', () => {
 
   it('returns 401 when not authenticated', async () => {
     const { GET } = await import('@/app/api/admin/bots/route')
-    mockGetServerSession.mockResolvedValue(null)
+    mockAuth.mockResolvedValue(null)
 
     const req = new NextRequest('http://localhost/api/admin/bots')
     const res = await GET(req, { params: Promise.resolve({}) })
@@ -148,7 +147,7 @@ describe('GET /api/admin/bots', () => {
 
   it('returns 403 when authenticated as non-admin', async () => {
     const { GET } = await import('@/app/api/admin/bots/route')
-    mockGetServerSession.mockResolvedValue(USER_SESSION)
+    mockAuth.mockResolvedValue(USER_SESSION)
 
     const req = new NextRequest('http://localhost/api/admin/bots')
     const res = await GET(req, { params: Promise.resolve({}) })
@@ -159,7 +158,7 @@ describe('GET /api/admin/bots', () => {
   it('returns enriched bot list with forecastsToday, votesToday, and nextRunAt', async () => {
     const { GET } = await import('@/app/api/admin/bots/route')
     const { prisma } = await import('@/lib/prisma')
-    mockGetServerSession.mockResolvedValue(ADMIN_SESSION)
+    mockAuth.mockResolvedValue(ADMIN_SESSION)
 
     const lastRunAt = new Date('2026-02-20T10:00:00Z')
     vi.mocked(prisma.botConfig.findMany).mockResolvedValue([
@@ -186,7 +185,7 @@ describe('GET /api/admin/bots', () => {
   it('returns nextRunAt=null when lastRunAt is null', async () => {
     const { GET } = await import('@/app/api/admin/bots/route')
     const { prisma } = await import('@/lib/prisma')
-    mockGetServerSession.mockResolvedValue(ADMIN_SESSION)
+    mockAuth.mockResolvedValue(ADMIN_SESSION)
 
     vi.mocked(prisma.botConfig.findMany).mockResolvedValue([makeBotRecord({ lastRunAt: null })] as any)
     vi.mocked(prisma.botRunLog.groupBy).mockResolvedValue([])
@@ -201,7 +200,7 @@ describe('GET /api/admin/bots', () => {
   it('returns 500 on database error', async () => {
     const { GET } = await import('@/app/api/admin/bots/route')
     const { prisma } = await import('@/lib/prisma')
-    mockGetServerSession.mockResolvedValue(ADMIN_SESSION)
+    mockAuth.mockResolvedValue(ADMIN_SESSION)
 
     vi.mocked(prisma.botConfig.findMany).mockRejectedValue(new Error('DB error'))
 
@@ -222,7 +221,7 @@ describe('POST /api/admin/bots', () => {
 
   it('returns 401 when not authenticated', async () => {
     const { POST } = await import('@/app/api/admin/bots/route')
-    mockGetServerSession.mockResolvedValue(null)
+    mockAuth.mockResolvedValue(null)
 
     const req = new NextRequest('http://localhost/api/admin/bots', {
       method: 'POST',
@@ -235,7 +234,7 @@ describe('POST /api/admin/bots', () => {
 
   it('returns 400 when stakeMin > stakeMax', async () => {
     const { POST } = await import('@/app/api/admin/bots/route')
-    mockGetServerSession.mockResolvedValue(ADMIN_SESSION)
+    mockAuth.mockResolvedValue(ADMIN_SESSION)
 
     const req = new NextRequest('http://localhost/api/admin/bots', {
       method: 'POST',
@@ -258,7 +257,7 @@ describe('POST /api/admin/bots', () => {
   it('returns 400 when username is already taken', async () => {
     const { POST } = await import('@/app/api/admin/bots/route')
     const { prisma } = await import('@/lib/prisma')
-    mockGetServerSession.mockResolvedValue(ADMIN_SESSION)
+    mockAuth.mockResolvedValue(ADMIN_SESSION)
 
     vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'existing-user' } as any)
 
@@ -281,7 +280,7 @@ describe('POST /api/admin/bots', () => {
   it('returns 400 when bot limit is reached', async () => {
     const { POST } = await import('@/app/api/admin/bots/route')
     const { prisma } = await import('@/lib/prisma')
-    mockGetServerSession.mockResolvedValue(ADMIN_SESSION)
+    mockAuth.mockResolvedValue(ADMIN_SESSION)
 
     vi.mocked(prisma.botConfig.count).mockResolvedValue(2) // env.MAX_BOTS is mocked to 2
 
@@ -304,7 +303,7 @@ describe('POST /api/admin/bots', () => {
   it('returns 201 and creates bot when request is valid', async () => {
     const { POST } = await import('@/app/api/admin/bots/route')
     const { prisma } = await import('@/lib/prisma')
-    mockGetServerSession.mockResolvedValue(ADMIN_SESSION)
+    mockAuth.mockResolvedValue(ADMIN_SESSION)
 
     vi.mocked(prisma.user.findUnique).mockResolvedValue(null) // username is available
 
@@ -342,7 +341,7 @@ describe('POST /api/admin/bots', () => {
 
   it('returns 400 when schema validation fails (name too short)', async () => {
     const { POST } = await import('@/app/api/admin/bots/route')
-    mockGetServerSession.mockResolvedValue(ADMIN_SESSION)
+    mockAuth.mockResolvedValue(ADMIN_SESSION)
 
     const req = new NextRequest('http://localhost/api/admin/bots', {
       method: 'POST',
@@ -384,7 +383,7 @@ describe('POST /api/admin/bots', () => {
   it('uses LLM-generated prompts when response passes Zod validation', async () => {
     const { POST } = await import('@/app/api/admin/bots/route')
     const { prisma } = await import('@/lib/prisma')
-    mockGetServerSession.mockResolvedValue(ADMIN_SESSION)
+    mockAuth.mockResolvedValue(ADMIN_SESSION)
     vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
 
     const generated = {
@@ -409,7 +408,7 @@ describe('POST /api/admin/bots', () => {
   it('falls back to default prompts when LLM response fails Zod validation', async () => {
     const { POST } = await import('@/app/api/admin/bots/route')
     const { prisma } = await import('@/lib/prisma')
-    mockGetServerSession.mockResolvedValue(ADMIN_SESSION)
+    mockAuth.mockResolvedValue(ADMIN_SESSION)
     vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
 
     // Strings are too short (< 10 chars) → Zod validation fails
@@ -430,7 +429,7 @@ describe('POST /api/admin/bots', () => {
   it('falls back to default prompts when LLM throws an error', async () => {
     const { POST } = await import('@/app/api/admin/bots/route')
     const { prisma } = await import('@/lib/prisma')
-    mockGetServerSession.mockResolvedValue(ADMIN_SESSION)
+    mockAuth.mockResolvedValue(ADMIN_SESSION)
     vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
 
     mockGenerateContent.mockRejectedValue(new Error('LLM service unavailable'))
@@ -448,7 +447,7 @@ describe('POST /api/admin/bots', () => {
   it('skips LLM generation when personaPrompt is provided explicitly', async () => {
     const { POST } = await import('@/app/api/admin/bots/route')
     const { prisma } = await import('@/lib/prisma')
-    mockGetServerSession.mockResolvedValue(ADMIN_SESSION)
+    mockAuth.mockResolvedValue(ADMIN_SESSION)
     vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
 
     vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => {
@@ -485,7 +484,7 @@ describe('PATCH /api/admin/bots/[id]', () => {
 
   it('returns 401 when not authenticated', async () => {
     const { PATCH } = await import('@/app/api/admin/bots/[id]/route')
-    mockGetServerSession.mockResolvedValue(null)
+    mockAuth.mockResolvedValue(null)
 
     const req = new NextRequest('http://localhost/api/admin/bots/bot-1', {
       method: 'PATCH',
@@ -499,7 +498,7 @@ describe('PATCH /api/admin/bots/[id]', () => {
   it('returns 404 when bot does not exist', async () => {
     const { PATCH } = await import('@/app/api/admin/bots/[id]/route')
     const { prisma } = await import('@/lib/prisma')
-    mockGetServerSession.mockResolvedValue(ADMIN_SESSION)
+    mockAuth.mockResolvedValue(ADMIN_SESSION)
 
     vi.mocked(prisma.botConfig.findUnique).mockResolvedValue(null)
 
@@ -515,7 +514,7 @@ describe('PATCH /api/admin/bots/[id]', () => {
   it('returns 400 when updated stakeMin would exceed stakeMax', async () => {
     const { PATCH } = await import('@/app/api/admin/bots/[id]/route')
     const { prisma } = await import('@/lib/prisma')
-    mockGetServerSession.mockResolvedValue(ADMIN_SESSION)
+    mockAuth.mockResolvedValue(ADMIN_SESSION)
 
     vi.mocked(prisma.botConfig.findUnique).mockResolvedValue(makeBotRecord({ stakeMin: 10, stakeMax: 50 }) as any)
 
@@ -533,7 +532,7 @@ describe('PATCH /api/admin/bots/[id]', () => {
   it('returns 200 with updated bot on valid update', async () => {
     const { PATCH } = await import('@/app/api/admin/bots/[id]/route')
     const { prisma } = await import('@/lib/prisma')
-    mockGetServerSession.mockResolvedValue(ADMIN_SESSION)
+    mockAuth.mockResolvedValue(ADMIN_SESSION)
 
     const existing = makeBotRecord()
     const updated = { ...existing, isActive: false, user: { id: 'user-bot-1', name: 'TestBot', username: 'testbot_b', cuAvailable: 100 } }
@@ -562,7 +561,7 @@ describe('DELETE /api/admin/bots/[id]', () => {
 
   it('returns 401 when not authenticated', async () => {
     const { DELETE } = await import('@/app/api/admin/bots/[id]/route')
-    mockGetServerSession.mockResolvedValue(null)
+    mockAuth.mockResolvedValue(null)
 
     const req = new NextRequest('http://localhost/api/admin/bots/bot-1', { method: 'DELETE' })
     const res = await DELETE(req, { params: Promise.resolve({ id: 'bot-1' }) })
@@ -573,7 +572,7 @@ describe('DELETE /api/admin/bots/[id]', () => {
   it('returns 404 when bot does not exist', async () => {
     const { DELETE } = await import('@/app/api/admin/bots/[id]/route')
     const { prisma } = await import('@/lib/prisma')
-    mockGetServerSession.mockResolvedValue(ADMIN_SESSION)
+    mockAuth.mockResolvedValue(ADMIN_SESSION)
 
     vi.mocked(prisma.botConfig.findUnique).mockResolvedValue(null)
 
@@ -586,7 +585,7 @@ describe('DELETE /api/admin/bots/[id]', () => {
   it('soft-deletes the bot (sets isActive=false) and returns ok', async () => {
     const { DELETE } = await import('@/app/api/admin/bots/[id]/route')
     const { prisma } = await import('@/lib/prisma')
-    mockGetServerSession.mockResolvedValue(ADMIN_SESSION)
+    mockAuth.mockResolvedValue(ADMIN_SESSION)
 
     vi.mocked(prisma.botConfig.findUnique).mockResolvedValue(makeBotRecord() as any)
     vi.mocked(prisma.botConfig.update).mockResolvedValue({} as any)
@@ -614,7 +613,7 @@ describe('GET /api/admin/bots/[id]/logs', () => {
 
   it('returns 401 when not authenticated', async () => {
     const { GET } = await import('@/app/api/admin/bots/[id]/logs/route')
-    mockGetServerSession.mockResolvedValue(null)
+    mockAuth.mockResolvedValue(null)
 
     const req = new NextRequest('http://localhost/api/admin/bots/bot-1/logs')
     const res = await GET(req, { params: Promise.resolve({ id: 'bot-1' }) })
@@ -625,7 +624,7 @@ describe('GET /api/admin/bots/[id]/logs', () => {
   it('returns 404 when bot does not exist', async () => {
     const { GET } = await import('@/app/api/admin/bots/[id]/logs/route')
     const { prisma } = await import('@/lib/prisma')
-    mockGetServerSession.mockResolvedValue(ADMIN_SESSION)
+    mockAuth.mockResolvedValue(ADMIN_SESSION)
 
     vi.mocked(prisma.botConfig.findUnique).mockResolvedValue(null)
 
@@ -638,7 +637,7 @@ describe('GET /api/admin/bots/[id]/logs', () => {
   it('returns paginated logs with correct pagination metadata', async () => {
     const { GET } = await import('@/app/api/admin/bots/[id]/logs/route')
     const { prisma } = await import('@/lib/prisma')
-    mockGetServerSession.mockResolvedValue(ADMIN_SESSION)
+    mockAuth.mockResolvedValue(ADMIN_SESSION)
 
     vi.mocked(prisma.botConfig.findUnique).mockResolvedValue(makeBotRecord() as any)
 
@@ -671,7 +670,7 @@ describe('GET /api/admin/bots/[id]/logs', () => {
   it('clamps limit to maximum of 50', async () => {
     const { GET } = await import('@/app/api/admin/bots/[id]/logs/route')
     const { prisma } = await import('@/lib/prisma')
-    mockGetServerSession.mockResolvedValue(ADMIN_SESSION)
+    mockAuth.mockResolvedValue(ADMIN_SESSION)
 
     vi.mocked(prisma.botConfig.findUnique).mockResolvedValue(makeBotRecord() as any)
     vi.mocked(prisma.botRunLog.findMany).mockResolvedValue([])
@@ -688,7 +687,7 @@ describe('GET /api/admin/bots/[id]/logs', () => {
   it('defaults to page=1 and limit=20', async () => {
     const { GET } = await import('@/app/api/admin/bots/[id]/logs/route')
     const { prisma } = await import('@/lib/prisma')
-    mockGetServerSession.mockResolvedValue(ADMIN_SESSION)
+    mockAuth.mockResolvedValue(ADMIN_SESSION)
 
     vi.mocked(prisma.botConfig.findUnique).mockResolvedValue(makeBotRecord() as any)
     vi.mocked(prisma.botRunLog.findMany).mockResolvedValue([])
@@ -713,7 +712,7 @@ describe('POST /api/admin/bots/[id]/run', () => {
 
   it('returns 401 when not authenticated', async () => {
     const { POST } = await import('@/app/api/admin/bots/[id]/run/route')
-    mockGetServerSession.mockResolvedValue(null)
+    mockAuth.mockResolvedValue(null)
 
     const req = new NextRequest('http://localhost/api/admin/bots/bot-1/run', { method: 'POST' })
     const res = await POST(req, { params: Promise.resolve({ id: 'bot-1' }) })
@@ -724,7 +723,7 @@ describe('POST /api/admin/bots/[id]/run', () => {
   it('returns 404 when bot does not exist', async () => {
     const { POST } = await import('@/app/api/admin/bots/[id]/run/route')
     const { prisma } = await import('@/lib/prisma')
-    mockGetServerSession.mockResolvedValue(ADMIN_SESSION)
+    mockAuth.mockResolvedValue(ADMIN_SESSION)
 
     vi.mocked(prisma.botConfig.findUnique).mockResolvedValue(null)
 
@@ -738,7 +737,7 @@ describe('POST /api/admin/bots/[id]/run', () => {
     const { POST } = await import('@/app/api/admin/bots/[id]/run/route')
     const { prisma } = await import('@/lib/prisma')
     const { runBotById } = await import('@/lib/services/bot-runner')
-    mockGetServerSession.mockResolvedValue(ADMIN_SESSION)
+    mockAuth.mockResolvedValue(ADMIN_SESSION)
 
     vi.mocked(prisma.botConfig.findUnique).mockResolvedValue(makeBotRecord() as any)
     vi.mocked(runBotById).mockResolvedValue({
@@ -758,7 +757,7 @@ describe('POST /api/admin/bots/[id]/run', () => {
     const { POST } = await import('@/app/api/admin/bots/[id]/run/route')
     const { prisma } = await import('@/lib/prisma')
     const { runBotById } = await import('@/lib/services/bot-runner')
-    mockGetServerSession.mockResolvedValue(ADMIN_SESSION)
+    mockAuth.mockResolvedValue(ADMIN_SESSION)
 
     vi.mocked(prisma.botConfig.findUnique).mockResolvedValue(makeBotRecord() as any)
     vi.mocked(runBotById).mockResolvedValue({
@@ -776,7 +775,7 @@ describe('POST /api/admin/bots/[id]/run', () => {
     const { POST } = await import('@/app/api/admin/bots/[id]/run/route')
     const { prisma } = await import('@/lib/prisma')
     const { runBotById } = await import('@/lib/services/bot-runner')
-    mockGetServerSession.mockResolvedValue(ADMIN_SESSION)
+    mockAuth.mockResolvedValue(ADMIN_SESSION)
 
     const mockSummary = {
       botId: 'bot-1', botName: 'TestBot', forecastsCreated: 2, votes: 3, skipped: 0, errors: 0, dryRun: false, gatedByActiveHours: false,
