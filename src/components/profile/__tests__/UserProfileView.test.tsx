@@ -9,6 +9,7 @@ vi.mock('next-intl/server', () => ({
 
 // Mock next/image
 vi.mock('next/image', () => ({
+  // eslint-disable-next-line @next/next/no-img-element
   default: ({ src, alt }: any) => <img src={src} alt={alt} />,
 }))
 

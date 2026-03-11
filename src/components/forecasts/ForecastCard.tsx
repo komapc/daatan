@@ -181,6 +181,10 @@ export default function ForecastCard({
     }
   }
 
+  const handleCardClick = () => {
+    router.push(`/forecasts/${prediction.slug || prediction.id}`)
+  }
+
   useEffect(() => {
     if (!showAdminMenu) return
     const handleClickOutside = (e: MouseEvent) => {
@@ -257,9 +261,9 @@ export default function ForecastCard({
   const badge = getStatusBadge(prediction.status)
 
   return (
-    <Link
-      href={`/forecasts/${prediction.slug || prediction.id}`}
-      className="group block p-4 sm:p-5 bg-white border border-gray-200 rounded-xl hover:border-blue-300 hover:shadow-md transition-all duration-200"
+    <div
+      onClick={handleCardClick}
+      className="group block p-4 sm:p-5 bg-white border border-gray-200 rounded-xl hover:border-blue-300 hover:shadow-md transition-all duration-200 cursor-pointer"
     >
       <div className="flex items-center justify-between gap-4">
         {/* Mini Gauge (Desktop-only on side) */}
@@ -495,6 +499,6 @@ export default function ForecastCard({
           </div>
         </div>
       </div>
-    </Link >
+    </div>
   )
 }
