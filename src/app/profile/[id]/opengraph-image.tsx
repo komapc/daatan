@@ -100,6 +100,7 @@ export default async function Image({ params }: { params: { id: string } }) {
           {user.image ? (
             <img
               src={user.image}
+              alt=""
               style={{
                 width: '180px',
                 height: '180px',

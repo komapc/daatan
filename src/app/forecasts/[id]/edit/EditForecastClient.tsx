@@ -40,6 +40,7 @@ interface EditForecastClientProps {
 export default function EditForecastClient({ id }: EditForecastClientProps) {
   const router = useRouter()
   const t = useTranslations('Forecasts')
+  const f = useTranslations('forecast')
   const [prediction, setPrediction] = useState<Prediction | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -60,7 +61,7 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
       try {
         const response = await fetch(`/api/forecasts/${id}`)
         if (!response.ok) {
-          if (response.status === 404) throw new Error('Forecast not found')
+          if (response.status === 404) throw new Error(t('notFound'))
           if (response.status === 403) throw new Error('You do not have permission to edit this forecast')
           throw new Error('Failed to load forecast')
         }
@@ -84,7 +85,7 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
     }
 
     fetchPrediction()
-  }, [id])
+  }, [id, t])
 
   const handleChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -112,7 +113,7 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
 
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}))
-        throw new Error(errData?.error || `Save failed (${response.status})`)
+        throw new Error(errData?.error || `${t('saveError')} (${response.status})`)
       }
 
       const updated = await response.json()
@@ -130,7 +131,7 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
       })
     } catch (err) {
       log.error({ err }, 'Error saving forecast')
-      setSaveError(err instanceof Error ? err.message : 'Failed to save')
+      setSaveError(err instanceof Error ? err.message : t('saveError'))
     } finally {
       setIsSaving(false)
     }
@@ -150,10 +151,10 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
         <div className="text-center py-12">
           <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            {error || 'Forecast not found'}
+            {error || t('notFound')}
           </h2>
           <PrimaryLink href="/">
-            Back to Feed
+            {t('backToFeed')}
           </PrimaryLink>
         </div>
       </div>
@@ -168,16 +169,16 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
         className="inline-flex items-center gap-1 text-gray-500 hover:text-gray-700 mb-6"
       >
         <ChevronLeft className="w-4 h-4" />
-        Back to Forecast
+        {t('backToForecast')}
       </Link>
 
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
-          Edit Forecast
+          {t('title')}
         </h1>
         <p className="text-sm text-gray-500 mt-1">
-          Status: <span className="font-medium capitalize">{prediction.status.replace('_', ' ').toLowerCase()}</span>
+          Status: <span className="font-medium capitalize">{f(prediction.status.toLowerCase()).toLowerCase()}</span>
         </p>
       </div>
 
@@ -186,7 +187,7 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
         {/* Claim Text */}
         <div>
           <label htmlFor="claimText" className="block text-sm font-medium text-gray-700 mb-2">
-            Claim Text <span className="text-red-500">*</span>
+            {t('claimLabel')} <span className="text-red-500">*</span>
           </label>
           <textarea
             id="claimText"
@@ -203,7 +204,7 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
         {/* Details Text */}
         <div>
           <label htmlFor="detailsText" className="block text-sm font-medium text-gray-700 mb-2">
-            Details / Context
+            {t('detailsLabel')}
           </label>
           <textarea
             id="detailsText"
@@ -218,7 +219,7 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
         {/* Resolution Rules */}
         <div>
           <label htmlFor="resolutionRules" className="block text-sm font-medium text-gray-700 mb-2">
-            Resolution Rules
+            {t('resolutionRulesLabel')}
           </label>
           <textarea
             id="resolutionRules"
@@ -233,7 +234,7 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
         {/* Resolve By Date */}
         <div>
           <label htmlFor="resolveByDatetime" className="block text-sm font-medium text-gray-700 mb-2">
-            Resolve By Date & Time <span className="text-red-500">*</span>
+            {t('resolveByLabel')} <span className="text-red-500">*</span>
           </label>
           <div className="relative">
             <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -254,7 +255,7 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
         {/* Visibility */}
         <div className="pt-2">
           <label className="block text-sm font-medium text-gray-700 mb-3">
-            Visibility
+            {t('visibilityLabel')}
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <button
@@ -269,8 +270,8 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
                 <Unlock className="w-5 h-5" />
               </div>
               <div className="text-left">
-                <div className="text-sm font-bold">Public</div>
-                <div className="text-xs text-gray-500">Visible to everyone and on feed</div>
+                <div className="text-sm font-bold">{t('public')}</div>
+                <div className="text-xs text-gray-500">{t('publicDesc')}</div>
               </div>
             </button>
 
@@ -286,8 +287,8 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
                 <Lock className="w-5 h-5" />
               </div>
               <div className="text-left">
-                <div className="text-sm font-bold">Unlisted</div>
-                <div className="text-xs text-gray-500">Only visible via direct link</div>
+                <div className="text-sm font-bold">{t('unlisted')}</div>
+                <div className="text-xs text-gray-500">{t('unlistedDesc')}</div>
               </div>
             </button>
           </div>
@@ -302,14 +303,14 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
             className="sm:flex-1"
             leftIcon={<Save className="w-4 h-4" />}
           >
-            Save Changes
+            {t('saveChanges')}
           </Button>
           <Button
             variant="ghost"
             onClick={() => router.push(`/forecasts/${prediction.slug || prediction.id}`)}
             className="sm:flex-none"
           >
-            Cancel
+            {t('cancel')}
           </Button>
         </div>
 
@@ -317,7 +318,7 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
         {saveSuccess && (
           <div className="bg-green-50 border border-green-100 text-green-700 px-4 py-3 rounded-xl flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
             <CheckCircle2 className="w-4 h-4" />
-            <span className="text-sm font-medium">Changes saved successfully!</span>
+            <span className="text-sm font-medium">{t('saveSuccess')}</span>
           </div>
         )}
 

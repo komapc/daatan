@@ -139,6 +139,7 @@ export default async function Image({ params }: { params: { id: string } }) {
             {prediction.author.image ? (
               <img
                 src={prediction.author.image}
+                alt=""
                 style={{
                   width: '60px',
                   height: '60px',
