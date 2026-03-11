@@ -260,6 +260,22 @@ jobs:
           sleep 5
           ./scripts/verify-health.sh "https://staging.daatan.com" "${{ needs.build.outputs.app_version }}"
 
+      - name: Notify Telegram - Staging Deployment Success
+        if: success()
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d text="✅ [staging] Deployment successful%0A%0AVersion: ${{ needs.build.outputs.app_version }}%0ACommit: ${{ github.sha }}%0A%0A<a href=\"https://github.com/${{ github.repository }}/commits/${{ github.sha }}\">View commit</a>" \
+            -d parse_mode="HTML"
+
+      - name: Notify Telegram - Staging Deployment Failure
+        if: failure()
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d text="❌ [staging] Deployment failed%0A%0AVersion: ${{ needs.build.outputs.app_version }}%0ACommit: ${{ github.sha }}%0A%0A<a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">View logs</a>" \
+            -d parse_mode="HTML"
+
   # Deploy to PRODUCTION (on tag push only)
   deploy-production:
     name: Deploy to Production
@@ -438,3 +454,19 @@ jobs:
         run: |
           sleep 5
           ./scripts/verify-health.sh "https://daatan.com" "${{ needs.build.outputs.app_version }}"
+
+      - name: Notify Telegram - Production Deployment Success
+        if: success()
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d text="✅ [prod] Deployment successful%0A%0AVersion: ${{ steps.version.outputs.version }}%0ACommit: ${{ github.sha }}%0A%0A<a href=\"https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.tag }}\">View release</a>" \
+            -d parse_mode="HTML"
+
+      - name: Notify Telegram - Production Deployment Failure
+        if: failure()
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d text="❌ [prod] Deployment failed%0A%0AVersion: ${{ steps.version.outputs.version }}%0ACommit: ${{ github.sha }}%0A%0A<a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">View logs</a>" \
+            -d parse_mode="HTML"
