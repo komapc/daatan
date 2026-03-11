@@ -9,6 +9,9 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:related": "vitest related --run",
+    "test:coverage": "vitest run --coverage",
+    "test:integration": "DATABASE_URL=\"postgresql://daatan_test:daatan_test@localhost:5433/daatan_test\" vitest run --config vitest.config.integration.ts",
     "test:e2e": "playwright test",
     "postinstall": "prisma generate",
     "prepare": "husky"
@@ -70,6 +73,7 @@
     "tailwindcss": "^3.4.19",
     "tsx": "^4.21.0",
     "typescript": "^5",
-    "vitest": "^4.0.17"
+    "vitest": "^4.0.17",
+    "@vitest/coverage-v8": "^4.0.18"
   }
 }
