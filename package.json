@@ -11,6 +11,7 @@
     "test": "vitest run",
     "test:related": "vitest related --run",
     "test:coverage": "vitest run --coverage",
+    "test:integration": "DATABASE_URL=\"postgresql://daatan_test:daatan_test@localhost:5433/daatan_test\" vitest run --config vitest.config.integration.ts",
     "test:e2e": "playwright test",
     "postinstall": "prisma generate",
     "prepare": "husky"
