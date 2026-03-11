@@ -635,10 +635,10 @@ describe('runDueBots — activeHours gate', () => {
     const summaries = await runDueBots()
 
     expect(summaries).toHaveLength(1)
-    expect(summaries[0].skipped).toBe(-1)
+    expect(summaries[0].gatedByActiveHours).toBe(true)
   })
 
-  it('does not update lastRunAt when gate rejects the bot (skipped=-1 sentinel)', async () => {
+  it('does not update lastRunAt when gate rejects the bot (gatedByActiveHours=true)', async () => {
     const { prisma } = await import('@/lib/prisma')
     const { runDueBots } = await import('@/lib/services/bot-runner')
 
@@ -681,7 +681,7 @@ describe('runDueBots — activeHours gate', () => {
 
     const summaries = await runDueBots()
 
-    expect(summaries[0].skipped).toBe(-1)
+    expect(summaries[0].gatedByActiveHours).toBe(true)
   })
 
   it('correctly handles overnight range: hour=23 IS in start=22,end=6 window', async () => {

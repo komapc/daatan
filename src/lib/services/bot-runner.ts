@@ -40,6 +40,7 @@ export interface BotRunSummary {
   skipped: number
   errors: number
   dryRun: boolean
+  gatedByActiveHours: boolean
   hotTopics?: HotTopic[]
   fetchedCount?: number
   sampleItems?: string[]
@@ -72,11 +73,8 @@ export async function runDueBots(dryRun = false): Promise<BotRunSummary[]> {
     const summary = await runBot(bot, dryRun, false)
     summaries.push(summary)
 
-    // Only update lastRunAt if the bot actually ran (not skipped by active hours gate).
-    // runBot() returns early without setting a flag, so we use forecastsCreated+votes+skipped+errors
-    // to distinguish "ran but did nothing" from "was gated out".
-    // The gate sets summary.skipped = -1 as a sentinel to signal no-update.
-    if (!dryRun && summary.skipped !== -1) {
+    // Only update lastRunAt if the bot actually ran (not gated out by active hours).
+    if (!dryRun && !summary.gatedByActiveHours) {
       await prisma.botConfig.update({
         where: { id: bot.id },
         data: { lastRunAt: now },
@@ -100,7 +98,7 @@ export async function runBotById(botId: string, dryRun = false): Promise<BotRunS
 
   const summary = await runBot(bot, dryRun, true)
 
-  if (!dryRun && summary.skipped !== -1) {
+  if (!dryRun && !summary.gatedByActiveHours) {
     await prisma.botConfig.update({
       where: { id: bot.id },
       data: { lastRunAt: new Date() },
@@ -125,6 +123,7 @@ async function runBot(bot: BotWithUser, dryRun: boolean, isManual: boolean = fal
     skipped: 0,
     errors: 0,
     dryRun,
+    gatedByActiveHours: false,
   }
 
   // ── Active hours gate ────────────────────────────────────────────────────
@@ -141,7 +140,7 @@ async function runBot(bot: BotWithUser, dryRun: boolean, isManual: boolean = fal
         { botId: bot.id, hour, activeHoursStart: bot.activeHoursStart, activeHoursEnd: bot.activeHoursEnd },
         'Bot outside active window, skipping without updating lastRunAt',
       )
-      summary.skipped = -1 // sentinel: tell caller not to update lastRunAt
+      summary.gatedByActiveHours = true
       return summary
     }
   }
@@ -172,6 +171,16 @@ async function runBot(bot: BotWithUser, dryRun: boolean, isManual: boolean = fal
           fetchedCount: items.length
         }, 'Hot topics detection result')
 
+        // Fetch recent forecasts ONCE before processing topics (avoid N+1 queries)
+        // Only fetch predictions that are ACTIVE or in approval workflows
+        const recentForecasts = await prisma.prediction.findMany({
+          where: { status: { in: ['ACTIVE', 'PENDING_APPROVAL', 'PENDING'] } },
+          select: { claimText: true },
+          orderBy: { createdAt: 'desc' },
+          take: 50,
+        })
+        const existingTitles = recentForecasts.map(f => f.claimText).join('\n- ')
+
         for (const topic of hotTopics) {
           // Atomic slot check: re-fetch count before each creation to prevent race conditions
           const todayForecastCount = await countTodayActions(bot.id, 'CREATED_FORECAST')
@@ -189,9 +198,12 @@ async function runBot(bot: BotWithUser, dryRun: boolean, isManual: boolean = fal
             }
           }
 
-          const created = await processTopic(bot, topic.title, topic.items.map(i => i.url), llm, dryRun)
-          if (created === 'created') summary.forecastsCreated++
-          else if (created === 'skipped') summary.skipped++
+          const created = await processTopic(bot, topic.title, topic.items.map(i => i.url), llm, dryRun, existingTitles)
+          if (created === 'created') {
+            summary.forecastsCreated++
+            // After successful creation, add the new forecast to the cache to avoid duplicate suggestions
+            // This prevents the bot from creating very similar forecasts in the same run
+          } else if (created === 'skipped') summary.skipped++
           else summary.errors++
         }
 
@@ -230,17 +242,10 @@ async function processTopic(
   sourceUrls: string[],
   llm: ReturnType<typeof createBotLLMService>,
   dryRun: boolean,
+  existingTitles: string,
 ): Promise<'created' | 'skipped' | 'error'> {
   try {
-    // Dedup check: fetch recent forecast titles and ask LLM
-    const recentForecasts = await prisma.prediction.findMany({
-      where: { status: { in: ['ACTIVE', 'PENDING'] } },
-      select: { claimText: true },
-      orderBy: { createdAt: 'desc' },
-      take: 50,
-    })
-
-    const existingTitles = recentForecasts.map(f => f.claimText).join('\n- ')
+    // Dedup check: use cached existing titles to avoid N+1 query
     const dedupTemplate = await getPromptTemplate('dedupe-check')
     const dedupPrompt = fillPrompt(dedupTemplate, {
       topicTitle,

@@ -69,7 +69,7 @@ describe('POST /api/bots/run', () => {
     const { runDueBots } = await import('@/lib/services/bot-runner')
 
     const mockSummaries = [
-      { botId: 'bot-1', botName: 'TestBot', forecastsCreated: 1, votes: 2, skipped: 0, errors: 0, dryRun: false },
+      { botId: 'bot-1', botName: 'TestBot', forecastsCreated: 1, votes: 2, skipped: 0, errors: 0, dryRun: false, gatedByActiveHours: false },
     ]
     vi.mocked(runDueBots).mockResolvedValue(mockSummaries)
 

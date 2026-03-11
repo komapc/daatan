@@ -704,7 +704,7 @@ describe('POST /api/admin/bots/[id]/run', () => {
 
     vi.mocked(prisma.botConfig.findUnique).mockResolvedValue(makeBotRecord() as any)
     vi.mocked(runBotById).mockResolvedValue({
-      botId: 'bot-1', botName: 'TestBot', forecastsCreated: 1, votes: 0, skipped: 0, errors: 0, dryRun: false,
+      botId: 'bot-1', botName: 'TestBot', forecastsCreated: 1, votes: 0, skipped: 0, errors: 0, dryRun: false, gatedByActiveHours: false,
     })
 
     const req = new NextRequest('http://localhost/api/admin/bots/bot-1/run', { method: 'POST' })
@@ -724,7 +724,7 @@ describe('POST /api/admin/bots/[id]/run', () => {
 
     vi.mocked(prisma.botConfig.findUnique).mockResolvedValue(makeBotRecord() as any)
     vi.mocked(runBotById).mockResolvedValue({
-      botId: 'bot-1', botName: 'TestBot', forecastsCreated: 0, votes: 0, skipped: 0, errors: 0, dryRun: true,
+      botId: 'bot-1', botName: 'TestBot', forecastsCreated: 0, votes: 0, skipped: 0, errors: 0, dryRun: true, gatedByActiveHours: false,
     })
 
     const req = new NextRequest('http://localhost/api/admin/bots/bot-1/run?dry=true', { method: 'POST' })
@@ -741,7 +741,7 @@ describe('POST /api/admin/bots/[id]/run', () => {
     mockGetServerSession.mockResolvedValue(ADMIN_SESSION)
 
     const mockSummary = {
-      botId: 'bot-1', botName: 'TestBot', forecastsCreated: 2, votes: 3, skipped: 0, errors: 0, dryRun: false,
+      botId: 'bot-1', botName: 'TestBot', forecastsCreated: 2, votes: 3, skipped: 0, errors: 0, dryRun: false, gatedByActiveHours: false,
     }
     vi.mocked(prisma.botConfig.findUnique).mockResolvedValue(makeBotRecord() as any)
     vi.mocked(runBotById).mockResolvedValue(mockSummary)
