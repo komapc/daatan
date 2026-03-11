@@ -1,6 +1,6 @@
 # TODO.md — Task Queue
 
-*Last updated: March 11, 2026 · v1.7.34*
+*Last updated: March 11, 2026 · v1.7.37*
 
 ---
 
@@ -12,9 +12,15 @@ None — all tracked tasks complete!
 
 ## Upgrades (evaluate when ready)
 
-- [x] **Auth.js v5** — Migrated from NextAuth 4 to Auth.js v5 beta. Standardized `auth()` helper usage across API routes and components. Updated middleware and testing mocks. (v1.7.34)
+- [x] **Auth.js v5** — Migrated from NextAuth 4 to Auth.js v5 beta. Standardized `auth()` helper usage across API routes and components. Updated middleware and testing mocks. (v1.7.37)
 - [ ] **Prisma 7** — major version available (5.22 → 7.x); review migration guide before upgrading.
 - [ ] **Drizzle ORM** — lighter runtime and SQL-first API vs Prisma; evaluate when Prisma becomes a bottleneck.
+
+---
+
+## Long Term / Backlog
+
+- [ ] **Infra: Split Production and Staging** — Currently both domains point to the same "Staging" IP/Server. Need to provision a dedicated Production EC2 + Elastic IP and migrate production containers/database to ensure true isolation.
 
 ---
 
@@ -24,7 +30,7 @@ None — all tracked tasks complete!
 <summary>All completed tasks — click to expand</summary>
 
 ### Administrative
-- [x] **Domain ownership verification** — Added `google-site-verification` metadata to root `layout.tsx`. (v1.7.34)
+- [x] **Domain ownership verification** — Added Route53 TXT record for `google-site-verification` and restored SPF records. (v1.7.37)
 
 ### P1 — Infrastructure & Testing (Quality Focus)
 - [x] **Speed: Optimize local dev loop** — Removed `next build` from local pre-push and switched to `vitest related`. (v1.7.31)
