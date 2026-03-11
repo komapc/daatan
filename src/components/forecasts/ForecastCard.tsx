@@ -303,6 +303,11 @@ export default function ForecastCard({
               {badge.icon}
               {badge.label}
             </span>
+            {prediction.totalCuCommitted !== undefined && prediction.totalCuCommitted > 0 && (
+              <span className="flex items-center gap-1 px-2.5 py-0.5 bg-amber-50 text-amber-700 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider border border-amber-100">
+                💰 {prediction.totalCuCommitted} CU
+              </span>
+            )}
             {prediction.tags && prediction.tags.length > 0 && (
               <>
                 {prediction.tags.slice(0, 2).map((tag) => (
@@ -401,15 +406,12 @@ export default function ForecastCard({
               )
             })()}
 
-            {/* Commitment Count & CU */}
+            {/* Commitment Count */}
             {prediction._count.commitments > 0 && (
               <div className="flex items-center gap-1.5">
                 <Users className="w-3.5 h-3.5 text-gray-400" />
                 <span className="font-medium text-gray-700">{prediction._count.commitments}</span>
                 <span className="hidden sm:inline">{t('commitmentsLabel')}</span>
-                {prediction.totalCuCommitted !== undefined && prediction.totalCuCommitted > 0 && (
-                  <span className="text-gray-400">• {prediction.totalCuCommitted} CU</span>
-                )}
               </div>
             )}
 
