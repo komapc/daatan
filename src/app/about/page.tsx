@@ -1,4 +1,4 @@
-import { Info, Target, Users, TrendingUp, Shield, Mail, GitCommit } from 'lucide-react'
+import { Info, Target, Users, TrendingUp, Shield, Mail, GitCommit, Zap, Github, BookOpen, Lightbulb } from 'lucide-react'
 import { VERSION } from '@/lib/version'
 import Link from 'next/link'
 
@@ -20,6 +20,48 @@ export default function AboutPage() {
         <p className="text-sm text-gray-600">
           DAATAN is a prediction market platform where you can make forecasts, track your accuracy, and build your credibility over time.
         </p>
+      </div>
+
+      {/* Why DAATAN? */}
+      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden mb-6">
+        <div className="p-6 border-b border-gray-100">
+          <h2 className="text-lg font-semibold text-gray-900">Why DAATAN?</h2>
+        </div>
+        <div className="p-6 space-y-4">
+          <div className="flex items-start gap-4">
+            <div className="p-2 bg-amber-50 text-amber-600 rounded-lg shrink-0">
+              <Lightbulb className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="font-medium text-gray-900">Turn Predictions Into Accountability</p>
+              <p className="text-sm text-gray-500">
+                Gut feelings are cheap. Real predictions force you to think deeply, quantify uncertainty, and get specific about timelines. DAATAN holds you accountable.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-start gap-4">
+            <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg shrink-0">
+              <Zap className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="font-medium text-gray-900">Build Real Credibility</p>
+              <p className="text-sm text-gray-500">
+                Track your accuracy in real-time. A strong prediction track record speaks louder than credentials in many domains.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-start gap-4">
+            <div className="p-2 bg-green-50 text-green-600 rounded-lg shrink-0">
+              <Users className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="font-medium text-gray-900">Learn From a Community</p>
+              <p className="text-sm text-gray-500">
+                See how others think about the same questions. Discover blind spots, sharpen your judgment, and grow with a community of forecasters.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* How It Works */}
@@ -144,6 +186,74 @@ export default function AboutPage() {
               Higher reputation and more confidence both increase the impact of your forecast on the leaderboard.
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* Key Features */}
+      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden mb-6">
+        <div className="p-6 border-b border-gray-100">
+          <h2 className="text-lg font-semibold text-gray-900">Key Features</h2>
+        </div>
+        <div className="p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <p className="font-medium text-sm text-gray-900 mb-1">🎯 Create & Track</p>
+              <p className="text-xs text-gray-600">Define forecasts with specific resolution criteria and deadlines</p>
+            </div>
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <p className="font-medium text-sm text-gray-900 mb-1">📊 Live Odds</p>
+              <p className="text-xs text-gray-600">See real-time probability distributions based on community commitments</p>
+            </div>
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <p className="font-medium text-sm text-gray-900 mb-1">🤖 AI Assistance</p>
+              <p className="text-xs text-gray-600">Express forecasts from news articles and automated suggestions</p>
+            </div>
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <p className="font-medium text-sm text-gray-900 mb-1">🔗 Social Sharing</p>
+              <p className="text-xs text-gray-600">Share your forecasts with customizable cards and OG images</p>
+            </div>
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <p className="font-medium text-sm text-gray-900 mb-1">📈 Leaderboards</p>
+              <p className="text-xs text-gray-600">Rank by accuracy and reputation across all predictions</p>
+            </div>
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <p className="font-medium text-sm text-gray-900 mb-1">🔔 Notifications</p>
+              <p className="text-xs text-gray-600">Email and push alerts for deadlines, comments, and resolutions</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Resources */}
+      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden mb-6">
+        <div className="p-6 border-b border-gray-100">
+          <h2 className="text-lg font-semibold text-gray-900">Resources & Community</h2>
+        </div>
+        <div className="p-6 space-y-3">
+          <a
+            href="https://github.com/komapc/daatan"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <Github className="w-5 h-5 text-gray-600" />
+            <div>
+              <p className="font-medium text-gray-900 text-sm">GitHub Repository</p>
+              <p className="text-xs text-gray-500">View source code and contribute</p>
+            </div>
+          </a>
+          <a
+            href="https://x.com/daatan_dev"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <BookOpen className="w-5 h-5 text-gray-600" />
+            <div>
+              <p className="font-medium text-gray-900 text-sm">Twitter / X</p>
+              <p className="text-xs text-gray-500">Follow for updates and announcements</p>
+            </div>
+          </a>
         </div>
       </div>
 

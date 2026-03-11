@@ -178,7 +178,7 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
               onClick={() => handleSetFilter('ACTIVE')}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === 'ACTIVE'
                 ? 'bg-blue-600 text-white shadow-sm'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                : 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100'
                 }`}
             >
               {t('filters.open')}
@@ -269,7 +269,7 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
                 aria-label="Clear all selected tags"
               >
                 <X className="w-3 h-3" />
-                Clear
+                Clear all
               </button>
             )}
           </div>
@@ -281,16 +281,25 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
                   key={tag}
                   onClick={() => handleToggleTag(tag)}
                   aria-pressed={isSelected}
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-150 ${isSelected
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-150 flex items-center gap-1.5 ${isSelected
                     ? 'bg-blue-600 text-white shadow-sm ring-1 ring-blue-600'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800'
                     }`}
                 >
                   {tag}
+                  {isSelected && (
+                    <X className="w-3 h-3 ml-0.5 opacity-70 hover:opacity-100" />
+                  )}
                 </button>
               )
             })}
           </div>
+          {selectedTags.length > 0 && (
+            <div className="text-xs text-gray-600 flex items-center gap-2">
+              <span className="font-medium">Filtered by:</span>
+              <span>{selectedTags.join(', ')}</span>
+            </div>
+          )}
         </div>
       </div>
 

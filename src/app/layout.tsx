@@ -22,6 +22,9 @@ export const metadata: Metadata = {
     apple: '/logo-icon.svg',
   },
   manifest: '/manifest.webmanifest',
+  verification: {
+    google: 'ATwti6XWdVyDu_RJlJhqcBsq-Z_lkjA7nq8ooac',
+  },
 }
 
 export const viewport: Viewport = {
