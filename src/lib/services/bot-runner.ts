@@ -32,6 +32,66 @@ import { forecastBatchSchema, voteDecisionSchema } from '@/lib/llm/schemas'
 
 const log = createLogger('bot-runner')
 
+// ─── LLM Call Helpers with Timeout & Retry ─────────────────────────────────
+
+const LLM_CALL_TIMEOUT_MS = 10000 // 10 second timeout per LLM call
+const LLM_RETRY_ATTEMPTS = 2 // Total of 2 attempts (1 initial + 1 retry)
+const LLM_RETRY_DELAY_MS = 1000 // 1 second delay before retry
+
+interface LLMCallOptions {
+  prompt: string
+  temperature?: number
+  schema?: any
+  timeoutMs?: number
+  maxAttempts?: number
+}
+
+/**
+ * Call LLM with timeout and retry logic.
+ * Throws on timeout or after max retries, allowing caller to decide handling.
+ */
+async function callLLMWithTimeout(
+  llm: ReturnType<typeof createBotLLMService>,
+  options: LLMCallOptions,
+): Promise<{ text: string }> {
+  const { prompt, temperature = 0, schema, timeoutMs = LLM_CALL_TIMEOUT_MS, maxAttempts = LLM_RETRY_ATTEMPTS } = options
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+
+      const result = await Promise.race([
+        llm.generateContent({ prompt, temperature, schema }),
+        new Promise<never>((_, reject) => {
+          controller.signal.addEventListener('abort', () => {
+            reject(new Error(`LLM call timeout after ${timeoutMs}ms`))
+          })
+        }),
+      ])
+
+      clearTimeout(timeoutId)
+      return result
+    } catch (err) {
+      clearTimeout(timeoutId)
+      const isTimeout = err instanceof Error && err.message.includes('timeout')
+      const isLastAttempt = attempt === maxAttempts
+
+      if (isTimeout) {
+        log.warn({ attempt, maxAttempts, timeoutMs }, `LLM call timeout (attempt ${attempt}/${maxAttempts})`)
+        if (isLastAttempt) throw err
+        await new Promise(resolve => setTimeout(resolve, LLM_RETRY_DELAY_MS))
+        continue
+      }
+
+      // Non-timeout errors: fail immediately
+      throw err
+    }
+  }
+
+  throw new Error(`LLM call failed after ${maxAttempts} attempts`)
+}
+
 export interface BotRunSummary {
   botId: string
   botName: string
@@ -252,7 +312,15 @@ async function processTopic(
       existingTitles,
     })
 
-    const dedupResult = await llm.generateContent({ prompt: dedupPrompt, temperature: 0 })
+    let dedupResult
+    try {
+      dedupResult = await callLLMWithTimeout(llm, { prompt: dedupPrompt, temperature: 0 })
+    } catch (dedupErr) {
+      log.warn({ botId: bot.id, topic: topicTitle, err: dedupErr }, 'Dedup check timed out, treating as unique topic')
+      // Treat timeout as "not duplicate" to allow forecast creation
+      dedupResult = { text: 'no' }
+    }
+
     const alreadyExists = dedupResult.text.trim().toLowerCase().startsWith('yes')
 
     if (alreadyExists) {
@@ -282,7 +350,14 @@ async function processTopic(
       tagConstraint,
     })
 
-    const response = await llm.generateContent({ prompt: forecastPrompt, temperature: 0.7, schema: forecastBatchSchema })
+    let response
+    try {
+      response = await callLLMWithTimeout(llm, { prompt: forecastPrompt, temperature: 0.7, schema: forecastBatchSchema })
+    } catch (genErr) {
+      log.error({ botId: bot.id, topic: topicTitle, err: genErr }, 'Forecast generation timed out or failed')
+      await logBotAction(bot.id, 'ERROR', { title: topicTitle }, null, `Generation failed: ${genErr}`, dryRun)
+      return 'error'
+    }
 
     // Check for skip signal before full parse (LLM can set skip:true when topic is out of scope)
     const rawText = response.text.trim()
@@ -340,7 +415,15 @@ async function processTopic(
     })
 
     try {
-      const qualityResult = await llm.generateContent({ prompt: qualityPrompt, temperature: 0 })
+      let qualityResult
+      try {
+        qualityResult = await callLLMWithTimeout(llm, { prompt: qualityPrompt, temperature: 0 })
+      } catch (qualityTimeoutErr) {
+        log.warn({ botId: bot.id, topic: topicTitle, err: qualityTimeoutErr }, 'Quality gate timed out, allowing forecast through')
+        // Timeout: allow forecast through (fail open)
+        qualityResult = { text: '{"pass": true}' }
+      }
+
       const qText = qualityResult.text.trim()
       const qMatch = qText.match(/\{[\s\S]*\}/)
       const qualityCheck = JSON.parse(qMatch ? qMatch[0] : qText)
@@ -505,7 +588,13 @@ async function runVoting(
         biasHint,
       })
 
-      const response = await llm.generateContent({ prompt: votePrompt, temperature: 0.5, schema: voteDecisionSchema })
+      let response
+      try {
+        response = await callLLMWithTimeout(llm, { prompt: votePrompt, temperature: 0.5, schema: voteDecisionSchema })
+      } catch (voteErr) {
+        log.warn({ botId: bot.id, forecastId: forecast.id, err: voteErr }, 'Vote decision timed out, skipping')
+        continue // Skip this forecast on timeout
+      }
 
       let decision: { shouldVote: boolean; binaryChoice: boolean; reason?: string }
       try {

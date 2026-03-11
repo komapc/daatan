@@ -1,4 +1,4 @@
-import { Suspense } from 'react'
+import { Suspense, use } from 'react'
 import { Loader2 } from 'lucide-react'
 import EditForecastClient from './EditForecastClient'
 
@@ -13,10 +13,16 @@ function EditLoading() {
   )
 }
 
-export default function EditForecastPage() {
+interface EditForecastPageProps {
+  params: Promise<{ id: string }>
+}
+
+export default function EditForecastPage({ params }: EditForecastPageProps) {
+  const { id } = use(params)
+  
   return (
     <Suspense fallback={<EditLoading />}>
-      <EditForecastClient />
+      <EditForecastClient id={id} />
     </Suspense>
   )
 }

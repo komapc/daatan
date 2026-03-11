@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
-  ArrowLeft, 
   Save, 
   AlertCircle, 
   CheckCircle2, 
@@ -13,14 +12,14 @@ import {
   Lock,
   Unlock,
   Info,
-  ExternalLink,
-  MessageSquare
 } from 'lucide-react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/Button'
 import { PrimaryLink } from '@/components/ui/PrimaryLink'
-import { log } from '@/lib/logger'
+import { createClientLogger } from '@/lib/client-logger'
+
+const log = createClientLogger('EditForecast')
 
 interface Prediction {
   id: string

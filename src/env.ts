@@ -43,6 +43,9 @@ export const env = createEnv({
 
     // Web Push (VAPID)
     VAPID_PRIVATE_KEY: z.string().min(1).optional(),
+
+    // Bot system limits
+    MAX_BOTS: z.string().transform((s) => parseInt(s, 10)).default('50'),
   },
   client: {
     NEXT_PUBLIC_APP_VERSION: z.string().optional(),
@@ -64,6 +67,7 @@ export const env = createEnv({
     TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
     TELEGRAM_CHAT_ID: process.env.TELEGRAM_CHAT_ID,
     VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY,
+    MAX_BOTS: process.env.MAX_BOTS,
     NEXT_PUBLIC_APP_VERSION: process.env.NEXT_PUBLIC_APP_VERSION,
     NEXT_PUBLIC_ENV: process.env.NEXT_PUBLIC_ENV,
     NEXT_PUBLIC_VAPID_PUBLIC_KEY: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,

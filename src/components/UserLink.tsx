@@ -13,7 +13,7 @@ interface UserLinkProps {
   avatarSize?: number
   className?: string
   children?: ReactNode
-  onClick?: () => void
+  onClick?: (e: React.MouseEvent) => void
 }
 
 /**

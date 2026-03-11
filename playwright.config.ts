@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+import path from 'path';
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -13,8 +14,17 @@ export default defineConfig({
   },
   projects: [
     {
+      name: 'setup',
+      testMatch: /auth\.setup\.ts/,
+    },
+    {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: { 
+        ...devices['Desktop Chrome'],
+        // Use prepared auth state.
+        storageState: 'playwright/.auth/user.json',
+      },
+      dependencies: ['setup'],
     },
   ],
   webServer: {
@@ -23,6 +33,7 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,
     env: {
+      PLAYWRIGHT_TEST: 'true',
       DATABASE_URL: process.env.DATABASE_URL || 'postgresql://dummy:dummy@localhost:5432/dummy',
       NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'test-secret-32-chars-minimum-length!!',
       NEXTAUTH_URL: 'http://localhost:3000',
