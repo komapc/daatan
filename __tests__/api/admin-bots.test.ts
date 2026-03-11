@@ -3,6 +3,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
+import { prisma } from '@/lib/prisma'
 
 // ─── Session mock ─────────────────────────────────────────────────────────────
 const { mockGetServerSession } = vi.hoisted(() => ({
@@ -14,6 +15,13 @@ vi.mock('next-auth', () => ({ getServerSession: mockGetServerSession }))
 
 // ─── Auth options mock ────────────────────────────────────────────────────────
 vi.mock('@/lib/auth', () => ({ authOptions: {} }))
+
+// ─── Env mock ─────────────────────────────────────────────────────────────────
+vi.mock('@/env', () => ({
+  env: {
+    MAX_BOTS: 2,
+  }
+}))
 
 // ─── Logger mock ──────────────────────────────────────────────────────────────
 vi.mock('@/lib/logger', () => ({
@@ -28,6 +36,7 @@ vi.mock('@/lib/prisma', () => ({
       findUnique: vi.fn(),
       update: vi.fn(),
       create: vi.fn(),
+      count: vi.fn(),
     },
     botRunLog: {
       count: vi.fn(),
@@ -124,6 +133,7 @@ function makeBotRecord(overrides: Partial<Record<string, unknown>> = {}) {
 describe('GET /api/admin/bots', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(prisma.botConfig.count).mockResolvedValue(0)
   })
 
   it('returns 401 when not authenticated', async () => {
@@ -207,6 +217,7 @@ describe('GET /api/admin/bots', () => {
 describe('POST /api/admin/bots', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(prisma.botConfig.count).mockResolvedValue(0)
   })
 
   it('returns 401 when not authenticated', async () => {
@@ -265,6 +276,29 @@ describe('POST /api/admin/bots', () => {
 
     expect(res.status).toBe(400)
     expect(data.error).toMatch(/taken/)
+  })
+
+  it('returns 400 when bot limit is reached', async () => {
+    const { POST } = await import('@/app/api/admin/bots/route')
+    const { prisma } = await import('@/lib/prisma')
+    mockGetServerSession.mockResolvedValue(ADMIN_SESSION)
+
+    vi.mocked(prisma.botConfig.count).mockResolvedValue(2) // env.MAX_BOTS is mocked to 2
+
+    const req = new NextRequest('http://localhost/api/admin/bots', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: 'TooManyBots',
+        personaPrompt: 'Custom persona prompt, long enough to pass validation.',
+        forecastPrompt: 'Custom forecast prompt, long enough to pass validation.',
+        votePrompt: 'Custom vote prompt, long enough to pass validation.',
+      }),
+    })
+    const res = await POST(req, { params: Promise.resolve({}) })
+    const data = await res.json()
+
+    expect(res.status).toBe(400)
+    expect(data.error).toMatch(/limit reached/)
   })
 
   it('returns 201 and creates bot when request is valid', async () => {
@@ -446,6 +480,7 @@ describe('POST /api/admin/bots', () => {
 describe('PATCH /api/admin/bots/[id]', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(prisma.botConfig.count).mockResolvedValue(0)
   })
 
   it('returns 401 when not authenticated', async () => {
@@ -522,6 +557,7 @@ describe('PATCH /api/admin/bots/[id]', () => {
 describe('DELETE /api/admin/bots/[id]', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(prisma.botConfig.count).mockResolvedValue(0)
   })
 
   it('returns 401 when not authenticated', async () => {
@@ -573,6 +609,7 @@ describe('DELETE /api/admin/bots/[id]', () => {
 describe('GET /api/admin/bots/[id]/logs', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(prisma.botConfig.count).mockResolvedValue(0)
   })
 
   it('returns 401 when not authenticated', async () => {
@@ -671,6 +708,7 @@ describe('GET /api/admin/bots/[id]/logs', () => {
 describe('POST /api/admin/bots/[id]/run', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(prisma.botConfig.count).mockResolvedValue(0)
   })
 
   it('returns 401 when not authenticated', async () => {

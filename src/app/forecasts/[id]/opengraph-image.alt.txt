@@ -1,0 +1,1 @@
+DAATAN Forecast Card showing prediction text, author, and community stats.
