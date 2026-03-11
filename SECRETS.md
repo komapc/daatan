@@ -158,6 +158,198 @@ npx web-push generate-vapid-keys
 - The client re-subscribes automatically on next page load (service worker checks the public key)
 - Rotate only when the private key is compromised; otherwise leave keys unchanged
 
+---
+
+## VAPID Key Rotation Runbook
+
+### When to Rotate VAPID Keys
+
+**Planned rotation:** Annually (as preventative security measure)
+**Emergency rotation:** If private key is compromised
+
+### Grace Period Strategy (Zero Subscription Loss)
+
+VAPID keys are public-private keypairs. Unlike session tokens, rotating them requires clients to re-subscribe — but we can minimize disruption:
+
+1. **Stage 1: Deploy new keys (no impact yet)**
+   - Generate new keypair
+   - Update `.env` with both old and new private keys (as `VAPID_PRIVATE_KEY_OLD`)
+   - Update GitHub secret and deploy without restarting app
+   - No client impact yet — app still uses old key to accept subscriptions
+
+2. **Stage 2: Accept both old and new subscriptions (72-hour grace period)**
+   - Modify service worker to accept subscriptions for BOTH public keys
+   - Update frontend to prompt users to re-enable notifications if they have old subscription
+   - Log which subscriptions use which key for monitoring
+   - Duration: 72 hours (gives users time to update)
+
+3. **Stage 3: Send push with new key only (after grace period)**
+   - After 72 hours, delete `VAPID_PRIVATE_KEY_OLD` from `.env`
+   - Restart app to use only new key
+   - Delete old subscriptions from database (optional cleanup)
+   - Monitor for subscription failures
+
+### Step-by-Step Runbook
+
+**Prerequisites:**
+- Notify team via Slack that VAPID rotation is happening
+- Schedule rotation during low-traffic period (e.g., Friday evening UTC)
+
+**Stage 1: Generate and Deploy New Keys (Day 0)**
+
+```bash
+# Generate new keypair
+npx web-push generate-vapid-keys
+
+# Copy the Public and Private keys from output
+# Public Key:  <NEW_PUBLIC>
+# Private Key: <NEW_PRIVATE>
+```
+
+Update server `.env`:
+```bash
+# SSH to server
+ssh -i ~/.ssh/daatan-key-new.pem ubuntu@<PROD_IP>
+
+# Edit .env on server
+sudo nano ~/app/.env
+
+# Modify (keep old key for grace period):
+VAPID_PRIVATE_KEY=<NEW_PRIVATE>
+VAPID_PRIVATE_KEY_OLD=<OLD_PRIVATE>
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=<NEW_PUBLIC>
+```
+
+Update GitHub Secrets:
+- Go to repo Settings → Secrets and variables → Actions
+- Edit `NEXT_PUBLIC_VAPID_PUBLIC_KEY` with `<NEW_PUBLIC>`
+- Commit a no-op change to trigger CI/CD (e.g., update ROTATION_DATE in `.env.example`)
+- Verify build succeeds but **do not restart containers yet**
+
+**Stage 2: Accept Both Keys (72-hour grace period)**
+
+Update `src/app/layout.tsx` (or wherever service worker registers):
+```tsx
+// Register service worker to accept both old and new public keys
+const register = async () => {
+  if ('serviceWorker' in navigator) {
+    const registration = await navigator.serviceWorker.register('/sw.js')
+    // Check which public key was used for existing subscriptions
+    const subscription = await registration.pushManager.getSubscription()
+    if (subscription && !subscription.endpoint.includes('<NEW_PUBLIC>')) {
+      // Prompt user to re-enable notifications
+      console.warn('Old VAPID key detected — re-subscribing')
+      await subscription.unsubscribe()
+      await registration.pushManager.subscribe({...}) // re-subscribe with new key
+    }
+  }
+}
+```
+
+Restart app container to activate grace period:
+```bash
+ssh -i ~/.ssh/daatan-key-new.pem ubuntu@<PROD_IP>
+docker restart daatan-app  # or daatan-app-staging
+```
+
+Verify notifications still work:
+- Test push notification from admin panel
+- Check server logs for subscription errors
+- Monitor Sentry for WebPush failures
+
+Document grace period end date:
+- Add to Slack reminder: "VAPID grace period ends on [DATE]"
+- Update calendar with Phase 3 date
+
+**Stage 3: Cleanup (After 72 hours)**
+
+Remove old key and restart:
+```bash
+ssh -i ~/.ssh/daatan-key-new.pem ubuntu@<PROD_IP>
+
+# Remove old key from .env
+sudo nano ~/app/.env
+# Delete line: VAPID_PRIVATE_KEY_OLD=...
+
+# Restart app
+docker restart daatan-app  # or daatan-app-staging
+
+# Verify no WebPush failures in logs
+docker logs daatan-app | grep -i "webpush\|subscription"
+```
+
+Clean up database (optional):
+```sql
+-- Delete expired subscriptions (older than grace period)
+DELETE FROM "push_subscriptions"
+WHERE "createdAt" < NOW() - INTERVAL '72 hours'
+  AND "endpoint" NOT LIKE '%new_key_endpoint%';
+```
+
+Backup new keys:
+```bash
+# Add to password manager with rotation date
+VAPID_PUBLIC_KEY: <NEW_PUBLIC>
+VAPID_PRIVATE_KEY: <NEW_PRIVATE>
+Rotated: [DATE]
+```
+
+Notify team:
+- Post in Slack: "✅ VAPID key rotation complete — no user action required"
+- Update SECRETS.md last rotation date
+
+### Monitoring During Grace Period
+
+Check for failed subscriptions:
+```bash
+docker logs daatan-app | grep -E "PushSubscriptionChangeEvent|failed.*subscription" | tail -20
+```
+
+Monitor push notification success rate:
+- Check app metrics dashboard for push delivery success %
+- Alert if success rate drops below 95%
+
+### Rollback Procedure (if issues occur)
+
+If push notifications fail during grace period:
+
+```bash
+ssh -i ~/.ssh/daatan-key-new.pem ubuntu@<PROD_IP>
+
+# Revert to old key
+sudo nano ~/app/.env
+# Restore old key, remove new key and _OLD suffix
+
+docker restart daatan-app
+
+# Notify team
+```
+
+### Timeline Reference
+
+| Phase | Duration | Action | Impact |
+|-------|----------|--------|--------|
+| **Stage 1** | 1 hour | Generate keys, deploy to GitHub/server | None — app still uses old key |
+| **Stage 2** | 72 hours | Accept both keys, grace period | Users see re-enable prompt, transparent to most |
+| **Stage 3** | 1 hour | Delete old key, cleanup | No impact — grace period complete |
+
+### FAQ
+
+**Q: Why do we need a grace period?**
+A: VAPID subscriptions are client-side objects that store the public key used to subscribe. Rotating the key invalidates all existing subscriptions. Without a grace period, users would lose notifications until they manually re-enable. With grace period, the service worker detects stale subscriptions and re-subscribes automatically in the background.
+
+**Q: Will users see a re-enable prompt?**
+A: Only if their browser permission state is "default" (not explicitly granted). Most users grant permission once and forget, so they won't see anything. If they see a re-enable prompt, a single click fixes it.
+
+**Q: Can we rotate without disrupting subscriptions?**
+A: No — VAPID keys are cryptographically linked to subscription payloads. Once rotated, all old subscriptions are cryptographically invalid. The grace period just minimizes perceived disruption.
+
+**Q: What if we forget to update GitHub Secret?**
+A: The next CI build will fail at `next build` step (NEXT_PUBLIC_VAPID_PUBLIC_KEY will be undefined). App won't build. Update the secret and re-trigger CI.
+
+**Q: How often should we rotate?**
+A: Annually as preventative measure. Emergency rotation only if private key is leaked.
+
 ### 3. Google Client Secret Rotation
 **When:** If `invalid_client` errors appear in logs or Google Cloud Console integrity is compromised.
 1.  **Generate New Secret:** Go to Google Cloud Console > Credentials > OAuth 2.0 Client IDs > Reset Secret.

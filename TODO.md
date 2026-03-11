@@ -1,14 +1,12 @@
 # TODO.md — Task Queue
 
-*Last updated: March 2026 · v1.7.31*
+*Last updated: March 11, 2026 · v1.7.31*
 
 ---
 
 ## Open Tasks
 
-### P3 — Low Priority / Nice to Have
-
-- [ ] **Docs: VAPID key rotation runbook** — SECRETS.md documents key generation but not the operational procedure for rotating in production with zero subscription loss (grace period strategy).
+None — all tracked tasks complete!
 
 ---
 
@@ -48,6 +46,10 @@
 
 ### P2
 - [x] **Security: No bot-count limit** — Added `MAX_BOTS` env var (default 50) and enforced it in `POST /api/admin/bots`. (v1.7.31)
+
+### P3 — Completed
+- [x] **Docs: VAPID key rotation runbook** — Added comprehensive grace period strategy to SECRETS.md covering Stage 1 (generate keys), Stage 2 (72h grace period), Stage 3 (cleanup). Includes monitoring, monitoring, rollback, and FAQ. (v1.7.31)
+- [x] **Telegram CI/CD notifications** — Added notification steps to `.github/workflows/deploy.yml` for both staging and production deployments (success/failure messages with commit links). (v1.7.31)
 - [x] **Testing: E2E auth-gated flows** — Created `tests/e2e/auth.setup.ts` and `tests/e2e/authenticated.spec.ts` with a `CredentialsProvider` bypass for automated test logins. (v1.7.31)
 - [x] **Testing: Slug collision & lockedAt race** — Added unit tests in `__tests__/lib/race-conditions.test.ts` and `__tests__/lib/slugify.test.ts`. (v1.7.31)
 - [x] **UX: Clickable username consistency** — Implemented `UserLink` across notifications, ForecastCard, and ForecastDetail pages. (v1.7.31)
