@@ -43,6 +43,9 @@
 - [x] Bedrock Phase 1 — `scripts/promote-prompt.sh` with rollback support
 - [x] Bedrock Phase 2 — migrate all 9 remaining inline prompts to Bedrock Prompt Management
 
+### Phase 2: Widget & Sharing
+- [x] **Sharing cards with OG images** — Implemented dynamic OG images for forecasts (`src/app/forecasts/[id]/opengraph-image.tsx`) and user profiles (`src/app/profile/[id]/opengraph-image.tsx`). (v1.7.31)
+
 ### P2
 - [x] **Security: No bot-count limit** — Added `MAX_BOTS` env var (default 50) and enforced it in `POST /api/admin/bots`. (v1.7.31)
 - [x] **Testing: E2E auth-gated flows** — Created `tests/e2e/auth.setup.ts` and `tests/e2e/authenticated.spec.ts` with a `CredentialsProvider` bypass for automated test logins. (v1.7.31)
