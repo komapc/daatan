@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
 import { getTranslations } from 'next-intl/server'
@@ -26,7 +25,7 @@ export default async function ProfilePage() {
   const t = await getTranslations('profile')
 
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
 
     if (!session?.user?.id) {
       redirect('/auth/signin?callbackUrl=/profile')

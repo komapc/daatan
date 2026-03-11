@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/auth'
 import { createPredictionSchema, listPredictionsQuerySchema } from '@/lib/validations/prediction'
 import { apiError, handleRouteError } from '@/lib/api-error'
 import { withAuth } from '@/lib/api-middleware'
@@ -20,7 +19,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     let session = null
     try {
-      session = await getServerSession(authOptions)
+      session = await auth()
     } catch {
       // Treat as unauthenticated if session retrieval fails
     }
@@ -157,7 +156,7 @@ export async function GET(request: NextRequest) {
     // Get current user ID for commitment indicator (guard: session can throw on malformed cookie)
     let userId: string | undefined
     try {
-      const session = await getServerSession(authOptions)
+      const session = await auth()
       userId = session?.user?.id
     } catch {
       userId = undefined

@@ -1,54 +1,57 @@
-import { Bell } from 'lucide-react'
 import { redirect } from 'next/navigation'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { getUnreadCount } from '@/lib/services/notification'
 import NotificationList from '@/components/notifications/NotificationList'
+import { Bell } from 'lucide-react'
+
+export const dynamic = 'force-dynamic'
 
 export default async function NotificationsPage() {
-  const session = await getServerSession(authOptions)
+  const session = await auth()
 
   if (!session?.user?.id) {
     redirect('/auth/signin?callbackUrl=/notifications')
   }
 
-  const userId = session.user.id
-
   const [notifications, total, unreadCount] = await Promise.all([
     prisma.notification.findMany({
-      where: { userId },
+      where: { userId: session.user.id },
       orderBy: { createdAt: 'desc' },
       take: 20,
     }),
-    prisma.notification.count({ where: { userId } }),
-    getUnreadCount(userId),
+    prisma.notification.count({
+      where: { userId: session.user.id },
+    }),
+    prisma.notification.count({
+      where: { userId: session.user.id, read: false },
+    }),
   ])
 
-  // Serialize dates for client component
-  const serialized = notifications.map((n) => ({
-    id: n.id,
-    type: n.type,
-    title: n.title,
-    message: n.message,
-    link: n.link,
-    read: n.read,
-    createdAt: n.createdAt.toISOString(),
+  // Enrich with actor info
+  const actorIds = [...new Set(notifications.map(n => n.actorId).filter(Boolean) as string[])]
+  const actors = actorIds.length > 0 
+    ? await prisma.user.findMany({
+        where: { id: { in: actorIds } },
+        select: { id: true, name: true, username: true, image: true, avatarUrl: true }
+      })
+    : []
+  
+  const actorMap = Object.fromEntries(actors.map(a => [a.id, a]))
+
+  const enrichedNotifications = notifications.map(n => ({
+    ...n,
+    actor: n.actorId ? actorMap[n.actorId] : null
   }))
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto">
-      <div className="flex items-center gap-3 mb-6 lg:mb-8">
-        <Bell className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Notifications</h1>
-        {unreadCount > 0 && (
-          <span className="px-2 py-0.5 text-xs font-bold text-blue-600 bg-blue-100 rounded-full">
-            {unreadCount} unread
-          </span>
-        )}
+    <div className="max-w-4xl mx-auto py-8 px-4">
+      <div className="flex items-center gap-2 mb-8">
+        <Bell className="w-8 h-8 text-blue-600" />
+        <h1 className="text-2xl font-bold">Notifications</h1>
       </div>
+
       <NotificationList
-        initialNotifications={serialized}
+        initialNotifications={enrichedNotifications as any}
         initialTotal={total}
         initialUnreadCount={unreadCount}
       />

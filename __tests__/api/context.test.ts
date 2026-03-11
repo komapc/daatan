@@ -2,17 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET, POST } from '@/app/api/forecasts/[id]/context/route'
 
-const { mockGetServerSession } = vi.hoisted(() => ({
-  mockGetServerSession: vi.fn(),
+// Mock session/auth
+const { mockAuth } = vi.hoisted(() => ({
+  mockAuth: vi.fn(),
 }))
-
-vi.mock('next-auth/next', () => ({
-  getServerSession: mockGetServerSession,
-}))
-
-vi.mock('next-auth', () => ({
-  getServerSession: mockGetServerSession,
-}))
+vi.mock('@/auth', () => ({ auth: mockAuth }))
 
 const { mockSearchArticles, mockGenerateContent, mockPrisma } = vi.hoisted(() => ({
   mockSearchArticles: vi.fn(),
@@ -106,14 +100,14 @@ describe('POST /api/forecasts/[id]/context', () => {
   })
 
   it('returns 401 when not authenticated', async () => {
-    mockGetServerSession.mockResolvedValue(null)
+    mockAuth.mockResolvedValue(null)
 
     const res = await POST(makeRequest('pred1', 'POST'), routeParams('pred1'))
     expect(res.status).toBe(401)
   })
 
   it('returns 404 when prediction not found', async () => {
-    mockGetServerSession.mockResolvedValue({ user: authenticatedUser })
+    mockAuth.mockResolvedValue({ user: authenticatedUser })
     mockPrisma.prediction.findUnique.mockResolvedValue(null)
 
     const res = await POST(makeRequest('missing', 'POST'), routeParams('missing'))
@@ -121,7 +115,7 @@ describe('POST /api/forecasts/[id]/context', () => {
   })
 
   it('returns 403 when user is not author or admin', async () => {
-    mockGetServerSession.mockResolvedValue({ user: authenticatedUser })
+    mockAuth.mockResolvedValue({ user: authenticatedUser })
     mockPrisma.prediction.findUnique.mockResolvedValue({
       id: 'pred1',
       authorId: 'other-user',
@@ -134,7 +128,7 @@ describe('POST /api/forecasts/[id]/context', () => {
   })
 
   it('returns 400 when prediction is not ACTIVE', async () => {
-    mockGetServerSession.mockResolvedValue({ user: authenticatedUser })
+    mockAuth.mockResolvedValue({ user: authenticatedUser })
     mockPrisma.prediction.findUnique.mockResolvedValue({
       id: 'pred1',
       authorId: 'user1',
@@ -147,7 +141,7 @@ describe('POST /api/forecasts/[id]/context', () => {
   })
 
   it('returns 429 when rate limited (updated within 24h)', async () => {
-    mockGetServerSession.mockResolvedValue({ user: authenticatedUser })
+    mockAuth.mockResolvedValue({ user: authenticatedUser })
     mockPrisma.prediction.findUnique.mockResolvedValue({
       id: 'pred1',
       authorId: 'user1',
@@ -160,7 +154,7 @@ describe('POST /api/forecasts/[id]/context', () => {
   })
 
   it('returns 429 when user daily limit reached (10 updates/day)', async () => {
-    mockGetServerSession.mockResolvedValue({ user: authenticatedUser })
+    mockAuth.mockResolvedValue({ user: authenticatedUser })
     mockPrisma.prediction.findUnique.mockResolvedValue({
       id: 'pred1',
       authorId: 'user1',
@@ -178,7 +172,7 @@ describe('POST /api/forecasts/[id]/context', () => {
   })
 
   it('returns 404 when no articles found', async () => {
-    mockGetServerSession.mockResolvedValue({ user: authenticatedUser })
+    mockAuth.mockResolvedValue({ user: authenticatedUser })
     mockPrisma.prediction.findUnique.mockResolvedValue({
       id: 'pred1',
       authorId: 'user1',
@@ -194,7 +188,7 @@ describe('POST /api/forecasts/[id]/context', () => {
   })
 
   it('creates snapshot and updates prediction on success', async () => {
-    mockGetServerSession.mockResolvedValue({ user: authenticatedUser })
+    mockAuth.mockResolvedValue({ user: authenticatedUser })
     mockPrisma.prediction.findUnique.mockResolvedValue({
       id: 'pred1',
       authorId: 'user1',
@@ -231,7 +225,7 @@ describe('POST /api/forecasts/[id]/context', () => {
   })
 
   it('passes previousContext to LLM prompt when detailsText exists', async () => {
-    mockGetServerSession.mockResolvedValue({ user: authenticatedUser })
+    mockAuth.mockResolvedValue({ user: authenticatedUser })
     mockPrisma.prediction.findUnique.mockResolvedValue({
       id: 'pred1',
       authorId: 'user1',
@@ -260,7 +254,7 @@ describe('POST /api/forecasts/[id]/context', () => {
 
   it('allows ADMIN to update context for other user predictions', async () => {
     const adminUser = { ...authenticatedUser, id: 'admin1', role: 'ADMIN' }
-    mockGetServerSession.mockResolvedValue({ user: adminUser })
+    mockAuth.mockResolvedValue({ user: adminUser })
     mockPrisma.prediction.findUnique.mockResolvedValue({
       id: 'pred1',
       authorId: 'other-user',

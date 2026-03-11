@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
 // --- Mocking ---
-const { mockGetServerSession, mockPrisma, mockS3Send, mockSharp } = vi.hoisted(() => ({
-  mockGetServerSession: vi.fn(),
+const { mockAuth, mockPrisma, mockS3Send, mockSharp } = vi.hoisted(() => ({
+  mockAuth: vi.fn(),
   mockPrisma: {
     user: {
       update: vi.fn(),
@@ -17,9 +17,7 @@ const { mockGetServerSession, mockPrisma, mockS3Send, mockSharp } = vi.hoisted((
   })),
 }))
 
-vi.mock('next-auth/next', () => ({
-  getServerSession: mockGetServerSession,
-}))
+vi.mock('@/auth', () => ({ auth: mockAuth }))
 
 vi.mock('@/lib/prisma', () => ({
   prisma: mockPrisma,
@@ -59,13 +57,13 @@ describe('POST /api/profile/avatar', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    mockGetServerSession.mockResolvedValue({ user: mockUser })
+    mockAuth.mockResolvedValue({ user: mockUser })
     process.env.AWS_ACCOUNT_ID = '123456789012'
     process.env.APP_ENV = 'staging'
   })
 
   it('returns 401 if not authenticated', async () => {
-    mockGetServerSession.mockResolvedValue(null)
+    mockAuth.mockResolvedValue(null)
     const req = createUploadRequest(new File([''], 'test.jpg', { type: 'image/jpeg' }))
     const res = await POST(req, { params: Promise.resolve({}) })
     expect(res.status).toBe(401)

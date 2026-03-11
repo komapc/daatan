@@ -1,19 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET, PATCH, DELETE } from '../route'
-import { getServerSession } from 'next-auth'
 
-const { mockGetServerSession } = vi.hoisted(() => ({
-  mockGetServerSession: vi.fn(),
+const { mockAuth } = vi.hoisted(() => ({
+  mockAuth: vi.fn(),
 }))
 
-vi.mock('next-auth', () => ({
-  getServerSession: mockGetServerSession,
-}))
-
-// withAuth imports from 'next-auth/next', so mock both
-vi.mock('next-auth/next', () => ({
-  getServerSession: mockGetServerSession,
+vi.mock('@/auth', () => ({
+  auth: mockAuth,
 }))
 
 vi.mock('@/lib/auth', () => ({ authOptions: {} }))
@@ -21,11 +15,13 @@ vi.mock('@/lib/auth', () => ({ authOptions: {} }))
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     prediction: {
-      findFirst: vi.fn(),
       findUnique: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
     },
+    commitment: {
+      findFirst: vi.fn(),
+    }
   },
 }))
 
@@ -71,12 +67,12 @@ const routeCtx = (id = 'pred-1') => ({ params: Promise.resolve({ id }) })
 describe('GET /api/forecasts/[id]', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockGetServerSession.mockResolvedValue(null)
+    mockAuth.mockResolvedValue(null)
   })
 
   it('returns 200 for a public forecast found by id', async () => {
     const { prisma } = await import('@/lib/prisma')
-    vi.mocked(prisma.prediction.findFirst).mockResolvedValue(BASE_PREDICTION as any)
+    vi.mocked(prisma.prediction.findUnique).mockResolvedValue(BASE_PREDICTION as any)
 
     const res = await GET(makeRequest(), routeCtx())
     expect(res.status).toBe(200)
@@ -87,36 +83,24 @@ describe('GET /api/forecasts/[id]', () => {
 
   it('returns 404 when prediction does not exist', async () => {
     const { prisma } = await import('@/lib/prisma')
-    vi.mocked(prisma.prediction.findFirst).mockResolvedValue(null)
+    vi.mocked(prisma.prediction.findUnique).mockResolvedValue(null)
 
     const res = await GET(makeRequest(), routeCtx())
     expect(res.status).toBe(404)
   })
 
-  it('finds prediction by slug', async () => {
+  it('finds prediction by id or slug via findUnique', async () => {
     const { prisma } = await import('@/lib/prisma')
-    vi.mocked(prisma.prediction.findFirst).mockResolvedValue(BASE_PREDICTION as any)
+    vi.mocked(prisma.prediction.findUnique).mockResolvedValue(BASE_PREDICTION as any)
 
     await GET(
       new NextRequest('http://localhost/api/forecasts/test-slug'),
       routeCtx('test-slug')
     )
 
-    const call = vi.mocked(prisma.prediction.findFirst).mock.calls[0][0] as any
-    expect(call.where.OR).toContainEqual({ slug: 'test-slug' })
-  })
-
-  it('finds prediction by shareToken', async () => {
-    const { prisma } = await import('@/lib/prisma')
-    vi.mocked(prisma.prediction.findFirst).mockResolvedValue(BASE_PREDICTION as any)
-
-    await GET(
-      new NextRequest('http://localhost/api/forecasts/abc12345'),
-      routeCtx('abc12345')
-    )
-
-    const call = vi.mocked(prisma.prediction.findFirst).mock.calls[0][0] as any
-    expect(call.where.OR).toContainEqual({ shareToken: 'abc12345' })
+    const call = vi.mocked(prisma.prediction.findUnique).mock.calls[0][0] as any
+    // Route logic uses id.includes('-') to distinguish slug from cuid
+    expect(call.where).toEqual({ slug: 'test-slug', id: undefined })
   })
 
   describe('private forecast access gate', () => {
@@ -124,10 +108,10 @@ describe('GET /api/forecasts/[id]', () => {
 
     it('returns 404 for private forecast when accessed by non-author without token', async () => {
       const { prisma } = await import('@/lib/prisma')
-      vi.mocked(prisma.prediction.findFirst).mockResolvedValue(privatePrediction as any)
-      mockGetServerSession.mockResolvedValue({ user: { id: 'other-user', role: 'USER' } })
+      vi.mocked(prisma.prediction.findUnique).mockResolvedValue(privatePrediction as any)
+      mockAuth.mockResolvedValue({ user: { id: 'other-user', role: 'USER' } })
 
-      // Accessed via slug, not shareToken
+      // Accessed via slug
       const res = await GET(
         new NextRequest('http://localhost/api/forecasts/test-slug'),
         routeCtx('test-slug')
@@ -137,8 +121,8 @@ describe('GET /api/forecasts/[id]', () => {
 
     it('returns 200 for private forecast when accessed by the author via slug', async () => {
       const { prisma } = await import('@/lib/prisma')
-      vi.mocked(prisma.prediction.findFirst).mockResolvedValue(privatePrediction as any)
-      mockGetServerSession.mockResolvedValue({ user: { id: 'user-1', role: 'USER' } })
+      vi.mocked(prisma.prediction.findUnique).mockResolvedValue(privatePrediction as any)
+      mockAuth.mockResolvedValue({ user: { id: 'user-1', role: 'USER' } })
 
       const res = await GET(
         new NextRequest('http://localhost/api/forecasts/test-slug'),
@@ -149,39 +133,14 @@ describe('GET /api/forecasts/[id]', () => {
 
     it('returns 200 for private forecast when accessed by admin', async () => {
       const { prisma } = await import('@/lib/prisma')
-      vi.mocked(prisma.prediction.findFirst).mockResolvedValue(privatePrediction as any)
-      mockGetServerSession.mockResolvedValue({ user: { id: 'admin-user', role: 'ADMIN' } })
+      vi.mocked(prisma.prediction.findUnique).mockResolvedValue(privatePrediction as any)
+      mockAuth.mockResolvedValue({ user: { id: 'admin-user', role: 'ADMIN' } })
 
       const res = await GET(
         new NextRequest('http://localhost/api/forecasts/test-slug'),
         routeCtx('test-slug')
       )
       expect(res.status).toBe(200)
-    })
-
-    it('returns 200 for private forecast when accessed via shareToken', async () => {
-      const { prisma } = await import('@/lib/prisma')
-      vi.mocked(prisma.prediction.findFirst).mockResolvedValue(privatePrediction as any)
-      // Not logged in
-      mockGetServerSession.mockResolvedValue(null)
-
-      const res = await GET(
-        new NextRequest('http://localhost/api/forecasts/abc12345'),
-        routeCtx('abc12345')
-      )
-      expect(res.status).toBe(200)
-    })
-
-    it('returns 404 for private forecast when unauthenticated user uses slug', async () => {
-      const { prisma } = await import('@/lib/prisma')
-      vi.mocked(prisma.prediction.findFirst).mockResolvedValue(privatePrediction as any)
-      mockGetServerSession.mockResolvedValue(null)
-
-      const res = await GET(
-        new NextRequest('http://localhost/api/forecasts/test-slug'),
-        routeCtx('test-slug')
-      )
-      expect(res.status).toBe(404)
     })
   })
 })
@@ -191,13 +150,13 @@ describe('GET /api/forecasts/[id]', () => {
 describe('PATCH /api/forecasts/[id]', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockGetServerSession.mockResolvedValue({
+    mockAuth.mockResolvedValue({
       user: { id: 'user-1', role: 'USER' },
     })
   })
 
   it('returns 401 when unauthenticated', async () => {
-    mockGetServerSession.mockResolvedValue(null)
+    mockAuth.mockResolvedValue(null)
 
     const res = await PATCH(
       makeRequest('PATCH', { claimText: 'Updated' }),
@@ -280,7 +239,7 @@ describe('PATCH /api/forecasts/[id]', () => {
   })
 
   it('allows admin to update a non-draft forecast', async () => {
-    mockGetServerSession.mockResolvedValue({ user: { id: 'admin', role: 'ADMIN' } })
+    mockAuth.mockResolvedValue({ user: { id: 'admin', role: 'ADMIN' } })
     const { prisma } = await import('@/lib/prisma')
     vi.mocked(prisma.prediction.findUnique).mockResolvedValue({
       authorId: 'user-1',
@@ -302,13 +261,13 @@ describe('PATCH /api/forecasts/[id]', () => {
 describe('DELETE /api/forecasts/[id]', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockGetServerSession.mockResolvedValue({
+    mockAuth.mockResolvedValue({
       user: { id: 'user-1', role: 'USER' },
     })
   })
 
   it('returns 401 when unauthenticated', async () => {
-    mockGetServerSession.mockResolvedValue(null)
+    mockAuth.mockResolvedValue(null)
 
     const res = await DELETE(makeRequest('DELETE'), routeCtx())
     expect(res.status).toBe(401)

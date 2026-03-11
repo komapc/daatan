@@ -4,17 +4,15 @@ import { GET as getComments, POST as createComment } from '@/app/api/comments/ro
 import { PATCH as updateComment, DELETE as deleteComment } from '@/app/api/comments/[id]/route'
 import { POST as addReaction, DELETE as removeReaction } from '@/app/api/comments/[id]/react/route'
 
-// Mock next-auth (both import paths used by withAuth and direct imports)
-const { mockGetServerSession } = vi.hoisted(() => ({
-  mockGetServerSession: vi.fn(),
+// Mock session/auth
+const { mockAuth } = vi.hoisted(() => ({
+  mockAuth: vi.fn(),
 }))
+vi.mock('@/auth', () => ({ auth: mockAuth }))
 
-vi.mock('next-auth', () => ({
-  getServerSession: mockGetServerSession,
-}))
-
-vi.mock('next-auth/next', () => ({
-  getServerSession: mockGetServerSession,
+// Mock authOptions for backward compatibility if any middleware/helper needs it
+vi.mock('@/lib/auth', () => ({
+  authOptions: {},
 }))
 
 vi.mock('@/lib/logger', () => ({
@@ -60,7 +58,6 @@ describe('Comments API', () => {
 
   describe('GET /api/comments', () => {
     it('returns comments for a prediction', async () => {
-      const { getServerSession } = await import('next-auth')
       const { prisma } = await import('@/lib/prisma')
 
       vi.mocked(prisma.comment.findMany).mockResolvedValue([
@@ -115,10 +112,9 @@ describe('Comments API', () => {
 
   describe('POST /api/comments', () => {
     it('creates a comment when authenticated', async () => {
-      const { getServerSession } = await import('next-auth')
       const { prisma } = await import('@/lib/prisma')
 
-      vi.mocked(getServerSession).mockResolvedValue({
+      mockAuth.mockResolvedValue({
         user: { id: 'user1', email: 'test@example.com' },
       } as any)
 
@@ -166,9 +162,7 @@ describe('Comments API', () => {
     })
 
     it('returns 401 when not authenticated', async () => {
-      const { getServerSession } = await import('next-auth')
-
-      vi.mocked(getServerSession).mockResolvedValue(null)
+      mockAuth.mockResolvedValue(null)
 
       const request = new NextRequest('http://localhost/api/comments', {
         method: 'POST',
@@ -184,9 +178,7 @@ describe('Comments API', () => {
     })
 
     it('validates that predictionId is required', async () => {
-      const { getServerSession } = await import('next-auth')
-
-      vi.mocked(getServerSession).mockResolvedValue({
+      mockAuth.mockResolvedValue({
         user: { id: 'user1', email: 'test@example.com' },
       } as any)
 
@@ -206,10 +198,9 @@ describe('Comments API', () => {
 
   describe('PATCH /api/comments/[id]', () => {
     it('updates own comment', async () => {
-      const { getServerSession } = await import('next-auth')
       const { prisma } = await import('@/lib/prisma')
 
-      vi.mocked(getServerSession).mockResolvedValue({
+      mockAuth.mockResolvedValue({
         user: { id: 'user1', email: 'test@example.com' },
       } as any)
 
@@ -255,10 +246,9 @@ describe('Comments API', () => {
     })
 
     it('returns 403 when trying to update someone elses comment', async () => {
-      const { getServerSession } = await import('next-auth')
       const { prisma } = await import('@/lib/prisma')
 
-      vi.mocked(getServerSession).mockResolvedValue({
+      mockAuth.mockResolvedValue({
         user: { id: 'user1', email: 'test@example.com' },
       } as any)
 
@@ -283,10 +273,9 @@ describe('Comments API', () => {
 
   describe('DELETE /api/comments/[id]', () => {
     it('soft deletes own comment', async () => {
-      const { getServerSession } = await import('next-auth')
       const { prisma } = await import('@/lib/prisma')
 
-      vi.mocked(getServerSession).mockResolvedValue({
+      mockAuth.mockResolvedValue({
         user: { id: 'user1', email: 'test@example.com' },
       } as any)
 
@@ -322,10 +311,9 @@ describe('Comments API', () => {
     })
 
     it('allows admin to delete any comment', async () => {
-      const { getServerSession } = await import('next-auth')
       const { prisma } = await import('@/lib/prisma')
 
-      vi.mocked(getServerSession).mockResolvedValue({
+      mockAuth.mockResolvedValue({
         user: { id: 'admin1', email: 'admin@example.com', role: 'ADMIN' },
       } as any)
 
@@ -347,10 +335,9 @@ describe('Comments API', () => {
     })
 
     it('allows RESOLVER to delete any comment', async () => {
-      const { getServerSession } = await import('next-auth')
       const { prisma } = await import('@/lib/prisma')
 
-      vi.mocked(getServerSession).mockResolvedValue({
+      mockAuth.mockResolvedValue({
         user: { id: 'resolver1', email: 'resolver@example.com', role: 'RESOLVER' },
       } as any)
 
@@ -382,10 +369,9 @@ describe('Comments API', () => {
 
   describe('POST /api/comments/[id]/react', () => {
     it('adds a reaction to a comment', async () => {
-      const { getServerSession } = await import('next-auth')
       const { prisma } = await import('@/lib/prisma')
 
-      vi.mocked(getServerSession).mockResolvedValue({
+      mockAuth.mockResolvedValue({
         user: { id: 'user1', email: 'test@example.com' },
       } as any)
 
@@ -422,9 +408,7 @@ describe('Comments API', () => {
     })
 
     it('returns 401 when not authenticated', async () => {
-      const { getServerSession } = await import('next-auth')
-
-      vi.mocked(getServerSession).mockResolvedValue(null)
+      mockAuth.mockResolvedValue(null)
 
       const request = new NextRequest('http://localhost/api/comments/comment1/react', {
         method: 'POST',
@@ -441,10 +425,9 @@ describe('Comments API', () => {
 
   describe('DELETE /api/comments/[id]/react', () => {
     it('removes a reaction from a comment', async () => {
-      const { getServerSession } = await import('next-auth')
       const { prisma } = await import('@/lib/prisma')
 
-      vi.mocked(getServerSession).mockResolvedValue({
+      mockAuth.mockResolvedValue({
         user: { id: 'user1', email: 'test@example.com' },
       } as any)
 

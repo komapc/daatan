@@ -2,12 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { PATCH } from '@/app/api/profile/language/route'
 
-const { mockGetServerSession } = vi.hoisted(() => ({
-  mockGetServerSession: vi.fn(),
+const { mockAuth } = vi.hoisted(() => ({
+  mockAuth: vi.fn(),
 }))
 
-vi.mock('next-auth', () => ({ getServerSession: mockGetServerSession }))
-vi.mock('next-auth/next', () => ({ getServerSession: mockGetServerSession }))
+vi.mock('@/auth', () => ({ auth: mockAuth }))
 
 vi.mock('@/lib/logger', () => ({
   createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
@@ -27,7 +26,7 @@ describe('PATCH /api/profile/language', () => {
   })
 
   it('returns 401 when not authenticated', async () => {
-    mockGetServerSession.mockResolvedValue(null)
+    mockAuth.mockResolvedValue(null)
 
     const request = new NextRequest('http://localhost/api/profile/language', {
       method: 'PATCH',
@@ -39,7 +38,7 @@ describe('PATCH /api/profile/language', () => {
   })
 
   it('updates preferred language to English', async () => {
-    mockGetServerSession.mockResolvedValue({
+    mockAuth.mockResolvedValue({
       user: { id: 'user1', email: 'test@example.com', role: 'USER' },
     })
 
@@ -62,7 +61,7 @@ describe('PATCH /api/profile/language', () => {
   })
 
   it('updates preferred language to Hebrew', async () => {
-    mockGetServerSession.mockResolvedValue({
+    mockAuth.mockResolvedValue({
       user: { id: 'user1', email: 'test@example.com', role: 'USER' },
     })
 
@@ -81,7 +80,7 @@ describe('PATCH /api/profile/language', () => {
   })
 
   it('rejects invalid language values with Zod error', async () => {
-    mockGetServerSession.mockResolvedValue({
+    mockAuth.mockResolvedValue({
       user: { id: 'user1', email: 'test@example.com', role: 'USER' },
     })
 
@@ -96,7 +95,7 @@ describe('PATCH /api/profile/language', () => {
   })
 
   it('rejects missing language field', async () => {
-    mockGetServerSession.mockResolvedValue({
+    mockAuth.mockResolvedValue({
       user: { id: 'user1', email: 'test@example.com', role: 'USER' },
     })
 

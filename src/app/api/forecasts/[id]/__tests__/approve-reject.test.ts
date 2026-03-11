@@ -9,12 +9,11 @@ import { NextRequest } from 'next/server'
 
 // ─── Mocks ────────────────────────────────────────────────────────────────
 
-const { mockGetServerSession } = vi.hoisted(() => ({
-  mockGetServerSession: vi.fn(),
+const { mockAuth } = vi.hoisted(() => ({
+  mockAuth: vi.fn(),
 }))
 
-vi.mock('next-auth/next', () => ({ getServerSession: mockGetServerSession }))
-vi.mock('next-auth', () => ({ getServerSession: mockGetServerSession }))
+vi.mock('@/auth', () => ({ auth: mockAuth }))
 vi.mock('@/lib/auth', () => ({ authOptions: {} }))
 vi.mock('@/lib/logger', () => ({
   createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
@@ -115,7 +114,7 @@ describe('POST /api/forecasts/[id]/approve', () => {
 
   it('returns 401 when not authenticated', async () => {
     const { POST } = await import('@/app/api/forecasts/[id]/approve/route')
-    mockGetServerSession.mockResolvedValue(null)
+    mockAuth.mockResolvedValue(null)
 
     const req = new NextRequest('http://localhost/api/forecasts/pred-1/approve', { method: 'POST' })
     const res = await POST(req, { params: Promise.resolve({ id: 'pred-1' }) })
@@ -126,7 +125,7 @@ describe('POST /api/forecasts/[id]/approve', () => {
   it('returns 404 when forecast does not exist', async () => {
     const { POST } = await import('@/app/api/forecasts/[id]/approve/route')
     const { prisma } = await import('@/lib/prisma')
-    mockGetServerSession.mockResolvedValue(APPROVER_SESSION)
+    mockAuth.mockResolvedValue(APPROVER_SESSION)
     vi.mocked(prisma.prediction.findUnique).mockResolvedValue(null)
 
     const req = new NextRequest('http://localhost/api/forecasts/nonexistent/approve', { method: 'POST' })
@@ -139,7 +138,7 @@ describe('POST /api/forecasts/[id]/approve', () => {
   it('returns 400 when forecast is not by a bot', async () => {
     const { POST } = await import('@/app/api/forecasts/[id]/approve/route')
     const { prisma } = await import('@/lib/prisma')
-    mockGetServerSession.mockResolvedValue(APPROVER_SESSION)
+    mockAuth.mockResolvedValue(APPROVER_SESSION)
 
     const humanPrediction = makeBotPrediction({
       author: { ...BOT_AUTHOR, isBot: false },
@@ -156,7 +155,7 @@ describe('POST /api/forecasts/[id]/approve', () => {
   it('returns 400 when forecast is not PENDING_APPROVAL', async () => {
     const { POST } = await import('@/app/api/forecasts/[id]/approve/route')
     const { prisma } = await import('@/lib/prisma')
-    mockGetServerSession.mockResolvedValue(APPROVER_SESSION)
+    mockAuth.mockResolvedValue(APPROVER_SESSION)
 
     const activePrediction = makeBotPrediction({ status: 'ACTIVE' })
     vi.mocked(prisma.prediction.findUnique).mockResolvedValueOnce(activePrediction as any)
@@ -171,7 +170,7 @@ describe('POST /api/forecasts/[id]/approve', () => {
   it('transitions status from PENDING_APPROVAL to ACTIVE and sets publishedAt', async () => {
     const { POST } = await import('@/app/api/forecasts/[id]/approve/route')
     const { prisma } = await import('@/lib/prisma')
-    mockGetServerSession.mockResolvedValue(APPROVER_SESSION)
+    mockAuth.mockResolvedValue(APPROVER_SESSION)
 
     const pending = makeBotPrediction()
     const approved = { ...pending, status: 'ACTIVE', publishedAt: new Date() }
@@ -212,7 +211,7 @@ describe('POST /api/forecasts/[id]/reject', () => {
 
   it('returns 401 when not authenticated', async () => {
     const { POST } = await import('@/app/api/forecasts/[id]/reject/route')
-    mockGetServerSession.mockResolvedValue(null)
+    mockAuth.mockResolvedValue(null)
 
     const req = new NextRequest('http://localhost/api/forecasts/pred-1/reject', {
       method: 'POST',
@@ -226,7 +225,7 @@ describe('POST /api/forecasts/[id]/reject', () => {
   it('returns 400 when forecast is not by a bot', async () => {
     const { POST } = await import('@/app/api/forecasts/[id]/reject/route')
     const { prisma } = await import('@/lib/prisma')
-    mockGetServerSession.mockResolvedValue(APPROVER_SESSION)
+    mockAuth.mockResolvedValue(APPROVER_SESSION)
 
     const humanPrediction = makeBotPrediction({
       author: { ...BOT_AUTHOR, isBot: false },
@@ -250,7 +249,7 @@ describe('POST /api/forecasts/[id]/reject', () => {
   it('returns response with success=true and prediction data', async () => {
     const { POST } = await import('@/app/api/forecasts/[id]/reject/route')
     const { prisma } = await import('@/lib/prisma')
-    mockGetServerSession.mockResolvedValue(APPROVER_SESSION)
+    mockAuth.mockResolvedValue(APPROVER_SESSION)
 
     const pending = makeBotPrediction()
     const rejected = { ...pending, status: 'VOID', resolutionOutcome: 'void' }
