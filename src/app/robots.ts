@@ -1,6 +1,8 @@
 import type { MetadataRoute } from 'next'
 import { env } from '@/env'
 
+export const dynamic = 'force-dynamic'
+
 export default function robots(): MetadataRoute.Robots {
   const isProd = env.NEXT_PUBLIC_ENV === 'production'
   const baseUrl = 'https://daatan.com'

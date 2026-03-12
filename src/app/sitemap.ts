@@ -2,6 +2,8 @@ import type { MetadataRoute } from 'next'
 import { prisma } from '@/lib/prisma'
 import { env } from '@/env'
 
+export const dynamic = 'force-dynamic'
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const isProd = env.NEXT_PUBLIC_ENV === 'production'
   const baseUrl = 'https://daatan.com'
