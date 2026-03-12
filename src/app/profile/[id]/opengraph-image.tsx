@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og'
 import { prisma } from '@/lib/prisma'
 
-export const runtime = 'edge'
+export const runtime = 'nodejs'
 
 // Image metadata
 export const alt = 'DAATAN User Profile'
@@ -12,8 +12,8 @@ export const size = {
 
 export const contentType = 'image/png'
 
-export default async function Image({ params }: { params: { id: string } }) {
-  const { id } = params
+export default async function Image({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
 
   // Try to find by ID or Username
   const user = await prisma.user.findFirst({

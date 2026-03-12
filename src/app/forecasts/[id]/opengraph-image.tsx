@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og'
 import { prisma } from '@/lib/prisma'
 
-export const runtime = 'edge'
+export const runtime = 'nodejs'
 
 // Image metadata
 export const alt = 'DAATAN Forecast'
@@ -12,12 +12,17 @@ export const size = {
 
 export const contentType = 'image/png'
 
-export default async function Image({ params }: { params: { id: string } }) {
-  const { id } = params
+export default async function Image({ params }: { params: Promise<{ id: string }> }) {
+  const { id: idOrSlug } = await params
 
   // Fetch prediction data
-  const prediction = await prisma.prediction.findUnique({
-    where: { id },
+  const prediction = await prisma.prediction.findFirst({
+    where: {
+      OR: [
+        { id: idOrSlug },
+        { slug: idOrSlug }
+      ]
+    },
     include: {
       author: {
         select: {
@@ -40,7 +45,7 @@ export default async function Image({ params }: { params: { id: string } }) {
   let probabilityText = ''
   if (prediction.outcomeType === 'BINARY') {
     const commitments = await prisma.commitment.findMany({
-      where: { predictionId: id },
+      where: { predictionId: prediction.id },
       select: { binaryChoice: true },
     })
     const yesCount = commitments.filter(c => c.binaryChoice === true).length
