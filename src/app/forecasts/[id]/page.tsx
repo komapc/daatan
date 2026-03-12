@@ -67,22 +67,28 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params
   const prediction = await prisma.prediction.findUnique({
     where: { id },
-    select: { claimText: true, detailsText: true },
+    select: { id: true, claimText: true, detailsText: true, slug: true },
   })
 
   if (!prediction) {
     return {
-      title: 'Forecast Not Found - DAATAN',
+      title: 'Forecast Not Found',
     }
   }
 
+  const slug = prediction.slug || prediction.id
+
   return {
-    title: `${prediction.claimText} - DAATAN Forecast`,
+    title: prediction.claimText,
     description: prediction.detailsText || 'Make your prediction on DAATAN.',
+    alternates: {
+      canonical: `/forecasts/${slug}`,
+    },
     openGraph: {
       title: prediction.claimText,
       description: prediction.detailsText || 'Make your prediction on DAATAN.',
       type: 'article',
+      url: `/forecasts/${slug}`,
     },
     twitter: {
       card: 'summary_large_image',
@@ -108,9 +114,30 @@ export default async function ForecastDetailPage({ params }: Props) {
     notFound()
   }
 
+  // Structured Data (JSON-LD)
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: prediction.claimText,
+    description: prediction.detailsText,
+    datePublished: prediction.publishedAt,
+    dateModified: prediction.updatedAt,
+    author: {
+      '@type': 'Person',
+      name: (prediction.author as any).name || (prediction.author as any).username,
+      url: `https://daatan.com/profile/${(prediction.author as any).username}`,
+    },
+  }
+
   return (
-    <Suspense fallback={<ForecastLoading />}>
-      <ForecastDetailClient initialData={prediction as any} />
-    </Suspense>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <Suspense fallback={<ForecastLoading />}>
+        <ForecastDetailClient initialData={prediction as any} />
+      </Suspense>
+    </>
   )
 }

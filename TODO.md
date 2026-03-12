@@ -1,12 +1,13 @@
 # TODO.md — Task Queue
 
-*Last updated: March 11, 2026 · v1.7.37*
+*Last updated: March 12, 2026 · v1.7.47*
 
 ---
 
 ## Open Tasks
 
-None — all tracked tasks complete!
+- [ ] **UX: Regenerate button after editing in express mode** — When a user edits the claim in express mode, provide an option to re-run the research/extraction to update the details and sources based on the new text.
+- [ ] **AI: "Guess" chances** — Add a prompt/feature that analyzes the gathered sources and returns a suggested probability (0 to 100) for the forecast.
 
 ---
 
@@ -31,6 +32,7 @@ None — all tracked tasks complete!
 
 ### Administrative
 - [x] **Domain ownership verification** — Added Route53 TXT record for `google-site-verification` and restored SPF records. (v1.7.37)
+- [x] **SEO optimization** — Implemented dynamic `sitemap.xml`, `robots.txt`, canonical URLs, and JSON-LD structured data. (v1.7.47)
 
 ### P1 — Infrastructure & Testing (Quality Focus)
 - [x] **Speed: Optimize local dev loop** — Removed `next build` from local pre-push and switched to `vitest related`. (v1.7.31)
