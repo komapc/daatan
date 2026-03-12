@@ -18,6 +18,7 @@ const isHosted = env.NEXT_PUBLIC_ENV === 'staging' || env.NEXT_PUBLIC_ENV === 'p
 export const authOptions: NextAuthConfig = {
   adapter: PrismaAdapter(prisma) as Adapter,
   secret: env.NEXTAUTH_SECRET,
+  trustHost: true,
   debug: isStaging || env.NEXTAUTH_DEBUG === 'true',
   providers: [
     Google({
