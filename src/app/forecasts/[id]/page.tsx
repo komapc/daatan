@@ -11,9 +11,14 @@ interface Props {
   params: Promise<{ id: string }>
 }
 
-async function getPrediction(id: string) {
-  const prediction = await prisma.prediction.findUnique({
-    where: { id },
+async function getPrediction(idOrSlug: string) {
+  const prediction = await prisma.prediction.findFirst({
+    where: {
+      OR: [
+        { id: idOrSlug },
+        { slug: idOrSlug }
+      ]
+    },
     include: {
       author: {
         select: {
@@ -64,9 +69,14 @@ async function getPrediction(id: string) {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id } = await params
-  const prediction = await prisma.prediction.findUnique({
-    where: { id },
+  const { id: idOrSlug } = await params
+  const prediction = await prisma.prediction.findFirst({
+    where: {
+      OR: [
+        { id: idOrSlug },
+        { slug: idOrSlug }
+      ]
+    },
     select: { id: true, claimText: true, detailsText: true, slug: true },
   })
 

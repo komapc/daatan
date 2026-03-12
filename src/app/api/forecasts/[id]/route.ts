@@ -20,12 +20,14 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params
+    const { id: idOrSlug } = await params
 
-    const prediction = await prisma.prediction.findUnique({
+    const prediction = await prisma.prediction.findFirst({
       where: { 
-        id: id.includes('-') ? undefined : id,
-        slug: id.includes('-') ? id : undefined
+        OR: [
+          { id: idOrSlug },
+          { slug: idOrSlug }
+        ]
       },
       include: {
         author: {
