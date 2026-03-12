@@ -230,6 +230,15 @@ export const POST = withAuth(async (request, user) => {
     return apiError('Resolution date must be in the future', 400)
   }
 
+  // AI Content Moderation
+  const { checkContent } = await import('@/lib/services/moderation')
+  const moderationText = `${data.claimText}\n\n${data.detailsText || ''}`
+  const moderationResult = await checkContent(moderationText, 'forecast')
+  
+  if (moderationResult.isOffensive) {
+    return apiError(`Content blocked: ${moderationResult.reason}`, 400)
+  }
+
   // Auto-create news anchor from URL if no newsAnchorId provided
   let newsAnchorId = data.newsAnchorId
   if (!newsAnchorId && data.newsAnchorUrl) {

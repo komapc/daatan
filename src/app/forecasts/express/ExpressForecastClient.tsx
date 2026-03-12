@@ -143,6 +143,8 @@ export default function ExpressForecastClient({
             } else if (data.stage === 'error') {
               if (data.error === 'NO_ARTICLES_FOUND') {
                 setError(data.message || "Couldn't find relevant articles. Try rephrasing.")
+              } else if (data.message?.startsWith('OFFENSIVE_INPUT:')) {
+                setError(`Content blocked: ${data.message.split('OFFENSIVE_INPUT:')[1].trim()}`)
               } else {
                 setError(data.message || 'Failed to generate prediction')
               }

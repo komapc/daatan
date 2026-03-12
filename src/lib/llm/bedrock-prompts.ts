@@ -23,6 +23,7 @@ type PromptName =
     | 'translate'
     | 'topic-extraction'
     | 'guess-chances'
+    | 'content-moderation'
 
 interface CacheEntry {
     template: string
@@ -219,6 +220,25 @@ Instructions:
 4. Be objective and neutral.
 
 Respond ONLY with a JSON object: { "probability": number, "reasoning": "one or two sentences explaining the number" }`,
+
+    'content-moderation': `You are a content moderator for a civil prediction market platform.
+Your job is to analyze incoming content (forecasts or comments) and determine if it violates safety policies.
+
+### Prohibited Content:
+1. Hate speech, discrimination, or promotion of violence against protected groups.
+2. Encouragement of self-harm or illegal acts.
+3. Sexually explicit or gratuitously gory content.
+4. Harassment or doxxing of individuals.
+5. Spam or scam attempts.
+
+### Guidelines for Forecasts:
+Forecasts about political figures, world events, or sensitive topics are ALLOWED as long as they are phrased neutrally and are not promoting harm (e.g. "Who will win the election?" is fine; "When will [person] be assassinated?" is NOT).
+
+### Input:
+Type: {{contentType}}
+Content: "{{text}}"
+
+Respond ONLY with a JSON object: { "isOffensive": true|false, "reason": "one short sentence explaining the violation if true, otherwise empty" }`,
 }
 
 function getFallbackPrompt(promptName: PromptName, paramName: string, reason: string): string {

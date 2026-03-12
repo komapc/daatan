@@ -109,6 +109,14 @@ export const POST = withAuth(async (request, user) => {
     }
   }
 
+  // AI Content Moderation
+  const { checkContent } = await import('@/lib/services/moderation')
+  const moderationResult = await checkContent(data.text, 'comment')
+  
+  if (moderationResult.isOffensive) {
+    return apiError(`Comment blocked: ${moderationResult.reason}`, 400)
+  }
+
   const comment = await prisma.comment.create({
     data: {
       authorId: user.id,
