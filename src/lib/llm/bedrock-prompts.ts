@@ -22,6 +22,7 @@ type PromptName =
     | 'resolution-research'
     | 'translate'
     | 'topic-extraction'
+    | 'guess-chances'
 
 interface CacheEntry {
     template: string
@@ -201,6 +202,23 @@ Article content:
     'translate': `Translate the following text to {{language}}. Return only the translated text, no explanation, no quotes:
 
 {{text}}`,
+
+    'guess-chances': `You are an expert probability analyst for a prediction market.
+Your task is to analyze the current situation and suggest the probability (0-100%) that the following forecast will happen.
+
+Forecast: "{{claimText}}"
+Context: {{detailsText}}
+
+Related News Articles:
+{{articlesText}}
+
+Instructions:
+1. Analyze the evidence from the news articles.
+2. Consider the historical context provided.
+3. Provide your best estimate of the probability (0 to 100).
+4. Be objective and neutral.
+
+Respond ONLY with a JSON object: { "probability": number, "reasoning": "one or two sentences explaining the number" }`,
 }
 
 function getFallbackPrompt(promptName: PromptName, paramName: string, reason: string): string {

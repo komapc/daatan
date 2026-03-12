@@ -1,13 +1,13 @@
 # TODO.md — Task Queue
 
-*Last updated: March 12, 2026 · v1.7.47*
+*Last updated: March 12, 2026 · v1.7.52*
 
 ---
 
 ## Open Tasks
 
-- [ ] **UX: Regenerate button after editing in express mode** — When a user edits the claim in express mode, provide an option to re-run the research/extraction to update the details and sources based on the new text.
-- [ ] **AI: "Guess" chances** — Add a prompt/feature that analyzes the gathered sources and returns a suggested probability (0 to 100) for the forecast.
+- [ ] **AI: Block offensive forecasts and comments** — Implement a prompt and mechanism to automatically detect and flag or block offensive content in forecast claims and user comments.
+- [ ] **Infra: Verify Domain via DNS** — Add the correct TXT record to Route53 to claim full domain ownership (better than HTML file verification).
 
 ---
 
@@ -29,6 +29,10 @@
 
 <details>
 <summary>All completed tasks — click to expand</summary>
+
+### Features & UX
+- [x] **UX: Regenerate button after editing in express mode** — Users can now edit a generated claim and re-trigger the research/extraction to update details. (v1.7.52)
+- [x] **AI: "Guess" chances** — Added AI probability estimation in express mode based on source analysis. (v1.7.52)
 
 ### Administrative
 - [x] **Domain ownership verification** — Added Route53 TXT record for `google-site-verification` and restored SPF records. (v1.7.37)
@@ -105,7 +109,7 @@
 - [x] Docs: VAPID setup in SECRETS.md
 - [x] Fix: resolve form double-submit (success banner replaces form immediately on 200)
 - [x] Feat: clickable usernames and avatars across the app
-- [x] Fix: preserve create-flow input on mode switch; refresh feed after forecast creation
+- [x] Fix: preserve create-flow preview on mode switch; refresh feed after forecast creation
 
 ### Verified
 - [x] Telegram notifications wired (publish, commitment, comment, resolve; `[prod]`/`[staging]` prefix)

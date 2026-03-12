@@ -43,8 +43,32 @@ export const expressPredictionSchema: Schema = {
       items: { type: SchemaType.STRING },
       description: "For MULTIPLE_CHOICE only: 2-10 distinct outcome options. Empty array for BINARY.",
     },
+    probabilitySuggestion: {
+      type: SchemaType.NUMBER,
+      description: "AI's suggested probability (0-100) based on current context",
+    },
+    probabilityReasoning: {
+      type: SchemaType.STRING,
+      description: "One sentence explanation for the probability suggestion",
+    },
   },
-  required: ["claimText", "resolveByDatetime", "detailsText", "tags", "resolutionRules", "outcomeType", "options"],
+  required: ["claimText", "resolveByDatetime", "detailsText", "tags", "resolutionRules", "outcomeType", "options", "probabilitySuggestion", "probabilityReasoning"],
+}
+
+export const guessChancesSchema: Schema = {
+  description: "Suggested probability and reasoning for a forecast",
+  type: SchemaType.OBJECT,
+  properties: {
+    probability: {
+      type: SchemaType.NUMBER,
+      description: "Suggested probability (0 to 100)",
+    },
+    reasoning: {
+      type: SchemaType.STRING,
+      description: "Brief explanation for the suggested probability",
+    },
+  },
+  required: ["probability", "reasoning"],
 }
 
 export interface ExpressPredictionResult {
@@ -55,6 +79,8 @@ export interface ExpressPredictionResult {
   resolutionRules: string
   outcomeType: 'BINARY' | 'MULTIPLE_CHOICE'
   options: string[] // Non-empty for MULTIPLE_CHOICE
+  probabilitySuggestion: number
+  probabilityReasoning: string
   newsAnchor: {
     url: string
     urlHash: string
@@ -78,6 +104,8 @@ interface ParsedPrediction {
   resolutionRules: string
   outcomeType: 'BINARY' | 'MULTIPLE_CHOICE'
   options: string[]
+  probabilitySuggestion: number
+  probabilityReasoning: string
 }
 
 export async function generateExpressPrediction(
@@ -282,6 +310,42 @@ URL: ${article.url}
       publishedAt: bestArticle.publishedDate ? new Date(bestArticle.publishedDate) : undefined
     },
     additionalLinks
+  }
+}
+
+/**
+ * Specifically guess the chances of a prediction based on provided sources.
+ */
+export async function guessChances(
+  claimText: string,
+  detailsText: string,
+  articles: Array<{ title: string; source: string; snippet: string }>
+): Promise<{ probability: number; reasoning: string }> {
+  const articlesText = articles
+    .map((article, i) => `
+[Article ${i + 1}]
+Title: ${article.title}
+Source: ${article.source}
+Snippet: ${article.snippet}
+`).join('\n')
+
+  const template = await getPromptTemplate('guess-chances')
+  const prompt = fillPrompt(template, {
+    claimText,
+    detailsText,
+    articlesText,
+  })
+
+  try {
+    const result = await llmService.generateContent({
+      prompt,
+      schema: guessChancesSchema,
+      temperature: 0,
+    })
+    return JSON.parse(result.text)
+  } catch (error) {
+    log.error({ err: error }, 'Failed to guess chances')
+    throw error
   }
 }
 
