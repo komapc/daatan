@@ -22,6 +22,8 @@ interface GeneratedPrediction {
   resolutionRules: string
   outcomeType: 'BINARY' | 'MULTIPLE_CHOICE'
   options: string[]
+  probabilitySuggestion: number
+  probabilityReasoning: string
   newsAnchor: {
     url: string
     title: string
@@ -58,6 +60,7 @@ export default function ExpressForecastClient({
 
   const [isEditing, setIsEditing] = useState(false)
   const [isPublishing, setIsPublishing] = useState(false)
+  const [isGuessing, setIsGuessing] = useState(false)
   const [isPublic, setIsPublic] = useState(true)
   const [editForm, setEditForm] = useState<GeneratedPrediction | null>(null)
   const [newTag, setNewTag] = useState('')
@@ -167,6 +170,55 @@ export default function ExpressForecastClient({
     setArticlesFound(0)
     setSourcesSummary('')
     setPredictionPreview(null)
+  }
+
+  const handleRegenerateFromEdit = () => {
+    if (editForm?.claimText) {
+      setUserInput(editForm.claimText)
+      setStep('input')
+      setIsEditing(false)
+      // Delay to ensure state update before triggering
+      setTimeout(() => {
+        handleGenerate()
+      }, 50)
+    }
+  }
+
+  const handleGuessChances = async () => {
+    if (!generated) return
+    setIsGuessing(true)
+    setError('')
+
+    try {
+      const articles = [
+        { title: generated.newsAnchor.title, source: generated.newsAnchor.source || 'News', snippet: generated.newsAnchor.snippet },
+        ...generated.additionalLinks.map(l => ({ title: l.title, source: 'Related', snippet: '' }))
+      ]
+
+      const response = await fetch('/api/forecasts/express/guess', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          claimText: generated.claimText,
+          detailsText: generated.detailsText,
+          articles,
+        }),
+      })
+
+      if (!response.ok) throw new Error('Failed to guess chances')
+      const result = await response.json()
+
+      setGenerated({
+        ...generated,
+        probabilitySuggestion: result.probability,
+        probabilityReasoning: result.reasoning
+      })
+    } catch (err) {
+      log.error({ err }, 'Guess chances error')
+      setError('Failed to get probability suggestion')
+    } finally {
+      setIsGuessing(false)
+    }
   }
 
   const handleCreatePrediction = async () => {
@@ -416,7 +468,16 @@ export default function ExpressForecastClient({
               </p>
             </div>
             <div className="flex gap-2">
-              {!isEditing && (
+              {isEditing ? (
+                <button
+                  onClick={handleRegenerateFromEdit}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-purple-600 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
+                  title="Regenerate from this claim"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Regenerate
+                </button>
+              ) : (
                 <>
                   <button
                     onClick={handleGenerate}
@@ -604,6 +665,51 @@ export default function ExpressForecastClient({
                 <p className="text-gray-700 italic">{generated.resolutionRules}</p>
               )}
             </div>
+
+            {/* AI Probability Suggestion */}
+            {!isEditing && (
+              <div className="p-4 bg-purple-50 border border-purple-100 rounded-2xl">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-bold text-purple-900 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4" />
+                    AI Probability Guess
+                  </h3>
+                  {!generated.probabilitySuggestion && (
+                    <Button
+                      onClick={handleGuessChances}
+                      loading={isGuessing}
+                      size="sm"
+                      variant="outline"
+                      className="text-xs py-1 h-auto"
+                    >
+                      Guess chances
+                    </Button>
+                  )}
+                </div>
+                {generated.probabilitySuggestion ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3">
+                      <div className="text-3xl font-black text-purple-600">
+                        {generated.probabilitySuggestion}%
+                      </div>
+                      <div className="text-sm text-purple-800 leading-tight">
+                        {generated.probabilityReasoning}
+                      </div>
+                    </div>
+                    <button 
+                      onClick={handleGuessChances}
+                      className="text-[10px] uppercase tracking-wider font-bold text-purple-400 hover:text-purple-600 transition-colors"
+                    >
+                      Recalculate
+                    </button>
+                  </div>
+                ) : !isGuessing && (
+                  <p className="text-xs text-purple-600/70">
+                    Let AI analyze the gathered sources to suggest a starting probability.
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* News Anchor */}
             <div>
