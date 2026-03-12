@@ -4,7 +4,7 @@
     "mode": "local",
     "auth": {
       "mode": "token",
-      "token": "internal-daatan-gateway-token"
+      "token": "openclaw-web-chat-token"
     },
     "trustedProxies": ["172.18.0.1", "127.0.0.1"]
   },

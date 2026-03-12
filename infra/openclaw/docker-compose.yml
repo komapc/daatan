@@ -17,7 +17,8 @@ services:
     env_file:
       - .env
     environment:
-      - OPENCLAW_GATEWAY_BIND=lan
+      - OPENCLAW_GATEWAY_BIND=loopback
+      - OPENCLAW_GATEWAY_TOKEN=openclaw-web-chat-token
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
