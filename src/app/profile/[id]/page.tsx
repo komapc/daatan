@@ -38,10 +38,14 @@ export async function generateMetadata({ params }: ProfilePageProps): Promise<Me
   return {
     title,
     description,
+    alternates: {
+      canonical: `/profile/${user.username}`,
+    },
     openGraph: {
       title,
       description,
       type: 'profile',
+      url: `/profile/${user.username}`,
     },
     twitter: {
       card: 'summary_large_image',
