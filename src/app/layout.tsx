@@ -14,17 +14,40 @@ import { Toaster } from 'react-hot-toast'
 import { isRtl } from '@/i18n/config'
 import type { Locale } from '@/i18n/config'
 
-export const metadata: Metadata = {
-  title: 'DAATAN - Prediction Market',
-  description: 'Prove you were right — without shouting into the void.',
-  icons: {
-    icon: '/logo-icon.svg',
-    apple: '/logo-icon.svg',
-  },
-  manifest: '/manifest.webmanifest',
-  verification: {
-    google: 'ATwti6XWdVyDu_RJlJhqcBsq-Z_lkjA7nq8ooac',
-  },
+import { env } from '@/env'
+
+const baseUrl = 'https://daatan.com'
+
+export async function generateMetadata(): Promise<Metadata> {
+  const isProd = env.NEXT_PUBLIC_ENV === 'production'
+
+  return {
+    metadataBase: new URL(baseUrl),
+    title: {
+      default: 'DAATAN - Prediction Market',
+      template: '%s | DAATAN',
+    },
+    description: 'Prove you were right — without shouting into the void.',
+    icons: {
+      icon: '/logo-icon.svg',
+      apple: '/logo-icon.svg',
+    },
+    manifest: '/manifest.webmanifest',
+    verification: {
+      google: 'ATwti6XWdVyDu_RJlJhqcBsq-Z_lkjA7nq8ooac',
+    },
+    alternates: {
+      canonical: './',
+    },
+    robots: {
+      index: isProd,
+      follow: isProd,
+      googleBot: {
+        index: isProd,
+        follow: isProd,
+      },
+    },
+  }
 }
 
 export const viewport: Viewport = {
