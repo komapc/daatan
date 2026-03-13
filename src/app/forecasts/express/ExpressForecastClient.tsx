@@ -144,7 +144,8 @@ export default function ExpressForecastClient({
               if (data.error === 'NO_ARTICLES_FOUND') {
                 setError(data.message || "Couldn't find relevant articles. Try rephrasing.")
               } else if (data.message?.startsWith('OFFENSIVE_INPUT:')) {
-                setError(`Content blocked: ${data.message.split('OFFENSIVE_INPUT:')[1].trim()}`)
+                const aiReason = data.message.split('OFFENSIVE_INPUT:')[1].trim()
+                setError(`Moderation: ${aiReason}`)
               } else {
                 setError(data.message || 'Failed to generate prediction')
               }

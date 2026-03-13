@@ -236,7 +236,8 @@ export const POST = withAuth(async (request, user) => {
   const moderationResult = await checkContent(moderationText, 'forecast')
   
   if (moderationResult.isOffensive) {
-    return apiError(`Content blocked: ${moderationResult.reason}`, 400)
+    const cleanReason = moderationResult.reason.replace('OFFENSIVE_INPUT:', '').trim()
+    return apiError(`Moderation: ${cleanReason}`, 400)
   }
 
   // Auto-create news anchor from URL if no newsAnchorId provided

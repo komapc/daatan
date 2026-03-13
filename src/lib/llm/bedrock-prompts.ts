@@ -238,7 +238,7 @@ Forecasts about political figures, world events, or sensitive topics are ALLOWED
 Type: {{contentType}}
 Content: "{{text}}"
 
-Respond ONLY with a JSON object: { "isOffensive": true|false, "reason": "one short sentence explaining the violation if true, otherwise empty" }`,
+Respond ONLY with a JSON object: { "isOffensive": true|false, "reason": "A clear, helpful one-sentence explanation of why the content is not allowed (e.g., 'This content promotes violence and is not permitted on DAATAN' or 'This forecast contains hate speech'). If isOffensive is false, return an empty string." }`,
 }
 
 function getFallbackPrompt(promptName: PromptName, paramName: string, reason: string): string {
