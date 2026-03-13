@@ -7,6 +7,7 @@ import { withAuth } from '@/lib/api-middleware'
 import { prisma } from '@/lib/prisma'
 import { transitionExpiredPredictions } from '@/lib/services/prediction-lifecycle'
 import { hashUrl } from '@/lib/utils/hash'
+import { checkContent } from '@/lib/services/moderation'
 
 export const dynamic = 'force-dynamic'
 
@@ -231,7 +232,6 @@ export const POST = withAuth(async (request, user) => {
   }
 
   // AI Content Moderation
-  const { checkContent } = await import('@/lib/services/moderation')
   const moderationText = `${data.claimText}\n\n${data.detailsText || ''}`
   const moderationResult = await checkContent(moderationText, 'forecast')
   

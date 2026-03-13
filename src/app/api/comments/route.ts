@@ -5,6 +5,7 @@ import { withAuth } from '@/lib/api-middleware'
 import { prisma } from '@/lib/prisma'
 import { notifyNewComment } from '@/lib/services/telegram'
 import { createNotification } from '@/lib/services/notification'
+import { checkContent } from '@/lib/services/moderation'
 
 export const dynamic = 'force-dynamic'
 
@@ -110,7 +111,6 @@ export const POST = withAuth(async (request, user) => {
   }
 
   // AI Content Moderation
-  const { checkContent } = await import('@/lib/services/moderation')
   const moderationResult = await checkContent(data.text, 'comment')
   
   if (moderationResult.isOffensive) {
