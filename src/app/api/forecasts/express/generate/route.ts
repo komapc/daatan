@@ -47,6 +47,14 @@ export const POST = withAuth(async (request) => {
             message: "Couldn't find relevant articles. Try rephrasing your prediction or being more specific."
           }) + '\n'
           controller.enqueue(encoder.encode(errorMessage))
+        } else if (error instanceof Error && error.message.startsWith('OFFENSIVE_INPUT:')) {
+          const reason = error.message.split('OFFENSIVE_INPUT:')[1].trim()
+          const errorMessage = JSON.stringify({
+            stage: 'error',
+            error: 'OFFENSIVE_INPUT',
+            message: `Moderation: ${reason}`
+          }) + '\n'
+          controller.enqueue(encoder.encode(errorMessage))
         } else {
           const errorMessage = JSON.stringify({
             stage: 'error',
