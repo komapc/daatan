@@ -114,7 +114,8 @@ export const POST = withAuth(async (request, user) => {
   const moderationResult = await checkContent(data.text, 'comment')
   
   if (moderationResult.isOffensive) {
-    return apiError(`Comment blocked: ${moderationResult.reason}`, 400)
+    const cleanReason = moderationResult.reason.replace('OFFENSIVE_INPUT:', '').trim()
+    return apiError(`Moderation: ${cleanReason}`, 400)
   }
 
   const comment = await prisma.comment.create({
