@@ -6,6 +6,7 @@ import { fetchUrlContent } from '../utils/scraper'
 import { hashUrl } from '../utils/hash'
 import { createLogger } from '@/lib/logger'
 import { STANDARD_TAGS } from '@/lib/constants'
+import { checkContent } from '../services/moderation'
 
 const log = createLogger('express-prediction')
 
@@ -112,6 +113,12 @@ export async function generateExpressPrediction(
   userInput: string,
   onProgress?: (stage: string, data?: Record<string, unknown>) => void
 ): Promise<ExpressPredictionResult> {
+  // Proactive Content Moderation
+  const moderation = await checkContent(userInput, 'forecast')
+  if (moderation.isOffensive) {
+    throw new Error(`OFFENSIVE_INPUT: ${moderation.reason}`)
+  }
+
   const isUrl = /^https?:\/\/[^\s]+$/i.test(userInput.trim())
 
   let searchResults: SearchResult[]

@@ -1,13 +1,12 @@
 # TODO.md — Task Queue
 
-*Last updated: March 12, 2026 · v1.7.52*
+*Last updated: March 12, 2026 · v1.7.54*
 
 ---
 
 ## Open Tasks
 
-- [ ] **AI: Block offensive forecasts and comments** — Implement a prompt and mechanism to automatically detect and flag or block offensive content in forecast claims and user comments.
-- [ ] **Infra: Verify Domain via DNS** — Add the correct TXT record to Route53 to claim full domain ownership (better than HTML file verification).
+- [ ] **Infra: Verify Domain via DNS** — Add the correct TXT record to Route53 to claim full domain ownership.
 
 ---
 
@@ -30,15 +29,21 @@
 <details>
 <summary>All completed tasks — click to expand</summary>
 
+### AI & Moderation
+- [x] **AI: Block offensive forecasts and comments** — Implemented an AI-driven moderation layer using Gemini to detect and block hate speech, violence, and other policy violations in forecasts and comments. (v1.7.54)
+- [x] **AI: "Guess" chances** — Added AI probability estimation in express mode based on source analysis. (v1.7.53)
+
 ### Features & UX
-- [x] **UX: Regenerate button after editing in express mode** — Users can now edit a generated claim and re-trigger the research/extraction to update details. (v1.7.52)
-- [x] **AI: "Guess" chances** — Added AI probability estimation in express mode based on source analysis. (v1.7.52)
+- [x] **UX: Regenerate button after editing in express mode** — Users can now edit a generated claim and re-trigger the research/extraction to update details. (v1.7.53)
+- [x] **Fix: Robust forecast lookups** — Standardized all routes to support both ID and Slug lookups, fixing broken links. (v1.7.53)
+- [x] **Admin: Unified Panel** — Consolidated admin tools into a single tabbed interface (Forecasts, Bots, Users, etc). (v1.7.53)
 
 ### Administrative
 - [x] **Domain ownership verification** — Added Route53 TXT record for `google-site-verification` and restored SPF records. (v1.7.37)
 - [x] **SEO optimization** — Implemented dynamic `sitemap.xml`, `robots.txt`, canonical URLs, and JSON-LD structured data. (v1.7.47)
 
 ### P1 — Infrastructure & Testing (Quality Focus)
+- [x] **Safety: Version Integrity** — Added pre-commit hook to ensure package.json and version.ts are always in sync. (v1.7.53)
 - [x] **Speed: Optimize local dev loop** — Removed `next build` from local pre-push and switched to `vitest related`. (v1.7.31)
 - [x] **Coverage: Automated tracking** — Configured Vitest with `v8` and established thresholds (80% global, 90% services). (v1.7.31)
 - [x] **Safety: DB Integration Pattern** — Implemented `docker-compose.test.yml` and integration helper for testing against real Postgres. (v1.7.31)

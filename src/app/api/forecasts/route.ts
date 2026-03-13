@@ -7,6 +7,7 @@ import { withAuth } from '@/lib/api-middleware'
 import { prisma } from '@/lib/prisma'
 import { transitionExpiredPredictions } from '@/lib/services/prediction-lifecycle'
 import { hashUrl } from '@/lib/utils/hash'
+import { checkContent } from '@/lib/services/moderation'
 
 export const dynamic = 'force-dynamic'
 
@@ -228,6 +229,14 @@ export const POST = withAuth(async (request, user) => {
   // Validate resolve-by is in the future
   if (new Date(data.resolveByDatetime) <= new Date()) {
     return apiError('Resolution date must be in the future', 400)
+  }
+
+  // AI Content Moderation
+  const moderationText = `${data.claimText}\n\n${data.detailsText || ''}`
+  const moderationResult = await checkContent(moderationText, 'forecast')
+  
+  if (moderationResult.isOffensive) {
+    return apiError(`Content blocked: ${moderationResult.reason}`, 400)
   }
 
   // Auto-create news anchor from URL if no newsAnchorId provided

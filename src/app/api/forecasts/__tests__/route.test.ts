@@ -1,14 +1,21 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { NextRequest } from 'next/server'
-import { GET, POST } from '../route'
+import { vi } from 'vitest'
 
-const { mockAuth } = vi.hoisted(() => ({
+const { mockAuth, mockCheckContent } = vi.hoisted(() => ({
     mockAuth: vi.fn(),
+    mockCheckContent: vi.fn().mockResolvedValue({ isOffensive: false, reason: '' }),
 }))
 
 vi.mock('@/auth', () => ({
     auth: mockAuth,
 }))
+
+vi.mock('@/lib/services/moderation', () => ({
+    checkContent: mockCheckContent,
+}))
+
+import { describe, it, expect, beforeEach } from 'vitest'
+import { NextRequest } from 'next/server'
+import { GET, POST } from '../route'
 
 vi.mock('@/lib/prisma', () => ({
     prisma: {
@@ -35,7 +42,8 @@ vi.mock('@/lib/services/prediction-lifecycle', () => ({
 describe('/api/forecasts', () => {
     beforeEach(() => {
         vi.clearAllMocks()
-        vi.resetAllMocks()
+        // Ensure mockCheckContent always returns pass by default
+        mockCheckContent.mockResolvedValue({ isOffensive: false, reason: '' })
     })
 
     describe('GET', () => {
@@ -161,7 +169,6 @@ describe('/api/forecasts', () => {
 
             vi.mocked(prisma.prediction.create).mockResolvedValue(newForecast as any)
             vi.mocked(prisma.prediction.findUnique).mockResolvedValue(newForecast as any)
-            // Mock findMany for slug check
             vi.mocked(prisma.prediction.findMany).mockResolvedValue([])
 
             const body = {

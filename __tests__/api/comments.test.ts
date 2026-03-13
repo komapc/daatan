@@ -1,14 +1,22 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { vi } from 'vitest'
+
+// Mock session/auth and moderation
+const { mockAuth, mockCheckContent } = vi.hoisted(() => ({
+  mockAuth: vi.fn(),
+  mockCheckContent: vi.fn().mockResolvedValue({ isOffensive: false, reason: '' }),
+}))
+
+vi.mock('@/auth', () => ({ auth: mockAuth }))
+
+vi.mock('@/lib/services/moderation', () => ({
+  checkContent: mockCheckContent,
+}))
+
+import { describe, it, expect, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET as getComments, POST as createComment } from '@/app/api/comments/route'
 import { PATCH as updateComment, DELETE as deleteComment } from '@/app/api/comments/[id]/route'
 import { POST as addReaction, DELETE as removeReaction } from '@/app/api/comments/[id]/react/route'
-
-// Mock session/auth
-const { mockAuth } = vi.hoisted(() => ({
-  mockAuth: vi.fn(),
-}))
-vi.mock('@/auth', () => ({ auth: mockAuth }))
 
 // Mock authOptions for backward compatibility if any middleware/helper needs it
 vi.mock('@/lib/auth', () => ({
@@ -54,6 +62,7 @@ vi.mock('@/lib/prisma', () => ({
 describe('Comments API', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockCheckContent.mockResolvedValue({ isOffensive: false, reason: '' })
   })
 
   describe('GET /api/comments', () => {

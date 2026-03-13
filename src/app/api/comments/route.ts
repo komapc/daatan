@@ -5,6 +5,7 @@ import { withAuth } from '@/lib/api-middleware'
 import { prisma } from '@/lib/prisma'
 import { notifyNewComment } from '@/lib/services/telegram'
 import { createNotification } from '@/lib/services/notification'
+import { checkContent } from '@/lib/services/moderation'
 
 export const dynamic = 'force-dynamic'
 
@@ -107,6 +108,13 @@ export const POST = withAuth(async (request, user) => {
     if (!parentComment || parentComment.deletedAt) {
       return apiError('Parent comment not found', 404)
     }
+  }
+
+  // AI Content Moderation
+  const moderationResult = await checkContent(data.text, 'comment')
+  
+  if (moderationResult.isOffensive) {
+    return apiError(`Comment blocked: ${moderationResult.reason}`, 400)
   }
 
   const comment = await prisma.comment.create({
