@@ -36,7 +36,7 @@ export const authOptions: NextAuthConfig = {
         },
         async authorize(credentials) {
           if (!credentials?.userId) return null
-          
+
           // Find or create the test user
           const user = await prisma.user.upsert({
             where: { id: credentials.userId as string },
@@ -50,13 +50,13 @@ export const authOptions: NextAuthConfig = {
               cuAvailable: 1000,
             }
           })
-          
+
           return {
             id: user.id,
             email: user.email,
             name: user.name,
             image: user.image,
-            role: user.role,
+            role: user.role as any,
           }
         }
       })
@@ -111,7 +111,7 @@ export const authOptions: NextAuthConfig = {
             return token
           }
 
-          token.role = dbUser.role
+          token.role = dbUser.role as any
           token.username = dbUser.username
           token.name = dbUser.name ?? token.name
           token.picture = dbUser.avatarUrl || dbUser.image || token.picture

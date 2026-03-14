@@ -146,7 +146,7 @@ export default async function ProfilePage() {
               <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
                 <h1 className="text-3xl sm:text-4xl font-black text-gray-900">{user.name || 'Anonymous'}</h1>
                 {user.role && (
-                  <RoleBadge role={user.role} size="md" />
+                  <RoleBadge role={user.role as any} size="md" />
                 )}
                 <Link
                   href="/profile/edit"
