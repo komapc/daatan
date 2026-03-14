@@ -6,13 +6,14 @@
 export async function register() {
   if (process.env.NEXT_RUNTIME !== 'nodejs') return
 
-  // Sync bot configurations to database on startup
-  try {
-    const { syncBotsToDatabase } = await import('@/lib/bots/sync')
-    await syncBotsToDatabase()
-  } catch (error) {
-    console.error('[startup] Failed to sync bots to database:', error)
-  }
+  // Sync bot configurations to database on startup (non-blocking)
+  import('@/lib/bots/sync').then(({ syncBotsToDatabase }) => {
+    syncBotsToDatabase().catch(error => {
+      console.error('[startup] Failed to sync bots to database:', error)
+    })
+  }).catch(err => {
+    console.error('[startup] Failed to load bot sync module:', err)
+  })
 
   if (process.env.NODE_ENV !== 'production') return
 

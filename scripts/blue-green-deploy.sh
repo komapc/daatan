@@ -219,7 +219,20 @@ else
 fi
 
 # Get the Docker network name (compose project network)
-NETWORK=$(docker inspect $CONTAINER --format '{{range $key, $val := .NetworkSettings.Networks}}{{$key}}{{end}}' 2>/dev/null || echo "app_default")
+# Try to detect from current container, fallback to common compose network names
+NETWORK=$(docker inspect $CONTAINER --format '{{range $key, $val := .NetworkSettings.Networks}}{{$key}}{{end}}' 2>/dev/null || true)
+if [ -z "$NETWORK" ]; then
+    echo "⚠️  Could not detect network from $CONTAINER, trying common names..."
+    for net in app_default daatan_default staging_default; do
+        if docker network ls --format '{{.Name}}' | grep -q "^$net$"; then
+            NETWORK=$net
+            echo "✅ Found network: $NETWORK"
+            break
+        fi
+    done
+fi
+NETWORK=${NETWORK:-"app_default"}
+echo "Using network: $NETWORK"
 
 # Start new container on the same network but with a temporary name
 # No network alias yet — old container still owns the service alias
@@ -238,15 +251,15 @@ echo "🏥 Phase 4: Health-checking new container..."
 echo "   URL: http://localhost:3000/api/health"
 sleep 5
 
-for i in {1..30}; do
+for i in {1..40}; do
     HEALTH_RESPONSE=$(docker exec $CONTAINER_NEW wget -qO- http://localhost:3000/api/health 2>&1 || echo "CONNECTION_ERROR")
     if echo "$HEALTH_RESPONSE" | grep -q '"status"'; then
         echo "✅ New container is healthy (attempt $i)"
         echo "   Response: $HEALTH_RESPONSE"
         break
     fi
-    if [ $i -eq 30 ]; then
-        echo "❌ New container failed health check after 30 attempts"
+    if [ $i -eq 40 ]; then
+        echo "❌ New container failed health check after 40 attempts"
         echo "   Last response: $HEALTH_RESPONSE"
         echo "📋 New container logs (last 100 lines):"
         docker logs $CONTAINER_NEW --tail 100
@@ -255,7 +268,7 @@ for i in {1..30}; do
         echo "🔄 Old container still serving traffic — no downtime occurred"
         exit 1
     fi
-    echo "⏳ Waiting... ($i/30)"
+    echo "⏳ Waiting... ($i/40)"
     sleep 3
 done
 
