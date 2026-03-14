@@ -13,12 +13,20 @@ set -e
 
 cd /app
 
+# Build gateway command
+GATEWAY_CMD="node openclaw.mjs gateway"
+
 # Check if we should bind to LAN
 if [ "$OPENCLAW_GATEWAY_BIND" = "lan" ]; then
-  exec node openclaw.mjs gateway --bind lan
-else
-  exec node openclaw.mjs gateway
+  GATEWAY_CMD="$GATEWAY_CMD --bind lan"
 fi
+
+# Always allow unconfigured if config.json not found
+if [ ! -f "/app/config.json" ]; then
+  GATEWAY_CMD="$GATEWAY_CMD --allow-unconfigured"
+fi
+
+exec $GATEWAY_CMD
 EOF
 RUN chmod +x /usr/local/bin/start-gateway.sh
 

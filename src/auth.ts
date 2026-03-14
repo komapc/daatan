@@ -1,13 +1,13 @@
 import NextAuth from "next-auth"
-import type { NextAuthConfig, Session } from "next-auth"
+import type { Session } from "next-auth"
 import type { JWT } from "next-auth/jwt"
-import Google from "next-auth/providers/google"
-import Credentials from "next-auth/providers/credentials"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
 import { createLogger } from "@/lib/logger"
 import { env } from "@/env"
+import authConfig from "./auth.config"
 import type { Adapter } from "next-auth/adapters"
+import Credentials from "next-auth/providers/credentials"
 
 const log = createLogger('auth')
 
@@ -15,18 +15,14 @@ const isTest = process.env.PLAYWRIGHT_TEST === 'true'
 const isStaging = env.NEXT_PUBLIC_ENV === 'staging'
 const isHosted = env.NEXT_PUBLIC_ENV === 'staging' || env.NEXT_PUBLIC_ENV === 'production'
 
-export const authOptions: NextAuthConfig = {
+// Merge Edge-compatible config with Node.js-only features (Prisma)
+export const { handlers, auth, signIn, signOut } = NextAuth({
+  ...authConfig,
   adapter: PrismaAdapter(prisma) as Adapter,
-  secret: env.NEXTAUTH_SECRET,
-  trustHost: true,
   debug: isStaging || env.NEXTAUTH_DEBUG === 'true',
   providers: [
-    Google({
-      clientId: env.GOOGLE_CLIENT_ID,
-      clientSecret: env.GOOGLE_CLIENT_SECRET,
-      allowDangerousEmailAccountLinking: false,
-    }),
-    // Playwright test provider: only available in test mode
+    ...authConfig.providers.filter(p => p.id !== 'credentials'),
+    // Override Playwright Credentials provider with DB logic
     ...(isTest ? [
       Credentials({
         name: 'Playwright Test',
@@ -37,7 +33,6 @@ export const authOptions: NextAuthConfig = {
         async authorize(credentials) {
           if (!credentials?.userId) return null
 
-          // Find or create the test user
           const user = await prisma.user.upsert({
             where: { id: credentials.userId as string },
             update: { role: (credentials.role as any) || 'USER' },
@@ -57,43 +52,38 @@ export const authOptions: NextAuthConfig = {
             name: user.name,
             image: user.image,
             role: user.role as any,
+            username: user.username,
+            rs: user.rs,
+            cuAvailable: user.cuAvailable,
+            cuLocked: user.cuLocked,
           }
         }
       })
     ] : [])
   ],
-  session: {
-    strategy: 'jwt',
-  },
   callbacks: {
-    async signIn({ user, account }) {
-      if (isStaging || env.NEXTAUTH_DEBUG === 'true') {
-        log.info({ userId: user?.id, email: user?.email, provider: account?.provider }, 'signIn callback')
-      }
-      return true
-    },
+    ...authConfig.callbacks,
     async session({ session, token }: { session: Session; token: JWT }) {
-      if (session.user && token.sub) {
-        session.user.id = token.sub
+      // First call base session callback
+      if (authConfig.callbacks?.session) {
+        session = await (authConfig.callbacks.session as any)({ session, token })
+      }
 
+      if (session.user && token.sub) {
         if (token.userDeleted) {
           log.warn({ userId: token.sub }, 'Session user not found in DB — invalidating session')
           session.expires = new Date(0).toISOString() as any
           return session
         }
-
-        // Read cached values from JWT
-        session.user.role = (token.role as any) ?? 'USER'
-        session.user.username = token.username as string | undefined
-        session.user.rs = token.rs as number | undefined
-        session.user.cuAvailable = token.cuAvailable as number | undefined
-        session.user.cuLocked = token.cuLocked as number | undefined
-        if (token.name) session.user.name = token.name
-        if (token.picture) session.user.image = token.picture as string
       }
       return session
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session, account, profile }) {
+      // First call base jwt callback
+      if (authConfig.callbacks?.jwt) {
+        token = await (authConfig.callbacks.jwt as any)({ token, user, trigger, session, account, profile })
+      }
+
       const TTL = 5 * 60 * 1000 // 5 minutes
       const isSignIn = !!user
       const cachedAt = token.cachedAt as number | undefined
@@ -207,6 +197,4 @@ export const authOptions: NextAuthConfig = {
       },
     },
   }),
-}
-
-export const { handlers, auth, signIn, signOut } = NextAuth(authOptions)
+})
