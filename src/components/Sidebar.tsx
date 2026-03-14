@@ -42,7 +42,6 @@ const navItems: NavItem[] = [
   { href: '/commitments', labelKey: 'commitments', icon: BarChart3 },
   { href: '/activity', labelKey: 'activity', icon: Activity },
   { href: '/leaderboard', labelKey: 'leaderboard', icon: Trophy },
-  { href: '/retroanalysis', labelKey: 'retroanalysis', icon: History },
   { href: '/profile', labelKey: 'profile', icon: User },
   { href: '/settings', labelKey: 'settings', icon: Settings },
   { href: '/about', labelKey: 'about', icon: Info },
