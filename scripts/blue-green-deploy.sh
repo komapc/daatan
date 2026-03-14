@@ -235,33 +235,37 @@ echo "✅ New container started as $CONTAINER_NEW"
 # ─── Phase 4: Health check new container ─────────────────────────────────────────
 echo ""
 echo "🏥 Phase 4: Health-checking new container..."
+echo "   URL: http://localhost:3000/api/health"
 sleep 5
 
-for i in {1..20}; do
-    if docker exec $CONTAINER_NEW wget -qO- http://localhost:3000/api/health 2>/dev/null | grep -q '"status"'; then
+for i in {1..30}; do
+    HEALTH_RESPONSE=$(docker exec $CONTAINER_NEW wget -qO- http://localhost:3000/api/health 2>&1 || echo "CONNECTION_ERROR")
+    if echo "$HEALTH_RESPONSE" | grep -q '"status"'; then
         echo "✅ New container is healthy (attempt $i)"
+        echo "   Response: $HEALTH_RESPONSE"
         break
     fi
-    if [ $i -eq 20 ]; then
-        echo "❌ New container failed health check after 20 attempts"
-        echo "📋 New container logs:"
-        docker logs $CONTAINER_NEW --tail 50
+    if [ $i -eq 30 ]; then
+        echo "❌ New container failed health check after 30 attempts"
+        echo "   Last response: $HEALTH_RESPONSE"
+        echo "📋 New container logs (last 100 lines):"
+        docker logs $CONTAINER_NEW --tail 100
         # Clean up failed new container
         docker rm -f $CONTAINER_NEW 2>/dev/null || true
         echo "🔄 Old container still serving traffic — no downtime occurred"
         exit 1
     fi
-    echo "⏳ Waiting... ($i/20)"
+    echo "⏳ Waiting... ($i/30)"
     sleep 3
 done
 
 # ─── Phase 5: Run migrations (BEFORE swap — old container still serves traffic) ─
 echo ""
 echo "🗄️ Phase 5: Running Prisma migrations on new container..."
-docker exec $CONTAINER_NEW node_modules/prisma/build/index.js migrate deploy 2>&1 || {
+docker exec $CONTAINER_NEW node node_modules/prisma/build/index.js migrate deploy 2>&1 || {
     echo "❌ Migration failed! Aborting deployment."
     echo "📋 New container logs:"
-    docker logs $CONTAINER_NEW --tail 30
+    docker logs $CONTAINER_NEW --tail 50
     # Clean up failed new container — old container keeps serving
     docker rm -f $CONTAINER_NEW 2>/dev/null || true
     echo "🔄 Old container still serving traffic — no downtime occurred"

@@ -3,17 +3,20 @@ import { BotDefinition } from './types'
 export const bookmaker: BotDefinition = {
     username: 'bookmaker_b',
     name: 'BookMaker',
-    description: 'Cold sports analytics engine obsessed with ESPN data',
-    personaPrompt: 'You are BookMaker, a cold sports analytics engine obsessed with ESPN data. You live and breathe NBA, Chess, and Ping-Pong—calculating odds based on player stats, form, matchups, and historical performance. You see the crowd\'s blind spots in sports betting.',
-    forecastPrompt: 'Check ESPN for upcoming major sporting events in the NEXT 1-2 DAYS: NBA games, Chess tournaments, Ping-Pong matches. Pick high-profile matchups only (e.g., playoff games, tournament finals). CRITICAL CHECKS: (1) Is there already a similar forecast on DAATAN? Skip if yes. (2) Is this outcome a boring blowout/obvious? Skip. Create specific forecasts: "Player X will score >25 points vs Player Y on DATE", "Team X will beat Team Y by >5 points on DATE". Max 3 forecasts per day. Resolution window: 1-3 days.',
-    votePrompt: 'For sports forecasts (NBA, Chess, Ping-Pong), review ESPN stats and predictions. Vote according to ESPN\'s projected winner and your statistical model. High confidence (30-40 CU) on clear favorites; medium confidence on tossups based on recent form.',
+    description: 'Sports analytics specialist focusing on NBA and major matchups',
+    personaPrompt: 'You are BookMaker, a specialized sports analyst who looks for statistical edges in major sporting events. You analyze roster changes, injury reports, and historical matchups to place high-confidence sports bets.',
+    forecastPrompt: "Focus on high-profile upcoming sporting events (NBA games, major Chess tournaments, or top-tier table tennis). Look for 'sharp' data: injury reports, form changes, or statistical anomalies. Create a specific, quantifiable sports forecast. Example: 'Player X will record a double-double in tomorrow's game', 'Team Y will lead at halftime by at least 10 points'. Do NOT create vague winner-only forecasts if they are already on the site. Resolution window: 1-4 days.",
+    votePrompt: 'Review sports-related forecasts. Vote YES when your statistical analysis suggests a >60% probability of success. Vote NO on "sucker bets" or over-hyped favorites where the public sentiment is skewed.',
     newsSources: [
-        'https://www.espn.com/rss/espn_rss.jsp',
-        'https://www.espn.com/espnw/basketball/rss'
+        "https://www.espn.com/rss/espn_rss.jsp",
+        "https://api.foxsports.com/v1/rss?partnerKey=zBaFxY3pS6977m80&tag=nba",
+        "https://chess24.com/en/news/rss",
+        "https://theathletic.com/rss/",
+        "search: sports betting odds injury report upcoming match"
     ],
-    intervalMinutes: 360, // 6 hours
+    intervalMinutes: 180,
     maxForecastsPerDay: 3,
-    maxVotesPerDay: 10,
+    maxVotesPerDay: 20,
     stakeMin: 10,
     stakeMax: 50,
     modelPreference: 'google/gemini-2.0-flash-exp:free',
