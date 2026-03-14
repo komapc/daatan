@@ -17,6 +17,7 @@ datasource db {
 
 enum UserRole {
   USER
+  BOT
   RESOLVER
   APPROVER
   ADMIN
