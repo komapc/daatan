@@ -66,7 +66,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async session({ session, token }: { session: Session; token: JWT }) {
       // First call base session callback
       if (authConfig.callbacks?.session) {
-        session = await authConfig.callbacks.session({ session, token, user: {} as any })
+        session = await (authConfig.callbacks.session as any)({ session, token })
       }
 
       if (session.user && token.sub) {
@@ -78,10 +78,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
       return session
     },
-    async jwt({ token, user, trigger, session }) {
+    async jwt({ token, user, trigger, session, account, profile }) {
       // First call base jwt callback
       if (authConfig.callbacks?.jwt) {
-        token = await authConfig.callbacks.jwt({ token, user, trigger, session })
+        token = await (authConfig.callbacks.jwt as any)({ token, user, trigger, session, account, profile })
       }
 
       const TTL = 5 * 60 * 1000 // 5 minutes
