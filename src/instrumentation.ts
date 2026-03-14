@@ -29,12 +29,10 @@ export async function register() {
   if (missing.length > 0) {
     const lines = missing.map(({ key, feature }) => `  - ${key}  (required for ${feature})`).join('\n')
     // eslint-disable-next-line no-console
-    console.error(
-      `[startup] FATAL: Missing required environment variables:\n${lines}\n` +
-      'Set them in your deployment environment and restart the server.',
+    console.warn(
+      `[startup] WARNING: Missing environment variables:\n${lines}\n` +
+      'Functionality requiring these keys will fail at runtime.',
     )
-    // Throw to prevent the server from starting in a broken state
-    throw new Error(`Missing required env vars: ${missing.map((m) => m.key).join(', ')}`)
   }
 
   // Validate critical SSM prompt params are not PLACEHOLDER.

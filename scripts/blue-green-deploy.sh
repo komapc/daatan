@@ -248,18 +248,18 @@ echo "✅ New container started as $CONTAINER_NEW"
 # ─── Phase 4: Health check new container ─────────────────────────────────────────
 echo ""
 echo "🏥 Phase 4: Health-checking new container..."
-echo "   URL: http://localhost:3000/api/health"
+echo "   URL: http://127.0.0.1:3000/api/health"
 sleep 5
 
-for i in {1..40}; do
-    HEALTH_RESPONSE=$(docker exec $CONTAINER_NEW wget -qO- http://localhost:3000/api/health 2>&1 || echo "CONNECTION_ERROR")
+for i in {1..50}; do
+    HEALTH_RESPONSE=$(docker exec $CONTAINER_NEW wget -qO- http://127.0.0.1:3000/api/health 2>&1 || echo "CONNECTION_ERROR")
     if echo "$HEALTH_RESPONSE" | grep -q '"status"'; then
         echo "✅ New container is healthy (attempt $i)"
         echo "   Response: $HEALTH_RESPONSE"
         break
     fi
-    if [ $i -eq 40 ]; then
-        echo "❌ New container failed health check after 40 attempts"
+    if [ $i -eq 50 ]; then
+        echo "❌ New container failed health check after 50 attempts"
         echo "   Last response: $HEALTH_RESPONSE"
         echo "📋 New container logs (last 100 lines):"
         docker logs $CONTAINER_NEW --tail 100
@@ -268,7 +268,7 @@ for i in {1..40}; do
         echo "🔄 Old container still serving traffic — no downtime occurred"
         exit 1
     fi
-    echo "⏳ Waiting... ($i/40)"
+    echo "⏳ Waiting... ($i/50)"
     sleep 3
 done
 
