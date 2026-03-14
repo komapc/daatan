@@ -1,0 +1,336 @@
+Deploy to Staging	Set up job	﻿2026-03-14T16:21:00.7516522Z Current runner version: '2.332.0'
+Deploy to Staging	Set up job	2026-03-14T16:21:00.7550667Z ##[group]Runner Image Provisioner
+Deploy to Staging	Set up job	2026-03-14T16:21:00.7552070Z Hosted Compute Agent
+Deploy to Staging	Set up job	2026-03-14T16:21:00.7553096Z Version: 20260213.493
+Deploy to Staging	Set up job	2026-03-14T16:21:00.7554529Z Commit: 5c115507f6dd24b8de37d8bbe0bb4509d0cc0fa3
+Deploy to Staging	Set up job	2026-03-14T16:21:00.7555794Z Build Date: 2026-02-13T00:28:41Z
+Deploy to Staging	Set up job	2026-03-14T16:21:00.7557087Z Worker ID: {411e7398-4a7b-46c5-a2da-dda979d2f723}
+Deploy to Staging	Set up job	2026-03-14T16:21:00.7558327Z Azure Region: eastus2
+Deploy to Staging	Set up job	2026-03-14T16:21:00.7559285Z ##[endgroup]
+Deploy to Staging	Set up job	2026-03-14T16:21:00.7562166Z ##[group]Operating System
+Deploy to Staging	Set up job	2026-03-14T16:21:00.7563156Z Ubuntu
+Deploy to Staging	Set up job	2026-03-14T16:21:00.7563889Z 24.04.3
+Deploy to Staging	Set up job	2026-03-14T16:21:00.7564833Z LTS
+Deploy to Staging	Set up job	2026-03-14T16:21:00.7565750Z ##[endgroup]
+Deploy to Staging	Set up job	2026-03-14T16:21:00.7566666Z ##[group]Runner Image
+Deploy to Staging	Set up job	2026-03-14T16:21:00.7567849Z Image: ubuntu-24.04
+Deploy to Staging	Set up job	2026-03-14T16:21:00.7568740Z Version: 20260309.50.1
+Deploy to Staging	Set up job	2026-03-14T16:21:00.7570683Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260309.50/images/ubuntu/Ubuntu2404-Readme.md
+Deploy to Staging	Set up job	2026-03-14T16:21:00.7573821Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260309.50
+Deploy to Staging	Set up job	2026-03-14T16:21:00.7575633Z ##[endgroup]
+Deploy to Staging	Set up job	2026-03-14T16:21:00.7577535Z ##[group]GITHUB_TOKEN Permissions
+Deploy to Staging	Set up job	2026-03-14T16:21:00.7580708Z Contents: read
+Deploy to Staging	Set up job	2026-03-14T16:21:00.7581716Z Metadata: read
+Deploy to Staging	Set up job	2026-03-14T16:21:00.7583182Z ##[endgroup]
+Deploy to Staging	Set up job	2026-03-14T16:21:00.7586895Z Secret source: Actions
+Deploy to Staging	Set up job	2026-03-14T16:21:00.7588432Z Prepare workflow directory
+Deploy to Staging	Set up job	2026-03-14T16:21:00.8139653Z Prepare all required actions
+Deploy to Staging	Set up job	2026-03-14T16:21:00.8196628Z Getting action download info
+Deploy to Staging	Set up job	2026-03-14T16:21:01.1092016Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+Deploy to Staging	Set up job	2026-03-14T16:21:01.2826912Z Download action repository 'aws-actions/configure-aws-credentials@v4' (SHA:7474bc4690e29a8392af63c5b98e7449536d5c3a)
+Deploy to Staging	Set up job	2026-03-14T16:21:01.6103185Z Complete job name: Deploy to Staging
+Deploy to Staging	Checkout repository	﻿2026-03-14T16:21:01.6827747Z ##[group]Run actions/checkout@v4
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.6828678Z with:
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.6829113Z   repository: komapc/daatan
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.6829747Z   token: ***
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.6830145Z   ssh-strict: true
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.6830764Z   ssh-user: git
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.6831188Z   persist-credentials: true
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.6831643Z   clean: true
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.6832052Z   sparse-checkout-cone-mode: true
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.6832540Z   fetch-depth: 1
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.6832934Z   fetch-tags: false
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.6833349Z   show-progress: true
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.6833766Z   lfs: false
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.6834139Z   submodules: false
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.6834557Z   set-safe-directory: true
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.6835234Z env:
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.6835754Z   ECR_REGISTRY: 272007598366.dkr.ecr.eu-central-1.amazonaws.com
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.6836397Z ##[endgroup]
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.8086156Z Syncing repository: komapc/daatan
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.8087848Z ##[group]Getting Git version info
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.8088596Z Working directory is '/home/runner/work/daatan/daatan'
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.8089523Z [command]/usr/bin/git version
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.8199947Z git version 2.53.0
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.8228243Z ##[endgroup]
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.8243515Z Temporarily overriding HOME='/home/runner/work/_temp/af8460c9-e739-43b2-8c10-f84de9b17318' before making global git config changes
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.8246510Z Adding repository directory to the temporary git global config as a safe directory
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.8263440Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/daatan/daatan
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.8305808Z Deleting the contents of '/home/runner/work/daatan/daatan'
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.8309919Z ##[group]Initializing the repository
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.8315394Z [command]/usr/bin/git init /home/runner/work/daatan/daatan
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.8461967Z hint: Using 'master' as the name for the initial branch. This default branch name
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.8463367Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.8465011Z hint: to use in all of your new repositories, which will suppress this warning,
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.8466560Z hint: call:
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.8467202Z hint:
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.8468050Z hint: 	git config --global init.defaultBranch <name>
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.8468773Z hint:
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.8469344Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.8470462Z hint: 'development'. The just-created branch can be renamed via this command:
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.8471319Z hint:
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.8471709Z hint: 	git branch -m <name>
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.8472145Z hint:
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.8472729Z hint: Disable this message with "git config set advice.defaultBranchName false"
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.8473698Z Initialized empty Git repository in /home/runner/work/daatan/daatan/.git/
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.8483655Z [command]/usr/bin/git remote add origin https://github.com/komapc/daatan
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.8523935Z ##[endgroup]
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.8524948Z ##[group]Disabling automatic garbage collection
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.8530642Z [command]/usr/bin/git config --local gc.auto 0
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.8562401Z ##[endgroup]
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.8563797Z ##[group]Setting up auth
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.8571102Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.8603600Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.9009698Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.9042839Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.9275867Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.9317578Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.9554050Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.9589259Z ##[endgroup]
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.9590736Z ##[group]Fetching the repository
+Deploy to Staging	Checkout repository	2026-03-14T16:21:01.9599266Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +0c58a0a78413f0c926c2cbd891f3f753c69265ec:refs/remotes/origin/main
+Deploy to Staging	Checkout repository	2026-03-14T16:21:03.0015413Z From https://github.com/komapc/daatan
+Deploy to Staging	Checkout repository	2026-03-14T16:21:03.0017264Z  * [new ref]         0c58a0a78413f0c926c2cbd891f3f753c69265ec -> origin/main
+Deploy to Staging	Checkout repository	2026-03-14T16:21:03.0054865Z ##[endgroup]
+Deploy to Staging	Checkout repository	2026-03-14T16:21:03.0056136Z ##[group]Determining the checkout info
+Deploy to Staging	Checkout repository	2026-03-14T16:21:03.0057973Z ##[endgroup]
+Deploy to Staging	Checkout repository	2026-03-14T16:21:03.0062629Z [command]/usr/bin/git sparse-checkout disable
+Deploy to Staging	Checkout repository	2026-03-14T16:21:03.0108224Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+Deploy to Staging	Checkout repository	2026-03-14T16:21:03.0143652Z ##[group]Checking out the ref
+Deploy to Staging	Checkout repository	2026-03-14T16:21:03.0146703Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+Deploy to Staging	Checkout repository	2026-03-14T16:21:03.3023431Z Switched to a new branch 'main'
+Deploy to Staging	Checkout repository	2026-03-14T16:21:03.3025105Z branch 'main' set up to track 'origin/main'.
+Deploy to Staging	Checkout repository	2026-03-14T16:21:03.3080782Z ##[endgroup]
+Deploy to Staging	Checkout repository	2026-03-14T16:21:03.3084389Z [command]/usr/bin/git log -1 --format=%H
+Deploy to Staging	Checkout repository	2026-03-14T16:21:03.3109280Z 0c58a0a78413f0c926c2cbd891f3f753c69265ec
+Deploy to Staging	Configure AWS credentials	﻿2026-03-14T16:21:03.3421913Z ##[group]Run aws-actions/configure-aws-credentials@v4
+Deploy to Staging	Configure AWS credentials	2026-03-14T16:21:03.3422878Z with:
+Deploy to Staging	Configure AWS credentials	2026-03-14T16:21:03.3423898Z   role-to-assume: ***
+Deploy to Staging	Configure AWS credentials	2026-03-14T16:21:03.3424470Z   aws-region: eu-central-1
+Deploy to Staging	Configure AWS credentials	2026-03-14T16:21:03.3425091Z   audience: sts.amazonaws.com
+Deploy to Staging	Configure AWS credentials	2026-03-14T16:21:03.3425764Z   output-env-credentials: true
+Deploy to Staging	Configure AWS credentials	2026-03-14T16:21:03.3426360Z env:
+Deploy to Staging	Configure AWS credentials	2026-03-14T16:21:03.3427029Z   ECR_REGISTRY: 272007598366.dkr.ecr.eu-central-1.amazonaws.com
+Deploy to Staging	Configure AWS credentials	2026-03-14T16:21:03.3428155Z ##[endgroup]
+Deploy to Staging	Configure AWS credentials	2026-03-14T16:21:03.5632169Z Assuming role with OIDC
+Deploy to Staging	Configure AWS credentials	2026-03-14T16:21:04.0125350Z Authenticated as assumedRoleId AROAT6VHKSEPIWQ2O56LM:GitHubActions
+Deploy to Staging	Check Instance SSM Health	﻿2026-03-14T16:21:04.1282314Z ##[group]Run INSTANCE_ID=$(aws ec2 describe-instances \
+Deploy to Staging	Check Instance SSM Health	2026-03-14T16:21:04.1282888Z [36;1mINSTANCE_ID=$(aws ec2 describe-instances \[0m
+Deploy to Staging	Check Instance SSM Health	2026-03-14T16:21:04.1283462Z [36;1m  --filters "Name=tag:Name,Values=daatan-backend" "Name=tag:Environment,Values=staging" \[0m
+Deploy to Staging	Check Instance SSM Health	2026-03-14T16:21:04.1284056Z [36;1m  --query "Reservations[0].Instances[0].InstanceId" \[0m
+Deploy to Staging	Check Instance SSM Health	2026-03-14T16:21:04.1284461Z [36;1m  --output text)[0m
+Deploy to Staging	Check Instance SSM Health	2026-03-14T16:21:04.1284765Z [36;1m[0m
+Deploy to Staging	Check Instance SSM Health	2026-03-14T16:21:04.1285092Z [36;1mPING_STATUS=$(aws ssm describe-instance-information \[0m
+Deploy to Staging	Check Instance SSM Health	2026-03-14T16:21:04.1285544Z [36;1m  --filters "Key=InstanceIds,Values=$INSTANCE_ID" \[0m
+Deploy to Staging	Check Instance SSM Health	2026-03-14T16:21:04.1285999Z [36;1m  --query "InstanceInformationList[0].PingStatus" \[0m
+Deploy to Staging	Check Instance SSM Health	2026-03-14T16:21:04.1286372Z [36;1m  --output text)[0m
+Deploy to Staging	Check Instance SSM Health	2026-03-14T16:21:04.1286654Z [36;1m  [0m
+Deploy to Staging	Check Instance SSM Health	2026-03-14T16:21:04.1286962Z [36;1mecho "Instance $INSTANCE_ID PingStatus: $PING_STATUS"[0m
+Deploy to Staging	Check Instance SSM Health	2026-03-14T16:21:04.1287367Z [36;1mif [[ "$PING_STATUS" != "Online" ]]; then[0m
+Deploy to Staging	Check Instance SSM Health	2026-03-14T16:21:04.1287977Z [36;1m  echo "❌ Error: Instance is $PING_STATUS. SSM command will fail. Please check or reboot the instance."[0m
+Deploy to Staging	Check Instance SSM Health	2026-03-14T16:21:04.1288526Z [36;1m  exit 1[0m
+Deploy to Staging	Check Instance SSM Health	2026-03-14T16:21:04.1288765Z [36;1mfi[0m
+Deploy to Staging	Check Instance SSM Health	2026-03-14T16:21:04.1342965Z shell: /usr/bin/bash -e {0}
+Deploy to Staging	Check Instance SSM Health	2026-03-14T16:21:04.1343301Z env:
+Deploy to Staging	Check Instance SSM Health	2026-03-14T16:21:04.1343626Z   ECR_REGISTRY: 272007598366.dkr.ecr.eu-central-1.amazonaws.com
+Deploy to Staging	Check Instance SSM Health	2026-03-14T16:21:04.1344027Z   AWS_DEFAULT_REGION: eu-central-1
+Deploy to Staging	Check Instance SSM Health	2026-03-14T16:21:04.1344336Z   AWS_REGION: eu-central-1
+Deploy to Staging	Check Instance SSM Health	2026-03-14T16:21:04.1344786Z   AWS_ACCESS_KEY_ID: ***
+Deploy to Staging	Check Instance SSM Health	2026-03-14T16:21:04.1345165Z   AWS_SECRET_ACCESS_KEY: ***
+Deploy to Staging	Check Instance SSM Health	2026-03-14T16:21:04.1413138Z   AWS_SESSION_TOKEN: ***
+Deploy to Staging	Check Instance SSM Health	2026-03-14T16:21:04.1413494Z ##[endgroup]
+Deploy to Staging	Check Instance SSM Health	2026-03-14T16:21:09.6747718Z Instance i-0286f62b47117b85c PingStatus: Online
+Deploy to Staging	Deploy to Staging (SSM)	﻿2026-03-14T16:21:09.6815287Z ##[group]Run # Get Instance ID
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6815683Z [36;1m# Get Instance ID[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6815980Z [36;1mINSTANCE_ID=$(aws ec2 describe-instances \[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6816492Z [36;1m  --filters "Name=tag:Name,Values=daatan-backend" "Name=tag:Environment,Values=staging" \[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6817021Z [36;1m  --query "Reservations[0].Instances[0].InstanceId" \[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6817365Z [36;1m  --output text)[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6817645Z [36;1mecho "Found Staging Instance: $INSTANCE_ID"[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6817929Z [36;1m[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6818387Z [36;1mRAW_BASE="https://raw.githubusercontent.com/komapc/daatan/0c58a0a78413f0c926c2cbd891f3f753c69265ec"[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6819356Z [36;1mDEPLOY_FILES="scripts/blue-green-deploy.sh scripts/verify-health.sh scripts/verify-logs.sh scripts/verify-deploy.sh docker-compose.prod.yml nginx-ssl.conf"[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6820039Z [36;1m[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6820459Z [36;1mecho "🚀 Sending SSM Command..."[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6820823Z [36;1mCOMMAND_ID=$(aws ssm send-command \[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6821146Z [36;1m  --document-name "AWS-RunShellScript" \[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6821539Z [36;1m  --targets "Key=instanceids,Values=$INSTANCE_ID" \[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6821972Z [36;1m  --comment "Deploy Staging 0c58a0a78413f0c926c2cbd891f3f753c69265ec" \[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6822363Z [36;1m  --timeout-seconds 600 \[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6822628Z [36;1m  --parameters commands='[[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6822882Z [36;1m    "set -e",[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6823112Z [36;1m    "export HOME=/home/ubuntu",[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6823423Z [36;1m    "export PATH=$PATH:/usr/local/bin:/usr/bin",[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6823719Z [36;1m    "",[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6823994Z [36;1m    "echo \"📦 Downloading deploy files from GitHub...\"",[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6824361Z [36;1m    "mkdir -p ~/app/scripts",[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6824621Z [36;1m    "cd ~/app",[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6825478Z [36;1m    "for f in '"$DEPLOY_FILES"'; do curl -sfL -H \"Authorization: token '"$GH_TOKEN"'\" \"'"$RAW_BASE"'/$f\" -o \"$f\" && echo \"  ✅ $f\" || { echo \"  ❌ Failed: $f\"; exit 1; }; done",[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6826144Z [36;1m    "chmod +x scripts/*.sh",[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6826389Z [36;1m    "",[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6826668Z [36;1m    "echo \"🔄 Reloading nginx to apply config...\"",[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6827221Z [36;1m    "docker compose -f docker-compose.prod.yml exec -T nginx nginx -s reload 2>/dev/null || true",[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6827683Z [36;1m    "",[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6827950Z [36;1m    "echo \"🔐 Logging in to ECR (Region: eu-central-1)...\"",[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6828574Z [36;1m    "aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin '"$ECR_REGISTRY"'",[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6829115Z [36;1m    "",[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6829351Z [36;1m    "echo \"⬇️ Pulling staging image...\"",[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6829737Z [36;1m    "docker pull '"$ECR_REGISTRY"'/daatan-app:staging-latest",[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6830076Z [36;1m    "",[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6830506Z [36;1m    "echo \"🏷️ Tagging image...\"",[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6830993Z [36;1m    "docker tag '"$ECR_REGISTRY"'/daatan-app:staging-latest daatan-app:staging-latest",[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6831413Z [36;1m    "",[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6831669Z [36;1m    "echo \"🚀 Executing blue-green deployment...\"",[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6832086Z [36;1m    "export GIT_COMMIT='"0c58a0a78413f0c926c2cbd891f3f753c69265ec"'",[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6832467Z [36;1m    "export SKIP_BUILD=true",[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6832767Z [36;1m    "./scripts/blue-green-deploy.sh staging"[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6833057Z [36;1m  ]' \[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6833255Z [36;1m  --output text \[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6833502Z [36;1m  --query "Command.CommandId")[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6833752Z [36;1m[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6833959Z [36;1mecho "✅ Command sent. ID: $COMMAND_ID"[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6834430Z [36;1m[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6834685Z [36;1mecho '⏳ Waiting for command execution (Timeout: 10m)...'[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6835022Z [36;1mSTART_TIME=$(date +%s)[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6835260Z [36;1mwhile true; do[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6835823Z [36;1m  STATUS=$(aws ssm list-command-invocations --command-id "$COMMAND_ID" --details --query "CommandInvocations[0].Status" --output text)[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6836422Z [36;1m  echo "Status: $STATUS"[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6836691Z [36;1m  if [[ "$STATUS" == "Success" ]]; then[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6836992Z [36;1m    echo "✅ Deployment successful!"[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6837263Z [36;1m    break[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6837622Z [36;1m  elif [[ "$STATUS" == "Failed" || "$STATUS" == "Cancelled" || "$STATUS" == "TimedOut" ]]; then[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6838054Z [36;1m    echo "❌ Deployment failed!"[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6838690Z [36;1m    aws ssm list-command-invocations --command-id "$COMMAND_ID" --details --query "CommandInvocations[0].CommandPlugins[0].Output" --output text[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6839335Z [36;1m     exit 1[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6839532Z [36;1m  fi[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6839708Z [36;1m[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6839914Z [36;1m  CURRENT_TIME=$(date +%s)[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6840482Z [36;1m  ELAPSED=$((CURRENT_TIME - START_TIME))[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6840827Z [36;1m  if [[ $ELAPSED -gt 600 ]]; then[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6841154Z [36;1m    echo "❌ Deployment timed out after 10 minutes!"[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6841466Z [36;1m    exit 1[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6841665Z [36;1m  fi[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6841846Z [36;1m[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6842024Z [36;1m  sleep 10[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6842224Z [36;1mdone[0m
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6893071Z shell: /usr/bin/bash -e {0}
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6893336Z env:
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6893615Z   ECR_REGISTRY: 272007598366.dkr.ecr.eu-central-1.amazonaws.com
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6893977Z   AWS_DEFAULT_REGION: eu-central-1
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6894402Z   AWS_REGION: eu-central-1
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6894751Z   AWS_ACCESS_KEY_ID: ***
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6895092Z   AWS_SECRET_ACCESS_KEY: ***
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6899465Z   AWS_SESSION_TOKEN: ***
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6899855Z   GH_TOKEN: ***
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:09.6900057Z ##[endgroup]
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:11.1036184Z Found Staging Instance: i-0286f62b47117b85c
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:11.1037040Z 🚀 Sending SSM Command...
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:12.2916777Z ✅ Command sent. ID: 333698f8-365d-4f20-9281-ad65f475bf5e
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:12.2917827Z ⏳ Waiting for command execution (Timeout: 10m)...
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:13.4778202Z Status: InProgress
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:24.6438488Z Status: InProgress
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:35.8386859Z Status: InProgress
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:47.0407531Z Status: Failed
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:47.0408373Z ❌ Deployment failed!
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1391390Z 📦 Downloading deploy files from GitHub...
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1392006Z   ✅ scripts/blue-green-deploy.sh
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1392489Z   ✅ scripts/verify-health.sh
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1393034Z   ✅ scripts/verify-logs.sh
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1393480Z   ✅ scripts/verify-deploy.sh
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1393968Z   ✅ docker-compose.prod.yml
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1394392Z   ✅ nginx-ssl.conf
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1394853Z 🔄 Reloading nginx to apply config...
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1395468Z 🔐 Logging in to ECR (Region: eu-central-1)...
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1395964Z Login Succeeded
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1396355Z ⬇️ Pulling staging image...
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1396765Z staging-latest: Pulling from daatan-app
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1397264Z ba974e0d6e07: Pulling fs layer
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1397713Z 7a56705c7de8: Pulling fs layer
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1398163Z f8081b1d0361: Pulling fs layer
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1398613Z ba0e545ff021: Pulling fs layer
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1399109Z b4e107a9bcb6: Pulling fs layer
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1399546Z 05263dc0e8b9: Pulling fs layer
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1399985Z 44647a869320: Pulling fs layer
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1400684Z ed9bbadfe99c: Pulling fs layer
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1401184Z b9dbebcb67ac: Pulling fs layer
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1402087Z 2b7d57859787: Pulling fs layer
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1402558Z 9faaf5f61178: Pulling fs layer
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1403003Z 53ba28f0dfab: Pulling fs layer
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1403498Z f8081b1d0361: Download complete
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1403967Z 53ba28f0dfab: Download complete
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1404437Z b4e107a9bcb6: Download complete
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1404900Z 7a56705c7de8: Download complete
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1405363Z ed9bbadfe99c: Download complete
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1405845Z 2b7d57859787: Download complete
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1406314Z 05263dc0e8b9: Download complete
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1406767Z 05263dc0e8b9: Pull complete
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1407219Z ba0e545ff021: Download complete
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1407704Z b4e107a9bcb6: Pull complete
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1408151Z ed9bbadfe99c: Pull complete
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1408577Z 44647a869320: Download complete
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1409027Z 2b7d57859787: Pull complete
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1409524Z 9faaf5f61178: Download complete
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1409992Z b9dbebcb67ac: Download complete
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1410693Z ba974e0d6e07: Download complete
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1411126Z b9dbebcb67ac: Pull complete
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1411521Z f8081b1d0361: Pull complete
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1411922Z 7a56705c7de8: Pull complete
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1412339Z ba0e545ff021: Pull complete
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1412750Z 9faaf5f61178: Pull complete
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1413162Z 53ba28f0dfab: Pull complete
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1413568Z 44647a869320: Pull complete
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1413973Z ba974e0d6e07: Pull complete
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1414638Z Digest: sha256:f7e71f37e322e87fbe34b81ae37be721b9e5a0b4d3c7ce01c12714702640f137
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1415761Z Status: Downloaded newer image for 272007598366.dkr.ecr.eu-central-1.amazonaws.com/daatan-app:stagi
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1416638Z ---Output truncated---
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1417049Z ----------ERROR-------
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1417293Z 
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1418020Z WARNING! Your credentials are stored unencrypted in '/home/ubuntu/.docker/config.json'.
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1418935Z Configure a credential helper to remove this warning. See
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1419597Z https://docs.docker.com/go/credential-store/
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1419960Z 
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1420176Z  Container daatan-postgres-staging Running 
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1421170Z [startup] SSM params using hardcoded fallbacks (Bedrock not fully configured):
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1421975Z   - /daatan/staging/prompts/extract-prediction
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1422543Z   - /daatan/staging/prompts/suggest-tags
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1423071Z   - /daatan/staging/prompts/update-context
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1423601Z   - /daatan/staging/prompts/dedupe-check
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1424115Z   - /daatan/staging/prompts/translate
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1424674Z   - /daatan/staging/prompts/research-query-generation
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1425294Z   - /daatan/staging/prompts/resolution-research
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1425911Z   - /daatan/staging/prompts/forecast-quality-validation
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1426636Z Run ./scripts/promote-prompt.sh to promote real Bedrock ARNs.
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.1427269Z failed to run commands: exit status 1
+Deploy to Staging	Deploy to Staging (SSM)	2026-03-14T16:21:48.2344198Z ##[error]Process completed with exit code 1.
+Deploy to Staging	Notify Telegram - Staging Deployment Failure	﻿2026-03-14T16:21:48.2399721Z ##[group]Run curl -s -X POST "https://api.telegram.org/bot***/sendMessage" \
+Deploy to Staging	Notify Telegram - Staging Deployment Failure	2026-03-14T16:21:48.2400797Z [36;1mcurl -s -X POST "https://api.telegram.org/bot***/sendMessage" \[0m
+Deploy to Staging	Notify Telegram - Staging Deployment Failure	2026-03-14T16:21:48.2401202Z [36;1m  -d chat_id="***" \[0m
+Deploy to Staging	Notify Telegram - Staging Deployment Failure	2026-03-14T16:21:48.2402007Z [36;1m  -d text="❌ [staging] Deployment failed%0A%0AVersion: 1.7.64%0ACommit: 0c58a0a78413f0c926c2cbd891f3f753c69265ec%0A%0A<a href=\"https://github.com/komapc/daatan/actions/runs/23091607801\">View logs</a>" \[0m
+Deploy to Staging	Notify Telegram - Staging Deployment Failure	2026-03-14T16:21:48.2402834Z [36;1m  -d parse_mode="HTML"[0m
+Deploy to Staging	Notify Telegram - Staging Deployment Failure	2026-03-14T16:21:48.2451384Z shell: /usr/bin/bash -e {0}
+Deploy to Staging	Notify Telegram - Staging Deployment Failure	2026-03-14T16:21:48.2451623Z env:
+Deploy to Staging	Notify Telegram - Staging Deployment Failure	2026-03-14T16:21:48.2451887Z   ECR_REGISTRY: 272007598366.dkr.ecr.eu-central-1.amazonaws.com
+Deploy to Staging	Notify Telegram - Staging Deployment Failure	2026-03-14T16:21:48.2452249Z   AWS_DEFAULT_REGION: eu-central-1
+Deploy to Staging	Notify Telegram - Staging Deployment Failure	2026-03-14T16:21:48.2452504Z   AWS_REGION: eu-central-1
+Deploy to Staging	Notify Telegram - Staging Deployment Failure	2026-03-14T16:21:48.2452786Z   AWS_ACCESS_KEY_ID: ***
+Deploy to Staging	Notify Telegram - Staging Deployment Failure	2026-03-14T16:21:48.2453115Z   AWS_SECRET_ACCESS_KEY: ***
+Deploy to Staging	Notify Telegram - Staging Deployment Failure	2026-03-14T16:21:48.2457462Z   AWS_SESSION_TOKEN: ***
+Deploy to Staging	Notify Telegram - Staging Deployment Failure	2026-03-14T16:21:48.2457712Z ##[endgroup]
+Deploy to Staging	Notify Telegram - Staging Deployment Failure	2026-03-14T16:21:48.6079865Z {"ok":true,"result":{"message_id":79,"sender_chat":{"id":***,"title":"Daatan Updates","type":"channel"},"chat":{"id":***,"title":"Daatan Updates","type":"channel"},"date":1773505308,"text":"\u274c [staging] Deployment failed\n\nVersion: 1.7.64\nCommit: 0c58a0a78413f0c926c2cbd891f3f753c69265ec\n\nView logs","entities":[{"offset":97,"length":9,"type":"text_link","url":"https://github.com/komapc/daatan/actions/runs/23091607801"}],"link_preview_options":{"url":"https://github.com/komapc/daatan/actions/runs/23091607801"}}}
+Deploy to Staging	Post Configure AWS credentials	﻿2026-03-14T16:21:48.6172735Z Post job cleanup.
+Deploy to Staging	Post Checkout repository	﻿2026-03-14T16:21:48.7509649Z Post job cleanup.
+Deploy to Staging	Post Checkout repository	2026-03-14T16:21:48.8462376Z [command]/usr/bin/git version
+Deploy to Staging	Post Checkout repository	2026-03-14T16:21:48.8499405Z git version 2.53.0
+Deploy to Staging	Post Checkout repository	2026-03-14T16:21:48.8542758Z Temporarily overriding HOME='/home/runner/work/_temp/fff5fe2f-27ba-4715-aea5-141a0c70faab' before making global git config changes
+Deploy to Staging	Post Checkout repository	2026-03-14T16:21:48.8543886Z Adding repository directory to the temporary git global config as a safe directory
+Deploy to Staging	Post Checkout repository	2026-03-14T16:21:48.8555457Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/daatan/daatan
+Deploy to Staging	Post Checkout repository	2026-03-14T16:21:48.8590170Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Deploy to Staging	Post Checkout repository	2026-03-14T16:21:48.8623462Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Deploy to Staging	Post Checkout repository	2026-03-14T16:21:48.8870178Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Deploy to Staging	Post Checkout repository	2026-03-14T16:21:48.8891388Z http.https://github.com/.extraheader
+Deploy to Staging	Post Checkout repository	2026-03-14T16:21:48.8903612Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+Deploy to Staging	Post Checkout repository	2026-03-14T16:21:48.8945531Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Deploy to Staging	Post Checkout repository	2026-03-14T16:21:48.9191906Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Deploy to Staging	Post Checkout repository	2026-03-14T16:21:48.9227609Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Deploy to Staging	Complete job	﻿2026-03-14T16:21:48.9619852Z Cleaning up orphan processes
+Deploy to Staging	Complete job	2026-03-14T16:21:48.9906835Z ##[warning]Node.js 20 actions are deprecated. The following actions are running on Node.js 20 and may not work as expected: actions/checkout@v4, aws-actions/configure-aws-credentials@v4. Actions will be forced to run with Node.js 24 by default starting June 2nd, 2026. Please check if updated versions of these actions are available that support Node.js 24. To opt into Node.js 24 now, set the FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true environment variable on the runner or in your workflow file. Once Node.js 24 becomes the default, you can temporarily opt out by setting ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
