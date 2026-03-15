@@ -1,6 +1,6 @@
 # TODO.md — Task Queue
 
-*Last updated: March 15, 2026 · v1.7.68* (Infrastructure split complete)
+*Last updated: March 15, 2026 · v1.7.68* (Infrastructure split complete + GA/Type audit tasks added)
 
 ---
 
@@ -10,6 +10,10 @@
 - [ ] **Type System: Global Strictness Audit**
   - **Goal:** Ensure the codebase leverages TypeScript's full safety potential.
   - **Implementation:** Scan for and eliminate unsafe `any` usages (especially in recent Auth and Bot migrations). Verify that `tsconfig.json` has `strict: true` and that API responses/database models are properly typed throughout the stack.
+- [ ] **Analytics: Resolve Google Analytics Blocking**
+  - **Goal:** Address the `net::ERR_BLOCKED_BY_CLIENT` error for `G-Z4XXM7GYHW`.
+  - **Context:** Requests to `google-analytics.com` are being blocked by client-side tools (ad-blockers). 
+  - **Implementation:** Investigate if this is purely a client-side issue or if loading strategy (e.g., using a proxy or Partytown) can mitigate the blocking to ensure consistent data collection while respecting privacy.
 - [ ] **State Logic: Audit "Locked" CU Mechanism**
   - **Goal:** Deeply understand and validate the `cuLocked` (Committed Units) lifecycle.
   - **Implementation:** Review the database schema and service logic to ensure that CU remains "locked" during the active phase of a forecast and is correctly released or slashed upon resolution. Audit the bot voting logic to ensure it doesn't double-lock or leak locked state during high-concurrency periods.
