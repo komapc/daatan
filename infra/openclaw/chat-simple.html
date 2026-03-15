@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenClaw Chat - Simple</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .header {
+            background: rgba(0,0,0,0.5);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-bottom: 2px solid #667eea;
+        }
+        .header h1 {
+            margin-bottom: 8px;
+            font-size: 24px;
+        }
+        .status {
+            font-size: 14px;
+            padding: 8px 16px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-top: 8px;
+        }
+        .status.disconnected {
+            background: #f44336;
+            color: white;
+        }
+        .status.connecting {
+            background: #ff9800;
+            color: white;
+        }
+        .status.connected {
+            background: #4caf50;
+            color: white;
+        }
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 900px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .chat-box {
+            flex: 1;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .message {
+            padding: 12px 16px;
+            border-radius: 8px;
+            max-width: 80%;
+            word-wrap: break-word;
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .message.user {
+            background: #667eea;
+            color: white;
+            align-self: flex-end;
+        }
+        .message.agent {
+            background: #f0f0f0;
+            color: #333;
+            align-self: flex-start;
+        }
+        .message.system {
+            background: #e3f2fd;
+            color: #1976d2;
+            align-self: center;
+            font-size: 12px;
+            font-style: italic;
+        }
+        .message.error {
+            background: #ffebee;
+            color: #c62828;
+            align-self: center;
+        }
+        .input-area {
+            padding: 20px;
+            background: #f5f5f5;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        button {
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        button:hover:not(:disabled) {
+            background: #5568d3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .debug {
+            display: none;
+            background: #f5f5f5;
+            padding: 10px;
+            border-top: 1px solid #ddd;
+            font-size: 11px;
+            font-family: monospace;
+            color: #666;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🤖 OpenClaw Chat</h1>
+        <div class="status disconnected" id="status">Connecting...</div>
+    </div>
+
+    <div class="container">
+        <div class="chat-box">
+            <div class="messages" id="messages"></div>
+            <div class="input-area">
+                <input type="text" id="input" placeholder="Type a message..." disabled>
+                <button id="send" disabled>Send</button>
+            </div>
+        </div>
+        <div class="debug" id="debug"></div>
+    </div>
+
+    <script>
+        const messagesEl = document.getElementById('messages');
+        const inputEl = document.getElementById('input');
+        const sendBtn = document.getElementById('send');
+        const statusEl = document.getElementById('status');
+        const debugEl = document.getElementById('debug');
+
+        let ws = null;
+        let isConnected = false;
+
+        function debug(msg) {
+            console.log(msg);
+            debugEl.textContent += msg + '\n';
+            debugEl.scrollTop = debugEl.scrollHeight;
+        }
+
+        function addMessage(text, type = 'agent') {
+            const msg = document.createElement('div');
+            msg.className = `message ${type}`;
+            msg.textContent = text;
+            messagesEl.appendChild(msg);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+
+        function setStatus(text, type) {
+            statusEl.textContent = text;
+            statusEl.className = `status ${type}`;
+            isConnected = type === 'connected';
+            inputEl.disabled = !isConnected;
+            sendBtn.disabled = !isConnected;
+        }
+
+        function connect() {
+            debug(`[${new Date().toLocaleTimeString()}] Connecting...`);
+
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const url = `${protocol}//${window.location.host}/ws`;
+
+            debug(`Connecting to: ${url}`);
+
+            try {
+                ws = new WebSocket(url);
+
+                ws.onopen = () => {
+                    debug('✓ WebSocket connected');
+                    setStatus('Connected ✓', 'connected');
+                    addMessage('Connected to OpenClaw. Send a message!', 'system');
+                };
+
+                ws.onmessage = (event) => {
+                    debug(`Received: ${event.data.substring(0, 100)}`);
+
+                    try {
+                        const data = JSON.parse(event.data);
+
+                        // Handle authentication challenge
+                        if (data.type === 'event' && data.event === 'connect.challenge') {
+                            debug('Received auth challenge, responding...');
+                            // Send challenge response
+                            ws.send(JSON.stringify({
+                                type: 'event-response',
+                                id: data.payload?.nonce,
+                                ok: true
+                            }));
+                            return;
+                        }
+
+                        // Handle regular messages
+                        if (data.message) {
+                            addMessage(data.message, 'agent');
+                        } else if (data.response) {
+                            addMessage(data.response, 'agent');
+                        } else if (data.content) {
+                            addMessage(data.content, 'agent');
+                        } else if (data.error) {
+                            addMessage(`Error: ${data.error}`, 'error');
+                        } else if (data.type !== 'event') {
+                            addMessage(JSON.stringify(data), 'agent');
+                        }
+                    } catch (e) {
+                        debug(`Parse error: ${e.message}`);
+                        addMessage(event.data, 'agent');
+                    }
+                };
+
+                ws.onerror = (error) => {
+                    debug(`✗ WebSocket error: ${error}`);
+                    setStatus('Connection error', 'disconnected');
+                    addMessage('Connection error', 'error');
+                };
+
+                ws.onclose = () => {
+                    debug('✗ WebSocket closed');
+                    setStatus('Disconnected - Reconnecting...', 'disconnected');
+                    addMessage('Disconnected. Reconnecting in 3 seconds...', 'system');
+                    setTimeout(connect, 3000);
+                };
+            } catch (e) {
+                debug(`✗ Connection error: ${e.message}`);
+                setStatus('Connection failed', 'disconnected');
+            }
+        }
+
+        function sendMessage() {
+            const text = inputEl.value.trim();
+            if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
+
+            addMessage(text, 'user');
+            debug(`Sending: ${text}`);
+
+            try {
+                // Send user message
+                ws.send(JSON.stringify({
+                    type: 'user-action',
+                    action: 'send-message',
+                    payload: {
+                        text: text,
+                        timestamp: Date.now()
+                    }
+                }));
+            } catch (e) {
+                debug(`✗ Send error: ${e.message}`);
+                try {
+                    ws.send(text);
+                } catch (e2) {
+                    addMessage('Failed to send message', 'error');
+                }
+            }
+
+            inputEl.value = '';
+            inputEl.focus();
+        }
+
+        inputEl.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        sendBtn.addEventListener('click', sendMessage);
+
+        // Show debug info on double-click of header
+        document.querySelector('.header').addEventListener('dblclick', () => {
+            debugEl.style.display = debugEl.style.display === 'none' ? 'block' : 'none';
+        });
+
+        // Initial connection
+        connect();
+    </script>
+</body>
+</html>
