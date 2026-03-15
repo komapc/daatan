@@ -5,12 +5,16 @@ data "aws_caller_identity" "current" {}
 # PRODUCTION DATABASE BACKUPS
 # ====================================================================
 # S3 Bucket for production database backups
+# Bucket: daatan-db-backups-{account-id}
+# Retention: 30 days for daily backups
 resource "aws_s3_bucket" "backups" {
   bucket = "daatan-db-backups-${data.aws_caller_identity.current.account_id}"
 
   tags = {
-    Name        = "daatan-db-backups-prod"
+    Name        = "daatan-db-backups-production"
     Environment = "production"
+    Purpose     = "database-backup"
+    Retention   = "30-days"
   }
 
   lifecycle {
@@ -22,12 +26,16 @@ resource "aws_s3_bucket" "backups" {
 # STAGING DATABASE BACKUPS
 # ====================================================================
 # S3 Bucket for staging database backups
+# Bucket: daatan-db-backups-staging-{account-id}
+# Retention: 14 days for daily backups
 resource "aws_s3_bucket" "backups_staging" {
   bucket = "daatan-db-backups-staging-${data.aws_caller_identity.current.account_id}"
 
   tags = {
     Name        = "daatan-db-backups-staging"
     Environment = "staging"
+    Purpose     = "database-backup"
+    Retention   = "14-days"
   }
 
   lifecycle {
@@ -141,14 +149,16 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "backups_staging" 
 
 # ==========================================
 # User Uploads Bucket (Avatars, etc.)
+# Bucket: daatan-uploads-{env}-{account-id}
 # ==========================================
 
 resource "aws_s3_bucket" "uploads" {
   bucket = "daatan-uploads-${var.environment}-${data.aws_caller_identity.current.account_id}"
 
   tags = {
-    Name        = "daatan-uploads"
+    Name        = "daatan-user-uploads-${var.environment}"
     Environment = var.environment
+    Purpose     = "user-avatars-and-uploads"
   }
 }
 
@@ -203,7 +213,8 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "uploads" {
   }
 }
 
-# IAM role for EC2 to access S3
+# IAM role for EC2 instances to access S3 backups and uploads
+# Used by both production and staging instances
 resource "aws_iam_role" "ec2_role" {
   name = "daatan-ec2-role-${var.environment}"
 
@@ -221,7 +232,9 @@ resource "aws_iam_role" "ec2_role" {
   })
 
   tags = {
-    Name = "daatan-ec2-role-${var.environment}"
+    Name        = "daatan-ec2-s3-access-${var.environment}"
+    Environment = var.environment
+    Purpose     = "s3-backup-access"
   }
 }
 
