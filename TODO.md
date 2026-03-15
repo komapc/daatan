@@ -39,11 +39,11 @@
     1. ✅ Set up HTTPS certificates on staging instance (self-signed)
     2. ✅ Update Terraform to document the two-instance architecture
     3. ✅ Fixed docker port bindings (0.0.0.0:80 and 0.0.0.0:443 now properly exposed)
-  - **Pending (Post-Split):**
-    1. Upgrade HTTPS certificates to Let's Encrypt (from self-signed)
-    2. Configure automated twice-daily backups for staging (currently daily at 3 AM)
-    3. Set up health monitoring (5-minute watchdog for both instances)
-    4. Monitoring: Verify backup retention policies (30 days prod, 14 days staging)
+  - **Final Steps (Post-Split):**
+    1. ✅ Upgrade HTTPS certificates to Let's Encrypt (2026-03-15 10:44 UTC) — staging.daatan.com now has valid Let's Encrypt cert (expires 2026-06-13)
+    2. ⏳ Configure automated twice-daily backups for staging (currently daily at 3 AM)
+    3. ⏳ Set up health monitoring (5-minute watchdog for both instances)
+    4. ⏳ Monitoring: Verify backup retention policies (30 days prod, 14 days staging)
 
 ### Features & UX
 - [ ] **Telegram: Contextual Notification Links**
