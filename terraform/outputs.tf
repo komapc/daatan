@@ -3,21 +3,58 @@ output "vpc_id" {
   value       = aws_vpc.main.id
 }
 
-output "ec2_public_ip" {
-  description = "EC2 Elastic IP address"
-  value       = aws_eip.backend.public_ip
+# ====================================================================
+# PRODUCTION INSTANCE OUTPUTS
+# ====================================================================
+output "production_ec2_public_ip" {
+  description = "Production EC2 Elastic IP address (daatan.com)"
+  value       = aws_eip.production.public_ip
 }
 
-output "ec2_instance_id" {
-  description = "EC2 instance ID"
-  value       = aws_instance.backend.id
+output "production_ec2_instance_id" {
+  description = "Production EC2 instance ID"
+  value       = aws_instance.production.id
 }
 
-output "s3_backup_bucket" {
-  description = "S3 bucket for database backups"
+output "production_ssh_command" {
+  description = "SSH command to connect to production EC2 via SSM (preferred) or direct"
+  value       = "aws ssm start-session --target ${aws_instance.production.id} --document-name AWS-StartInteractiveCommand"
+}
+
+# ====================================================================
+# STAGING INSTANCE OUTPUTS
+# ====================================================================
+output "staging_ec2_public_ip" {
+  description = "Staging EC2 Elastic IP address (staging.daatan.com)"
+  value       = aws_eip.staging.public_ip
+}
+
+output "staging_ec2_instance_id" {
+  description = "Staging EC2 instance ID"
+  value       = aws_instance.staging.id
+}
+
+output "staging_ssh_command" {
+  description = "SSH command to connect to staging EC2 via SSM (preferred) or direct"
+  value       = "aws ssm start-session --target ${aws_instance.staging.id} --document-name AWS-StartInteractiveCommand"
+}
+
+# ====================================================================
+# DATABASE BACKUPS
+# ====================================================================
+output "s3_backup_bucket_production" {
+  description = "S3 bucket for production database backups"
   value       = aws_s3_bucket.backups.bucket
 }
 
+output "s3_backup_bucket_staging" {
+  description = "S3 bucket for staging database backups"
+  value       = aws_s3_bucket.backups_staging.bucket
+}
+
+# ====================================================================
+# DNS & NETWORKING
+# ====================================================================
 output "route53_zone_id" {
   description = "Route 53 hosted zone ID"
   value       = aws_route53_zone.main.zone_id
@@ -26,11 +63,6 @@ output "route53_zone_id" {
 output "route53_name_servers" {
   description = "Name servers to configure in Namecheap"
   value       = aws_route53_zone.main.name_servers
-}
-
-output "ssh_command" {
-  description = "SSH command to connect to EC2"
-  value       = "ssh -i ~/.ssh/${var.ssh_key_name}.pem ubuntu@${aws_eip.backend.public_ip}"
 }
 
 output "database_connection_string" {

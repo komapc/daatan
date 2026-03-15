@@ -8,22 +8,25 @@ resource "aws_route53_zone" "main" {
   }
 }
 
-# A Record pointing to EC2 Elastic IP
-resource "aws_route53_record" "api" {
-  zone_id = aws_route53_zone.main.zone_id
-  name    = "api.${var.domain_name}"
-  type    = "A"
-  ttl     = 300
-  records = [aws_eip.backend.public_ip]
-}
-
-# Root domain A record
+# ====================================================================
+# PRODUCTION DOMAIN RECORDS (daatan.com)
+# ====================================================================
+# Root domain A record pointing to production instance
 resource "aws_route53_record" "root" {
   zone_id = aws_route53_zone.main.zone_id
   name    = var.domain_name
   type    = "A"
   ttl     = 300
-  records = [aws_eip.backend.public_ip]
+  records = [aws_eip.production.public_ip]
+}
+
+# API subdomain pointing to production instance
+resource "aws_route53_record" "api" {
+  zone_id = aws_route53_zone.main.zone_id
+  name    = "api.${var.domain_name}"
+  type    = "A"
+  ttl     = 300
+  records = [aws_eip.production.public_ip]
 }
 
 # WWW CNAME pointing to root
@@ -35,13 +38,25 @@ resource "aws_route53_record" "www" {
   records = [var.domain_name]
 }
 
-# Staging subdomain A record
+# Mission/OpenClaw chat interface subdomain (production)
+resource "aws_route53_record" "mission" {
+  zone_id = aws_route53_zone.main.zone_id
+  name    = "mission.${var.domain_name}"
+  type    = "A"
+  ttl     = 300
+  records = [aws_eip.production.public_ip]
+}
+
+# ====================================================================
+# STAGING DOMAIN RECORDS (staging.daatan.com)
+# ====================================================================
+# Staging subdomain A record pointing to staging instance
 resource "aws_route53_record" "staging" {
   zone_id = aws_route53_zone.main.zone_id
   name    = "staging.${var.domain_name}"
   type    = "A"
-  ttl     = 300
-  records = [aws_eip.backend.public_ip]
+  ttl     = 60
+  records = [aws_eip.staging.public_ip]
 }
 
 # Google Site Verification and SPF TXT record
