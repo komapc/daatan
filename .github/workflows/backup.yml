@@ -1,0 +1,68 @@
+name: Database Backup
+
+on:
+  schedule:
+    - cron: '0 3 * * *'   # 03:00 UTC daily
+    - cron: '0 15 * * *'  # 15:00 UTC daily (RPO ≤ 12h)
+  workflow_dispatch:
+
+jobs:
+  backup:
+    name: Run DB backup
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-central-1
+
+      - name: Trigger backup via SSM
+        id: backup
+        run: |
+          INSTANCE_ID=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=daatan-backend" "Name=tag:Environment,Values=staging" \
+            --query "Reservations[0].Instances[0].InstanceId" \
+            --output text)
+          echo "Instance: $INSTANCE_ID"
+
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name "AWS-RunShellScript" \
+            --comment "Scheduled DB backup $(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --parameters 'commands=["bash /home/ubuntu/backup-db.sh"]' \
+            --output text \
+            --query "Command.CommandId")
+          echo "Command ID: $COMMAND_ID"
+
+          # Wait up to 10 minutes
+          for i in $(seq 1 60); do
+            STATUS=$(aws ssm list-command-invocations \
+              --command-id "$COMMAND_ID" --details \
+              --query "CommandInvocations[0].Status" --output text)
+            echo "Status: $STATUS"
+            if [[ "$STATUS" == "Success" ]]; then
+              echo "✅ Backup completed"
+              echo "status=success" >> "$GITHUB_OUTPUT"
+              break
+            elif [[ "$STATUS" == "Failed" || "$STATUS" == "Cancelled" || "$STATUS" == "TimedOut" ]]; then
+              OUTPUT=$(aws ssm list-command-invocations --command-id "$COMMAND_ID" --details \
+                --query "CommandInvocations[0].CommandPlugins[0].Output" --output text)
+              echo "❌ Backup failed: $OUTPUT"
+              echo "status=failed" >> "$GITHUB_OUTPUT"
+              echo "output=$OUTPUT" >> "$GITHUB_OUTPUT"
+              exit 1
+            fi
+            sleep 10
+          done
+
+      - name: Alert via Telegram on failure
+        if: failure()
+        run: |
+          MSG="🚨 <b>DB Backup FAILED</b>%0ATime: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d "text=$MSG" \
+            -d "parse_mode=HTML"

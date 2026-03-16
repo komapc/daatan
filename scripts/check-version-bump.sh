@@ -36,12 +36,8 @@ if git diff --cached --name-only | grep -qE "src/lib/version.ts|package.json"; t
   exit 0
 fi
 
-# 4. Enforce bump for feat/fix branches
-if [[ "$BRANCH" =~ ^(feat|fix|feature)/ ]]; then
-  echo "⚠️  WARNING: Version not bumped in v$PKG_VERSION"
-  echo "   Please update both package.json and src/lib/version.ts before committing."
-  exit 1
-fi
-
-echo "✅ Version check passed"
-exit 0
+# 4. Enforce bump on ALL branches (every commit eventually deploys to staging via PR)
+echo "⚠️  WARNING: Version not bumped in v$PKG_VERSION"
+echo "   Every commit must bump the version — all branches deploy to staging."
+echo "   Update both package.json and src/lib/version.ts before committing."
+exit 1

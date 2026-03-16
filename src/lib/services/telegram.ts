@@ -68,11 +68,17 @@ function truncate(text: string, max: number): string {
   return text.length > max ? text.substring(0, max) + '...' : text
 }
 
+function forecastUrl(prediction: ForecastInfo): string {
+  const base = process.env.NEXTAUTH_URL || 'https://daatan.com'
+  return `${base}/forecasts/${prediction.id}`
+}
+
 export function notifyForecastPublished(prediction: ForecastInfo, author: UserInfo): void {
   const msg = [
     `📢 <b>New forecast published</b>`,
     `"${truncate(prediction.claimText, 120)}"`,
     `by ${userName(author)}`,
+    `<a href="${forecastUrl(prediction)}">View forecast →</a>`,
   ].join('\n')
 
   sendChannelNotification(msg)
@@ -88,6 +94,7 @@ export function notifyNewCommitment(
     `🎯 <b>New commitment</b>`,
     `${userName(user)} committed ${cuCommitted} CU (${choice}) on:`,
     `"${truncate(prediction.claimText, 120)}"`,
+    `<a href="${forecastUrl(prediction)}">View forecast →</a>`,
   ].join('\n')
 
   sendChannelNotification(msg)
@@ -102,6 +109,7 @@ export function notifyNewComment(
     `💬 <b>New comment</b>`,
     `${userName(author)} on "${truncate(prediction.claimText, 80)}":`,
     `"${truncate(text, 150)}"`,
+    `<a href="${forecastUrl(prediction)}">View forecast →</a>`,
   ].join('\n')
 
   sendChannelNotification(msg)
@@ -117,6 +125,7 @@ export function notifyForecastResolved(
     `⚖️ <b>Forecast resolved: ${outcomeLabel}</b>`,
     `"${truncate(prediction.claimText, 120)}"`,
     `${commitmentCount} commitment${commitmentCount !== 1 ? 's' : ''} processed`,
+    `<a href="${forecastUrl(prediction)}">View forecast →</a>`,
   ].join('\n')
 
   sendChannelNotification(msg)
@@ -131,6 +140,7 @@ export function notifyBotForecastApproved(
     `✅ <b>Bot forecast approved</b>`,
     `"${truncate(prediction.claimText, 120)}"`,
     `Bot: ${userName(botAuthor)} → approved by ${userName(approver)}`,
+    `<a href="${forecastUrl(prediction)}">View forecast →</a>`,
   ].join('\n')
 
   sendChannelNotification(msg)
@@ -145,6 +155,7 @@ export function notifyBotForecastRejected(
     `❌ <b>Bot forecast rejected</b>`,
     `"${truncate(prediction.claimText, 120)}"`,
     `Bot: ${userName(botAuthor)} → rejected by ${userName(rejector)}`,
+    `<a href="${forecastUrl(prediction)}">View forecast →</a>`,
   ].join('\n')
 
   sendChannelNotification(msg)
