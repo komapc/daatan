@@ -13,13 +13,13 @@ import path from 'path'
 const PROJECT_ROOT = path.resolve(__dirname, '../..')
 
 const NGINX_SSL_CONFIGS = [
-  'nginx-ssl.conf',
-  'nginx-staging-ssl.conf',
+  'infra/nginx/nginx-ssl.conf',
+  'infra/nginx/nginx-staging-ssl.conf',
 ]
 
 const ALL_NGINX_CONFIGS = [
   ...NGINX_SSL_CONFIGS,
-  'nginx.conf',
+  'infra/nginx/nginx.conf',
 ]
 
 /** Security headers that must be present in every HTTPS server block */
@@ -108,7 +108,7 @@ describe('Nginx security headers', () => {
   })
 
   describe('nginx.conf (local dev)', () => {
-    const content = readConfig('nginx.conf')
+    const content = readConfig('infra/nginx/nginx.conf')
 
     it('uses enforcing CSP (not report-only) for early violation detection', () => {
       expect(content).toContain('Content-Security-Policy')
