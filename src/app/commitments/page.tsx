@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { 
   History, 
   ArrowUpCircle, 
@@ -34,7 +34,7 @@ interface Commitment {
 }
 
 export default function CommitmentsPage() {
-  const t = useTranslations('Commitments')
+  const t = useTranslations('commitment')
   const { data: session } = useSession()
   const [commitments, setCommitments] = React.useState<Commitment[]>([])
   const [loading, setLoading] = React.useState(true)
@@ -62,7 +62,7 @@ export default function CommitmentsPage() {
     fetchCommitments()
   }, [session])
 
-  const locale = t('locale') === 'he' ? he : enUS
+  const locale = useLocale() === 'he' ? he : enUS
 
   if (loading) {
     return (

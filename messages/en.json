@@ -150,7 +150,9 @@
     "refunded": "Refunded",
     "committed": "committed",
     "noCommitments": "No commitments yet",
-    "browseFeed": "Browse the feed to find forecasts to commit to"
+    "noCommitmentsDesc": "You haven't committed to any forecasts yet.",
+    "browseFeed": "Browse the feed to find forecasts to commit to",
+    "viewPrediction": "View forecast"
   },
   "leaderboard": {
     "title": "Leaderboard",
