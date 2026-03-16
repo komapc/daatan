@@ -40,12 +40,17 @@ export default function CommitmentsPage() {
   const [loading, setLoading] = React.useState(true)
 
   React.useEffect(() => {
+    if (!session) {
+      setLoading(false)
+      return
+    }
+
     async function fetchCommitments() {
       try {
         const response = await fetch('/api/commitments')
         if (response.ok) {
           const data = await response.json()
-          setCommitments(data)
+          setCommitments(data.commitments ?? [])
         }
       } catch (error) {
         console.error('Failed to fetch commitments:', error)
@@ -54,9 +59,7 @@ export default function CommitmentsPage() {
       }
     }
 
-    if (session) {
-      fetchCommitments()
-    }
+    fetchCommitments()
   }, [session])
 
   const locale = t('locale') === 'he' ? he : enUS
