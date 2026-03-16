@@ -150,7 +150,9 @@
     "refunded": "הוחזר",
     "committed": "הותחייב",
     "noCommitments": "אין התחייבויות עדיין",
-    "browseFeed": "גלוש בפיד כדי למצוא תחזיות להתחייב עליהן"
+    "noCommitmentsDesc": "עדיין לא התחייבת על שום תחזית.",
+    "browseFeed": "גלוש בפיד כדי למצוא תחזיות להתחייב עליהן",
+    "viewPrediction": "צפה בתחזית"
   },
   "leaderboard": {
     "title": "טבלת דירוג",
