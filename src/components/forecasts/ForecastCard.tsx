@@ -331,12 +331,6 @@ export default function ForecastCard({
                 Unlisted
               </span>
             )}
-            {isLocked && (
-              <span className="flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-700 text-[10px] sm:text-xs font-bold uppercase tracking-wider rounded-full border border-amber-100" title="This forecast is locked and its content cannot be changed.">
-                <Lock className="w-3 h-3" />
-                {t('locked')}
-              </span>
-            )}
           </div>
 
           {/* Claim Text */}
