@@ -190,7 +190,7 @@ jobs:
           echo "Found Staging Instance: $INSTANCE_ID"
 
           RAW_BASE="https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}"
-          DEPLOY_FILES="scripts/blue-green-deploy.sh scripts/verify-health.sh scripts/verify-logs.sh scripts/verify-deploy.sh docker-compose.prod.yml nginx-ssl.conf"
+          DEPLOY_FILES="scripts/blue-green-deploy.sh scripts/verify-health.sh scripts/verify-logs.sh scripts/verify-deploy.sh docker-compose.prod.yml infra/nginx/nginx-ssl.conf"
 
           echo "🚀 Sending SSM Command..."
           COMMAND_ID=$(aws ssm send-command \
@@ -204,7 +204,7 @@ jobs:
               "export PATH=$PATH:/usr/local/bin:/usr/bin",
               "",
               "echo \"📦 Downloading deploy files from GitHub...\"",
-              "mkdir -p ~/app/scripts",
+              "mkdir -p ~/app/scripts ~/app/infra/nginx",
               "cd ~/app",
               "for f in '"$DEPLOY_FILES"'; do curl -sfL -H \"Authorization: token '"$GH_TOKEN"'\" \"'"$RAW_BASE"'/$f\" -o \"$f\" && echo \"  ✅ $f\" || { echo \"  ❌ Failed: $f\"; exit 1; }; done",
               "chmod +x scripts/*.sh",
@@ -385,7 +385,7 @@ jobs:
           echo "Deploying Image Tag: $IMAGE_TAG"
 
           RAW_BASE="https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}"
-          DEPLOY_FILES="scripts/blue-green-deploy.sh scripts/verify-health.sh scripts/verify-logs.sh scripts/verify-deploy.sh docker-compose.prod.yml nginx-ssl.conf"
+          DEPLOY_FILES="scripts/blue-green-deploy.sh scripts/verify-health.sh scripts/verify-logs.sh scripts/verify-deploy.sh docker-compose.prod.yml infra/nginx/nginx-ssl.conf"
 
           echo "🚀 Sending SSM Command..."
           COMMAND_ID=$(aws ssm send-command \
@@ -399,7 +399,7 @@ jobs:
               "export PATH=$PATH:/usr/local/bin:/usr/bin",
               "",
               "echo \"📦 Downloading deploy files from GitHub...\"",
-              "mkdir -p ~/app/scripts",
+              "mkdir -p ~/app/scripts ~/app/infra/nginx",
               "cd ~/app",
               "for f in '"$DEPLOY_FILES"'; do curl -sfL -H \"Authorization: token '"$GH_TOKEN"'\" \"'"$RAW_BASE"'/$f\" -o \"$f\" && echo \"  ✅ $f\" || { echo \"  ❌ Failed: $f\"; exit 1; }; done",
               "chmod +x scripts/*.sh",

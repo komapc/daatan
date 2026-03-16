@@ -284,9 +284,10 @@ terraform/
 | `Dockerfile` | Multi-stage Docker build |
 | `docker-compose.yml` | Local development stack |
 | `docker-compose.prod.yml` | Production Docker stack |
-| `nginx-ssl.conf` | Production nginx with SSL |
-| `nginx-staging-ssl.conf` | Staging nginx with SSL |
-| `nginx.conf` | Local development nginx |
+| `infra/nginx/nginx-ssl.conf` | Production nginx with SSL |
+| `infra/nginx/nginx-staging-ssl.conf` | Staging nginx with SSL |
+| `infra/nginx/nginx.conf` | Local development nginx |
+| `infra/nginx/nginx-init.conf` | First-run nginx (HTTP-only, for cert issuance) |
 | `.env.example` | Environment variable template |
 
 ### Documentation
@@ -689,7 +690,7 @@ docker compose -f ~/app/docker-compose.prod.yml restart nginx
 **Rollout strategy:**
 - Staging/production use `Content-Security-Policy-Report-Only` — violations are logged but not blocked
 - Local dev uses enforcing `Content-Security-Policy` for early detection
-- **To enforce in production:** change `Content-Security-Policy-Report-Only` to `Content-Security-Policy` in `nginx-ssl.conf` and `nginx-staging-ssl.conf`
+- **To enforce in production:** change `Content-Security-Policy-Report-Only` to `Content-Security-Policy` in `infra/nginx/nginx-ssl.conf` and `infra/nginx/nginx-staging-ssl.conf`
 
 **Adding a new external resource:**
 1. Identify the directive (e.g., `script-src` for JS, `img-src` for images)

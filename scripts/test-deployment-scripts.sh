@@ -118,20 +118,20 @@ fi
 
 # Test 8: Check nginx config
 test_start "Nginx config validation"
-if [ -f "$PROJECT_ROOT/nginx-ssl.conf" ]; then
-    test_pass "nginx-ssl.conf found"
+if [ -f "$PROJECT_ROOT/infra/nginx/nginx-ssl.conf" ]; then
+    test_pass "infra/nginx/nginx-ssl.conf found"
 else
-    test_fail "nginx-ssl.conf not found"
+    test_fail "infra/nginx/nginx-ssl.conf not found"
 fi
 
 # Test 9: Validate nginx config syntax (if docker available)
 test_start "Nginx config syntax check"
 if command -v docker &> /dev/null; then
-    if docker run --rm -v "$PROJECT_ROOT/nginx-ssl.conf:/etc/nginx/nginx.conf:ro" nginx:alpine nginx -t 2>&1 | grep -q "successful"; then
+    if docker run --rm -v "$PROJECT_ROOT/infra/nginx/nginx-ssl.conf:/etc/nginx/nginx.conf:ro" nginx:alpine nginx -t 2>&1 | grep -q "successful"; then
         test_pass "Nginx config syntax is valid"
     else
         # nginx -t returns 0 even with warnings, so we check differently
-        if docker run --rm -v "$PROJECT_ROOT/nginx-ssl.conf:/etc/nginx/nginx.conf:ro" nginx:alpine nginx -t 2>&1 | grep -q "emerg"; then
+        if docker run --rm -v "$PROJECT_ROOT/infra/nginx/nginx-ssl.conf:/etc/nginx/nginx.conf:ro" nginx:alpine nginx -t 2>&1 | grep -q "emerg"; then
             test_fail "Nginx config has errors"
         else
             test_pass "Nginx config syntax is valid (with warnings)"
