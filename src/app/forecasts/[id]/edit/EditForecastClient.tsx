@@ -87,7 +87,7 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
     fetchPrediction()
   }, [id, t])
 
-  const handleChange = (field: string, value: any) => {
+  const handleChange = (field: string, value: string | number | boolean | Date | null | string[]) => {
     setFormData(prev => ({ ...prev, [field]: value }))
     setSaveSuccess(false)
     setSaveError(null)

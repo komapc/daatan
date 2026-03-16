@@ -1,29 +1,23 @@
 # TODO.md — Task Queue
 
-*Last updated: March 15, 2026 · v1.7.68* (Infrastructure split complete + GA/Type audit tasks added)
+*Last updated: March 16, 2026 · v1.7.71*
 
 ---
 
 ## Open Tasks
 
 ### Reliability & Infrastructure
-- [ ] **Type System: Global Strictness Audit**
-  - **Goal:** Ensure the codebase leverages TypeScript's full safety potential.
-  - **Implementation:** Scan for and eliminate unsafe `any` usages (especially in recent Auth and Bot migrations). Verify that `tsconfig.json` has `strict: true` and that API responses/database models are properly typed throughout the stack.
-- [ ] **Analytics: Resolve Google Analytics Blocking**
-  - **Goal:** Address the `net::ERR_BLOCKED_BY_CLIENT` error for `G-Z4XXM7GYHW`.
-  - **Context:** Requests to `google-analytics.com` are being blocked by client-side tools (ad-blockers). 
-  - **Implementation:** Investigate if this is purely a client-side issue or if loading strategy (e.g., using a proxy or Partytown) can mitigate the blocking to ensure consistent data collection while respecting privacy.
+- [x] **Type System: Global Strictness Audit** (v1.7.71)
+  - `strict: true` already set in tsconfig. Eliminated production `any` usages: `SearchResult` type in context route, typed `handleChange` in EditForecastClient, removed author casts in forecast page. Remaining `as any` are in test mocks (acceptable Vitest pattern).
+- [x] **Analytics: Resolve Google Analytics Blocking** (v1.7.71 — won't fix)
+  - **Decision:** `net::ERR_BLOCKED_BY_CLIENT` is expected behaviour — ad-blockers intentionally block `google-analytics.com`. The app loads GA non-blocking and never throws. A real fix requires a server-side DNS proxy, which is a significant infrastructure change. Accepted as known limitation.
 - [ ] **State Logic: Audit "Locked" CU Mechanism**
   - **Goal:** Deeply understand and validate the `cuLocked` (Committed Units) lifecycle.
   - **Implementation:** Review the database schema and service logic to ensure that CU remains "locked" during the active phase of a forecast and is correctly released or slashed upon resolution. Audit the bot voting logic to ensure it doesn't double-lock or leak locked state during high-concurrency periods.
-- [ ] **Backup: Twice Daily Redundancy**
-  - **Goal:** Ensure RPO (Recovery Point Objective) is reduced from 24h to 12h.
-  - **Implementation:** Modify the `backup-db.sh` script on the server and update the `ubuntu` user's crontab. Add a second cron entry (e.g., at 3 AM and 3 PM). Ensure S3 sync paths correctly handle timestamped subfolders to prevent accidental overwrites.
-- [ ] **Watchdog: 5-Minute Health Sentinel**
-  - **Goal:** Real-time visibility into downtime before users report it.
-  - **Implementation:** Create a standalone GitHub Action workflow or a lightweight n8n flow. Trigger every 5 minutes to `GET` the `/api/health` endpoint of both Staging and Production. Monitor for `200 OK` and a valid `status: ok` JSON response.
-  - **Alerting:** On failure, fire an immediate critical alert to the **Daatan Updates** Telegram channel with the environment name and error code.
+- [x] **Backup: Twice Daily Redundancy** (v1.7.71)
+  - `.github/workflows/backup.yml` triggers `backup-db.sh` via SSM at 03:00 and 15:00 UTC. RPO now ≤ 12h. Telegram alert on failure.
+- [x] **Watchdog: 5-Minute Health Sentinel** (v1.7.71)
+  - `.github/workflows/watchdog.yml` runs every 5 min on both prod and staging. Checks: `/api/health` (app + DB ping), `/`, `/forecasts`, `/leaderboard`, `/auth/signin`. Health endpoint now returns `db: true/false` and HTTP 503 on DB failure. Telegram alert with direct link on any failure.
 - [x] **Infra: Split Production and Staging — 100% Complete** (v1.7.68)
   - **Goal:** Stop "Resource Thrashing" by isolating production and staging on separate instances.
   - **Completion Status (as of 2026-03-15 00:58 UTC):**
@@ -45,15 +39,13 @@
     3. ✅ Fixed docker port bindings (0.0.0.0:80 and 0.0.0.0:443 now properly exposed)
   - **Final Steps (Post-Split):**
     1. ✅ Upgrade HTTPS certificates to Let's Encrypt (2026-03-15 10:44 UTC) — staging.daatan.com now has valid Let's Encrypt cert (expires 2026-06-13)
-    2. ⏳ Configure automated twice-daily backups for staging (currently daily at 3 AM)
-    3. ⏳ Set up health monitoring (5-minute watchdog for both instances)
+    2. ✅ Twice-daily backups via `.github/workflows/backup.yml` (03:00 + 15:00 UTC)
+    3. ✅ 5-minute watchdog via `.github/workflows/watchdog.yml` (prod + staging)
     4. ⏳ Monitoring: Verify backup retention policies (30 days prod, 14 days staging)
 
 ### Features & UX
-- [ ] **Telegram: Contextual Notification Links**
-  - **Goal:** Increase engagement by allowing immediate navigation from alerts to the site.
-  - **Implementation:** Update the `lib/services/telegram.ts` (or equivalent) to include Markdown-formatted links in the message body. 
-  - **Format:** `[View Forecast](https://daatan.com/forecasts/slug-here)` or `[Reply to Comment](https://daatan.com/forecasts/slug#comment-id)`. Ensure links use the correct `BASE_URL` per environment.
+- [x] **Telegram: Contextual Notification Links** (v1.7.71)
+  - All 6 notification functions now append `<a href="...">View forecast →</a>` using `NEXTAUTH_URL` for the base (env-aware). HTML parse mode already enabled.
 
 ---
 

@@ -134,8 +134,8 @@ export default async function ForecastDetailPage({ params }: Props) {
     dateModified: prediction.updatedAt,
     author: {
       '@type': 'Person',
-      name: (prediction.author as any).name || (prediction.author as any).username,
-      url: `https://daatan.com/profile/${(prediction.author as any).username}`,
+      name: prediction.author.name || prediction.author.username,
+      url: `https://daatan.com/profile/${prediction.author.username}`,
     },
   }
 

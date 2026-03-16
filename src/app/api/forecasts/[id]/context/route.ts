@@ -4,7 +4,7 @@ import { withAuth, type RouteContext } from '@/lib/api-middleware'
 import { prisma } from '@/lib/prisma'
 import { getPromptTemplate, fillPrompt } from '@/lib/llm/bedrock-prompts'
 import { llmService } from '@/lib/llm'
-import { searchArticles } from '@/lib/utils/webSearch'
+import { searchArticles, type SearchResult } from '@/lib/utils/webSearch'
 
 export const dynamic = 'force-dynamic'
 
@@ -95,7 +95,7 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
         }
 
         // Build sources array
-        const sources = searchResults.map((article: any) => ({
+        const sources = searchResults.map((article: SearchResult) => ({
             title: article.title,
             url: article.url,
             source: article.source || null,
@@ -103,7 +103,7 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
         }))
 
         const articlesText = searchResults
-            .map((article: any, i: number) => {
+            .map((article: SearchResult, i: number) => {
                 return `[Article ${i + 1}]\nTitle: ${article.title}\nSource: ${article.source || 'Unknown'}\nPublished: ${article.publishedDate || 'Unknown'}\nSnippet: ${article.snippet}\n`
             })
             .join('\n')

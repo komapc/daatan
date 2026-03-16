@@ -3,7 +3,13 @@
  */
 import { GET } from '@/app/api/health/route'
 import { NextResponse } from 'next/server'
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
+
+vi.mock('@/lib/prisma', () => ({
+  prisma: {
+    $queryRaw: vi.fn().mockResolvedValue([{ '?column?': 1 }]),
+  },
+}))
 
 describe('Health and Version API', () => {
   it('returns the correct status and version structure', async () => {
@@ -16,5 +22,6 @@ describe('Health and Version API', () => {
     expect(data).toHaveProperty('commit')
     expect(data).toHaveProperty('timestamp')
     expect(data).toHaveProperty('env')
+    expect(data).toHaveProperty('db', true)
   })
 })

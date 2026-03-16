@@ -1,0 +1,83 @@
+name: Health Watchdog
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  watchdog:
+    name: Check ${{ matrix.env.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        env:
+          - name: production
+            base_url: https://daatan.com
+          - name: staging
+            base_url: ${{ secrets.STAGING_URL }}
+
+    steps:
+      - name: Check pages
+        id: checks
+        run: |
+          BASE="${{ matrix.env.base_url }}"
+          FAILED=()
+
+          check() {
+            local label="$1" url="$2" expect_key="${3:-status}" expect_val="${4:-ok}"
+            echo "🔍 $label → $url"
+            RESPONSE=$(curl -sf --max-time 15 -w "\n%{http_code}" "$url" 2>&1) || {
+              echo "  ❌ Connection failed"
+              FAILED+=("$label (connection failed)")
+              return
+            }
+            HTTP=$(echo "$RESPONSE" | tail -1)
+            BODY=$(echo "$RESPONSE" | head -n -1)
+            if [[ "$HTTP" -lt 200 || "$HTTP" -ge 400 ]]; then
+              echo "  ❌ HTTP $HTTP"
+              FAILED+=("$label (HTTP $HTTP)")
+              return
+            fi
+            # For JSON endpoints: validate a key=value pair
+            if [[ -n "$expect_key" ]]; then
+              if ! echo "$BODY" | grep -q "\"$expect_key\":\"$expect_val\""; then
+                echo "  ❌ Expected $expect_key=$expect_val in response"
+                echo "  Body: $BODY"
+                FAILED+=("$label ($expect_key != $expect_val)")
+                return
+              fi
+            fi
+            echo "  ✅ OK (HTTP $HTTP)"
+          }
+
+          # API health + DB
+          check "Health (app+db)" "$BASE/api/health" "status" "ok"
+          check "Health DB flag"  "$BASE/api/health" "db" "true"
+
+          # Public pages
+          check "Homepage"     "$BASE"           ""
+          check "Forecast feed" "$BASE/forecasts" ""
+          check "Leaderboard"  "$BASE/leaderboard" ""
+          check "About/login"  "$BASE/auth/signin" ""
+
+          if [ ${#FAILED[@]} -gt 0 ]; then
+            echo "failed=true" >> "$GITHUB_OUTPUT"
+            echo "failures=${FAILED[*]}" >> "$GITHUB_OUTPUT"
+            printf '  ❌ %s\n' "${FAILED[@]}"
+          else
+            echo "failed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Alert via Telegram
+        if: steps.checks.outputs.failed == 'true'
+        run: |
+          ENV="${{ matrix.env.name }}"
+          FAILURES="${{ steps.checks.outputs.failures }}"
+          MSG="🚨 <b>[$ENV] Health check FAILED</b>%0A%0A$FAILURES%0A%0A<a href='${{ matrix.env.base_url }}/api/health'>View health endpoint</a>"
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d "text=$MSG" \
+            -d "parse_mode=HTML" \
+            -d "disable_web_page_preview=true"
