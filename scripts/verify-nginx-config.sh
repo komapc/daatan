@@ -22,7 +22,7 @@ fi
 
 # Verify SSL config (main config)
 docker run --rm \
-  -v $(pwd)/nginx-ssl.conf:/etc/nginx/nginx.conf:ro \
+  -v $(pwd)/infra/nginx/nginx-ssl.conf:/etc/nginx/nginx.conf:ro \
   -v $(pwd)/certbot/www:/var/www/certbot:ro \
   $CERT_MOUNT \
   nginx:alpine nginx -t

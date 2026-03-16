@@ -284,9 +284,10 @@ terraform/
 | `Dockerfile` | Multi-stage Docker build |
 | `docker-compose.yml` | Local development stack |
 | `docker-compose.prod.yml` | Production Docker stack |
-| `nginx-ssl.conf` | Production nginx with SSL |
-| `nginx-staging-ssl.conf` | Staging nginx with SSL |
-| `nginx.conf` | Local development nginx |
+| `infra/nginx/nginx-ssl.conf` | Production nginx with SSL |
+| `infra/nginx/nginx-staging-ssl.conf` | Staging nginx with SSL |
+| `infra/nginx/nginx.conf` | Local development nginx |
+| `infra/nginx/nginx-init.conf` | First-run nginx (HTTP-only, for cert issuance) |
 | `.env.example` | Environment variable template |
 
 ### Documentation
@@ -431,7 +432,7 @@ See [docs/bots.md](./docs/bots.md) for full bot system documentation.
 ```
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
 │   Build &   │────▶│   Deploy    │────▶│   Verify    │
-│    Test     │     │   (SSH)     │     │   (Health)  │
+│    Test     │     │   (SSM)     │     │   (Health)  │
 └─────────────┘     └─────────────┘     └─────────────┘
 ```
 
@@ -444,24 +445,22 @@ See [docs/bots.md](./docs/bots.md) for full bot system documentation.
 - Run linter
 
 **Deploy Stage (Staging):**
-- SSH to EC2
-- Clean Docker environment
-- Pull latest code
-- Build Docker image (no cache)
-- Start containers
-- Verify health check
+- Send command via AWS SSM (SSH port 22 is blocked)
+- Download deploy scripts from GitHub at the current commit SHA
+- Pull Docker image from ECR (`staging-latest`)
+- Run blue-green deployment (`scripts/blue-green-deploy.sh staging`)
+- Verify health check externally
 
 **Deploy Stage (Production):**
-- Same as staging but checks out specific tag
-- Deploys to production container
+- Same as staging but triggered by version tag (`v*`)
+- Pulls image tagged with the specific version
 - More conservative cleanup
 
 ### Required Secrets
 
 | Secret | Purpose |
 |--------|---------|
-| `EC2_HOST` | EC2 public IP |
-| `EC2_SSH_KEY` | SSH private key |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | IAM credentials for SSM + ECR access |
 | `POSTGRES_PASSWORD` | Database password |
 | `NEXTAUTH_SECRET` | Auth encryption key |
 | `GOOGLE_CLIENT_ID` | OAuth client ID |
@@ -552,7 +551,7 @@ aws ssm send-command --instance-ids <ID> --document-name AWS-RunShellScript \
 docker exec -e DATABASE_URL=postgresql://daatan:<PASS>@postgres:5432/daatan \
   daatan-app-staging npx prisma migrate deploy
 
-# Check migration status (22 migrations total as of v1.7.18)
+# Check migration status (24 migrations total as of v1.7.70)
 docker exec daatan-app-staging npx prisma migrate status
 
 # Manual backup (script handles this automatically)
@@ -691,7 +690,7 @@ docker compose -f ~/app/docker-compose.prod.yml restart nginx
 **Rollout strategy:**
 - Staging/production use `Content-Security-Policy-Report-Only` — violations are logged but not blocked
 - Local dev uses enforcing `Content-Security-Policy` for early detection
-- **To enforce in production:** change `Content-Security-Policy-Report-Only` to `Content-Security-Policy` in `nginx-ssl.conf` and `nginx-staging-ssl.conf`
+- **To enforce in production:** change `Content-Security-Policy-Report-Only` to `Content-Security-Policy` in `infra/nginx/nginx-ssl.conf` and `infra/nginx/nginx-staging-ssl.conf`
 
 **Adding a new external resource:**
 1. Identify the directive (e.g., `script-src` for JS, `img-src` for images)
