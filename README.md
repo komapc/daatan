@@ -6,7 +6,7 @@
 
 [![Live](https://img.shields.io/badge/Production-daatan.com-green)](https://daatan.com)
 [![Staging](https://img.shields.io/badge/Staging-staging.daatan.com-yellow)](https://staging.daatan.com)
-[![Version](https://img.shields.io/badge/Version-1.7.33-blue)](https://github.com/komapc/daatan/releases)
+[![Version](https://img.shields.io/badge/Version-1.7.70-blue)](https://github.com/komapc/daatan/releases)
 [![Next.js](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)](https://www.typescriptlang.org/)
 
@@ -115,18 +115,21 @@ git push origin v1.1.1
 | Document | Purpose |
 | -------- | ------- |
 | [DAATAN_CORE.md](./DAATAN_CORE.md) | Source of Truth — vision and principles |
-| [GLOSSARY.md](./GLOSSARY.md) | Terminology definitions |
-| [FORECASTS_FLOW.md](./FORECASTS_FLOW.md) | End-to-end implementation flow |
-| [TODO.md](./TODO.md) | Development tasks and guidelines |
-| [DEPLOYMENT.md](./DEPLOYMENT.md) | Deployment procedures and operations |
 | [TECH.md](./TECH.md) | Technical architecture, infrastructure, and project structure |
+| [DEPLOYMENT.md](./DEPLOYMENT.md) | Deployment procedures and operations |
 | [SECRETS.md](./SECRETS.md) | Secrets management and security |
+| [PRODUCT.md](./PRODUCT.md) | Product vision and feature documentation |
+| [FORECASTS_FLOW.md](./FORECASTS_FLOW.md) | End-to-end forecast creation and resolution flow |
+| [GLOSSARY.md](./GLOSSARY.md) | Terminology definitions |
 | [VERSIONING.md](./VERSIONING.md) | Semantic versioning rules |
 | [TESTING.md](./TESTING.md) | Testing strategy and guidelines |
 | [SECURITY.md](./SECURITY.md) | Security policy and vulnerability reporting |
-| [PRODUCT.md](./PRODUCT.md) | Product vision and feature documentation |
-| [docs/bots.md](./docs/bots.md) | Autonomous bot system |
+| [TODO.md](./TODO.md) | Active development tasks |
+| [POST_MORTEM.md](./POST_MORTEM.md) | Incident history and retrospectives |
+| [docs/bots.md](./docs/bots.md) | Autonomous bot system design and usage |
+| [docs/BOT_APPROVAL_WORKFLOW.md](./docs/BOT_APPROVAL_WORKFLOW.md) | Bot approval workflow (v1.7.31+) |
 | [docs/LLM_ARCHITECTURE.md](./docs/LLM_ARCHITECTURE.md) | LLM provider chain and Bedrock prompts |
+| [docs/TROUBLESHOOTING-AUTH.md](./docs/TROUBLESHOOTING-AUTH.md) | Auth troubleshooting guide |
 
 ---
 

@@ -46,6 +46,7 @@ coverage/
 
 # Misc
 *.local
+*.deb
 
 *.tsbuildinfo
 infra/openclaw/.env
