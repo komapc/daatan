@@ -1,0 +1,56 @@
+version: "3.9"
+
+services:
+  litellm:
+    image: ghcr.io/berriai/litellm:main-latest
+    container_name: litellm
+    restart: unless-stopped
+    volumes:
+      - ./litellm_config.yaml:/app/config.yaml:ro
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    command: ["--config", "/app/config.yaml", "--port", "4000", "--host", "0.0.0.0"]
+    ports:
+      - "4000:4000"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  nanoclaw:
+    build:
+      context: .
+      dockerfile: Dockerfile.orchestrator
+    image: nanoclaw-daatan:latest
+    container_name: nanoclaw
+    restart: unless-stopped
+    depends_on:
+      - litellm
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - NODE_ENV=production
+      - NODE_OPTIONS=--max-old-space-size=2048
+    volumes:
+      - ./groups:/app/groups
+      - ./data:/app/data
+      - ./.env:/app/.env:ro
+      - ./workspace:/workspace
+      - ./container/skills:/app/container/skills:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "18789:3000"
+      - "3001:3001"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 3G
+        reservations:
+          cpus: "0.5"
+          memory: 1G
