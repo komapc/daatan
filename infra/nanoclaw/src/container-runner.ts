@@ -429,12 +429,37 @@ export async function runContainerAgent(
 
     // Reset the timeout whenever there's activity (streaming output)
     const resetTimeout = () => {
+      lastOutputTime = Date.now();
       clearTimeout(timeout);
       timeout = setTimeout(killOnTimeout, timeoutMs);
     };
 
+    // Heartbeat: every 30s of silence, tell the user we're still working.
+    const HEARTBEAT_INTERVAL_MS = 30_000;
+    let lastOutputTime = Date.now();
+    let heartbeatTimer: ReturnType<typeof setTimeout> | null = null;
+    if (onOutput) {
+      const scheduleHeartbeat = () => {
+        heartbeatTimer = setTimeout(() => {
+          if (Date.now() - lastOutputTime >= HEARTBEAT_INTERVAL_MS) {
+            outputChain = outputChain.then(() =>
+              onOutput({
+                status: 'success',
+                result: '⏳ Still working on it...',
+                newSessionId,
+              }),
+            );
+            lastOutputTime = Date.now();
+          }
+          scheduleHeartbeat();
+        }, HEARTBEAT_INTERVAL_MS);
+      };
+      scheduleHeartbeat();
+    }
+
     container.on('close', (code) => {
       clearTimeout(timeout);
+      if (heartbeatTimer !== null) clearTimeout(heartbeatTimer);
       const duration = Date.now() - startTime;
 
       if (timedOut) {
@@ -567,4 +592,142 @@ export async function runContainerAgent(
       if (onOutput) {
         outputChain.then(() => {
           logger.info(
-            { group: group.name, duration, n
+            { group: group.name, duration, newSessionId },
+            'Container completed (streaming mode)',
+          );
+          resolve({
+            status: 'success',
+            result: null,
+            newSessionId,
+          });
+        });
+        return;
+      }
+
+      // Legacy mode: parse the last output marker pair from accumulated stdout
+      try {
+        // Extract JSON between sentinel markers for robust parsing
+        const startIdx = stdout.indexOf(OUTPUT_START_MARKER);
+        const endIdx = stdout.indexOf(OUTPUT_END_MARKER);
+
+        let jsonLine: string;
+        if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+          jsonLine = stdout
+            .slice(startIdx + OUTPUT_START_MARKER.length, endIdx)
+            .trim();
+        } else {
+          // Fallback: last non-empty line (backwards compatibility)
+          const lines = stdout.trim().split('\n');
+          jsonLine = lines[lines.length - 1];
+        }
+
+        const output: ContainerOutput = JSON.parse(jsonLine);
+
+        logger.info(
+          {
+            group: group.name,
+            duration,
+            status: output.status,
+            hasResult: !!output.result,
+          },
+          'Container completed',
+        );
+
+        resolve(output);
+      } catch (err) {
+        logger.error(
+          {
+            group: group.name,
+            stdout,
+            stderr,
+            error: err,
+          },
+          'Failed to parse container output',
+        );
+
+        resolve({
+          status: 'error',
+          result: null,
+          error: `Failed to parse container output: ${err instanceof Error ? err.message : String(err)}`,
+        });
+      }
+    });
+
+    container.on('error', (err) => {
+      clearTimeout(timeout);
+      logger.error(
+        { group: group.name, containerName, error: err },
+        'Container spawn error',
+      );
+      resolve({
+        status: 'error',
+        result: null,
+        error: `Container spawn error: ${err.message}`,
+      });
+    });
+  });
+}
+
+export function writeTasksSnapshot(
+  groupFolder: string,
+  isMain: boolean,
+  tasks: Array<{
+    id: string;
+    groupFolder: string;
+    prompt: string;
+    schedule_type: string;
+    schedule_value: string;
+    status: string;
+    next_run: string | null;
+  }>,
+): void {
+  // Write filtered tasks to the group's IPC directory
+  const groupIpcDir = resolveGroupIpcPath(groupFolder);
+  fs.mkdirSync(groupIpcDir, { recursive: true });
+
+  // Main sees all tasks, others only see their own
+  const filteredTasks = isMain
+    ? tasks
+    : tasks.filter((t) => t.groupFolder === groupFolder);
+
+  const tasksFile = path.join(groupIpcDir, 'current_tasks.json');
+  fs.writeFileSync(tasksFile, JSON.stringify(filteredTasks, null, 2));
+}
+
+export interface AvailableGroup {
+  jid: string;
+  name: string;
+  lastActivity: string;
+  isRegistered: boolean;
+}
+
+/**
+ * Write available groups snapshot for the container to read.
+ * Only main group can see all available groups (for activation).
+ * Non-main groups only see their own registration status.
+ */
+export function writeGroupsSnapshot(
+  groupFolder: string,
+  isMain: boolean,
+  groups: AvailableGroup[],
+  registeredJids: Set<string>,
+): void {
+  const groupIpcDir = resolveGroupIpcPath(groupFolder);
+  fs.mkdirSync(groupIpcDir, { recursive: true });
+
+  // Main sees all groups; others see nothing (they can't activate groups)
+  const visibleGroups = isMain ? groups : [];
+
+  const groupsFile = path.join(groupIpcDir, 'available_groups.json');
+  fs.writeFileSync(
+    groupsFile,
+    JSON.stringify(
+      {
+        groups: visibleGroups,
+        lastSync: new Date().toISOString(),
+      },
+      null,
+      2,
+    ),
+  );
+}
