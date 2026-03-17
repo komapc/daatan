@@ -34,15 +34,34 @@ The application uses a **Resilient LLM Service** that abstracts the underlying A
 
 ## Bedrock Prompt Management
 
-LLM prompts (forecast creation, prediction extraction, etc.) are managed via **AWS Bedrock Prompt Management** rather than local files. The `bedrock-prompts.ts` module fetches prompts by name from Bedrock and caches them for 5 minutes to reduce API calls.
+LLM prompts are managed via **AWS Bedrock Prompt Management** rather than local files. The flow is:
 
+```
+SSM Parameter Store             Bedrock Prompt Management
+/daatan/{env}/prompts/{name}  →  arn:aws:bedrock:...:prompt/{ID}:{version}
+        ↓                                    ↓
+  bedrock-prompts.ts  ←──── GetPromptCommand ────────────────────────
+  (5-min TTL cache)
+        ↓
+  prompt template string
+  (with {{variable}} placeholders)
+```
+
+Usage:
 ```typescript
 import { getBedrockPrompt } from '@/lib/llm/bedrock-prompts'
 
 const prompt = await getBedrockPrompt('express-prediction')
+// Returns the prompt template string; falls back to hardcoded string if SSM=PLACEHOLDER
 ```
 
-Requires `AWS_REGION` and an IAM role/profile with `bedrock:GetPrompt` permission.
+**Fallback behavior**: if the SSM value is `PLACEHOLDER` or the Bedrock fetch fails, a hardcoded fallback prompt is used so the app never breaks.
+
+**To update a prompt**: edit the DRAFT in the Bedrock console → create a new version → update the SSM parameter to the new ARN. The cache clears within 5 minutes.
+
+See `docs/bots.md` → [Bedrock Prompts Catalog](bots.md#bedrock-prompts-catalog) for the full list of prompt names, IDs, and SSM keys.
+
+Requires `AWS_REGION` and an IAM role/profile with `bedrock:GetPrompt` and `ssm:GetParameter` permissions.
 
 ## Usage
 

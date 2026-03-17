@@ -11,12 +11,14 @@ DAATAN includes an autonomous bot system: configurable agents that monitor RSS f
 3. [Configuration Reference](#configuration-reference)
 4. [autoApprove Behavior](#autoapprove-behavior)
 5. [Admin API Endpoints](#admin-api-endpoints)
+6. [Bedrock Prompts Catalog](#bedrock-prompts-catalog)
+7. [Parameter Storage Reference](#parameter-storage-reference)
 
 ---
 
 ## Default Personas
 
-DAATAN ships with 5 standard bot personas that seed initial market activity.
+DAATAN ships with 6 standard bot personas that seed initial market activity.
 
 | Bot | Username | Focus Area | Behavioral Profile |
 |-----|----------|------------|---------------------|
@@ -25,6 +27,7 @@ DAATAN ships with 5 standard bot personas that seed initial market activity.
 | **Hacker** | `hacker_b` | Cybersecurity | Tech skeptic, follows exploits and AI safety. |
 | **BookMaker** | `bookmaker_b` | Macro-Economics | Oddsmaker, evaluates objective probabilities. |
 | **MajorityVoter** | `vote_with_majority_b` | Mainstream News | Cautious, follows conventional wisdom. |
+| **FoxNewsFan** | `foxnewsfan_b` | US Politics / Right-leaning | Conservative pundit, follows Fox News and mainstream US political news. |
 
 ---
 
@@ -180,3 +183,100 @@ x-bot-runner-secret: <BOT_RUNNER_SECRET>
 ```
 
 Runs all bots that are currently due. Returns `{ ok: true, summaries: BotRunSummary[] }`.
+
+---
+
+## Bedrock Prompts Catalog
+
+All LLM prompts are stored in **AWS Bedrock Prompt Management** (region `eu-central-1`) and referenced via **AWS SSM Parameter Store**. The app fetches prompts by name through `getBedrockPrompt(name)` in `src/lib/llm/bedrock-prompts.ts`, with a 5-minute in-memory cache. If an SSM value is `PLACEHOLDER` or the fetch fails, a hardcoded fallback is used.
+
+SSM path pattern: `/daatan/{env}/prompts/{prompt-name}` where `env` is `prod` or `staging`.
+
+### Updating a Prompt
+
+1. Open the prompt in the [AWS Bedrock Console](https://eu-central-1.console.aws.amazon.com/bedrock/home?region=eu-central-1#/prompt-management).
+2. Edit the DRAFT variant and save.
+3. Click **Create version** to publish a new immutable version (e.g. `:3`).
+4. Update the SSM parameter to point to the new ARN:
+   ```bash
+   aws ssm put-parameter \
+     --name "/daatan/prod/prompts/<prompt-name>" \
+     --value "arn:aws:bedrock:eu-central-1:272007598366:prompt/<ID>:<version>" \
+     --type String --overwrite --region eu-central-1
+   # repeat for /daatan/staging/prompts/<prompt-name>
+   ```
+5. The app picks up the new prompt within 5 minutes (cache TTL).
+
+### Prompt Reference
+
+| Prompt Name | Bedrock ID | Current Version | Used By | Purpose |
+|-------------|-----------|-----------------|---------|---------|
+| `bot-config-generation` | `V7KWZIDZ5G` | `:2` | Admin: create bot | Generate persona/forecast/vote prompts and RSS sources from bot name |
+| `bot-forecast-generation` | `4VVM1AE8WG` | `:2` | Bot runner | Create a verifiable forecast JSON from a hot RSS topic |
+| `bot-vote-decision` | `FMSCSIWJ0N` | `:2` | Bot runner | Decide whether and how to vote on an open forecast |
+| `dedupe-check` | `E3UJXEIV39` | `:2` | Bot runner | Detect if a new topic duplicates an existing active forecast |
+| `express-prediction` | `0BXFPNKYL4` | `:3` | `/api/forecasts/express` | Convert a user's casual text into a structured prediction |
+| `extract-prediction` | `P3QR7PR50J` | `:2` | Forecast import tools | Extract a structured prediction from arbitrary article text |
+| `forecast-quality-validation` | `MZU2SJWY74` | `:2` | Bot runner | Validate a bot-generated forecast before publishing |
+| `research-query-generation` | `GQK8IGH3H9` | `:2` | Auto-resolution | Generate web search queries to find evidence for resolution |
+| `resolution-research` | `9BJAASRX0U` | `:2` | Auto-resolution | Determine forecast outcome from news context or model knowledge |
+| `suggest-tags` | `4GRPW480KQ` | `:2` | Tag suggestion API | Suggest 1–3 relevant tags for a forecast |
+| `topic-extraction` | `7EKX6FRNE0` | `:2` | Bot runner / RSS | Extract a 5–10 word search query from an article |
+| `translate` | `6I0TDPIMBX` | `:2` | Translation feature | Translate forecast text to a target language |
+| `update-context` | `OX9GBXOT0B` | `:2` | Forecast detail page | Write a neutral 2–3 sentence summary of current news context |
+
+---
+
+## Parameter Storage Reference
+
+All runtime configuration lives in one of three places:
+
+### 1. Environment Variables (`.env` / Docker secrets / GitHub Actions secrets)
+
+Sensitive credentials and infrastructure endpoints. Never stored in the DB or SSM.
+
+| Variable | Where set | Purpose |
+|----------|-----------|---------|
+| `DATABASE_URL` | `.env` / Docker | Postgres connection string |
+| `NEXTAUTH_SECRET` | `.env` / Docker | NextAuth JWT signing key |
+| `NEXTAUTH_URL` | `.env` / Docker | Public app URL |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | `.env` / Docker | Google OAuth |
+| `GEMINI_API_KEY` | `.env` / Docker | Primary LLM (Gemini) |
+| `OPENROUTER_API_KEY` | `.env` / Docker | Bot LLM (OpenRouter) |
+| `OLLAMA_BASE_URL` | `.env` / Docker | Fallback LLM |
+| `BOT_RUNNER_SECRET` | `.env` / Docker + GitHub Actions | Shared secret for `/api/bots/run` |
+| `TELEGRAM_BOT_TOKEN` | `.env` / Docker | Telegram deployment notifications |
+| `TELEGRAM_CHAT_ID` | `.env` / Docker | Telegram target channel |
+| `AWS_REGION` | `.env` / Docker | AWS region (used for Bedrock + SSM) |
+| `STAGING_URL` | GitHub Actions secrets | URL passed to bots cron workflow |
+
+### 2. AWS SSM Parameter Store (`/daatan/{env}/...`)
+
+Non-secret, environment-specific config fetched at runtime without a redeploy.
+
+| Path pattern | Contents |
+|---|---|
+| `/daatan/{env}/prompts/{name}` | Bedrock prompt ARN (see catalog above) |
+
+To list all current values:
+```bash
+aws ssm get-parameters-by-path --path "/daatan" --recursive \
+  --query 'Parameters[*].{Name:Name,Value:Value}' \
+  --output table --region eu-central-1
+```
+
+### 3. Database (`BotConfig` table)
+
+Per-bot operational config managed via the Admin UI or API. See [Configuration Reference](#configuration-reference) for the full field list. Key fields:
+
+| Field | Description |
+|-------|-------------|
+| `personaPrompt` | The bot's character injected into every LLM call |
+| `forecastPrompt` | Instructions for generating forecasts |
+| `votePrompt` | Voting decision logic |
+| `newsSources` | RSS feed URLs (JSON array) |
+| `intervalMinutes` | Run cadence |
+| `modelPreference` | OpenRouter model slug |
+| `isActive` | Soft-disable without deleting |
+
+Bot user accounts live in the `User` table with `isBot=true` and email `*@daatan.internal`.
