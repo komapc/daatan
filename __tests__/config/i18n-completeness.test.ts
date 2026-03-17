@@ -45,20 +45,32 @@ function sourceFiles(dir: string): string[] {
 
 const en = loadJson(join(ROOT, 'messages/en.json'))
 const he = loadJson(join(ROOT, 'messages/he.json'))
+const ru = loadJson(join(ROOT, 'messages/ru.json'))
 const enKeys = new Set(flatKeys(en))
 const heKeys = new Set(flatKeys(he))
+const ruKeys = new Set(flatKeys(ru))
 
 // ─── Test 1: Key parity ───────────────────────────────────────────────────────
 
-describe('i18n key parity (en ↔ he)', () => {
+describe('i18n key parity (en ↔ he ↔ ru)', () => {
   it('en.json has no keys missing from he.json', () => {
     const missing = [...enKeys].filter(k => !heKeys.has(k))
     expect(missing, `Keys in en.json but missing from he.json:\n${missing.join('\n')}`).toEqual([])
   })
 
+  it('en.json has no keys missing from ru.json', () => {
+    const missing = [...enKeys].filter(k => !ruKeys.has(k))
+    expect(missing, `Keys in en.json but missing from ru.json:\n${missing.join('\n')}`).toEqual([])
+  })
+
   it('he.json has no keys missing from en.json', () => {
     const extra = [...heKeys].filter(k => !enKeys.has(k))
     expect(extra, `Keys in he.json but missing from en.json:\n${extra.join('\n')}`).toEqual([])
+  })
+
+  it('ru.json has no keys missing from en.json', () => {
+    const extra = [...ruKeys].filter(k => !enKeys.has(k))
+    expect(extra, `Keys in ru.json but missing from en.json:\n${extra.join('\n')}`).toEqual([])
   })
 })
 
