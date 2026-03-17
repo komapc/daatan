@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { useSession } from 'next-auth/react'
 import { ModeratorResolutionSection } from '../ModeratorResolutionSection'
 
@@ -63,7 +63,7 @@ describe('ModeratorResolutionSection', () => {
     expect(container.firstChild).toBeNull()
   })
 
-  it('renders ResolutionForm for RESOLVER on ACTIVE prediction', () => {
+  it('shows toggle but hides ResolutionForm by default for RESOLVER', () => {
     vi.mocked(useSession).mockReturnValue({
       data: { user: { role: 'RESOLVER' }, expires: 'any' },
       status: 'authenticated',
@@ -74,11 +74,26 @@ describe('ModeratorResolutionSection', () => {
     )
 
     expect(screen.getByText('Resolver Actions')).toBeInTheDocument()
+    expect(screen.queryByTestId('resolution-form')).not.toBeInTheDocument()
+  })
+
+  it('reveals ResolutionForm after clicking the toggle (RESOLVER)', () => {
+    vi.mocked(useSession).mockReturnValue({
+      data: { user: { role: 'RESOLVER' }, expires: 'any' },
+      status: 'authenticated',
+    } as never)
+
+    render(
+      <ModeratorResolutionSection predictionId="pred-1" predictionStatus="ACTIVE" outcomeType="BINARY" options={[]} />
+    )
+
+    fireEvent.click(screen.getByText('Resolver Actions'))
+
     expect(screen.getByTestId('resolution-form')).toBeInTheDocument()
     expect(screen.getByText(/Resolve prediction pred-1/)).toBeInTheDocument()
   })
 
-  it('renders ResolutionForm for ADMIN on ACTIVE prediction', () => {
+  it('reveals ResolutionForm after clicking the toggle (ADMIN)', () => {
     vi.mocked(useSession).mockReturnValue({
       data: { user: { role: 'ADMIN' }, expires: 'any' },
       status: 'authenticated',
@@ -88,11 +103,12 @@ describe('ModeratorResolutionSection', () => {
       <ModeratorResolutionSection predictionId="pred-2" predictionStatus="ACTIVE" outcomeType="BINARY" options={[]} />
     )
 
-    expect(screen.getByText('Resolver Actions')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('Resolver Actions'))
+
     expect(screen.getByTestId('resolution-form')).toBeInTheDocument()
   })
 
-  it('renders ResolutionForm for RESOLVER on PENDING prediction', () => {
+  it('reveals ResolutionForm for RESOLVER on PENDING prediction', () => {
     vi.mocked(useSession).mockReturnValue({
       data: { user: { role: 'RESOLVER' }, expires: 'any' },
       status: 'authenticated',
@@ -102,7 +118,8 @@ describe('ModeratorResolutionSection', () => {
       <ModeratorResolutionSection predictionId="pred-3" predictionStatus="PENDING" outcomeType="BINARY" options={[]} />
     )
 
-    expect(screen.getByText('Resolver Actions')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('Resolver Actions'))
+
     expect(screen.getByTestId('resolution-form')).toBeInTheDocument()
   })
 })
