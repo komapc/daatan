@@ -1,8 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { NextIntlClientProvider } from 'next-intl'
 import ContextTimeline from '../ContextTimeline'
+import enMessages from '../../../../messages/en.json'
 
 const mockFetch = vi.fn()
+
+const renderWithIntl = (ui: React.ReactElement) => {
+  return render(
+    <NextIntlClientProvider locale="en" messages={enMessages}>
+      {ui}
+    </NextIntlClientProvider>
+  )
+}
 
 describe('ContextTimeline', () => {
   beforeEach(() => {
@@ -17,23 +27,23 @@ describe('ContextTimeline', () => {
 
   it('renders section header', async () => {
     await act(async () => {
-      render(<ContextTimeline predictionId="p1" canAnalyze={true} />)
+      renderWithIntl(<ContextTimeline predictionId="p1" canAnalyze={true} />)
     })
-    expect(screen.getByText('Situation Context')).toBeInTheDocument()
+    expect(screen.getByText(enMessages.context.title)).toBeInTheDocument()
   })
 
   it('shows analyze button when canAnalyze is true', async () => {
     await act(async () => {
-      render(<ContextTimeline predictionId="p1" canAnalyze={true} />)
+      renderWithIntl(<ContextTimeline predictionId="p1" canAnalyze={true} />)
     })
-    expect(screen.getByText('Analyze Situation')).toBeInTheDocument()
+    expect(screen.getByText(enMessages.context.analyze)).toBeInTheDocument()
   })
 
   it('hides analyze button when canAnalyze is false', async () => {
     await act(async () => {
-      render(<ContextTimeline predictionId="p1" canAnalyze={false} />)
+      renderWithIntl(<ContextTimeline predictionId="p1" canAnalyze={false} />)
     })
-    expect(screen.queryByText('Analyze Situation')).not.toBeInTheDocument()
+    expect(screen.queryByText(enMessages.context.analyze)).not.toBeInTheDocument()
   })
 
   it('displays initial context', async () => {
@@ -47,7 +57,7 @@ describe('ContextTimeline', () => {
     })
 
     await act(async () => {
-      render(
+      renderWithIntl(
         <ContextTimeline
           predictionId="p1"
           initialContext="Current situation summary"
@@ -69,7 +79,7 @@ describe('ContextTimeline', () => {
       }),
     })
 
-    render(<ContextTimeline predictionId="p1" canAnalyze={false} />)
+    renderWithIntl(<ContextTimeline predictionId="p1" canAnalyze={false} />)
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith('/api/forecasts/p1/context')
@@ -93,7 +103,7 @@ describe('ContextTimeline', () => {
       }),
     })
 
-    render(<ContextTimeline predictionId="p1" canAnalyze={false} />)
+    renderWithIntl(<ContextTimeline predictionId="p1" canAnalyze={false} />)
 
     await waitFor(() => {
       expect(screen.getByText('1 previous update')).toBeInTheDocument()
@@ -113,7 +123,7 @@ describe('ContextTimeline', () => {
       }),
     })
 
-    render(<ContextTimeline predictionId="p1" canAnalyze={false} />)
+    renderWithIntl(<ContextTimeline predictionId="p1" canAnalyze={false} />)
 
     await waitFor(() => {
       expect(screen.getByText('1 previous update')).toBeInTheDocument()
@@ -134,7 +144,7 @@ describe('ContextTimeline', () => {
       json: () => Promise.resolve({ currentContext: null, contextUpdatedAt: null, snapshots: [] }),
     })
 
-    render(<ContextTimeline predictionId="p1" canAnalyze={true} />)
+    renderWithIntl(<ContextTimeline predictionId="p1" canAnalyze={true} />)
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledTimes(1)
@@ -152,7 +162,7 @@ describe('ContextTimeline', () => {
       }),
     })
 
-    fireEvent.click(screen.getByText('Analyze Situation'))
+    fireEvent.click(screen.getByText(enMessages.context.analyze))
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith('/api/forecasts/p1/context', { method: 'POST' })
@@ -182,7 +192,7 @@ describe('ContextTimeline', () => {
       }),
     })
 
-    render(<ContextTimeline predictionId="p1" canAnalyze={false} />)
+    renderWithIntl(<ContextTimeline predictionId="p1" canAnalyze={false} />)
 
     await waitFor(() => {
       expect(screen.getByText('Reuters')).toBeInTheDocument()
@@ -207,7 +217,7 @@ describe('ContextTimeline', () => {
       }),
     })
 
-    render(<ContextTimeline predictionId="p1" canAnalyze={false} />)
+    renderWithIntl(<ContextTimeline predictionId="p1" canAnalyze={false} />)
 
     await waitFor(() => {
       expect(screen.getByText('2 previous updates')).toBeInTheDocument()

@@ -235,5 +235,16 @@
     "translatedTo": "Translated",
     "translating": "Translating...",
     "disclaimer": "Translated by AI — the original text takes precedence in case of discrepancies."
+  },
+  "context": {
+    "title": "Situation Context",
+    "analyze": "Analyze Situation",
+    "analyzing": "Analyzing latest news...",
+    "updated": "Context updated!",
+    "failed": "Failed to analyze context",
+    "lastUpdated": "Last updated",
+    "sources": "Sources",
+    "previousUpdates": "{count} previous update",
+    "previousUpdatesPlural": "{count} previous updates"
   }
 }
