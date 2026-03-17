@@ -96,7 +96,8 @@
     "resolutionDeadline": "Resolution Deadline",
     "usersLabel": "users",
     "commitToPrompt": "Want to commit to this prediction?",
-    "signInToCommit": "Sign In to Commit"
+    "signInToCommit": "Sign In to Commit",
+    "resolverActions": "Resolver Actions"
   },
   "Forecasts": {
     "title": "Edit Forecast",
@@ -232,6 +233,7 @@
     "translate": "Translate",
     "showOriginal": "Show original",
     "translatedTo": "Translated",
-    "translating": "Translating..."
+    "translating": "Translating...",
+    "disclaimer": "Translated by AI — the original text takes precedence in case of discrepancies."
   }
 }

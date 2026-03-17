@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { Shield, ChevronDown, ChevronUp } from 'lucide-react'
 import { ResolutionForm } from '@/components/forecasts/ResolutionForm'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 
 interface ModeratorResolutionSectionProps {
   predictionId: string
@@ -21,6 +22,7 @@ export function ModeratorResolutionSection({
 }: ModeratorResolutionSectionProps) {
   const { data: session } = useSession()
   const router = useRouter()
+  const t = useTranslations('forecast')
   const [open, setOpen] = useState(false)
 
   const canResolve =
@@ -42,7 +44,7 @@ export function ModeratorResolutionSection({
         className="flex items-center gap-2 text-sm font-medium text-gray-400 hover:text-blue-600 transition-colors"
       >
         <Shield className="w-4 h-4" />
-        Resolver Actions
+        {t('resolverActions')}
         {open ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
       </button>
 

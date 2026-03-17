@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useLocale, useTranslations } from 'next-intl'
 import { formatDistanceToNow } from 'date-fns'
-import { ThumbsUp, Lightbulb, ThumbsDown, Reply, Trash2, Edit2, MessageSquare, Loader2, Languages } from 'lucide-react'
+import { ThumbsUp, Lightbulb, ThumbsDown, Reply, Trash2, Edit2, MessageSquare, Loader2, Languages, Info } from 'lucide-react'
 import CommentForm from './CommentForm'
 import type { Comment } from './CommentThread'
 import { RoleBadge } from '@/components/RoleBadge'
@@ -234,7 +234,15 @@ export default function CommentItem({
               </div>
             </div>
           ) : (
-            <p className="text-gray-800 whitespace-pre-wrap">{translatedText ?? comment.text}</p>
+            <div className="space-y-2">
+              <p className="text-gray-800 whitespace-pre-wrap">{translatedText ?? comment.text}</p>
+              {translatedText && (
+                <div className="flex items-center gap-1.5 text-[10px] text-blue-600/70 italic bg-blue-50/30 px-2 py-1 rounded w-fit">
+                  <Info className="w-3 h-3" />
+                  <span>{t('disclaimer')}</span>
+                </div>
+              )}
+            </div>
           )}
 
           {/* Actions */}
