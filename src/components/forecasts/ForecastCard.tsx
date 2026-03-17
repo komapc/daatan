@@ -7,7 +7,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { createClientLogger } from '@/lib/client-logger'
 import { toast } from 'react-hot-toast'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import {
   Calendar,
   Users,
@@ -24,6 +24,8 @@ import {
   Lock,
   EyeOff,
   MoreHorizontal,
+  Languages,
+  Loader2,
 } from 'lucide-react'
 import { RoleBadge } from '@/components/RoleBadge'
 import { UserLink } from '@/components/UserLink'
@@ -80,9 +82,43 @@ export default function ForecastCard({
   const { data: session } = useSession()
   const router = useRouter()
   const t = useTranslations('forecast')
+  const tt = useTranslations('translate')
+  const locale = useLocale()
   const [isApproving, setIsApproving] = useState(false)
   const [showAdminMenu, setShowAdminMenu] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+
+  // Translation state
+  const [translatedClaim, setTranslatedClaim] = useState<string | null>(null)
+  const [isTranslating, setIsTranslating] = useState(false)
+  const [showTranslated, setShowTranslated] = useState(locale !== 'en')
+
+  useEffect(() => {
+    if (locale === 'en' || !prediction.id || translatedClaim) return
+
+    const triggerTranslation = async () => {
+      setIsTranslating(true)
+      try {
+        const response = await fetch(`/api/forecasts/${prediction.id}/translate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ language: locale }),
+        })
+        if (response.ok) {
+          const data = await response.json()
+          if (data.claimText) {
+            setTranslatedClaim(data.claimText)
+          }
+        }
+      } catch (err) {
+        // Silent error for feed cards
+      } finally {
+        setIsTranslating(false)
+      }
+    }
+
+    triggerTranslation()
+  }, [prediction.id, locale, translatedClaim])
 
   const canAdminister =
     showModerationControls && session?.user?.role === 'ADMIN'
@@ -331,11 +367,26 @@ export default function ForecastCard({
                 Unlisted
               </span>
             )}
+            {locale !== 'en' && translatedClaim && (
+              <button
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowTranslated(!showTranslated); }}
+                className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider border transition-colors ${
+                  showTranslated ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-500 border-gray-200'
+                }`}
+                title={showTranslated ? tt('showOriginal') : tt('translate')}
+              >
+                <Languages className="w-3 h-3" />
+                {showTranslated ? 'Original' : 'Hebrew'}
+              </button>
+            )}
+            {isTranslating && (
+              <Loader2 className="w-3 h-3 animate-spin text-gray-400" />
+            )}
           </div>
 
           {/* Claim Text */}
           <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 group-hover:text-blue-700 transition-colors line-clamp-2 leading-snug">
-            {prediction.claimText}
+            {showTranslated && translatedClaim ? translatedClaim : prediction.claimText}
           </h3>
 
           {/* News Context (Optional) */}

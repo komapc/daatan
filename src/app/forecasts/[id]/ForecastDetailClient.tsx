@@ -16,9 +16,11 @@ import {
   ChevronLeft,
   Edit2,
   EyeOff,
+  Languages,
+  Info,
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { ModeratorResolutionSection } from './ModeratorResolutionSection'
 import CommentThread from '@/components/comments/CommentThread'
 import CommitmentForm from '@/components/forecasts/CommitmentForm'
@@ -179,10 +181,17 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
   const router = useRouter()
   const { data: session } = useSession()
   const t = useTranslations('forecast')
+  const tt = useTranslations('translate')
+  const locale = useLocale()
   const [prediction, setPrediction] = useState<Prediction | null>(initialData || null)
   const [isLoading, setIsLoading] = useState(!initialData)
   const [error, setError] = useState<string | null>(null)
   const [isApproving, setIsApproving] = useState(false)
+
+  // Translation state
+  const [translatedFields, setTranslatedFields] = useState<Record<string, string> | null>(null)
+  const [isTranslating, setIsTranslating] = useState(false)
+  const [showTranslated, setShowTranslated] = useState(locale !== 'en')
 
   const canEdit = session?.user?.id === prediction?.author.id || session?.user?.role === 'ADMIN'
   const canApprove = (session?.user?.role === 'ADMIN' || session?.user?.role === 'APPROVER') && prediction?.status === 'PENDING_APPROVAL'
@@ -208,6 +217,32 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
 
     fetchPrediction()
   }, [id, initialData])
+
+  // Automatic translation effect
+  useEffect(() => {
+    if (!prediction || locale === 'en' || translatedFields) return
+
+    async function triggerTranslation() {
+      setIsTranslating(true)
+      try {
+        const response = await fetch(`/api/forecasts/${prediction?.id}/translate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ language: locale }),
+        })
+        if (response.ok) {
+          const data = await response.json()
+          setTranslatedFields(data)
+        }
+      } catch (err) {
+        log.error({ err }, 'Failed to translate prediction')
+      } finally {
+        setIsTranslating(false)
+      }
+    }
+
+    triggerTranslation()
+  }, [prediction, locale, translatedFields])
 
   const formatDate = (date: string | Date) => {
     return new Date(date).toLocaleDateString('en-US', {
@@ -314,6 +349,24 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
                 Unlisted
               </span>
             )}
+            {locale !== 'en' && (
+              <button
+                onClick={() => setShowTranslated(!showTranslated)}
+                disabled={isTranslating}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                  showTranslated 
+                    ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' 
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {isTranslating ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Languages className="w-3.5 h-3.5" />
+                )}
+                {showTranslated ? tt('showOriginal') : tt('translate')}
+              </button>
+            )}
           </div>
           {canEdit && (
             <div className="flex items-center gap-2">
@@ -329,16 +382,23 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
         </div>
 
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight leading-tight mb-4">
-          {prediction.claimText}
+          {showTranslated && translatedFields?.claimText ? translatedFields.claimText : prediction.claimText}
         </h1>
 
         <div className="lg:hidden">
           <ForecastInfoPanel prediction={prediction} variant="mobile" />
         </div>
 
-        {prediction.detailsText && (
+        {(showTranslated && translatedFields) && (
+          <div className="flex items-start gap-2 p-3 mb-6 bg-blue-50/50 border border-blue-100 rounded-lg text-xs text-blue-700 italic">
+            <Info className="w-4 h-4 shrink-0 mt-0.5" />
+            <p>{tt('disclaimer')}</p>
+          </div>
+        )}
+
+        {(showTranslated && translatedFields?.detailsText ? translatedFields.detailsText : prediction.detailsText) && (
           <div className="prose prose-sm max-w-none text-gray-700 mb-8 whitespace-pre-wrap">
-            {prediction.detailsText}
+            {showTranslated && translatedFields?.detailsText ? translatedFields.detailsText : prediction.detailsText}
           </div>
         )}
       </div>

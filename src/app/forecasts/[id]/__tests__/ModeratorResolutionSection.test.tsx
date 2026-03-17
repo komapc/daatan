@@ -19,6 +19,10 @@ vi.mock('@/components/forecasts/ResolutionForm', () => ({
   ),
 }))
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => key,
+}))
+
 describe('ModeratorResolutionSection', () => {
   beforeEach(() => {
     vi.resetAllMocks()
@@ -73,7 +77,7 @@ describe('ModeratorResolutionSection', () => {
       <ModeratorResolutionSection predictionId="pred-1" predictionStatus="ACTIVE" outcomeType="BINARY" options={[]} />
     )
 
-    expect(screen.getByText('Resolver Actions')).toBeInTheDocument()
+    expect(screen.getByText('resolverActions')).toBeInTheDocument()
     expect(screen.queryByTestId('resolution-form')).not.toBeInTheDocument()
   })
 
@@ -87,7 +91,7 @@ describe('ModeratorResolutionSection', () => {
       <ModeratorResolutionSection predictionId="pred-1" predictionStatus="ACTIVE" outcomeType="BINARY" options={[]} />
     )
 
-    fireEvent.click(screen.getByText('Resolver Actions'))
+    fireEvent.click(screen.getByText('resolverActions'))
 
     expect(screen.getByTestId('resolution-form')).toBeInTheDocument()
     expect(screen.getByText(/Resolve prediction pred-1/)).toBeInTheDocument()
@@ -103,7 +107,7 @@ describe('ModeratorResolutionSection', () => {
       <ModeratorResolutionSection predictionId="pred-2" predictionStatus="ACTIVE" outcomeType="BINARY" options={[]} />
     )
 
-    fireEvent.click(screen.getByText('Resolver Actions'))
+    fireEvent.click(screen.getByText('resolverActions'))
 
     expect(screen.getByTestId('resolution-form')).toBeInTheDocument()
   })
@@ -118,7 +122,7 @@ describe('ModeratorResolutionSection', () => {
       <ModeratorResolutionSection predictionId="pred-3" predictionStatus="PENDING" outcomeType="BINARY" options={[]} />
     )
 
-    fireEvent.click(screen.getByText('Resolver Actions'))
+    fireEvent.click(screen.getByText('resolverActions'))
 
     expect(screen.getByTestId('resolution-form')).toBeInTheDocument()
   })

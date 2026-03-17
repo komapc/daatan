@@ -96,7 +96,8 @@
     "resolutionDeadline": "מועד הכרעה",
     "usersLabel": "משתמשים",
     "commitToPrompt": "רוצה להתחייב לתחזית זו?",
-    "signInToCommit": "התחבר להתחייב"
+    "signInToCommit": "התחבר להתחייב",
+    "resolverActions": "פעולות פותר"
   },
   "Forecasts": {
     "title": "עריכת תחזית",
@@ -232,6 +233,7 @@
     "translate": "תרגם",
     "showOriginal": "הצג מקור",
     "translatedTo": "מתורגם",
-    "translating": "מתרגם..."
+    "translating": "מתרגם...",
+    "disclaimer": "תורגם על ידי בינה מלאכותית - הטקסט המקורי הוא המחייב במקרה של סתירה."
   }
 }

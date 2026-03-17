@@ -1,11 +1,12 @@
 /** Re-export locale constants for use in client components. */
-export const locales = ['en', 'he'] as const
+export const locales = ['en', 'he', 'ru'] as const
 export type Locale = (typeof locales)[number]
 export const defaultLocale: Locale = 'en'
 
 export const localeLabels: Record<Locale, string> = {
   en: 'English',
   he: 'עברית',
+  ru: 'Русский',
 }
 
 /** Returns `true` when the locale uses right-to-left script. */
