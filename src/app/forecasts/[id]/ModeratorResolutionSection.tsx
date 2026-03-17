@@ -1,7 +1,8 @@
 'use client'
 
+import { useState } from 'react'
 import { useSession } from 'next-auth/react'
-import { Shield } from 'lucide-react'
+import { Shield, ChevronDown, ChevronUp } from 'lucide-react'
 import { ResolutionForm } from '@/components/forecasts/ResolutionForm'
 import { useRouter } from 'next/navigation'
 
@@ -20,8 +21,8 @@ export function ModeratorResolutionSection({
 }: ModeratorResolutionSectionProps) {
   const { data: session } = useSession()
   const router = useRouter()
+  const [open, setOpen] = useState(false)
 
-  // Only show for resolvers/admins on active or pending predictions
   const canResolve =
     session?.user?.role === 'RESOLVER' ||
     session?.user?.role === 'ADMIN'
@@ -36,16 +37,25 @@ export function ModeratorResolutionSection({
 
   return (
     <div className="mb-6">
-      <div className="flex items-center gap-2 mb-4">
-        <Shield className="w-5 h-5 text-blue-600" />
-        <h2 className="text-lg font-semibold text-gray-900">Resolver Actions</h2>
-      </div>
-      <ResolutionForm
-        predictionId={predictionId}
-        outcomeType={outcomeType}
-        options={options}
-        onResolved={() => router.refresh()}
-      />
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="flex items-center gap-2 text-sm font-medium text-gray-400 hover:text-blue-600 transition-colors"
+      >
+        <Shield className="w-4 h-4" />
+        Resolver Actions
+        {open ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+      </button>
+
+      {open && (
+        <div className="mt-4">
+          <ResolutionForm
+            predictionId={predictionId}
+            outcomeType={outcomeType}
+            options={options}
+            onResolved={() => router.refresh()}
+          />
+        </div>
+      )}
     </div>
   )
 }
