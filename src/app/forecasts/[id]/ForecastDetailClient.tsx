@@ -423,6 +423,35 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
         })()}
       </div>
 
+      {/* Commit Form — mobile only (desktop renders in right column) */}
+      <div className="lg:hidden mb-8 p-5 border border-gray-200 rounded-xl bg-white shadow-sm space-y-6">
+        <CUBalanceIndicator
+          cuAvailable={session?.user?.cuAvailable ?? 0}
+          cuLocked={session?.user?.cuLocked ?? 0}
+        />
+        <CommitmentForm
+          prediction={prediction as any}
+          existingCommitment={prediction.userCommitment}
+          userCuAvailable={session?.user?.cuAvailable ?? 0}
+          onSuccess={async () => {
+            const updated = await fetch(`/api/forecasts/${id}`).then(r => r.json())
+            setPrediction(updated)
+            router.refresh()
+          }}
+        />
+        {prediction.userCommitment && (
+          <CommitmentDisplay
+            commitment={prediction.userCommitment as any}
+            prediction={prediction}
+            onRemove={async () => {
+              const updated = await fetch(`/api/forecasts/${id}`).then(r => r.json())
+              setPrediction(updated)
+              router.refresh()
+            }}
+          />
+        )}
+      </div>
+
       {/* Resolution Info (if resolved) */}
       {prediction.resolvedAt && (
         <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-8">
