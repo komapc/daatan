@@ -1,12 +1,15 @@
 # TODO.md — Task Queue
 
-*Last updated: March 16, 2026 · v1.7.71*
+*Last updated: March 17, 2026 · v1.7.92*
 
 ---
 
 ## Open Tasks
 
 ### Reliability & Infrastructure
+- [ ] **I18n: Translation Cache Implementation**
+  - **Goal:** Reduce LLM costs and latency for multi-language support.
+  - **Implementation:** Create a caching layer (Prisma model) for user-generated content (Forecasts, Comments, Context) to store translations for supported locales (HE, RU). Ensure the cache is invalidated when the source text is edited.
 - [x] **Type System: Global Strictness Audit** (v1.7.71)
   - `strict: true` already set in tsconfig. Eliminated production `any` usages: `SearchResult` type in context route, typed `handleChange` in EditForecastClient, removed author casts in forecast page. Remaining `as any` are in test mocks (acceptable Vitest pattern).
 - [x] **Analytics: Resolve Google Analytics Blocking** (v1.7.71 — won't fix)
