@@ -107,9 +107,10 @@ type Prediction = {
 interface ForecastInfoPanelProps {
   prediction: Prediction
   variant?: 'desktop' | 'mobile'
+  isMounted: boolean
 }
 
-function ForecastInfoPanel({ prediction, variant = 'desktop' }: ForecastInfoPanelProps) {
+function ForecastInfoPanel({ prediction, variant = 'desktop', isMounted }: ForecastInfoPanelProps) {
   const t = useTranslations('forecast')
   return (
     <>
@@ -146,8 +147,8 @@ function ForecastInfoPanel({ prediction, variant = 'desktop' }: ForecastInfoPane
             <Calendar className="w-3.5 h-3.5" />
             {t('deadline')}
           </div>
-          <div className="text-gray-900 font-semibold truncate">
-            {new Date(prediction.resolveByDatetime).toLocaleDateString('en-US', {
+          <div className="text-gray-900 font-semibold truncate" suppressHydrationWarning>
+            {isMounted && new Date(prediction.resolveByDatetime).toLocaleDateString('en-US', {
               month: 'short',
               day: 'numeric',
               year: 'numeric',
@@ -187,6 +188,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
   const [isLoading, setIsLoading] = useState(!initialData)
   const [error, setError] = useState<string | null>(null)
   const [isApproving, setIsApproving] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
 
   // Translation state
   const [translatedFields, setTranslatedFields] = useState<Record<string, string> | null>(null)
@@ -195,6 +197,10 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
 
   const canEdit = session?.user?.id === prediction?.author.id || session?.user?.role === 'ADMIN'
   const canApprove = (session?.user?.role === 'ADMIN' || session?.user?.role === 'APPROVER') && prediction?.status === 'PENDING_APPROVAL'
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   useEffect(() => {
     async function fetchPrediction() {
@@ -243,14 +249,12 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
 
     triggerTranslation()
   }, [prediction, locale, translatedFields])
-
   const formatDate = (date: string | Date) => {
+    if (!isMounted) return ''
     return new Date(date).toLocaleDateString('en-US', {
       month: 'long',
       day: 'numeric',
       year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
     })
   }
 
@@ -386,7 +390,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
         </h1>
 
         <div className="lg:hidden">
-          <ForecastInfoPanel prediction={prediction} variant="mobile" />
+          <ForecastInfoPanel prediction={prediction} variant="mobile" isMounted={isMounted} />
         </div>
 
         {(showTranslated && translatedFields) && (
@@ -661,6 +665,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
         <div className="hidden lg:block lg:sticky lg:top-8 space-y-4">
           <ForecastInfoPanel
             prediction={prediction}
+            isMounted={isMounted}
           />
           
           <div className="p-5 border border-gray-200 rounded-xl bg-white shadow-sm space-y-6">

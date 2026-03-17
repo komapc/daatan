@@ -40,9 +40,11 @@ export default function ContextTimeline({
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [isTimelineOpen, setIsTimelineOpen] = useState(false)
   const [hasFetched, setHasFetched] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
 
   // Fetch timeline on mount
   useEffect(() => {
+    setIsMounted(true)
     const fetchTimeline = async () => {
       try {
         const res = await fetch(`/api/forecasts/${predictionId}/context`)
@@ -86,6 +88,7 @@ export default function ContextTimeline({
   }
 
   const formatDate = (dateStr: string) => {
+    if (!isMounted) return ''
     return new Date(dateStr).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -131,7 +134,7 @@ export default function ContextTimeline({
         <div className="p-4 border border-gray-200 rounded-xl bg-white shadow-sm">
           <p className="text-gray-600 whitespace-pre-wrap leading-relaxed">{currentContext}</p>
           {contextUpdatedAt && (
-            <p className="text-xs text-gray-400 mt-2">
+            <p className="text-xs text-gray-400 mt-2" suppressHydrationWarning>
               Last updated: {formatDate(contextUpdatedAt)}
             </p>
           )}
@@ -180,7 +183,7 @@ export default function ContextTimeline({
                 <div key={snap.id} className="relative">
                   {/* Timeline dot */}
                   <div className="absolute -left-[1.3rem] top-1 w-2.5 h-2.5 rounded-full bg-gray-300 border-2 border-white" />
-                  <div className="text-xs text-gray-400 mb-1">
+                  <div className="text-xs text-gray-400 mb-1" suppressHydrationWarning>
                     {formatDate(snap.createdAt)}
                   </div>
                   <p className="text-sm text-gray-600 leading-relaxed">{snap.summary}</p>

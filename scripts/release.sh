@@ -79,22 +79,28 @@ else
 fi
 
 # Suggest next versions
+CURRENT_CODE_VERSION="v$(node -p "require('./package.json').version")"
 NEXT_PATCH="v$MAJOR.$MINOR.$((PATCH + 1))"
 NEXT_MINOR="v$MAJOR.$((MINOR + 1)).0"
 NEXT_MAJOR="v$((MAJOR + 1)).0.0"
 
 echo ""
 echo -e "${YELLOW}Select version bump:${NC}"
+# If code version is already ahead of latest tag, suggest it as primary option
+if [ $(version_to_int "$CURRENT_CODE_VERSION") -gt $(version_to_int "$LATEST_TAG") ]; then
+    echo -e "  0) Current Code → ${GREEN}$CURRENT_CODE_VERSION${NC} (from package.json)"
+fi
 echo -e "  1) Patch  → ${GREEN}$NEXT_PATCH${NC}  (bug fixes)"
 echo -e "  2) Minor  → ${GREEN}$NEXT_MINOR${NC}  (new features)"
 echo -e "  3) Major  → ${GREEN}$NEXT_MAJOR${NC}  (breaking changes)"
 echo -e "  4) Custom (enter manually)"
 echo ""
 
-read -p "Choice [1-4]: " -n 1 CHOICE
+read -p "Choice [0-4]: " -n 1 CHOICE
 echo ""
 
 case $CHOICE in
+    0) NEW_VERSION=$CURRENT_CODE_VERSION ;;
     1) NEW_VERSION=$NEXT_PATCH ;;
     2) NEW_VERSION=$NEXT_MINOR ;;
     3) NEW_VERSION=$NEXT_MAJOR ;;
