@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { FileText, RefreshCw, Loader2, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react'
 import { toast } from 'react-hot-toast'
+import { useTranslations } from 'next-intl'
 import { createClientLogger } from '@/lib/client-logger'
 
 const log = createClientLogger('ContextTimeline')
@@ -40,9 +41,12 @@ export default function ContextTimeline({
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [isTimelineOpen, setIsTimelineOpen] = useState(false)
   const [hasFetched, setHasFetched] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
+  const t = useTranslations('context')
 
   // Fetch timeline on mount
   useEffect(() => {
+    setIsMounted(true)
     const fetchTimeline = async () => {
       try {
         const res = await fetch(`/api/forecasts/${predictionId}/context`)
@@ -63,29 +67,30 @@ export default function ContextTimeline({
 
   const handleAnalyze = async () => {
     setIsAnalyzing(true)
-    toast.loading('Analyzing latest news...', { id: 'analyze' })
+    toast.loading(t('analyzing'), { id: 'analyze' })
     try {
       const res = await fetch(`/api/forecasts/${predictionId}/context`, {
         method: 'POST',
       })
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}))
-        throw new Error(errorData.error || `Failed to analyze context (${res.status})`)
+        throw new Error(errorData.error || `${t('failed')} (${res.status})`)
       }
       const data = await res.json()
       setCurrentContext(data.newContext)
       setContextUpdatedAt(data.contextUpdatedAt)
       setSnapshots(data.timeline || [])
-      toast.success('Context updated!', { id: 'analyze', duration: 3000 })
+      toast.success(t('updated'), { id: 'analyze', duration: 3000 })
     } catch (e: any) {
       log.error({ err: e }, 'Failed to analyze context')
-      toast.error(e.message || 'Failed to analyze context', { id: 'analyze' })
+      toast.error(e.message || t('failed'), { id: 'analyze' })
     } finally {
       setIsAnalyzing(false)
     }
   }
 
   const formatDate = (dateStr: string) => {
+    if (!isMounted) return ''
     return new Date(dateStr).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -108,7 +113,7 @@ export default function ContextTimeline({
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
           <FileText className="w-5 h-5" />
-          Situation Context
+          {t('title')}
         </h2>
         {canAnalyze && (
           <button
@@ -121,7 +126,7 @@ export default function ContextTimeline({
             ) : (
               <RefreshCw className="w-4 h-4" />
             )}
-            Analyze Situation
+            {t('analyze')}
           </button>
         )}
       </div>
@@ -131,14 +136,14 @@ export default function ContextTimeline({
         <div className="p-4 border border-gray-200 rounded-xl bg-white shadow-sm">
           <p className="text-gray-600 whitespace-pre-wrap leading-relaxed">{currentContext}</p>
           {contextUpdatedAt && (
-            <p className="text-xs text-gray-400 mt-2">
-              Last updated: {formatDate(contextUpdatedAt)}
+            <p className="text-xs text-gray-400 mt-2" suppressHydrationWarning>
+              {t('lastUpdated')}: {formatDate(contextUpdatedAt)}
             </p>
           )}
           {/* Sources from latest snapshot */}
           {snapshots[0]?.sources && (snapshots[0].sources as Source[]).length > 0 && (
             <div className="mt-3 pt-3 border-t border-gray-100">
-              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Sources</p>
+              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">{t('sources')}</p>
               <div className="flex flex-wrap gap-2">
                 {(snapshots[0].sources as Source[]).map((src, i) => (
                   <a
@@ -170,7 +175,9 @@ export default function ContextTimeline({
             ) : (
               <ChevronDown className="w-4 h-4" />
             )}
-            {previousSnapshots.length} previous update{previousSnapshots.length !== 1 ? 's' : ''}
+            {previousSnapshots.length === 1 
+              ? t('previousUpdates', { count: 1 }) 
+              : t('previousUpdatesPlural', { count: previousSnapshots.length })}
           </button>
 
           {/* Collapsible timeline */}
@@ -180,7 +187,7 @@ export default function ContextTimeline({
                 <div key={snap.id} className="relative">
                   {/* Timeline dot */}
                   <div className="absolute -left-[1.3rem] top-1 w-2.5 h-2.5 rounded-full bg-gray-300 border-2 border-white" />
-                  <div className="text-xs text-gray-400 mb-1">
+                  <div className="text-xs text-gray-400 mb-1" suppressHydrationWarning>
                     {formatDate(snap.createdAt)}
                   </div>
                   <p className="text-sm text-gray-600 leading-relaxed">{snap.summary}</p>

@@ -36,7 +36,26 @@ if git diff --cached --name-only | grep -qE "src/lib/version.ts|package.json"; t
   exit 0
 fi
 
-# 4. Enforce bump on ALL branches (every commit eventually deploys to staging via PR)
+# 4. Allow same version if it's already higher than main
+echo "🔍 Comparing with main branch version..."
+git fetch origin main --quiet 2>/dev/null || true
+MAIN_VERSION=$(git show origin/main:package.json 2>/dev/null | node -p "JSON.parse(fs.readFileSync(0, 'utf-8')).version" 2>/dev/null || echo "0.0.0")
+
+# Function to convert version string to comparable integer
+version_to_int() {
+    local v=$1
+    # Remove 'v' prefix if present
+    v=${v#v}
+    # Split by dot and pad with zeros to ensure correct comparison (e.g. 1.10.0 > 1.2.0)
+    printf "%03d%03d%03d" $(echo "$v" | tr '.' ' ')
+}
+
+if [ $(version_to_int "$PKG_VERSION") -gt $(version_to_int "$MAIN_VERSION") ]; then
+  echo "✅ Version v$PKG_VERSION is already higher than main (v$MAIN_VERSION)"
+  exit 0
+fi
+
+# 5. Enforce bump on ALL branches (every commit eventually deploys to staging via PR)
 echo "⚠️  WARNING: Version not bumped in v$PKG_VERSION"
 echo "   Every commit must bump the version — all branches deploy to staging."
 echo "   Update both package.json and src/lib/version.ts before committing."

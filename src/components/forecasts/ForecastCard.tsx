@@ -86,12 +86,17 @@ export default function ForecastCard({
   const locale = useLocale()
   const [isApproving, setIsApproving] = useState(false)
   const [showAdminMenu, setShowAdminMenu] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
   // Translation state
   const [translatedClaim, setTranslatedClaim] = useState<string | null>(null)
   const [isTranslating, setIsTranslating] = useState(false)
   const [showTranslated, setShowTranslated] = useState(locale !== 'en')
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   useEffect(() => {
     if (locale === 'en' || !prediction.id || translatedClaim) return
@@ -233,6 +238,7 @@ export default function ForecastCard({
   }, [showAdminMenu])
 
   const formatDate = (date: string | Date) => {
+    if (!isMounted) return ''
     return new Date(date).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',

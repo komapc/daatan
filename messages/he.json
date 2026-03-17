@@ -235,5 +235,16 @@
     "translatedTo": "מתורגם",
     "translating": "מתרגם...",
     "disclaimer": "תורגם על ידי בינה מלאכותית - הטקסט המקורי הוא המחייב במקרה של סתירה."
+  },
+  "context": {
+    "title": "הקשר מצבי",
+    "analyze": "נתח מצב",
+    "analyzing": "מנתח חדשות אחרונות...",
+    "updated": "ההקשר עודכן!",
+    "failed": "ניתוח ההקשר נכשל",
+    "lastUpdated": "עדכון אחרון",
+    "sources": "מקורות",
+    "previousUpdates": "עדכון קודם אחד",
+    "previousUpdatesPlural": "{count} עדכונים קודמים"
   }
 }
