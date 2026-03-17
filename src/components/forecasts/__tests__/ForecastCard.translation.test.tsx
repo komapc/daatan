@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { useSession } from 'next-auth/react'
 import { NextIntlClientProvider } from 'next-intl'
 import ForecastCard, { Prediction } from '../ForecastCard'
