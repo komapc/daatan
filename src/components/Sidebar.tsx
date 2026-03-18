@@ -45,6 +45,7 @@ const navItems: NavItem[] = [
   { href: '/profile', labelKey: 'profile', icon: User },
   { href: '/settings', labelKey: 'settings', icon: Settings },
   { href: '/about', labelKey: 'about', icon: Info },
+  { href: '/retroanalysis', labelKey: 'retroanalysis', icon: History },
 ]
 
 const Sidebar = () => {
