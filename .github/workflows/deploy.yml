@@ -160,18 +160,25 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: eu-central-1
 
+      - name: Get source branch
+        id: source_branch
+        run: |
+          MSG=$(git log -1 --pretty=%s)
+          SOURCE=$(echo "$MSG" | grep -oP '(?<=from [^/]+/)[\w/._-]+' | head -1 || echo "")
+          echo "name=${SOURCE:-main}" >> $GITHUB_OUTPUT
+
       - name: Check Instance SSM Health
         run: |
           INSTANCE_ID=$(aws ec2 describe-instances \
             --filters "Name=tag:Name,Values=daatan-backend" "Name=tag:Environment,Values=staging" \
             --query "Reservations[0].Instances[0].InstanceId" \
             --output text)
-          
+
           PING_STATUS=$(aws ssm describe-instance-information \
             --filters "Key=InstanceIds,Values=$INSTANCE_ID" \
             --query "InstanceInformationList[0].PingStatus" \
             --output text)
-            
+
           echo "Instance $INSTANCE_ID PingStatus: $PING_STATUS"
           if [[ "$PING_STATUS" != "Online" ]]; then
             echo "❌ Error: Instance is $PING_STATUS. SSM command will fail. Please check or reboot the instance."
@@ -265,7 +272,7 @@ jobs:
         run: |
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -d text="✅ [staging] Deployment successful%0A%0Av${{ needs.build.outputs.app_version }} · ${{ github.ref_name }}%0ACommit: ${{ github.sha }}%0A%0A<a href=\"https://github.com/${{ github.repository }}/commits/${{ github.sha }}\">View commit</a>" \
+            -d text="✅ [staging] Deployment successful%0A%0Av${{ needs.build.outputs.app_version }} · ${{ steps.source_branch.outputs.name }} → main%0ACommit: ${{ github.sha }}%0A%0A<a href=\"https://github.com/${{ github.repository }}/commits/${{ github.sha }}\">View commit</a>" \
             -d parse_mode="HTML"
 
       - name: Notify Telegram - Staging Deployment Failure
@@ -273,7 +280,7 @@ jobs:
         run: |
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -d text="❌ [staging] Deployment failed%0A%0Av${{ needs.build.outputs.app_version }} · ${{ github.ref_name }}%0ACommit: ${{ github.sha }}%0A%0A<a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">View logs</a>" \
+            -d text="❌ [staging] Deployment failed%0A%0Av${{ needs.build.outputs.app_version }} · ${{ steps.source_branch.outputs.name }} → main%0ACommit: ${{ github.sha }}%0A%0A<a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">View logs</a>" \
             -d parse_mode="HTML"
 
   # Deploy to PRODUCTION (on tag push only)
