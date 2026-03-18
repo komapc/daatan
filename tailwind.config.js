@@ -9,43 +9,44 @@ module.exports = {
     extend: {
       colors: {
         // --- DAATAN COLOR SYSTEM ---
+        // Single source of truth: edit globals.css :root variables only.
 
         // PRIMARY: Deep Navy
         navy: {
-          900: '#0B1F33', // main background
-          800: '#0E263D', // hover / variation
-          700: '#132C45', // light surface / cards
-          600: '#1C3A5A', // subtle borders
+          900: 'var(--color-navy-900)',
+          800: 'var(--color-navy-800)',
+          700: 'var(--color-navy-700)',
+          600: 'var(--color-navy-600)',
         },
 
         // SECONDARY: Cobalt Blue (actions, buttons, focus)
         cobalt: {
-          DEFAULT: '#2F6BFF',
-          hover:   '#2459D6',
-          light:   '#5B8CFF',
-          soft:    '#EAF1FF',
+          DEFAULT: 'var(--color-cobalt)',
+          hover:   'var(--color-cobalt-hover)',
+          light:   'var(--color-cobalt-light)',
+          soft:    'var(--color-cobalt-soft)',
         },
 
         // ACCENT: Analytical Teal (data, accuracy, results — use sparingly)
         teal: {
-          DEFAULT: '#2EC4B6',
-          hover:   '#25A798',
-          soft:    '#E6FAF8',
+          DEFAULT: 'var(--color-teal)',
+          hover:   'var(--color-teal-hover)',
+          soft:    'var(--color-teal-soft)',
         },
 
         // NEUTRALS
-        mist:    '#E6E9EF',
-        'text-secondary': '#A0AEC0',
-        'text-subtle':    '#6B7280',
+        mist:             'var(--color-mist)',
+        'text-secondary': 'var(--color-text-secondary)',
+        'text-subtle':    'var(--color-text-subtle)',
 
         // Legacy alias kept for backward compat
-        primary: '#2F6BFF',
+        primary: 'var(--color-cobalt)',
         sidebar: {
-          bg:     '#0B1F33',
-          hover:  '#0E263D',
-          active: '#132C45',
-          text:   '#E6E9EF',
-          muted:  '#A0AEC0',
+          bg:     'var(--color-navy-900)',
+          hover:  'var(--color-navy-800)',
+          active: 'var(--color-navy-700)',
+          text:   'var(--color-mist)',
+          muted:  'var(--color-text-secondary)',
         },
       },
       fontFamily: {
