@@ -164,7 +164,7 @@ jobs:
         id: source_branch
         run: |
           MSG=$(git log -1 --pretty=%s)
-          SOURCE=$(echo "$MSG" | grep -oP '(?<=from [^/]+/)[\w/._-]+' | head -1 || echo "")
+          SOURCE=$(echo "$MSG" | grep -oP 'from [^/]+/\K[\w/._-]+' | head -1 || echo "")
           echo "name=${SOURCE:-main}" >> $GITHUB_OUTPUT
 
       - name: Check Instance SSM Health
