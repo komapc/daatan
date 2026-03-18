@@ -225,10 +225,14 @@ async function processGroupMessages(chatJid: string): Promise<boolean> {
       logger.info({ group: group.name }, `Agent output: ${raw.slice(0, 200)}`);
       if (text) {
         await channel.sendMessage(chatJid, text);
-        outputSentToUser = true;
+        if (!result.isHeartbeat) {
+          outputSentToUser = true;
+        }
       }
-      // Only reset idle timer on actual results, not session-update markers (result: null)
-      resetIdleTimer();
+      // Only reset idle timer on actual results (not heartbeats or session-update markers)
+      if (!result.isHeartbeat) {
+        resetIdleTimer();
+      }
     }
 
     if (result.status === 'success') {
@@ -236,6 +240,11 @@ async function processGroupMessages(chatJid: string): Promise<boolean> {
     }
 
     if (result.status === 'error') {
+      if (result.error?.includes('No conversation found with session ID')) {
+        logger.warn({ group: group.name }, 'Stale session detected, clearing for fresh start');
+        delete sessions[group.folder];
+        deleteSession(group.folder);
+      }
       hadError = true;
     }
   });
