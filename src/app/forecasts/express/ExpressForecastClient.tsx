@@ -333,8 +333,8 @@ export default function ExpressForecastClient({
     <div className="space-y-6">
       {/* Input Step */}
       {step === 'input' && (
-        <div className="bg-white border border-gray-100 rounded-3xl p-6 sm:p-8 shadow-sm">
-          <label htmlFor="prediction-input" className="block text-sm font-bold text-gray-700 mb-3">
+        <div className="bg-navy-700 border border-navy-600 rounded-3xl p-6 sm:p-8 shadow-sm">
+          <label htmlFor="prediction-input" className="block text-sm font-bold text-text-secondary mb-3">
             What do you want to forecast?
           </label>
           <textarea
@@ -342,7 +342,7 @@ export default function ExpressForecastClient({
             value={userInput}
             onChange={(e) => handleUserInputChange(e.target.value)}
             placeholder="Describe your event OR paste a news article URL..."
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            className="w-full px-4 py-3 border border-navy-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
             rows={3}
             maxLength={1000} // Increased for URLs
           />
@@ -354,7 +354,7 @@ export default function ExpressForecastClient({
           </div>
 
           {error && (
-            <div className="mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm flex items-start gap-2">
+            <div className="mt-4 bg-red-900/20 border border-red-800/50 text-red-400 px-4 py-3 rounded-xl text-sm flex items-start gap-2">
               <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <span>{error}</span>
             </div>
@@ -371,14 +371,14 @@ export default function ExpressForecastClient({
             Generate Forecast
           </Button>
 
-          <div className="mt-8 pt-6 border-t border-gray-100">
-            <p className="text-sm font-bold text-gray-700 mb-3">Examples:</p>
+          <div className="mt-8 pt-6 border-t border-navy-600">
+            <p className="text-sm font-bold text-text-secondary mb-3">Examples:</p>
             <div className="space-y-2">
               {examples.map((example, i) => (
                 <button
                   key={i}
                   onClick={() => setUserInput(example)}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors truncate"
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-600 hover:bg-navy-800 rounded-lg transition-colors truncate"
                 >
                   • {example}
                 </button>
@@ -390,7 +390,7 @@ export default function ExpressForecastClient({
 
       {/* Progress Steps */}
       {(['searching', 'analyzing', 'generating'] as Step[]).includes(step) && (
-        <div className="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm">
+        <div className="bg-navy-700 border border-navy-600 rounded-3xl p-8 shadow-sm">
           <div className="max-w-md mx-auto">
             <div className="flex items-center justify-center mb-6">
               <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
@@ -429,9 +429,9 @@ export default function ExpressForecastClient({
             )}
 
             {predictionPreview && (
-              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+              <div className="mt-6 p-4 bg-cobalt/10 border border-cobalt/30 rounded-xl">
                 <p className="text-sm font-bold text-blue-900 mb-2">Preview:</p>
-                <p className="text-sm text-blue-800">{predictionPreview.claim}</p>
+                <p className="text-sm text-cobalt-light">{predictionPreview.claim}</p>
                 <p className="text-xs text-blue-600 mt-1">
                   Resolves: {new Date(predictionPreview.resolveBy).toLocaleDateString()}
                 </p>
@@ -443,14 +443,14 @@ export default function ExpressForecastClient({
 
       {/* Error Step */}
       {step === 'error' && (
-        <div className="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm">
+        <div className="bg-navy-700 border border-navy-600 rounded-3xl p-8 shadow-sm">
           <div className="max-w-md mx-auto text-center">
             <div className="flex items-center justify-center mb-4">
               <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
                 <AlertCircle className="w-8 h-8 text-red-600" />
               </div>
             </div>
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Couldn&apos;t Generate Forecast</h3>
+            <h3 className="text-lg font-bold text-white mb-2">Couldn&apos;t Generate Forecast</h3>
             <p className="text-gray-600 mb-6">{error}</p>
             <button
               onClick={handleTryAgain}
@@ -464,10 +464,10 @@ export default function ExpressForecastClient({
 
       {/* Review Step */}
       {step === 'review' && generated && (
-        <div className="bg-white border border-gray-100 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
-          <div className="flex justify-between items-start border-b border-gray-100 pb-4">
+        <div className="bg-navy-700 border border-navy-600 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
+          <div className="flex justify-between items-start border-b border-navy-600 pb-4">
             <div>
-              <h2 className="text-xl font-bold text-gray-900 mb-1">Review Forecast</h2>
+              <h2 className="text-xl font-bold text-white mb-1">Review Forecast</h2>
               <p className="text-sm text-gray-600">
                 Review and refine the generated forecast before publishing.
               </p>
@@ -476,7 +476,7 @@ export default function ExpressForecastClient({
               {isEditing ? (
                 <button
                   onClick={handleRegenerateFromEdit}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-purple-600 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-purple-600 bg-purple-900/20 rounded-lg hover:bg-purple-100 transition-colors"
                   title="Regenerate from this claim"
                 >
                   <Sparkles className="w-4 h-4" />
@@ -486,14 +486,14 @@ export default function ExpressForecastClient({
                 <>
                   <button
                     onClick={handleGenerate}
-                    className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    className="p-2 text-gray-500 hover:text-blue-600 hover:bg-cobalt/10 rounded-lg transition-colors"
                     title="Regenerate"
                   >
                     <RotateCcw className="w-5 h-5" />
                   </button>
                   <button
                     onClick={() => { setIsEditing(true); setEditForm(generated) }}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-cobalt/10 rounded-lg hover:bg-blue-100 transition-colors"
                   >
                     <Edit2 className="w-4 h-4" />
                     Edit
@@ -506,7 +506,7 @@ export default function ExpressForecastClient({
           <div className="space-y-6">
             {/* Claim */}
             <div>
-              <h3 className="text-sm font-bold text-gray-700 mb-2">Forecast Claim</h3>
+              <h3 className="text-sm font-bold text-text-secondary mb-2">Forecast Claim</h3>
               {isEditing ? (
                 <textarea
                   value={editForm?.claimText}
@@ -515,13 +515,13 @@ export default function ExpressForecastClient({
                   rows={3}
                 />
               ) : (
-                <p className="text-lg text-gray-900">{generated.claimText}</p>
+                <p className="text-lg text-white">{generated.claimText}</p>
               )}
             </div>
 
             {/* Resolution Date */}
             <div>
-              <h3 className="text-sm font-bold text-gray-700 mb-2">Resolution Date</h3>
+              <h3 className="text-sm font-bold text-text-secondary mb-2">Resolution Date</h3>
               {isEditing ? (
                 <input
                   type="datetime-local"
@@ -531,7 +531,7 @@ export default function ExpressForecastClient({
                   className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 ${editForm?.resolveByDatetime && new Date(editForm.resolveByDatetime) <= new Date() ? 'border-red-500' : ''}`}
                 />
               ) : (
-                <p className="text-gray-900">
+                <p className="text-white">
                   {new Date(generated.resolveByDatetime).toLocaleString(undefined, { dateStyle: 'long', timeStyle: 'short' })}
                 </p>
               )}
@@ -539,10 +539,10 @@ export default function ExpressForecastClient({
 
             {/* Tags */}
             <div>
-              <h3 className="text-sm font-bold text-gray-700 mb-2">Tags</h3>
+              <h3 className="text-sm font-bold text-text-secondary mb-2">Tags</h3>
               <div className="flex flex-wrap gap-2">
                 {(isEditing ? editForm?.tags : generated.tags)?.map((tag: string, i: number) => (
-                  <span key={i} className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
+                  <span key={i} className="inline-flex items-center gap-1 px-3 py-1 bg-navy-700 text-text-secondary rounded-full text-sm">
                     {tag}
                     {isEditing && (
                       <button onClick={() => removeTag(tag)} className="hover:text-red-500">
@@ -561,7 +561,7 @@ export default function ExpressForecastClient({
                       placeholder="Add tag..."
                       className="px-3 py-1 border rounded-full text-sm w-32"
                     />
-                    <button onClick={addTag} className="p-1 text-blue-600 hover:bg-blue-50 rounded-full">
+                    <button onClick={addTag} className="p-1 text-blue-600 hover:bg-cobalt/10 rounded-full">
                       <Plus className="w-4 h-4" />
                     </button>
                   </div>
@@ -571,7 +571,7 @@ export default function ExpressForecastClient({
 
             {/* Outcome Type & Options */}
             <div>
-              <h3 className="text-sm font-bold text-gray-700 mb-2">Outcome Type</h3>
+              <h3 className="text-sm font-bold text-text-secondary mb-2">Outcome Type</h3>
               <div className="flex items-center gap-2 mb-3">
                 {generated.outcomeType === 'MULTIPLE_CHOICE' ? (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
@@ -579,7 +579,7 @@ export default function ExpressForecastClient({
                     Multiple Choice
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-100 text-cobalt-light rounded-full text-sm font-medium">
                     Binary (Yes / No)
                   </span>
                 )}
@@ -618,7 +618,7 @@ export default function ExpressForecastClient({
                         <button
                           type="button"
                           onClick={addOption}
-                          className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-sm mt-1"
+                          className="flex items-center gap-1.5 text-blue-600 hover:text-cobalt-light text-sm mt-1"
                         >
                           <Plus className="w-4 h-4" />
                           Add Option
@@ -628,8 +628,8 @@ export default function ExpressForecastClient({
                   ) : (
                     <ol className="space-y-1.5">
                       {(generated.options || []).map((option, index) => (
-                        <li key={index} className="flex items-center gap-2 text-gray-800">
-                          <span className="flex items-center justify-center w-6 h-6 bg-gray-100 text-gray-500 rounded-full text-xs font-medium">
+                        <li key={index} className="flex items-center gap-2 text-mist">
+                          <span className="flex items-center justify-center w-6 h-6 bg-navy-700 text-gray-500 rounded-full text-xs font-medium">
                             {index + 1}
                           </span>
                           {option}
@@ -643,7 +643,7 @@ export default function ExpressForecastClient({
 
             {/* Context */}
             <div>
-              <h3 className="text-sm font-bold text-gray-700 mb-2">Context</h3>
+              <h3 className="text-sm font-bold text-text-secondary mb-2">Context</h3>
               {isEditing ? (
                 <textarea
                   value={editForm?.detailsText}
@@ -652,13 +652,13 @@ export default function ExpressForecastClient({
                   rows={4}
                 />
               ) : (
-                <p className="text-gray-700">{generated.detailsText}</p>
+                <p className="text-text-secondary">{generated.detailsText}</p>
               )}
             </div>
 
             {/* Resolution Rules */}
             <div>
-              <h3 className="text-sm font-bold text-gray-700 mb-2">Resolution Rules</h3>
+              <h3 className="text-sm font-bold text-text-secondary mb-2">Resolution Rules</h3>
               {isEditing ? (
                 <textarea
                   value={editForm?.resolutionRules}
@@ -667,13 +667,13 @@ export default function ExpressForecastClient({
                   rows={2}
                 />
               ) : (
-                <p className="text-gray-700 italic">{generated.resolutionRules}</p>
+                <p className="text-text-secondary italic">{generated.resolutionRules}</p>
               )}
             </div>
 
             {/* AI Probability Suggestion */}
             {!isEditing && (
-              <div className="p-4 bg-purple-50 border border-purple-100 rounded-2xl">
+              <div className="p-4 bg-purple-900/20 border border-purple-100 rounded-2xl">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm font-bold text-purple-900 flex items-center gap-2">
                     <Sparkles className="w-4 h-4" />
@@ -718,14 +718,14 @@ export default function ExpressForecastClient({
 
             {/* News Anchor */}
             <div>
-              <h3 className="text-sm font-bold text-gray-700 mb-2">News Anchor</h3>
+              <h3 className="text-sm font-bold text-text-secondary mb-2">News Anchor</h3>
               <a
                 href={generated.newsAnchor.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block p-4 border border-gray-200 rounded-xl hover:border-blue-300 hover:bg-blue-50 transition-colors"
+                className="block p-4 border border-navy-600 rounded-xl hover:border-blue-300 hover:bg-cobalt/10 transition-colors"
               >
-                <p className="font-medium text-gray-900 mb-1">{generated.newsAnchor.title}</p>
+                <p className="font-medium text-white mb-1">{generated.newsAnchor.title}</p>
                 {generated.newsAnchor.source && (
                   <p className="text-sm text-gray-500">{generated.newsAnchor.source}</p>
                 )}
@@ -733,7 +733,7 @@ export default function ExpressForecastClient({
             </div>
           </div>
 
-          <div className="pt-6 border-t border-gray-100 space-y-3">
+          <div className="pt-6 border-t border-navy-600 space-y-3">
             {/* Visibility toggle */}
             {!isEditing && (
               <button
@@ -741,8 +741,8 @@ export default function ExpressForecastClient({
                 onClick={() => setIsPublic(v => !v)}
                 className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-sm font-medium transition-colors ${
                   isPublic
-                    ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
-                    : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                    ? 'bg-teal/10 text-teal border-green-200 hover:bg-green-100'
+                    : 'bg-navy-800 text-gray-600 border-navy-600 hover:bg-navy-700'
                 }`}
               >
                 <span>{isPublic ? 'Public — visible in the feed' : 'Unlisted — only people with the link'}</span>

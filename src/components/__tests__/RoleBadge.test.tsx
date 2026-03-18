@@ -18,7 +18,7 @@ describe('RoleBadge', () => {
     expect(badge).toBeInTheDocument()
     expect(badge).toHaveAttribute('title', 'Admin')
     expect(badge).toHaveAttribute('aria-label', 'Admin')
-    expect(badge.className).toContain('text-red-700')
+    expect(badge.className).toContain('text-red-400')
   })
 
   it('renders compact "R" badge for RESOLVER role', () => {
@@ -28,7 +28,7 @@ describe('RoleBadge', () => {
     expect(badge).toBeInTheDocument()
     expect(badge).toHaveAttribute('title', 'Resolver')
     expect(badge).toHaveAttribute('aria-label', 'Resolver')
-    expect(badge.className).toContain('text-blue-700')
+    expect(badge.className).toContain('text-cobalt-light')
   })
 
   it('applies size variants', () => {

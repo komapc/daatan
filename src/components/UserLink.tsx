@@ -50,7 +50,7 @@ export function UserLink({
         />
       )}
       {children || (
-        <span className="font-bold text-gray-900">
+        <span className="font-bold text-white">
           {name || (username ? `@${username}` : 'Anonymous')}
         </span>
       )}

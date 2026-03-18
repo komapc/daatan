@@ -191,7 +191,7 @@ export default function CommentItem({
                 userId={comment.author.id}
                 username={comment.author.username}
                 name={comment.author.name}
-                className="font-semibold text-gray-900"
+                className="font-semibold text-white"
               />
               {comment.author.role && (
                 <RoleBadge role={comment.author.role} size="sm" />
@@ -227,7 +227,7 @@ export default function CommentItem({
                     setIsEditing(false)
                     setEditText(comment.text)
                   }}
-                  className="px-3 py-1 text-gray-700 text-sm hover:bg-gray-100 rounded-lg"
+                  className="px-3 py-1 text-text-secondary text-sm hover:bg-navy-700 rounded-lg"
                 >
                   Cancel
                 </button>
@@ -235,9 +235,9 @@ export default function CommentItem({
             </div>
           ) : (
             <div className="space-y-2">
-              <p className="text-gray-800 whitespace-pre-wrap">{translatedText ?? comment.text}</p>
+              <p className="text-mist whitespace-pre-wrap">{translatedText ?? comment.text}</p>
               {translatedText && (
-                <div className="flex items-center gap-1.5 text-[10px] text-blue-600/70 italic bg-blue-50/30 px-2 py-1 rounded w-fit">
+                <div className="flex items-center gap-1.5 text-[10px] text-blue-600/70 italic bg-cobalt/10/30 px-2 py-1 rounded w-fit">
                   <Info className="w-3 h-3" />
                   <span>{t('disclaimer')}</span>
                 </div>
@@ -254,7 +254,7 @@ export default function CommentItem({
               className={`flex items-center gap-1 px-2 py-1 rounded-lg transition-colors ${
                 userReaction?.type === 'LIKE'
                   ? 'bg-blue-100 text-blue-600'
-                  : 'text-gray-600 hover:bg-gray-100'
+                  : 'text-gray-600 hover:bg-navy-700'
               } disabled:opacity-50`}
             >
               <ThumbsUp className="w-4 h-4" />
@@ -267,7 +267,7 @@ export default function CommentItem({
               className={`flex items-center gap-1 px-2 py-1 rounded-lg transition-colors ${
                 userReaction?.type === 'INSIGHTFUL'
                   ? 'bg-yellow-100 text-yellow-600'
-                  : 'text-gray-600 hover:bg-gray-100'
+                  : 'text-gray-600 hover:bg-navy-700'
               } disabled:opacity-50`}
             >
               <Lightbulb className="w-4 h-4" />
@@ -280,7 +280,7 @@ export default function CommentItem({
               className={`flex items-center gap-1 px-2 py-1 rounded-lg transition-colors ${
                 userReaction?.type === 'DISAGREE'
                   ? 'bg-red-100 text-red-600'
-                  : 'text-gray-600 hover:bg-gray-100'
+                  : 'text-gray-600 hover:bg-navy-700'
               } disabled:opacity-50`}
             >
               <ThumbsDown className="w-4 h-4" />
@@ -291,7 +291,7 @@ export default function CommentItem({
             {!isReply && session && (
               <button
                 onClick={() => setShowReplyForm(!showReplyForm)}
-                className="flex items-center gap-1 px-2 py-1 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                className="flex items-center gap-1 px-2 py-1 text-gray-600 hover:bg-navy-700 rounded-lg transition-colors"
               >
                 <Reply className="w-4 h-4" />
                 Reply
@@ -303,7 +303,7 @@ export default function CommentItem({
               <button
                 onClick={handleTranslate}
                 disabled={isTranslating}
-                className="flex items-center gap-1 px-2 py-1 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                className="flex items-center gap-1 px-2 py-1 text-gray-600 hover:bg-navy-700 rounded-lg transition-colors disabled:opacity-50"
               >
                 {isTranslating ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -320,7 +320,7 @@ export default function CommentItem({
                 {isAuthor && (
                   <button
                     onClick={() => setIsEditing(true)}
-                    className="flex items-center gap-1 px-2 py-1 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    className="flex items-center gap-1 px-2 py-1 text-gray-600 hover:bg-navy-700 rounded-lg transition-colors"
                   >
                     <Edit2 className="w-4 h-4" />
                     Edit
@@ -329,7 +329,7 @@ export default function CommentItem({
                 {canDelete && (
                   <button
                     onClick={handleDelete}
-                    className="flex items-center gap-1 px-2 py-1 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    className="flex items-center gap-1 px-2 py-1 text-red-600 hover:bg-red-900/20 rounded-lg transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
                     Delete
@@ -357,7 +357,7 @@ export default function CommentItem({
             <button
               onClick={loadReplies}
               disabled={isLoadingReplies}
-              className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
+              className="flex items-center gap-2 text-sm text-blue-600 hover:text-cobalt-light font-medium"
             >
               <MessageSquare className="w-4 h-4" />
               {isLoadingReplies

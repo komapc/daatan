@@ -126,8 +126,8 @@ export default function UsersTable() {
       ) : (
         <>
           <div className="overflow-x-auto border rounded-lg shadow-sm">
-            <table className="w-full border-collapse bg-white">
-              <thead className="bg-gray-50 text-gray-700 text-sm font-semibold uppercase tracking-wider">
+            <table className="w-full border-collapse bg-navy-700">
+              <thead className="bg-navy-800 text-text-secondary text-sm font-semibold uppercase tracking-wider">
                 <tr>
                   <th className="p-3 border-b text-left">User</th>
                   <th className="p-3 border-b text-left">Email</th>
@@ -139,9 +139,9 @@ export default function UsersTable() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {users.map((u) => (
-                  <tr key={u.id} className="hover:bg-gray-50 transition-colors">
+                  <tr key={u.id} className="hover:bg-navy-800 transition-colors">
                     <td className="p-3">
-                      <div className="font-medium text-gray-900">{u.name}</div>
+                      <div className="font-medium text-white">{u.name}</div>
                       <div className="text-xs text-gray-500 font-mono">@{u.username || 'unknown'}</div>
                     </td>
                     <td className="p-3 text-sm text-gray-600">{u.email}</td>
@@ -149,9 +149,9 @@ export default function UsersTable() {
                       <select
                         value={u.role}
                         onChange={(e) => updateRole(u.id, e.target.value)}
-                        className={`border rounded p-1 text-sm outline-none focus:ring-2 focus:ring-blue-500 ${u.role === 'ADMIN' ? 'bg-purple-50 text-purple-800 border-purple-200' :
-                          u.role === 'RESOLVER' ? 'bg-blue-50 text-blue-800 border-blue-200' :
-                            'bg-white text-gray-900 border-gray-200'
+                        className={`border rounded p-1 text-sm outline-none focus:ring-2 focus:ring-blue-500 ${u.role === 'ADMIN' ? 'bg-purple-900/20 text-purple-800 border-purple-200' :
+                          u.role === 'RESOLVER' ? 'bg-cobalt/10 text-cobalt-light border-cobalt/30' :
+                            'bg-navy-700 text-white border-navy-600'
                           }`}
                       >
                         <option value="USER">User</option>
@@ -174,14 +174,14 @@ export default function UsersTable() {
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-gray-50"
+                className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-navy-800"
               >
                 Previous
               </button>
               <button
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-gray-50"
+                className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-navy-800"
               >
                 Next
               </button>

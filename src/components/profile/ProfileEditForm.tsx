@@ -118,10 +118,10 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white border border-gray-100 rounded-3xl p-6 sm:p-8 shadow-sm">
+    <form onSubmit={handleSubmit} className="bg-navy-700 border border-navy-600 rounded-3xl p-6 sm:p-8 shadow-sm">
       <div className="space-y-6">
         {/* Avatar Upload */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 pb-6 border-b border-gray-100">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 pb-6 border-b border-navy-600">
           <Avatar 
             src={formData.avatarUrl} 
             name={user.name || user.username} 
@@ -129,7 +129,7 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
             className="ring-4 ring-white shadow-sm"
           />
           <div className="space-y-2">
-            <h3 className="text-sm font-bold text-gray-900">Profile Picture</h3>
+            <h3 className="text-sm font-bold text-white">Profile Picture</h3>
             <p className="text-xs text-gray-500 max-w-sm">
               Upload a new avatar (JPG, PNG, WebP). Max size 5MB.
             </p>
@@ -157,7 +157,7 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
 
         {/* Username */}
         <div>
-          <label htmlFor="username" className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+          <label htmlFor="username" className="flex items-center gap-2 text-sm font-bold text-text-secondary mb-2">
             <User className="w-4 h-4 text-gray-400" />
             Username (Nickname)
           </label>
@@ -167,7 +167,7 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
             value={formData.username}
             onChange={(e) => setFormData({ ...formData, username: e.target.value })}
             placeholder="your_username"
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-4 py-3 border border-navy-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             maxLength={30}
           />
           <p className="text-xs text-gray-500 mt-1">Your public display name (letters, numbers, underscore only)</p>
@@ -175,7 +175,7 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
 
         {/* Website */}
         <div>
-          <label htmlFor="website" className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+          <label htmlFor="website" className="flex items-center gap-2 text-sm font-bold text-text-secondary mb-2">
             <Globe className="w-4 h-4 text-gray-400" />
             Website
           </label>
@@ -185,26 +185,26 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
             value={formData.website}
             onChange={(e) => setFormData({ ...formData, website: e.target.value })}
             placeholder="https://yourwebsite.com"
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-4 py-3 border border-navy-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
           <p className="text-xs text-gray-500 mt-1">Your personal website or blog</p>
         </div>
 
         {/* Twitter Handle */}
         <div>
-          <label htmlFor="twitterHandle" className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+          <label htmlFor="twitterHandle" className="flex items-center gap-2 text-sm font-bold text-text-secondary mb-2">
             <Twitter className="w-4 h-4 text-gray-400" />
             Twitter/X Handle
           </label>
           <div className="flex items-center">
-            <span className="px-4 py-3 bg-gray-50 border border-r-0 border-gray-200 rounded-l-xl text-gray-500 font-medium">@</span>
+            <span className="px-4 py-3 bg-navy-800 border border-r-0 border-navy-600 rounded-l-xl text-gray-500 font-medium">@</span>
             <input
               type="text"
               id="twitterHandle"
               value={formData.twitterHandle}
               onChange={(e) => setFormData({ ...formData, twitterHandle: e.target.value.replace('@', '') })}
               placeholder="username"
-              className="flex-1 px-4 py-3 border border-gray-200 rounded-r-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="flex-1 px-4 py-3 border border-navy-600 rounded-r-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               maxLength={15}
             />
           </div>
@@ -212,7 +212,7 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
         </div>
 
         {/* Email Notifications */}
-        <div className="border-t border-gray-100 pt-6">
+        <div className="border-t border-navy-600 pt-6">
           <label className="flex items-center gap-3 cursor-pointer">
             <input
               type="checkbox"
@@ -222,7 +222,7 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
             />
             <div className="flex items-center gap-2">
               <Bell className="w-4 h-4 text-gray-400" />
-              <span className="text-sm font-bold text-gray-700">Email Notifications</span>
+              <span className="text-sm font-bold text-text-secondary">Email Notifications</span>
             </div>
           </label>
           <p className="text-xs text-gray-500 mt-2 ml-8">Receive updates about your predictions and stakes</p>
@@ -230,13 +230,13 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
 
         {/* Error/Success Messages */}
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+          <div className="bg-red-900/20 border border-red-800/50 text-red-400 px-4 py-3 rounded-xl text-sm">
             {error}
           </div>
         )}
 
         {success && (
-          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl text-sm">
+          <div className="bg-teal/10 border border-green-200 text-teal px-4 py-3 rounded-xl text-sm">
             Profile updated successfully! Redirecting...
           </div>
         )}
@@ -253,7 +253,7 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
           </button>
           <Link
             href="/profile"
-            className="flex items-center justify-center gap-2 bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-bold hover:bg-gray-200 transition-colors"
+            className="flex items-center justify-center gap-2 bg-navy-700 text-text-secondary px-6 py-3 rounded-xl font-bold hover:bg-navy-600 transition-colors"
           >
             <X className="w-4 h-4" />
             Cancel

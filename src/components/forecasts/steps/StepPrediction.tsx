@@ -56,7 +56,7 @@ export const StepPrediction = ({ formData, updateFormData }: Props) => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+        <h2 className="text-xl font-semibold text-white mb-2">
           Write Your Forecast
         </h2>
         <p className="text-gray-500">
@@ -66,7 +66,7 @@ export const StepPrediction = ({ formData, updateFormData }: Props) => {
 
       {/* Claim Text */}
       <div>
-        <label htmlFor="claimText" className="block text-sm font-medium text-gray-700 mb-2">
+        <label htmlFor="claimText" className="block text-sm font-medium text-text-secondary mb-2">
           Prediction Claim *
         </label>
         <textarea
@@ -76,7 +76,7 @@ export const StepPrediction = ({ formData, updateFormData }: Props) => {
           placeholder="e.g., Bitcoin will reach $100,000 before July 2026"
           rows={3}
           maxLength={500}
-          className={`w-full px-4 py-3 rounded-lg border ${isClaimTooShort ? 'border-amber-500' : 'border-gray-200'
+          className={`w-full px-4 py-3 rounded-lg border ${isClaimTooShort ? 'border-amber-500' : 'border-navy-600'
             } focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none`}
         />
         <div className="flex justify-between mt-1">
@@ -92,7 +92,7 @@ export const StepPrediction = ({ formData, updateFormData }: Props) => {
 
       {/* Details Text */}
       <div>
-        <label htmlFor="detailsText" className="block text-sm font-medium text-gray-700 mb-2">
+        <label htmlFor="detailsText" className="block text-sm font-medium text-text-secondary mb-2">
           Additional Details
           <span className="text-gray-400 font-normal ml-2">(optional)</span>
         </label>
@@ -103,7 +103,7 @@ export const StepPrediction = ({ formData, updateFormData }: Props) => {
           placeholder="Add context, conditions, or criteria for resolution..."
           rows={4}
           maxLength={5000}
-          className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+          className="w-full px-4 py-3 rounded-lg border border-navy-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
         />
         <p className="text-sm text-gray-400 mt-1 text-right">{detailsLength}/5000</p>
       </div>
@@ -111,11 +111,11 @@ export const StepPrediction = ({ formData, updateFormData }: Props) => {
       {/* Tags */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+          <label className="block text-sm font-medium text-text-secondary flex items-center gap-2">
             Tags
             <span className="text-gray-400 font-normal ml-1">(optional, max 5)</span>
             {isSuggesting && (
-              <span className="flex items-center gap-1.5 text-blue-600 text-xs font-bold animate-pulse ml-2 px-2 py-0.5 bg-blue-50 rounded-full border border-blue-100">
+              <span className="flex items-center gap-1.5 text-blue-600 text-xs font-bold animate-pulse ml-2 px-2 py-0.5 bg-cobalt/10 rounded-full border border-cobalt/20">
                 <Loader2 className="w-3 h-3 animate-spin" />
                 AI is categorizing...
               </span>
@@ -133,9 +133,9 @@ export const StepPrediction = ({ formData, updateFormData }: Props) => {
       </div>
 
       {/* Tips */}
-      <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+      <div className="p-4 bg-amber-900/20 border border-amber-700/40 rounded-lg">
         <h3 className="font-medium text-amber-800 mb-2">💡 Tips for good predictions</h3>
-        <ul className="text-sm text-amber-700 space-y-1">
+        <ul className="text-sm text-amber-400 space-y-1">
           <li>• Be specific and measurable</li>
           <li>• Include a clear timeframe</li>
           <li>• Define what counts as success</li>

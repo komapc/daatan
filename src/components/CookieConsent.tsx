@@ -69,7 +69,7 @@ export default function CookieConsent() {
   if (!visible) return null
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-white border-t border-gray-200 shadow-lg">
+    <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-navy-700 border-t border-navy-600 shadow-lg">
       <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <p className="flex-1 text-sm text-gray-600">
           We use analytics cookies to understand how the app is used and improve it.

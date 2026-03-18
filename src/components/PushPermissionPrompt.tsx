@@ -71,7 +71,7 @@ const PushPermissionPrompt = () => {
         </div>
         <button
           onClick={handleDismiss}
-          className="p-1 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          className="p-1 rounded-full text-text-secondary hover:text-white hover:bg-slate-800 transition-colors"
           aria-label="Close push notification prompt"
         >
           <X className="w-4 h-4" />
@@ -83,7 +83,7 @@ const PushPermissionPrompt = () => {
         </p>
         <button
           type="button"
-          className="shrink-0 rounded-md bg-white px-3 py-1 text-xs font-semibold text-slate-900 shadow-sm hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
+          className="shrink-0 rounded-md bg-navy-700 px-3 py-1 text-xs font-semibold text-slate-900 shadow-sm hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
           onClick={handleEnable}
         >
           Enable

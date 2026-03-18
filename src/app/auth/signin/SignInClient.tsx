@@ -29,25 +29,25 @@ export default function SignInClient() {
 
   if (status === 'loading') {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex items-center justify-center min-h-screen bg-navy-800">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-sm border border-gray-100 p-8 space-y-8">
+    <div className="min-h-screen bg-navy-800 flex flex-col items-center justify-center p-4">
+      <div className="max-w-md w-full bg-navy-700 rounded-2xl shadow-sm border border-navy-600 p-8 space-y-8">
         <div className="flex flex-col items-center text-center">
           <Image src="/logo-icon.svg" alt="DAATAN" width={64} height={64} className="mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900">Welcome to DAATAN</h1>
+          <h1 className="text-2xl font-bold text-white">Welcome to DAATAN</h1>
           <p className="text-gray-500 mt-2">
             Sign in to track your predictions, build your reputation, and prove your accuracy.
           </p>
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-lg text-sm space-y-2">
+          <div className="bg-red-900/20 border border-red-800/40 text-red-600 px-4 py-3 rounded-lg text-sm space-y-2">
             <p>An error occurred during sign in.</p>
             {error === 'OAuthSignin' && (
               <p className="text-xs text-red-500">
@@ -65,7 +65,7 @@ export default function SignInClient() {
         <div className="space-y-4">
           <button
             onClick={handleSignIn}
-            className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-xl text-gray-700 font-medium hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-xl text-text-secondary font-medium hover:bg-navy-800 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             aria-label="Sign in with Google"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">

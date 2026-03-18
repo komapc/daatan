@@ -71,14 +71,14 @@ export default function ForecastsTable() {
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-gray-50"
+                className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-navy-800"
               >
                 Previous
               </button>
               <button
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-gray-50"
+                className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-navy-800"
               >
                 Next
               </button>

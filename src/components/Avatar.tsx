@@ -15,7 +15,7 @@ const AVATAR_COLORS = [
   { bg: 'bg-blue-100', text: 'text-blue-600' },
   { bg: 'bg-emerald-100', text: 'text-emerald-600' },
   { bg: 'bg-violet-100', text: 'text-violet-600' },
-  { bg: 'bg-amber-100', text: 'text-amber-700' },
+  { bg: 'bg-amber-100', text: 'text-amber-400' },
   { bg: 'bg-rose-100', text: 'text-rose-600' },
   { bg: 'bg-cyan-100', text: 'text-cyan-600' },
   { bg: 'bg-indigo-100', text: 'text-indigo-600' },
@@ -67,7 +67,7 @@ export function Avatar({ src, name, size = 32, className = '' }: AvatarProps) {
       alt={name || 'User'}
       width={size}
       height={size}
-      className={`rounded-full border border-gray-200 ${className}`}
+      className={`rounded-full border border-navy-600 ${className}`}
       onError={() => setImageError(true)}
     />
   )

@@ -66,11 +66,11 @@ export function TagSelector({
 
     return (
         <div className="w-full" ref={wrapperRef}>
-            <div className="flex flex-wrap gap-2 p-2 border border-gray-200 rounded-xl bg-white focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-shadow">
+            <div className="flex flex-wrap gap-2 p-2 border border-navy-600 rounded-xl bg-navy-700 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-shadow">
                 {selectedTags.map(tag => (
                     <span
                         key={tag}
-                        className="flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full text-sm font-medium animate-in fade-in zoom-in duration-200"
+                        className="flex items-center gap-1 px-2.5 py-1 bg-cobalt/10 text-cobalt-light rounded-full text-sm font-medium animate-in fade-in zoom-in duration-200"
                     >
                         {tag}
                         <button
@@ -98,12 +98,12 @@ export function TagSelector({
                     />
 
                     {showSuggestions && inputValue && filteredSuggestions.length > 0 && (
-                        <div className="absolute top-full left-0 mt-2 w-full bg-white border border-gray-100 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto">
+                        <div className="absolute top-full left-0 mt-2 w-full bg-navy-700 border border-navy-600 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto">
                             {filteredSuggestions.map(tag => (
                                 <button
                                     key={tag}
                                     onClick={() => addTag(tag)}
-                                    className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2"
+                                    className="w-full text-left px-4 py-2 text-sm hover:bg-navy-800 flex items-center gap-2"
                                 >
                                     <Plus className="w-3 h-3 text-gray-400" />
                                     {tag}

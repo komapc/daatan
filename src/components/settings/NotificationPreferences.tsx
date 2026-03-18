@@ -119,10 +119,10 @@ export default function NotificationPreferences() {
       {isSupported && !pushLoading && (
         <div className={`flex items-center justify-between rounded-lg px-4 py-3 mb-4 text-sm ${
           isSubscribed
-            ? 'bg-green-50 border border-green-200 text-green-800'
+            ? 'bg-teal/10 border border-green-200 text-green-800'
             : permission === 'denied'
-            ? 'bg-red-50 border border-red-200 text-red-800'
-            : 'bg-blue-50 border border-blue-200 text-blue-800'
+            ? 'bg-red-900/20 border border-red-800/50 text-red-800'
+            : 'bg-cobalt/10 border border-cobalt/30 text-cobalt-light'
         }`}>
           <div className="flex items-center gap-2">
             {isSubscribed ? (
@@ -164,10 +164,10 @@ export default function NotificationPreferences() {
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-100">
-              <th className="text-left py-3 pr-4 font-medium text-gray-700">Notification</th>
-              <th className="text-center py-3 px-4 font-medium text-gray-700">In-app</th>
-              <th className="text-center py-3 pl-4 font-medium text-gray-700">
+            <tr className="border-b border-navy-600">
+              <th className="text-left py-3 pr-4 font-medium text-text-secondary">Notification</th>
+              <th className="text-center py-3 px-4 font-medium text-text-secondary">In-app</th>
+              <th className="text-center py-3 pl-4 font-medium text-text-secondary">
                 <div className="flex items-center justify-center gap-1">
                   <Bell className="w-4 h-4" />
                   Push
@@ -178,7 +178,7 @@ export default function NotificationPreferences() {
           <tbody>
             {preferences.map((pref) => (
               <tr key={pref.type} className="border-b border-gray-50">
-                <td className="py-3 pr-4 text-gray-900">
+                <td className="py-3 pr-4 text-white">
                   {TYPE_LABELS[pref.type]}
                 </td>
                 <td className="py-3 px-4 text-center">
@@ -186,13 +186,13 @@ export default function NotificationPreferences() {
                     onClick={() => togglePreference(pref.type, 'inApp')}
                     disabled={saving === pref.type}
                     className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
-                      pref.inApp ? 'bg-blue-600' : 'bg-gray-200'
+                      pref.inApp ? 'bg-blue-600' : 'bg-navy-600'
                     } disabled:opacity-50`}
                     role="switch"
                     aria-checked={pref.inApp}
                   >
                     <span
-                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-navy-700 shadow ring-0 transition duration-200 ease-in-out ${
                         pref.inApp ? 'translate-x-4' : 'translate-x-0'
                       }`}
                     />
@@ -204,13 +204,13 @@ export default function NotificationPreferences() {
                       onClick={() => togglePreference(pref.type, 'browserPush')}
                       disabled={saving === pref.type}
                       className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
-                        pref.browserPush ? 'bg-blue-600' : 'bg-gray-200'
+                        pref.browserPush ? 'bg-blue-600' : 'bg-navy-600'
                       } disabled:opacity-50`}
                       role="switch"
                       aria-checked={pref.browserPush}
                     >
                       <span
-                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-navy-700 shadow ring-0 transition duration-200 ease-in-out ${
                           pref.browserPush ? 'translate-x-4' : 'translate-x-0'
                         }`}
                       />
@@ -220,7 +220,7 @@ export default function NotificationPreferences() {
                       onClick={handleConnectPush}
                       variant="ghost"
                       size="xs"
-                      className="text-blue-600 hover:text-blue-700 hover:underline"
+                      className="text-blue-600 hover:text-cobalt-light hover:underline"
                     >
                       Connect
                     </Button>

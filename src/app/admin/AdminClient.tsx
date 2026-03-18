@@ -102,11 +102,11 @@ export default function AdminClient() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-3 mb-8">
-        <div className="p-3 bg-red-50 rounded-xl">
+        <div className="p-3 bg-red-900/20 rounded-xl">
           <Shield className="w-8 h-8 text-red-600" />
         </div>
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Admin Panel</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white">Admin Panel</h1>
           <p className="text-sm text-gray-500">
             {isAdmin ? 'Full admin access' : 'Moderator access'}
           </p>
@@ -114,7 +114,7 @@ export default function AdminClient() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 border-b border-gray-200">
+      <div className="flex gap-1 mb-6 border-b border-navy-600">
         {visibleTabs.map((tab) => {
           const Icon = tab.icon
           return (
@@ -123,7 +123,7 @@ export default function AdminClient() {
               onClick={() => setActiveTab(tab.key)}
               className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.key
                 ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                : 'border-transparent text-gray-500 hover:text-text-secondary'
                 }`}
             >
               <Icon className="w-4 h-4" />
@@ -177,13 +177,13 @@ function ForecastsTab() {
   const totalPages = Math.ceil(total / 20)
 
   const statusColors: Record<string, string> = {
-    DRAFT: 'bg-gray-100 text-gray-700',
-    ACTIVE: 'bg-green-100 text-green-700',
+    DRAFT: 'bg-navy-700 text-text-secondary',
+    ACTIVE: 'bg-green-100 text-teal',
     PENDING: 'bg-yellow-100 text-yellow-700',
-    PENDING_APPROVAL: 'bg-amber-100 text-amber-700',
-    RESOLVED_CORRECT: 'bg-blue-100 text-blue-700',
-    RESOLVED_WRONG: 'bg-red-100 text-red-700',
-    VOID: 'bg-gray-100 text-gray-500',
+    PENDING_APPROVAL: 'bg-amber-100 text-amber-400',
+    RESOLVED_CORRECT: 'bg-blue-100 text-cobalt-light',
+    RESOLVED_WRONG: 'bg-red-100 text-red-400',
+    VOID: 'bg-navy-700 text-gray-500',
     UNRESOLVABLE: 'bg-purple-100 text-purple-700',
   }
 
@@ -198,13 +198,13 @@ function ForecastsTab() {
             placeholder="Search forecasts..."
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-10 pr-4 py-2 border border-navy-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
         <select
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value); setPage(1) }}
-          className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-3 py-2 border border-navy-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           aria-label="Filter by status"
         >
           <option value="">All Statuses</option>
@@ -226,11 +226,11 @@ function ForecastsTab() {
         <p className="text-center text-gray-500 py-12">No forecasts found.</p>
       ) : (
         <>
-          <div className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm">
+          <div className="bg-navy-700 border border-navy-600 rounded-xl overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-100">
+                  <tr className="bg-navy-800 border-b border-navy-600">
                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Forecast</th>
                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Author</th>
                     <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Status</th>
@@ -242,26 +242,26 @@ function ForecastsTab() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {predictions.map((p) => (
-                    <tr key={p.id} className="hover:bg-gray-50 transition-colors">
+                    <tr key={p.id} className="hover:bg-navy-800 transition-colors">
                       <td className="px-4 py-3 max-w-xs">
-                        <p className="font-medium text-gray-900 truncate">{p.claimText}</p>
+                        <p className="font-medium text-white truncate">{p.claimText}</p>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           {p.author.image ? (
                             <Image src={p.author.image} alt="" width={24} height={24} className="rounded-full" />
                           ) : (
-                            <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-500">
+                            <div className="w-6 h-6 rounded-full bg-navy-600 flex items-center justify-center text-xs font-bold text-gray-500">
                               {p.author.name?.charAt(0) || '?'}
                             </div>
                           )}
-                          <span className="text-gray-700 text-xs truncate max-w-[100px]">
+                          <span className="text-text-secondary text-xs truncate max-w-[100px]">
                             {p.author.username || p.author.name || 'Anon'}
                           </span>
                         </div>
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[p.status] || 'bg-gray-100 text-gray-700'}`}>
+                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[p.status] || 'bg-navy-700 text-text-secondary'}`}>
                           {p.status.replace(/_/g, ' ')}
                         </span>
                       </td>
@@ -273,7 +273,7 @@ function ForecastsTab() {
                       <td className="px-4 py-3 text-center">
                         <Link
                           href={`/forecasts/${p.slug || p.id}`}
-                          className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs font-medium"
+                          className="inline-flex items-center gap-1 text-blue-600 hover:text-cobalt-light text-xs font-medium"
                         >
                           <ExternalLink className="w-3 h-3" />
                           View
@@ -353,7 +353,7 @@ function CommentsTab() {
             placeholder="Search comments..."
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-10 pr-4 py-2 border border-navy-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
         <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
@@ -384,7 +384,7 @@ function CommentsTab() {
               return (
                 <div
                   key={c.id}
-                  className={`bg-white border rounded-xl p-4 ${c.deletedAt ? 'border-red-200 bg-red-50/30 opacity-60' : 'border-gray-100'}`}
+                  className={`bg-navy-700 border rounded-xl p-4 ${c.deletedAt ? 'border-red-800/50 bg-red-900/20/30 opacity-60' : 'border-navy-600'}`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
@@ -392,11 +392,11 @@ function CommentsTab() {
                         {c.author.image ? (
                           <Image src={c.author.image} alt="" width={20} height={20} className="rounded-full" />
                         ) : (
-                          <div className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-bold text-gray-500">
+                          <div className="w-5 h-5 rounded-full bg-navy-600 flex items-center justify-center text-[10px] font-bold text-gray-500">
                             {c.author.name?.charAt(0) || '?'}
                           </div>
                         )}
-                        <span className="text-sm font-medium text-gray-900">
+                        <span className="text-sm font-medium text-white">
                           {c.author.username || c.author.name || 'Anon'}
                         </span>
                         <span className="text-xs text-gray-400">
@@ -406,7 +406,7 @@ function CommentsTab() {
                           <span className="text-xs text-red-500 font-medium">Deleted</span>
                         )}
                       </div>
-                      <p className="text-sm text-gray-700 line-clamp-2">{c.text}</p>
+                      <p className="text-sm text-text-secondary line-clamp-2">{c.text}</p>
                       {target && (
                         <Link href={target.href} className="text-xs text-blue-500 hover:underline mt-1 inline-block truncate max-w-xs">
                           on: {target.label}
@@ -421,7 +421,7 @@ function CommentsTab() {
                       <button
                         onClick={() => handleDelete(c.id)}
                         disabled={deletingId === c.id}
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-900/20 rounded-lg transition-colors"
                         title="Delete comment"
                       >
                         {deletingId === c.id ? (
@@ -507,7 +507,7 @@ function UsersTab() {
           placeholder="Search by name, email, or username..."
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-          className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full pl-10 pr-4 py-2 border border-navy-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
 
@@ -519,11 +519,11 @@ function UsersTab() {
         <p className="text-center text-gray-500 py-12">No users found.</p>
       ) : (
         <>
-          <div className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm">
+          <div className="bg-navy-700 border border-navy-600 rounded-xl overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-100">
+                  <tr className="bg-navy-800 border-b border-navy-600">
                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">User</th>
                     <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Roles</th>
                     <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">RS</th>
@@ -535,18 +535,18 @@ function UsersTab() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {users.map((u) => (
-                    <tr key={u.id} className="hover:bg-gray-50 transition-colors">
+                    <tr key={u.id} className="hover:bg-navy-800 transition-colors">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           {u.image ? (
                             <Image src={u.image} alt="" width={28} height={28} className="rounded-full" />
                           ) : (
-                            <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-500">
+                            <div className="w-7 h-7 rounded-full bg-navy-600 flex items-center justify-center text-xs font-bold text-gray-500">
                               {u.name?.charAt(0) || '?'}
                             </div>
                           )}
                           <div className="min-w-0">
-                            <p className="font-medium text-gray-900 truncate text-sm">{u.name || 'Anonymous'}</p>
+                            <p className="font-medium text-white truncate text-sm">{u.name || 'Anonymous'}</p>
                             <p className="text-xs text-gray-400 truncate">{u.email}</p>
                           </div>
                         </div>
@@ -554,12 +554,12 @@ function UsersTab() {
                       <td className="px-4 py-3 text-center">
                         <div className="flex items-center justify-center gap-1">
                           {u.role === 'ADMIN' && (
-                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-400">
                               <Crown className="w-3 h-3" /> Admin
                             </span>
                           )}
                           {u.role === 'RESOLVER' && (
-                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-cobalt-light">
                               <ShieldCheck className="w-3 h-3" /> Resolver
                             </span>
                           )}
@@ -573,7 +573,7 @@ function UsersTab() {
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-center font-medium text-gray-700">{u.rs.toFixed(1)}</td>
+                      <td className="px-4 py-3 text-center font-medium text-text-secondary">{u.rs.toFixed(1)}</td>
                       <td className="px-4 py-3 text-center text-gray-600">
                         {u.cuAvailable} / {u.cuAvailable + u.cuLocked}
                       </td>
@@ -590,7 +590,7 @@ function UsersTab() {
                           value={u.role}
                           onChange={(e) => updateRole(u.id, e.target.value as AdminUser['role'])}
                           disabled={updatingId === u.id}
-                          className="text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                          className="text-xs border border-navy-600 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                         >
                           <option value="USER">User</option>
                           <option value="RESOLVER">Resolver</option>
@@ -629,7 +629,7 @@ function Pagination({ page, totalPages, total, onPageChange }: {
         <button
           onClick={() => onPageChange(page - 1)}
           disabled={page <= 1}
-          className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
+          className="p-1.5 rounded-lg border border-navy-600 text-gray-500 hover:bg-navy-800 disabled:opacity-30 disabled:cursor-not-allowed"
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
@@ -639,7 +639,7 @@ function Pagination({ page, totalPages, total, onPageChange }: {
         <button
           onClick={() => onPageChange(page + 1)}
           disabled={page >= totalPages}
-          className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
+          className="p-1.5 rounded-lg border border-navy-600 text-gray-500 hover:bg-navy-800 disabled:opacity-30 disabled:cursor-not-allowed"
         >
           <ChevronRight className="w-4 h-4" />
         </button>

@@ -63,9 +63,9 @@ export default function CommitmentDisplay({
   }
 
   const getOutcomeColor = () => {
-    if (commitment.binaryChoice === true) return 'text-green-700 bg-green-50 border-green-200'
-    if (commitment.binaryChoice === false) return 'text-red-700 bg-red-50 border-red-200'
-    return 'text-blue-700 bg-blue-50 border-blue-200'
+    if (commitment.binaryChoice === true) return 'text-teal bg-teal/10 border-green-200'
+    if (commitment.binaryChoice === false) return 'text-red-400 bg-red-900/20 border-red-800/50'
+    return 'text-cobalt-light bg-cobalt/10 border-cobalt/30'
   }
 
   const formatDate = (dateString: string) => {
@@ -129,7 +129,7 @@ export default function CommitmentDisplay({
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+    <div className="rounded-xl border border-navy-600 bg-navy-700 shadow-sm overflow-hidden">
       {/* Accent bar */}
       <div className="h-1 bg-gradient-to-r from-blue-500 to-indigo-500" />
 
@@ -141,7 +141,7 @@ export default function CommitmentDisplay({
               Your Commitment
             </p>
             <div className="mt-1 flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold text-gray-900">
+              <span className="text-3xl font-extrabold text-white">
                 {commitment.cuCommitted}
               </span>
               <span className="text-sm font-semibold text-gray-400">CU</span>
@@ -153,7 +153,7 @@ export default function CommitmentDisplay({
               {onEdit && !penaltyPreview && (
                 <button
                   onClick={onEdit}
-                  className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+                  className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-navy-700 transition-colors"
                   aria-label="Edit commitment"
                 >
                   <Pencil className="w-3.5 h-3.5" />
@@ -164,7 +164,7 @@ export default function CommitmentDisplay({
                 <button
                   onClick={handleRemoveClick}
                   disabled={isLoadingPreview || isRemoving}
-                  className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-900/20 transition-colors disabled:opacity-50"
                   aria-label="Remove commitment"
                 >
                   {isLoadingPreview ? (
@@ -181,7 +181,7 @@ export default function CommitmentDisplay({
 
         {/* Error */}
         {error && (
-          <div className="mt-3 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-600">
+          <div className="mt-3 rounded-lg bg-red-900/20 border border-red-800/50 px-3 py-2 text-sm text-red-600">
             {error}
           </div>
         )}
@@ -208,7 +208,7 @@ export default function CommitmentDisplay({
             <div className="grid grid-cols-3 gap-3 text-center mb-4">
               <div>
                 <p className="text-xs text-orange-600">Committed</p>
-                <p className="text-lg font-bold text-gray-900">{penaltyPreview.cuCommitted} CU</p>
+                <p className="text-lg font-bold text-white">{penaltyPreview.cuCommitted} CU</p>
               </div>
               <div>
                 <p className="text-xs text-orange-600">Penalty ({penaltyPreview.burnRate}%)</p>
@@ -234,7 +234,7 @@ export default function CommitmentDisplay({
               <button
                 onClick={cancelRemove}
                 disabled={isRemoving}
-                className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                className="flex-1 rounded-lg border border-gray-300 bg-navy-700 px-3 py-2 text-xs font-semibold text-text-secondary hover:bg-navy-800 transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -244,14 +244,14 @@ export default function CommitmentDisplay({
 
         {/* Resolution Results */}
         {isResolved && (
-          <div className="mt-4 rounded-lg bg-gray-50 border border-gray-100 p-4">
+          <div className="mt-4 rounded-lg bg-navy-800 border border-navy-600 p-4">
             <p className="text-xs font-medium uppercase tracking-wide text-gray-400 mb-3">
               Resolution Results
             </p>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-xs text-gray-500">CU Returned</p>
-                <p className="mt-0.5 text-xl font-bold text-gray-900">
+                <p className="mt-0.5 text-xl font-bold text-white">
                   {commitment.cuReturned ?? 0}
                 </p>
               </div>

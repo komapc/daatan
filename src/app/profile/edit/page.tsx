@@ -30,7 +30,7 @@ export default async function EditProfilePage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-2xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-black text-gray-900 tracking-tight">Edit Profile</h1>
+        <h1 className="text-3xl font-black text-white tracking-tight">Edit Profile</h1>
         <p className="text-gray-500 mt-2">Update your public profile information.</p>
       </div>
       <ProfileEditForm user={user as any} />

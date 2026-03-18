@@ -70,9 +70,9 @@ export default function Speedometer({
       redStart: 'hsl(0, 70%, 65%)',
       redMiddle: 'hsl(0, 72%, 55%)',
       redEnd: 'hsl(0, 84%, 44%)',
-      grayBackground: 'hsl(210, 10%, 88%)',
-      needle: '#1e293b',
-      text: 'hsl(215, 25%, 20%)',
+      grayBackground: '#1C3A5A',
+      needle: '#A0AEC0',
+      text: '#E6E9EF',
     }
   }, [size])
 
@@ -104,8 +104,8 @@ export default function Speedometer({
           </linearGradient>
 
           <radialGradient id={theme.pivotGradientId} cx="35%" cy="35%" r="65%">
-            <stop offset="0%" stopColor="#ffffff88" />
-            <stop offset="70%" stopColor="#ffffff33" />
+            <stop offset="0%" stopColor="#A0AEC088" />
+            <stop offset="70%" stopColor="#A0AEC033" />
             <stop offset="100%" stopColor={theme.needle} />
           </radialGradient>
 
@@ -181,7 +181,7 @@ export default function Speedometer({
         </text>
       </svg>
 
-      <span className="mt-1 text-[10px] sm:text-[11px] md:text-xs font-bold uppercase tracking-[0.15em] text-slate-500 text-center px-4 leading-tight">
+      <span className="mt-1 text-[10px] sm:text-[11px] md:text-xs font-bold uppercase tracking-[0.15em] text-text-secondary text-center px-4 leading-tight">
         {label}
       </span>
     </div>

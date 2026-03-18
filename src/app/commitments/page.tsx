@@ -68,9 +68,9 @@ export default function CommitmentsPage() {
     return (
       <div className="max-w-4xl mx-auto py-8 px-4">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-8"></div>
+          <div className="h-8 bg-navy-600 rounded w-1/4 mb-8"></div>
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-32 bg-gray-100 rounded-xl"></div>
+            <div key={i} className="h-32 bg-navy-700 rounded-xl"></div>
           ))}
         </div>
       </div>
@@ -102,7 +102,7 @@ export default function CommitmentsPage() {
           {commitments.map((commitment) => (
             <div 
               key={commitment.id}
-              className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+              className="bg-navy-700 border border-navy-600 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
             >
               <div className="p-4 sm:p-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -110,10 +110,10 @@ export default function CommitmentsPage() {
                     <div className="flex items-center gap-2 mb-2">
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
                         commitment.status === 'ACTIVE' 
-                          ? 'bg-blue-50 text-blue-700 border border-blue-100' 
+                          ? 'bg-cobalt/10 text-cobalt-light border border-cobalt/20' 
                           : commitment.status === 'RESOLVED'
-                            ? 'bg-green-50 text-green-700 border border-green-100'
-                            : 'bg-gray-50 text-gray-600 border border-gray-100'
+                            ? 'bg-teal/10 text-teal border border-teal/20'
+                            : 'bg-navy-800 text-gray-600 border border-navy-600'
                       }`}>
                         {t(`status.${commitment.status}`)}
                       </span>
@@ -125,7 +125,7 @@ export default function CommitmentsPage() {
                     <h3 className="text-lg font-semibold line-clamp-2 mb-2 group">
                       <PrimaryLink 
                         href={`/forecasts/${commitment.prediction.id}`}
-                        className="text-gray-900 hover:text-blue-600"
+                        className="text-white hover:text-blue-600"
                         underline="none"
                       >
                         {commitment.prediction.claimText}
@@ -133,12 +133,12 @@ export default function CommitmentsPage() {
                     </h3>
                   </div>
 
-                  <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                  <div className="flex items-center gap-3 bg-navy-800 p-3 rounded-lg border border-navy-600">
                     <div className="flex flex-col items-center min-w-[60px]">
                       <span className="text-[10px] uppercase font-bold text-gray-400 leading-none mb-1">CU</span>
                       <div className="flex items-center gap-1">
                         <ArrowUpCircle className="w-4 h-4 text-blue-500" />
-                        <span className="text-lg font-bold text-gray-900">{commitment.cuCommitted}</span>
+                        <span className="text-lg font-bold text-white">{commitment.cuCommitted}</span>
                       </div>
                     </div>
                   </div>
@@ -151,7 +151,7 @@ export default function CommitmentsPage() {
                   <PrimaryLink 
                     href={`/forecasts/${commitment.prediction.id}`}
                     size="xs"
-                    className="flex items-center gap-1 font-bold uppercase tracking-wider text-blue-600 hover:text-blue-700"
+                    className="flex items-center gap-1 font-bold uppercase tracking-wider text-blue-600 hover:text-cobalt-light"
                   >
                     {t('viewPrediction')}
                     <ArrowRight className="w-3 h-3" />

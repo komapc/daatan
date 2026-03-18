@@ -20,15 +20,15 @@ export default function CUBalanceIndicator({
 
   // Color coding based on available CU
   const getAccent = () => {
-    if (cuAvailable > 50) return { ring: '#22c55e', text: 'text-green-600', bg: 'bg-green-50' }
-    if (cuAvailable >= 10) return { ring: '#eab308', text: 'text-yellow-600', bg: 'bg-yellow-50' }
-    return { ring: '#ef4444', text: 'text-red-600', bg: 'bg-red-50' }
+    if (cuAvailable > 50) return { ring: '#22c55e', text: 'text-green-600', bg: 'bg-teal/10' }
+    if (cuAvailable >= 10) return { ring: '#eab308', text: 'text-yellow-600', bg: 'bg-amber-900/20' }
+    return { ring: '#ef4444', text: 'text-red-600', bg: 'bg-red-900/20' }
   }
 
   const accent = getAccent()
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+    <div className="rounded-xl border border-navy-600 bg-navy-700 p-5 shadow-sm">
       <div className="flex items-center gap-5">
         {/* Ring gauge */}
         <div className="relative shrink-0" style={{ width: 80, height: 80 }}>
@@ -71,12 +71,12 @@ export default function CUBalanceIndicator({
           <div className="flex items-center gap-3 text-sm text-gray-500">
             <div className="flex items-center gap-1.5">
               <span className="inline-block w-2 h-2 rounded-full bg-gray-300" />
-              <span>Locked <span className="font-semibold text-gray-700">{cuLocked}</span></span>
+              <span>Locked <span className="font-semibold text-text-secondary">{cuLocked}</span></span>
             </div>
             {showDetails && (
               <div className="flex items-center gap-1.5">
-                <span className="inline-block w-2 h-2 rounded-full bg-gray-500" />
-                <span>Total <span className="font-semibold text-gray-700">{totalCU}</span></span>
+                <span className="inline-block w-2 h-2 rounded-full bg-navy-8000" />
+                <span>Total <span className="font-semibold text-text-secondary">{totalCU}</span></span>
               </div>
             )}
           </div>
