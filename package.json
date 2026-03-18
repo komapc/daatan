@@ -75,5 +75,5 @@
     "vitest": "^4.0.17",
     "@vitest/coverage-v8": "^4.0.18"
   },
-  "version": "1.7.97"
+  "version": "1.7.98"
 }
