@@ -131,7 +131,7 @@ const Sidebar = () => {
       {/* Mobile Header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-navy-900 border-b border-navy-600 flex items-center justify-between px-4 z-50">
         <Link href="/" className="flex items-center gap-2" onClick={handleCloseMenu}>
-          <Image src="/logo-icon.svg" alt="DAATAN" width={40} height={40} priority />
+          <Image src="/logo-icon.png" alt="DAATAN" width={40} height={40} priority />
           <h1 className="text-lg font-bold text-white">DAATAN</h1>
         </Link>
         <div className="flex items-center gap-2">
@@ -188,7 +188,7 @@ const Sidebar = () => {
       >
         {/* Logo */}
         <Link href="/" className="hidden lg:flex p-6 items-center gap-3 hover:bg-navy-800 transition-colors">
-          <Image src="/logo-icon.svg" alt="DAATAN" width={48} height={48} priority />
+          <Image src="/logo-icon.png" alt="DAATAN" width={48} height={48} priority />
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-bold text-white">DAATAN</h1>

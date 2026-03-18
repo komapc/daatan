@@ -4,19 +4,19 @@
   "description": "Prove you were right — without shouting into the void.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#111827",
+  "background_color": "#0B1F33",
+  "theme_color": "#0B1F33",
   "lang": "en",
   "icons": [
     {
-      "src": "/logo-icon.svg",
+      "src": "/logo-icon-192.png",
       "sizes": "192x192",
-      "type": "image/svg+xml"
+      "type": "image/png"
     },
     {
-      "src": "/logo-wordmark.svg",
+      "src": "/logo-icon.png",
       "sizes": "512x512",
-      "type": "image/svg+xml"
+      "type": "image/png"
     }
   ]
 }

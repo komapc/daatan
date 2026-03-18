@@ -29,8 +29,11 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     description: 'Prove you were right — without shouting into the void.',
     icons: {
-      icon: '/logo-icon.svg',
-      apple: '/logo-icon.svg',
+      icon: [
+        { url: '/favicon.ico', sizes: 'any' },
+        { url: '/logo-icon.png', type: 'image/png', sizes: '512x512' },
+      ],
+      apple: '/apple-touch-icon.png',
     },
     manifest: '/manifest.webmanifest',
     verification: {

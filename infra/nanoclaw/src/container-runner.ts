@@ -48,6 +48,7 @@ export interface ContainerOutput {
   result: string | null;
   newSessionId?: string;
   error?: string;
+  isHeartbeat?: boolean;
 }
 
 interface VolumeMount {
@@ -364,6 +365,9 @@ export async function runContainerAgent(
               newSessionId = parsed.newSessionId;
             }
             hadStreamingOutput = true;
+            if (parsed.result && !parsed.isHeartbeat) {
+              hadRealOutput = true;
+            }
             // Activity detected — reset the hard timeout
             resetTimeout();
             // Call onOutput for all markers (including null results)
@@ -438,15 +442,25 @@ export async function runContainerAgent(
     const HEARTBEAT_INTERVAL_MS = 30_000;
     let lastOutputTime = Date.now();
     let heartbeatTimer: ReturnType<typeof setTimeout> | null = null;
+    const MAX_HEARTBEATS = 3;
+    let heartbeatCount = 0;
+    let hadRealOutput = false;
     if (onOutput) {
       const scheduleHeartbeat = () => {
+        // Stop once a real response was sent — agent is just idle-waiting, not working
+        if (heartbeatCount >= MAX_HEARTBEATS || hadRealOutput) return;
         heartbeatTimer = setTimeout(() => {
+          if (hadRealOutput || heartbeatCount >= MAX_HEARTBEATS) return;
           if (Date.now() - lastOutputTime >= HEARTBEAT_INTERVAL_MS) {
+            heartbeatCount++;
             outputChain = outputChain.then(() =>
               onOutput({
                 status: 'success',
-                result: '⏳ Still working on it...',
+                result: heartbeatCount < MAX_HEARTBEATS
+                  ? '⏳ Still working on it...'
+                  : '⏳ This is taking a while (rate limits or slow model). Please wait or resend if it seems stuck.',
                 newSessionId,
+                isHeartbeat: true,
               }),
             );
             lastOutputTime = Date.now();
