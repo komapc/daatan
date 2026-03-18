@@ -111,7 +111,7 @@ const PwaInstaller = () => {
         </div>
         <button
           onClick={handleDismiss}
-          className="p-1 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          className="p-1 rounded-full text-text-secondary hover:text-white hover:bg-slate-800 transition-colors"
           aria-label="Close install prompt"
         >
           <X className="w-4 h-4" />

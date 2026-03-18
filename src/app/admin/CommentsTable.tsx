@@ -114,7 +114,7 @@ export default function CommentsTable() {
                       {!c.deletedAt && (
                         <button
                           onClick={() => deleteComment(c.id)}
-                          className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50"
+                          className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-900/20"
                           title="Delete Comment"
                         >
                           <Trash2 className="w-4 h-4" />

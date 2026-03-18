@@ -63,9 +63,9 @@ export default function CommitmentDisplay({
   }
 
   const getOutcomeColor = () => {
-    if (commitment.binaryChoice === true) return 'text-green-700 bg-green-50 border-green-200'
-    if (commitment.binaryChoice === false) return 'text-red-700 bg-red-50 border-red-200'
-    return 'text-blue-700 bg-blue-50 border-blue-200'
+    if (commitment.binaryChoice === true) return 'text-teal bg-teal/10 border-green-200'
+    if (commitment.binaryChoice === false) return 'text-red-400 bg-red-900/20 border-red-800/50'
+    return 'text-cobalt-light bg-cobalt/10 border-cobalt/30'
   }
 
   const formatDate = (dateString: string) => {
@@ -164,7 +164,7 @@ export default function CommitmentDisplay({
                 <button
                   onClick={handleRemoveClick}
                   disabled={isLoadingPreview || isRemoving}
-                  className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-900/20 transition-colors disabled:opacity-50"
                   aria-label="Remove commitment"
                 >
                   {isLoadingPreview ? (
@@ -181,7 +181,7 @@ export default function CommitmentDisplay({
 
         {/* Error */}
         {error && (
-          <div className="mt-3 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-600">
+          <div className="mt-3 rounded-lg bg-red-900/20 border border-red-800/50 px-3 py-2 text-sm text-red-600">
             {error}
           </div>
         )}

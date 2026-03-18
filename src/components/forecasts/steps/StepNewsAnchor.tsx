@@ -195,7 +195,7 @@ export const StepNewsAnchor = ({ formData, updateFormData }: Props) => {
       </div>
 
       {selectedAnchor ? (
-        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="p-4 bg-cobalt/10 border border-cobalt/30 rounded-lg">
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <h3 className="font-medium text-white">{selectedAnchor.title}</h3>
@@ -237,7 +237,7 @@ export const StepNewsAnchor = ({ formData, updateFormData }: Props) => {
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://example.com/article"
-                className={`w-full pl-10 pr-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${isUrl ? 'border-blue-300 bg-blue-50/30' : 'border-navy-600'}`}
+                className={`w-full pl-10 pr-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${isUrl ? 'border-blue-300 bg-cobalt/10/30' : 'border-navy-600'}`}
               />
             </div>
           </div>
@@ -293,13 +293,13 @@ export const StepNewsAnchor = ({ formData, updateFormData }: Props) => {
       )}
 
       {!skipNews && (
-        <div className="p-4 bg-blue-50 border border-blue-100 rounded-lg flex items-start gap-3">
+        <div className="p-4 bg-cobalt/10 border border-cobalt/20 rounded-lg flex items-start gap-3">
           <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
             <Wand2 className="w-5 h-5" />
           </div>
           <div>
             <h4 className="font-medium text-blue-900 text-sm">AI Magic Extract</h4>
-            <p className="text-sm text-blue-700 mt-0.5">
+            <p className="text-sm text-cobalt-light mt-0.5">
               Paste a URL and click Magic Extract. We&apos;ll automatically identify the prediction, resolution date, and options for you.
             </p>
           </div>
@@ -324,13 +324,13 @@ export const StepNewsAnchor = ({ formData, updateFormData }: Props) => {
       </div>
 
       {skipNews && (
-        <div className="p-4 bg-green-50 border border-green-100 rounded-lg flex items-start gap-3">
+        <div className="p-4 bg-teal/10 border border-teal/20 rounded-lg flex items-start gap-3">
           <div className="p-2 bg-green-100 rounded-lg text-green-600">
             <CheckCircle2 className="w-5 h-5" />
           </div>
           <div>
             <h4 className="font-medium text-green-900 text-sm">Ready to proceed</h4>
-            <p className="text-sm text-green-700 mt-0.5">
+            <p className="text-sm text-teal mt-0.5">
               You can now write your prediction claim and define the resolution criteria.
             </p>
           </div>

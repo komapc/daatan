@@ -13,7 +13,7 @@ export default function AboutPage() {
       </div>
 
       {/* Tagline */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-6 mb-6">
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-cobalt/20 rounded-xl p-6 mb-6">
         <p className="text-lg sm:text-xl font-semibold text-white mb-2">
           Prove you were right — without shouting into the void.
         </p>
@@ -29,7 +29,7 @@ export default function AboutPage() {
         </div>
         <div className="p-6 space-y-4">
           <div className="flex items-start gap-4">
-            <div className="p-2 bg-amber-50 text-amber-600 rounded-lg shrink-0">
+            <div className="p-2 bg-amber-900/20 text-amber-600 rounded-lg shrink-0">
               <Lightbulb className="w-5 h-5" />
             </div>
             <div>
@@ -40,7 +40,7 @@ export default function AboutPage() {
             </div>
           </div>
           <div className="flex items-start gap-4">
-            <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg shrink-0">
+            <div className="p-2 bg-cobalt/10 text-indigo-600 rounded-lg shrink-0">
               <Zap className="w-5 h-5" />
             </div>
             <div>
@@ -51,7 +51,7 @@ export default function AboutPage() {
             </div>
           </div>
           <div className="flex items-start gap-4">
-            <div className="p-2 bg-green-50 text-green-600 rounded-lg shrink-0">
+            <div className="p-2 bg-teal/10 text-green-600 rounded-lg shrink-0">
               <Users className="w-5 h-5" />
             </div>
             <div>
@@ -71,7 +71,7 @@ export default function AboutPage() {
         </div>
         <div className="p-6 space-y-5">
           <div className="flex items-start gap-4">
-            <div className="p-2 bg-blue-50 text-blue-600 rounded-lg shrink-0">
+            <div className="p-2 bg-cobalt/10 text-blue-600 rounded-lg shrink-0">
               <Target className="w-5 h-5" />
             </div>
             <div>
@@ -82,7 +82,7 @@ export default function AboutPage() {
             </div>
           </div>
           <div className="flex items-start gap-4">
-            <div className="p-2 bg-green-50 text-green-600 rounded-lg shrink-0">
+            <div className="p-2 bg-teal/10 text-green-600 rounded-lg shrink-0">
               <Users className="w-5 h-5" />
             </div>
             <div>
@@ -93,7 +93,7 @@ export default function AboutPage() {
             </div>
           </div>
           <div className="flex items-start gap-4">
-            <div className="p-2 bg-amber-50 text-amber-600 rounded-lg shrink-0">
+            <div className="p-2 bg-amber-900/20 text-amber-600 rounded-lg shrink-0">
               <TrendingUp className="w-5 h-5" />
             </div>
             <div>
@@ -104,7 +104,7 @@ export default function AboutPage() {
             </div>
           </div>
           <div className="flex items-start gap-4">
-            <div className="p-2 bg-purple-50 text-purple-600 rounded-lg shrink-0">
+            <div className="p-2 bg-purple-900/20 text-purple-600 rounded-lg shrink-0">
               <Shield className="w-5 h-5" />
             </div>
             <div>
@@ -271,7 +271,7 @@ export default function AboutPage() {
               <p className="font-medium text-white">Get in Touch</p>
               <a
                 href="mailto:office@daatan.com"
-                className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
+                className="text-sm text-blue-600 hover:text-cobalt-light hover:underline"
               >
                 office@daatan.com
               </a>

@@ -115,7 +115,7 @@ export const StepPrediction = ({ formData, updateFormData }: Props) => {
             Tags
             <span className="text-gray-400 font-normal ml-1">(optional, max 5)</span>
             {isSuggesting && (
-              <span className="flex items-center gap-1.5 text-blue-600 text-xs font-bold animate-pulse ml-2 px-2 py-0.5 bg-blue-50 rounded-full border border-blue-100">
+              <span className="flex items-center gap-1.5 text-blue-600 text-xs font-bold animate-pulse ml-2 px-2 py-0.5 bg-cobalt/10 rounded-full border border-cobalt/20">
                 <Loader2 className="w-3 h-3 animate-spin" />
                 AI is categorizing...
               </span>
@@ -133,9 +133,9 @@ export const StepPrediction = ({ formData, updateFormData }: Props) => {
       </div>
 
       {/* Tips */}
-      <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+      <div className="p-4 bg-amber-900/20 border border-amber-700/40 rounded-lg">
         <h3 className="font-medium text-amber-800 mb-2">💡 Tips for good predictions</h3>
-        <ul className="text-sm text-amber-700 space-y-1">
+        <ul className="text-sm text-amber-400 space-y-1">
           <li>• Be specific and measurable</li>
           <li>• Include a clear timeframe</li>
           <li>• Define what counts as success</li>

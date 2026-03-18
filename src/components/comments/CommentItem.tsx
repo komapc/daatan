@@ -237,7 +237,7 @@ export default function CommentItem({
             <div className="space-y-2">
               <p className="text-mist whitespace-pre-wrap">{translatedText ?? comment.text}</p>
               {translatedText && (
-                <div className="flex items-center gap-1.5 text-[10px] text-blue-600/70 italic bg-blue-50/30 px-2 py-1 rounded w-fit">
+                <div className="flex items-center gap-1.5 text-[10px] text-blue-600/70 italic bg-cobalt/10/30 px-2 py-1 rounded w-fit">
                   <Info className="w-3 h-3" />
                   <span>{t('disclaimer')}</span>
                 </div>
@@ -329,7 +329,7 @@ export default function CommentItem({
                 {canDelete && (
                   <button
                     onClick={handleDelete}
-                    className="flex items-center gap-1 px-2 py-1 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    className="flex items-center gap-1 px-2 py-1 text-red-600 hover:bg-red-900/20 rounded-lg transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
                     Delete
@@ -357,7 +357,7 @@ export default function CommentItem({
             <button
               onClick={loadReplies}
               disabled={isLoadingReplies}
-              className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
+              className="flex items-center gap-2 text-sm text-blue-600 hover:text-cobalt-light font-medium"
             >
               <MessageSquare className="w-4 h-4" />
               {isLoadingReplies

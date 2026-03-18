@@ -262,7 +262,7 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
               onClick={() => handleChange('isPublic', true)}
               className={`flex items-center gap-3 p-4 border rounded-xl transition-all ${
                 formData.isPublic 
-                  ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' 
+                  ? 'border-blue-500 bg-cobalt/10 ring-1 ring-blue-500' 
                   : 'border-navy-600 bg-navy-700 hover:border-gray-300'
               }`}
             >
@@ -279,7 +279,7 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
               onClick={() => handleChange('isPublic', false)}
               className={`flex items-center gap-3 p-4 border rounded-xl transition-all ${
                 !formData.isPublic 
-                  ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' 
+                  ? 'border-blue-500 bg-cobalt/10 ring-1 ring-blue-500' 
                   : 'border-navy-600 bg-navy-700 hover:border-gray-300'
               }`}
             >
@@ -316,14 +316,14 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
 
         {/* Status Messages */}
         {saveSuccess && (
-          <div className="bg-green-50 border border-green-100 text-green-700 px-4 py-3 rounded-xl flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+          <div className="bg-teal/10 border border-teal/20 text-teal px-4 py-3 rounded-xl flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
             <CheckCircle2 className="w-4 h-4" />
             <span className="text-sm font-medium">{t('saveSuccess')}</span>
           </div>
         )}
 
         {saveError && (
-          <div className="bg-red-50 border border-red-100 text-red-700 px-4 py-3 rounded-xl flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+          <div className="bg-red-900/20 border border-red-800/40 text-red-400 px-4 py-3 rounded-xl flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
             <AlertCircle className="w-4 h-4" />
             <span className="text-sm font-medium">{saveError}</span>
           </div>

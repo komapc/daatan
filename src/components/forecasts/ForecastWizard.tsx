@@ -245,8 +245,8 @@ export const ForecastWizard = ({ isExpressFlow = false, initialClaim = '' }: For
                   disabled={step.id > currentStep}
                   className={`
                     flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg transition-colors w-full min-w-0
-                    ${isActive ? 'bg-blue-50 text-blue-600' : ''}
-                    ${isCompleted ? 'text-green-600 cursor-pointer hover:bg-green-50' : ''}
+                    ${isActive ? 'bg-cobalt/10 text-blue-600' : ''}
+                    ${isCompleted ? 'text-green-600 cursor-pointer hover:bg-teal/10' : ''}
                     ${!isActive && !isCompleted ? 'text-gray-400 cursor-not-allowed' : ''}
                   `}
                 >
@@ -274,7 +274,7 @@ export const ForecastWizard = ({ isExpressFlow = false, initialClaim = '' }: For
 
       {/* Error Message */}
       {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+        <div className="mb-6 p-4 bg-red-900/20 border border-red-800/50 rounded-lg text-red-400">
           {error}
         </div>
       )}

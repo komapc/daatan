@@ -98,13 +98,13 @@ export const StepOutcome = ({ formData, updateFormData }: Props) => {
                 className={`
                   p-4 rounded-lg border-2 text-left transition-colors
                   ${isSelected 
-                    ? 'border-blue-500 bg-blue-50' 
+                    ? 'border-blue-500 bg-cobalt/10' 
                     : 'border-navy-600 hover:border-gray-300'
                   }
                 `}
               >
                 <Icon className={`w-6 h-6 mb-2 ${isSelected ? 'text-blue-600' : 'text-gray-400'}`} />
-                <div className={`font-medium ${isSelected ? 'text-blue-700' : 'text-white'}`}>
+                <div className={`font-medium ${isSelected ? 'text-cobalt-light' : 'text-white'}`}>
                   {type.label}
                 </div>
                 <div className="text-sm text-gray-500">{type.description}</div>
@@ -151,7 +151,7 @@ export const StepOutcome = ({ formData, updateFormData }: Props) => {
             <button
               type="button"
               onClick={handleAddOption}
-              className="mt-3 flex items-center gap-2 text-blue-600 hover:text-blue-700 transition-colors"
+              className="mt-3 flex items-center gap-2 text-blue-600 hover:text-cobalt-light transition-colors"
             >
               <Plus className="w-5 h-5" />
               Add Option

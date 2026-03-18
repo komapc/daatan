@@ -58,7 +58,7 @@ export const LanguagePicker = ({ currentLocale }: LanguagePickerProps) => {
             disabled={isPending}
             className={`flex items-center justify-between px-4 py-3 rounded-lg border text-sm font-medium transition-all ${
               selected === locale
-                ? 'border-blue-500 bg-blue-50 text-blue-700'
+                ? 'border-blue-500 bg-cobalt/10 text-cobalt-light'
                 : 'border-navy-600 bg-navy-700 text-text-secondary hover:border-gray-300 hover:bg-navy-800'
             }`}
             aria-label={`Switch to ${localeLabels[locale]}`}

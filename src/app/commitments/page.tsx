@@ -110,9 +110,9 @@ export default function CommitmentsPage() {
                     <div className="flex items-center gap-2 mb-2">
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
                         commitment.status === 'ACTIVE' 
-                          ? 'bg-blue-50 text-blue-700 border border-blue-100' 
+                          ? 'bg-cobalt/10 text-cobalt-light border border-cobalt/20' 
                           : commitment.status === 'RESOLVED'
-                            ? 'bg-green-50 text-green-700 border border-green-100'
+                            ? 'bg-teal/10 text-teal border border-teal/20'
                             : 'bg-navy-800 text-gray-600 border border-navy-600'
                       }`}>
                         {t(`status.${commitment.status}`)}
@@ -151,7 +151,7 @@ export default function CommitmentsPage() {
                   <PrimaryLink 
                     href={`/forecasts/${commitment.prediction.id}`}
                     size="xs"
-                    className="flex items-center gap-1 font-bold uppercase tracking-wider text-blue-600 hover:text-blue-700"
+                    className="flex items-center gap-1 font-bold uppercase tracking-wider text-blue-600 hover:text-cobalt-light"
                   >
                     {t('viewPrediction')}
                     <ArrowRight className="w-3 h-3" />

@@ -15,7 +15,7 @@ export default function AuthErrorClient() {
     <div className="min-h-screen bg-navy-800 flex flex-col items-center justify-center p-4">
       <div className="max-w-md w-full bg-navy-700 rounded-2xl shadow-sm border border-navy-600 p-8 text-center space-y-6">
         <div className="flex justify-center">
-          <div className="p-3 bg-red-50 rounded-full">
+          <div className="p-3 bg-red-900/20 rounded-full">
             <AlertCircle className="w-8 h-8 text-red-600" />
           </div>
         </div>
@@ -47,7 +47,7 @@ export default function AuthErrorClient() {
         <div className="pt-4">
           <Link
             href={signInHref}
-            className="inline-flex items-center gap-2 text-blue-600 font-medium hover:text-blue-700 transition-colors"
+            className="inline-flex items-center gap-2 text-blue-600 font-medium hover:text-cobalt-light transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Sign In

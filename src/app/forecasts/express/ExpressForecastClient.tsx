@@ -354,7 +354,7 @@ export default function ExpressForecastClient({
           </div>
 
           {error && (
-            <div className="mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm flex items-start gap-2">
+            <div className="mt-4 bg-red-900/20 border border-red-800/50 text-red-400 px-4 py-3 rounded-xl text-sm flex items-start gap-2">
               <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <span>{error}</span>
             </div>
@@ -429,9 +429,9 @@ export default function ExpressForecastClient({
             )}
 
             {predictionPreview && (
-              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+              <div className="mt-6 p-4 bg-cobalt/10 border border-cobalt/30 rounded-xl">
                 <p className="text-sm font-bold text-blue-900 mb-2">Preview:</p>
-                <p className="text-sm text-blue-800">{predictionPreview.claim}</p>
+                <p className="text-sm text-cobalt-light">{predictionPreview.claim}</p>
                 <p className="text-xs text-blue-600 mt-1">
                   Resolves: {new Date(predictionPreview.resolveBy).toLocaleDateString()}
                 </p>
@@ -476,7 +476,7 @@ export default function ExpressForecastClient({
               {isEditing ? (
                 <button
                   onClick={handleRegenerateFromEdit}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-purple-600 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-purple-600 bg-purple-900/20 rounded-lg hover:bg-purple-100 transition-colors"
                   title="Regenerate from this claim"
                 >
                   <Sparkles className="w-4 h-4" />
@@ -486,14 +486,14 @@ export default function ExpressForecastClient({
                 <>
                   <button
                     onClick={handleGenerate}
-                    className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    className="p-2 text-gray-500 hover:text-blue-600 hover:bg-cobalt/10 rounded-lg transition-colors"
                     title="Regenerate"
                   >
                     <RotateCcw className="w-5 h-5" />
                   </button>
                   <button
                     onClick={() => { setIsEditing(true); setEditForm(generated) }}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-cobalt/10 rounded-lg hover:bg-blue-100 transition-colors"
                   >
                     <Edit2 className="w-4 h-4" />
                     Edit
@@ -561,7 +561,7 @@ export default function ExpressForecastClient({
                       placeholder="Add tag..."
                       className="px-3 py-1 border rounded-full text-sm w-32"
                     />
-                    <button onClick={addTag} className="p-1 text-blue-600 hover:bg-blue-50 rounded-full">
+                    <button onClick={addTag} className="p-1 text-blue-600 hover:bg-cobalt/10 rounded-full">
                       <Plus className="w-4 h-4" />
                     </button>
                   </div>
@@ -579,7 +579,7 @@ export default function ExpressForecastClient({
                     Multiple Choice
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-100 text-cobalt-light rounded-full text-sm font-medium">
                     Binary (Yes / No)
                   </span>
                 )}
@@ -618,7 +618,7 @@ export default function ExpressForecastClient({
                         <button
                           type="button"
                           onClick={addOption}
-                          className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-sm mt-1"
+                          className="flex items-center gap-1.5 text-blue-600 hover:text-cobalt-light text-sm mt-1"
                         >
                           <Plus className="w-4 h-4" />
                           Add Option
@@ -673,7 +673,7 @@ export default function ExpressForecastClient({
 
             {/* AI Probability Suggestion */}
             {!isEditing && (
-              <div className="p-4 bg-purple-50 border border-purple-100 rounded-2xl">
+              <div className="p-4 bg-purple-900/20 border border-purple-100 rounded-2xl">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm font-bold text-purple-900 flex items-center gap-2">
                     <Sparkles className="w-4 h-4" />
@@ -723,7 +723,7 @@ export default function ExpressForecastClient({
                 href={generated.newsAnchor.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block p-4 border border-navy-600 rounded-xl hover:border-blue-300 hover:bg-blue-50 transition-colors"
+                className="block p-4 border border-navy-600 rounded-xl hover:border-blue-300 hover:bg-cobalt/10 transition-colors"
               >
                 <p className="font-medium text-white mb-1">{generated.newsAnchor.title}</p>
                 {generated.newsAnchor.source && (
@@ -741,7 +741,7 @@ export default function ExpressForecastClient({
                 onClick={() => setIsPublic(v => !v)}
                 className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-sm font-medium transition-colors ${
                   isPublic
-                    ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
+                    ? 'bg-teal/10 text-teal border-green-200 hover:bg-green-100'
                     : 'bg-navy-800 text-gray-600 border-navy-600 hover:bg-navy-700'
                 }`}
               >

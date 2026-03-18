@@ -149,8 +149,8 @@ export default function UsersTable() {
                       <select
                         value={u.role}
                         onChange={(e) => updateRole(u.id, e.target.value)}
-                        className={`border rounded p-1 text-sm outline-none focus:ring-2 focus:ring-blue-500 ${u.role === 'ADMIN' ? 'bg-purple-50 text-purple-800 border-purple-200' :
-                          u.role === 'RESOLVER' ? 'bg-blue-50 text-blue-800 border-blue-200' :
+                        className={`border rounded p-1 text-sm outline-none focus:ring-2 focus:ring-blue-500 ${u.role === 'ADMIN' ? 'bg-purple-900/20 text-purple-800 border-purple-200' :
+                          u.role === 'RESOLVER' ? 'bg-cobalt/10 text-cobalt-light border-cobalt/30' :
                             'bg-navy-700 text-white border-navy-600'
                           }`}
                       >

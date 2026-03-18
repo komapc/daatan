@@ -154,10 +154,10 @@ export default function ApprovalsPage() {
                             key={p.id}
                             className={`rounded-xl p-4 transition-all shadow-sm ${
                                 isApproved
-                                    ? 'bg-green-50 border-2 border-green-400 opacity-75'
+                                    ? 'bg-teal/10 border-2 border-green-400 opacity-75'
                                     : isRejected
-                                    ? 'bg-red-50 border-2 border-red-300 opacity-75'
-                                    : 'bg-navy-700 border border-amber-200 hover:border-amber-300'
+                                    ? 'bg-red-900/20 border-2 border-red-300 opacity-75'
+                                    : 'bg-navy-700 border border-amber-700/40 hover:border-amber-300'
                             }`}
                         >
                             {/* Approved / Rejected banner */}
@@ -208,7 +208,7 @@ export default function ApprovalsPage() {
 
                                     <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
                                         {!resolved && (
-                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-medium">
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-900/20 text-amber-400 font-medium">
                                                 Pending Approval
                                             </span>
                                         )}
@@ -223,7 +223,7 @@ export default function ApprovalsPage() {
                                 <div className="flex items-center gap-2 shrink-0">
                                     <Link
                                         href={`/forecasts/${p.slug || p.id}`}
-                                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-cobalt/10 rounded-lg transition-colors"
                                         title="View forecast"
                                     >
                                         <ExternalLink className="w-4 h-4" />
@@ -244,7 +244,7 @@ export default function ApprovalsPage() {
                                     <button
                                         onClick={() => handleReject(p.id)}
                                         disabled={actioningId === p.id}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-navy-700 border border-red-200 text-red-600 text-sm font-medium rounded-lg hover:bg-red-50 disabled:opacity-50 transition-colors"
+                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-navy-700 border border-red-800/50 text-red-600 text-sm font-medium rounded-lg hover:bg-red-900/20 disabled:opacity-50 transition-colors"
                                         title="Reject — set to VOID"
                                     >
                                         <XCircle className="w-4 h-4" />

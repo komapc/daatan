@@ -257,7 +257,7 @@ export default function ForecastCard({
       case 'ACTIVE':
         return {
           icon: <TrendingUp className="w-3 h-3" />,
-          className: 'bg-green-100 text-green-700',
+          className: 'bg-green-100 text-teal',
           label: t('active')
         }
       case 'PENDING':
@@ -269,19 +269,19 @@ export default function ForecastCard({
       case 'PENDING_APPROVAL':
         return {
           icon: <Clock className="w-3 h-3" />,
-          className: 'bg-amber-100 text-amber-700',
+          className: 'bg-amber-100 text-amber-400',
           label: t('pendingApproval')
         }
       case 'RESOLVED_CORRECT':
         return {
           icon: <CheckCircle2 className="w-3 h-3" />,
-          className: 'bg-blue-100 text-blue-700',
+          className: 'bg-blue-100 text-cobalt-light',
           label: t('correct')
         }
       case 'RESOLVED_WRONG':
         return {
           icon: <XCircle className="w-3 h-3" />,
-          className: 'bg-red-100 text-red-700',
+          className: 'bg-red-100 text-red-400',
           label: t('wrong')
         }
       case 'UNRESOLVABLE':
@@ -346,7 +346,7 @@ export default function ForecastCard({
               {badge.label}
             </span>
             {prediction.totalCuCommitted !== undefined && prediction.totalCuCommitted > 0 && (
-              <span className="flex items-center gap-1 px-2.5 py-0.5 bg-amber-50 text-amber-700 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider border border-amber-100">
+              <span className="flex items-center gap-1 px-2.5 py-0.5 bg-amber-900/20 text-amber-400 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider border border-amber-100">
                 💰 {prediction.totalCuCommitted} CU
               </span>
             )}
@@ -355,7 +355,7 @@ export default function ForecastCard({
                 {prediction.tags.slice(0, 2).map((tag) => (
                   <span
                     key={tag.name}
-                    className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] sm:text-xs font-medium rounded-full border border-blue-100"
+                    className="px-2 py-0.5 bg-cobalt/10 text-blue-600 text-[10px] sm:text-xs font-medium rounded-full border border-cobalt/20"
                   >
                     {tag.name}
                   </span>
@@ -377,7 +377,7 @@ export default function ForecastCard({
               <button
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowTranslated(!showTranslated); }}
                 className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider border transition-colors ${
-                  showTranslated ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-navy-800 text-gray-500 border-navy-600'
+                  showTranslated ? 'bg-blue-100 text-cobalt-light border-cobalt/30' : 'bg-navy-800 text-gray-500 border-navy-600'
                 }`}
                 title={showTranslated ? tt('showOriginal') : tt('translate')}
               >
@@ -391,7 +391,7 @@ export default function ForecastCard({
           </div>
 
           {/* Claim Text */}
-          <h3 className="text-base sm:text-lg font-semibold text-white mb-3 group-hover:text-blue-700 transition-colors line-clamp-2 leading-snug">
+          <h3 className="text-base sm:text-lg font-semibold text-white mb-3 group-hover:text-cobalt-light transition-colors line-clamp-2 leading-snug">
             {showTranslated && translatedClaim ? translatedClaim : prediction.claimText}
           </h3>
 
@@ -468,7 +468,7 @@ export default function ForecastCard({
 
             {/* User Committed Indicator */}
             {prediction.userHasCommitted && (
-              <div className="flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full text-xs font-medium">
+              <div className="flex items-center gap-1 px-2 py-0.5 bg-cobalt/10 text-blue-600 rounded-full text-xs font-medium">
                 <CheckCircle2 className="w-3 h-3" />
                 <span>{t('committedLabel')}</span>
               </div>
@@ -493,7 +493,7 @@ export default function ForecastCard({
                 <button
                   onClick={handleReject}
                   disabled={isApproving}
-                  className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-red-600 border border-red-200 hover:bg-red-50 disabled:opacity-50 rounded-lg transition-colors"
+                  className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-red-600 border border-red-800/50 hover:bg-red-900/20 disabled:opacity-50 rounded-lg transition-colors"
                   title="Reject forecast"
                   aria-label="Reject forecast"
                 >
@@ -533,7 +533,7 @@ export default function ForecastCard({
                     {canAdminister && (
                       <button
                         onClick={handleDelete}
-                        className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                        className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-red-600 hover:bg-red-900/20 transition-colors"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                         {t('delete')}
@@ -547,7 +547,7 @@ export default function ForecastCard({
         )}
 
         <div className="flex-shrink-0 self-center">
-          <div className="w-8 h-8 rounded-full bg-navy-800 flex items-center justify-center group-hover:bg-blue-50 transition-colors">
+          <div className="w-8 h-8 rounded-full bg-navy-800 flex items-center justify-center group-hover:bg-cobalt/10 transition-colors">
             <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-blue-500" />
           </div>
         </div>

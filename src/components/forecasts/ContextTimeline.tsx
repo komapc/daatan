@@ -119,7 +119,7 @@ export default function ContextTimeline({
           <button
             onClick={handleAnalyze}
             disabled={isAnalyzing}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-600 bg-cobalt/10 hover:bg-blue-100 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isAnalyzing ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -151,7 +151,7 @@ export default function ContextTimeline({
                     href={src.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                    className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-cobalt-light hover:underline"
                   >
                     {src.source || src.title}
                     <ExternalLink className="w-3 h-3" />
@@ -200,7 +200,7 @@ export default function ContextTimeline({
                           href={src.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-0.5 text-xs text-blue-500 hover:text-blue-700 hover:underline"
+                          className="inline-flex items-center gap-0.5 text-xs text-blue-500 hover:text-cobalt-light hover:underline"
                         >
                           {src.source || src.title}
                           <ExternalLink className="w-2.5 h-2.5" />

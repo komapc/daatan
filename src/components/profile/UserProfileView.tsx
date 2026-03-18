@@ -87,7 +87,7 @@ export async function UserProfileView({
                     href={user.website}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                    className="flex items-center gap-1 text-sm text-blue-600 hover:text-cobalt-light font-medium"
                   >
                     <Globe className="w-4 h-4" />
                     {t('website')}
@@ -98,7 +98,7 @@ export async function UserProfileView({
                     href={`https://twitter.com/${user.twitterHandle}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                    className="flex items-center gap-1 text-sm text-blue-600 hover:text-cobalt-light font-medium"
                   >
                     <Twitter className="w-4 h-4" />
                     @{user.twitterHandle}
@@ -161,7 +161,7 @@ export async function UserProfileView({
               <EmptyState
                 variant="dashed"
                 icon={<TrendingUp className="w-7 h-7 text-blue-400" />}
-                iconBgClass="bg-blue-50"
+                iconBgClass="bg-cobalt/10"
                 description={isOwnProfile ? t('noStakes') : 'No recent stakes found for this user.'}
                 action={isOwnProfile ? { label: t('browseForecasts'), href: '/' } : undefined}
               />
@@ -192,7 +192,7 @@ export async function UserProfileView({
               <EmptyState
                 variant="dashed"
                 icon={<Sparkles className="w-7 h-7 text-purple-400" />}
-                iconBgClass="bg-purple-50"
+                iconBgClass="bg-purple-900/20"
                 description={isOwnProfile ? t('noForecasts') : 'No public forecasts found.'}
                 action={isOwnProfile ? { label: t('createForecast'), href: '/create', variant: 'purple' } : undefined}
               />

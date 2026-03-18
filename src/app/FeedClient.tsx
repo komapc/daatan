@@ -152,7 +152,7 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
       {/* Welcome Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-50 rounded-lg">
+          <div className="p-2 bg-cobalt/10 rounded-lg">
             <Home className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
           </div>
           <div>
@@ -178,7 +178,7 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
               onClick={() => handleSetFilter('ACTIVE')}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === 'ACTIVE'
                 ? 'bg-blue-600 text-white shadow-sm'
-                : 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100'
+                : 'bg-cobalt/10 text-cobalt-light border border-cobalt/30 hover:bg-blue-100'
                 }`}
             >
               {t('filters.open')}
@@ -206,7 +206,7 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
                 onClick={() => handleSetFilter('NEEDS_REVIEW')}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === 'NEEDS_REVIEW'
                   ? 'bg-purple-600 text-white shadow-sm'
-                  : 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-100'
+                  : 'bg-purple-900/20 text-purple-700 hover:bg-purple-100 border border-purple-100'
                   }`}
               >
                 {t('filters.needsReview')}
@@ -305,7 +305,7 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
 
       {/* Feed Content */}
       {fetchError && (
-        <div className="mb-6 bg-red-50 border border-red-100 text-red-700 px-4 py-3 rounded-lg text-sm">
+        <div className="mb-6 bg-red-900/20 border border-red-800/40 text-red-400 px-4 py-3 rounded-lg text-sm">
           <strong>Error loading forecasts:</strong> {fetchError}
         </div>
       )}
@@ -317,7 +317,7 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
         <EmptyState
           variant="card"
           icon={<TrendingUp className="w-10 h-10 text-blue-500" />}
-          iconBgClass="bg-blue-50"
+          iconBgClass="bg-cobalt/10"
           title={t('empty')}
           description={t('emptyDesc')}
           action={{ label: t('createFirst'), href: '/create', icon: <Plus className="w-4 h-4" /> }}

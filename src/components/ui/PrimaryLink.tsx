@@ -31,7 +31,7 @@ export const PrimaryLink: React.FC<PrimaryLinkProps> = ({
   }
 
   const colors = {
-    blue: 'text-blue-600 hover:text-blue-700',
+    blue: 'text-blue-600 hover:text-cobalt-light',
     gray: 'text-gray-600 hover:text-white',
   }
 

@@ -113,7 +113,7 @@ export default function ActivityFeedPage() {
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 bg-navy-700 rounded-xl border border-navy-600 p-4 hover:border-blue-200 hover:shadow-sm transition-all">
+                <div className="flex-1 bg-navy-700 rounded-xl border border-navy-600 p-4 hover:border-cobalt/30 hover:shadow-sm transition-all">
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="text-sm text-text-secondary">
                       <UserLink 

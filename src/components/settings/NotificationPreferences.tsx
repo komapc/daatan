@@ -119,10 +119,10 @@ export default function NotificationPreferences() {
       {isSupported && !pushLoading && (
         <div className={`flex items-center justify-between rounded-lg px-4 py-3 mb-4 text-sm ${
           isSubscribed
-            ? 'bg-green-50 border border-green-200 text-green-800'
+            ? 'bg-teal/10 border border-green-200 text-green-800'
             : permission === 'denied'
-            ? 'bg-red-50 border border-red-200 text-red-800'
-            : 'bg-blue-50 border border-blue-200 text-blue-800'
+            ? 'bg-red-900/20 border border-red-800/50 text-red-800'
+            : 'bg-cobalt/10 border border-cobalt/30 text-cobalt-light'
         }`}>
           <div className="flex items-center gap-2">
             {isSubscribed ? (
@@ -220,7 +220,7 @@ export default function NotificationPreferences() {
                       onClick={handleConnectPush}
                       variant="ghost"
                       size="xs"
-                      className="text-blue-600 hover:text-blue-700 hover:underline"
+                      className="text-blue-600 hover:text-cobalt-light hover:underline"
                     >
                       Connect
                     </Button>

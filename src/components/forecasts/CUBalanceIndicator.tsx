@@ -20,9 +20,9 @@ export default function CUBalanceIndicator({
 
   // Color coding based on available CU
   const getAccent = () => {
-    if (cuAvailable > 50) return { ring: '#22c55e', text: 'text-green-600', bg: 'bg-green-50' }
-    if (cuAvailable >= 10) return { ring: '#eab308', text: 'text-yellow-600', bg: 'bg-yellow-50' }
-    return { ring: '#ef4444', text: 'text-red-600', bg: 'bg-red-50' }
+    if (cuAvailable > 50) return { ring: '#22c55e', text: 'text-green-600', bg: 'bg-teal/10' }
+    if (cuAvailable >= 10) return { ring: '#eab308', text: 'text-yellow-600', bg: 'bg-amber-900/20' }
+    return { ring: '#ef4444', text: 'text-red-600', bg: 'bg-red-900/20' }
   }
 
   const accent = getAccent()

@@ -70,7 +70,7 @@ export function TagSelector({
                 {selectedTags.map(tag => (
                     <span
                         key={tag}
-                        className="flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full text-sm font-medium animate-in fade-in zoom-in duration-200"
+                        className="flex items-center gap-1 px-2.5 py-1 bg-cobalt/10 text-cobalt-light rounded-full text-sm font-medium animate-in fade-in zoom-in duration-200"
                     >
                         {tag}
                         <button

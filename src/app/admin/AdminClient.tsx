@@ -102,7 +102,7 @@ export default function AdminClient() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-3 mb-8">
-        <div className="p-3 bg-red-50 rounded-xl">
+        <div className="p-3 bg-red-900/20 rounded-xl">
           <Shield className="w-8 h-8 text-red-600" />
         </div>
         <div>
@@ -178,11 +178,11 @@ function ForecastsTab() {
 
   const statusColors: Record<string, string> = {
     DRAFT: 'bg-navy-700 text-text-secondary',
-    ACTIVE: 'bg-green-100 text-green-700',
+    ACTIVE: 'bg-green-100 text-teal',
     PENDING: 'bg-yellow-100 text-yellow-700',
-    PENDING_APPROVAL: 'bg-amber-100 text-amber-700',
-    RESOLVED_CORRECT: 'bg-blue-100 text-blue-700',
-    RESOLVED_WRONG: 'bg-red-100 text-red-700',
+    PENDING_APPROVAL: 'bg-amber-100 text-amber-400',
+    RESOLVED_CORRECT: 'bg-blue-100 text-cobalt-light',
+    RESOLVED_WRONG: 'bg-red-100 text-red-400',
     VOID: 'bg-navy-700 text-gray-500',
     UNRESOLVABLE: 'bg-purple-100 text-purple-700',
   }
@@ -273,7 +273,7 @@ function ForecastsTab() {
                       <td className="px-4 py-3 text-center">
                         <Link
                           href={`/forecasts/${p.slug || p.id}`}
-                          className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs font-medium"
+                          className="inline-flex items-center gap-1 text-blue-600 hover:text-cobalt-light text-xs font-medium"
                         >
                           <ExternalLink className="w-3 h-3" />
                           View
@@ -384,7 +384,7 @@ function CommentsTab() {
               return (
                 <div
                   key={c.id}
-                  className={`bg-navy-700 border rounded-xl p-4 ${c.deletedAt ? 'border-red-200 bg-red-50/30 opacity-60' : 'border-navy-600'}`}
+                  className={`bg-navy-700 border rounded-xl p-4 ${c.deletedAt ? 'border-red-800/50 bg-red-900/20/30 opacity-60' : 'border-navy-600'}`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
@@ -421,7 +421,7 @@ function CommentsTab() {
                       <button
                         onClick={() => handleDelete(c.id)}
                         disabled={deletingId === c.id}
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-900/20 rounded-lg transition-colors"
                         title="Delete comment"
                       >
                         {deletingId === c.id ? (
@@ -554,12 +554,12 @@ function UsersTab() {
                       <td className="px-4 py-3 text-center">
                         <div className="flex items-center justify-center gap-1">
                           {u.role === 'ADMIN' && (
-                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-400">
                               <Crown className="w-3 h-3" /> Admin
                             </span>
                           )}
                           {u.role === 'RESOLVER' && (
-                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-cobalt-light">
                               <ShieldCheck className="w-3 h-3" /> Resolver
                             </span>
                           )}

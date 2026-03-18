@@ -79,7 +79,7 @@ export default function PredictionsPage() {
       </div>
 
       {fetchError && (
-        <div className="mb-6 bg-red-50 border border-red-100 text-red-700 px-4 py-3 rounded-lg text-sm">
+        <div className="mb-6 bg-red-900/20 border border-red-800/40 text-red-400 px-4 py-3 rounded-lg text-sm">
           <strong>Error loading forecasts:</strong> {fetchError}
         </div>
       )}

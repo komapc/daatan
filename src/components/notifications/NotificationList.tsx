@@ -165,7 +165,7 @@ export default function NotificationList({
             onClick={handleMarkAllRead}
             disabled={markingAllRead}
             aria-label="Mark all notifications as read"
-            className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium disabled:opacity-50"
+            className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-cobalt-light font-medium disabled:opacity-50"
           >
             {markingAllRead ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -186,7 +186,7 @@ export default function NotificationList({
             <div
               key={notification.id}
               className={`w-full flex items-start gap-3 p-4 rounded-lg transition-colors group relative ${
-                !notification.read ? 'bg-blue-50/50' : 'hover:bg-navy-800'
+                !notification.read ? 'bg-cobalt/10/50' : 'hover:bg-navy-800'
               }`}
             >
               {/* Entire notification area links to target */}
@@ -245,7 +245,7 @@ export default function NotificationList({
             onClick={handleLoadMore}
             disabled={loadingMore}
             aria-label={`Load more notifications, ${total - notifications.length} remaining`}
-            className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-50 disabled:opacity-50"
+            className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-cobalt-light border border-cobalt/30 rounded-lg hover:bg-cobalt/10 disabled:opacity-50"
           >
             {loadingMore ? (
               <Loader2 className="w-4 h-4 animate-spin" />

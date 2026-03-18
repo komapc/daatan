@@ -230,13 +230,13 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
 
         {/* Error/Success Messages */}
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+          <div className="bg-red-900/20 border border-red-800/50 text-red-400 px-4 py-3 rounded-xl text-sm">
             {error}
           </div>
         )}
 
         {success && (
-          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl text-sm">
+          <div className="bg-teal/10 border border-green-200 text-teal px-4 py-3 rounded-xl text-sm">
             Profile updated successfully! Redirecting...
           </div>
         )}

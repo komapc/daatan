@@ -9,7 +9,7 @@ interface EmptyStateAction {
 
 interface EmptyStateProps {
   icon: React.ReactNode
-  /** Background class for the icon circle, e.g. 'bg-blue-50'. Omit to render icon without circle. */
+  /** Background class for the icon circle, e.g. 'bg-cobalt/10'. Omit to render icon without circle. */
   iconBgClass?: string
   title?: string
   description?: React.ReactNode

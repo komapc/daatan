@@ -105,7 +105,7 @@ export default function LeaderboardPage() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">
       {/* Header */}
       <div className="flex flex-col items-center text-center mb-8">
-        <div className="p-4 bg-yellow-50 rounded-2xl mb-4">
+        <div className="p-4 bg-amber-900/20 rounded-2xl mb-4">
           <Trophy className="w-10 h-10 sm:w-12 sm:h-12 text-yellow-500" />
         </div>
         <h1 className="text-3xl sm:text-4xl font-black text-white mb-2 tracking-tight">{t('title')}</h1>
@@ -141,7 +141,7 @@ export default function LeaderboardPage() {
         <EmptyState
           variant="card"
           icon={<Trophy className="w-10 h-10 text-yellow-500" />}
-          iconBgClass="bg-yellow-50"
+          iconBgClass="bg-amber-900/20"
           title={t('noUsers')}
           description={t('noUsersDesc')}
           action={{ label: t('browseForecasts'), href: '/' }}
@@ -163,7 +163,7 @@ export default function LeaderboardPage() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {users.map((user, index) => (
-                  <tr key={user.id} className={`hover:bg-blue-50/30 transition-colors ${index < 3 ? 'bg-yellow-50/10' : ''}`}>
+                  <tr key={user.id} className={`hover:bg-cobalt/10/30 transition-colors ${index < 3 ? 'bg-amber-900/20/10' : ''}`}>
                     <td className="px-4 sm:px-6 py-4">
                       <div className="flex justify-center">
                         {getRankIcon(index)}

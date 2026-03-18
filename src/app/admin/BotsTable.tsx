@@ -226,7 +226,7 @@ export default function BotsTable() {
       </div>
 
       {actionMsg && (
-        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+        <div className="mb-4 p-3 bg-cobalt/10 border border-cobalt/30 rounded-lg text-sm text-cobalt-light">
           {actionMsg}
         </div>
       )}
@@ -248,7 +248,7 @@ export default function BotsTable() {
       )}
 
       {runResult && (
-        <div className="mb-6 border-2 border-blue-200 bg-blue-50 rounded-xl overflow-hidden shadow-sm">
+        <div className="mb-6 border-2 border-cobalt/30 bg-cobalt/10 rounded-xl overflow-hidden shadow-sm">
           <div className="bg-blue-600 px-4 py-2 flex justify-between items-center">
             <h3 className="text-sm font-bold text-white uppercase tracking-wider">Run Summary: {runResult.botName}</h3>
             <button onClick={() => setRunResult(null)} className="text-blue-100 hover:text-white">
@@ -257,10 +257,10 @@ export default function BotsTable() {
           </div>
           <div className="p-4">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
-              <Stat label="Created" value={runResult.forecastsCreated} color="text-green-700" />
-              <Stat label="Votes" value={runResult.votes} color="text-blue-700" />
+              <Stat label="Created" value={runResult.forecastsCreated} color="text-teal" />
+              <Stat label="Votes" value={runResult.votes} color="text-cobalt-light" />
               <Stat label="Skipped" value={runResult.skipped} color="text-gray-600" />
-              <Stat label="Errors" value={runResult.errors} color="text-red-700" />
+              <Stat label="Errors" value={runResult.errors} color="text-red-400" />
             </div>
 
             {runResult.hotTopics && runResult.hotTopics.length > 0 ? (
@@ -269,7 +269,7 @@ export default function BotsTable() {
                 <div className="max-h-60 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
                   {runResult.hotTopics.map((topic, i) => (
                     <div key={i} className="bg-navy-700 border rounded-lg p-3 text-sm shadow-sm group hover:border-blue-300 transition-colors">
-                      <div className="font-semibold text-white group-hover:text-blue-700">{topic.title}</div>
+                      <div className="font-semibold text-white group-hover:text-cobalt-light">{topic.title}</div>
                       <div className="text-[10px] text-gray-400 mt-0.5">Appears in {topic.sourceCount} sources</div>
                       <div className="mt-2 space-y-1">
                         {topic.items.slice(0, 3).map((item, j) => (
@@ -330,7 +330,7 @@ export default function BotsTable() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-white">{bot.user.name}</span>
                       <span className="text-xs font-mono text-gray-500">@{bot.user.username}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${bot.isActive ? 'bg-green-100 text-green-700' : 'bg-navy-700 text-gray-500'
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${bot.isActive ? 'bg-green-100 text-teal' : 'bg-navy-700 text-gray-500'
                         }`}>
                         {bot.isActive ? 'Active' : 'Disabled'}
                       </span>
@@ -375,7 +375,7 @@ export default function BotsTable() {
                     <button
                       onClick={() => setEditingBot(bot)}
                       title="Edit config"
-                      className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                      className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-cobalt/10 rounded transition-colors"
                     >
                       <Pencil className="w-4 h-4" />
                     </button>
@@ -383,7 +383,7 @@ export default function BotsTable() {
                       onClick={() => runBot(bot.id, true)}
                       disabled={isRunning}
                       title="Test (dry run)"
-                      className="flex items-center gap-1 text-xs px-2 py-1.5 border border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100 rounded transition-colors disabled:opacity-50"
+                      className="flex items-center gap-1 text-xs px-2 py-1.5 border border-amber-300 text-amber-400 bg-amber-900/20 hover:bg-amber-100 rounded transition-colors disabled:opacity-50"
                     >
                       {isRunning ? <Loader2 className="w-3 h-3 animate-spin" /> : <FlaskConical className="w-3 h-3" />}
                       Test
@@ -392,7 +392,7 @@ export default function BotsTable() {
                       onClick={() => runBot(bot.id, false)}
                       disabled={isRunning}
                       title="Run now"
-                      className="flex items-center gap-1 text-xs px-2 py-1.5 border border-green-300 text-green-700 bg-green-50 hover:bg-green-100 rounded transition-colors disabled:opacity-50"
+                      className="flex items-center gap-1 text-xs px-2 py-1.5 border border-green-300 text-teal bg-teal/10 hover:bg-green-100 rounded transition-colors disabled:opacity-50"
                     >
                       {isRunning ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
                       Run
@@ -401,8 +401,8 @@ export default function BotsTable() {
                       onClick={() => toggleActive(bot)}
                       title={bot.isActive ? 'Disable' : 'Enable'}
                       className={`p-1.5 rounded transition-colors ${bot.isActive
-                        ? 'text-green-600 hover:bg-red-50 hover:text-red-600'
-                        : 'text-gray-400 hover:bg-green-50 hover:text-green-600'
+                        ? 'text-green-600 hover:bg-red-900/20 hover:text-red-600'
+                        : 'text-gray-400 hover:bg-teal/10 hover:text-green-600'
                         }`}
                     >
                       <Power className="w-4 h-4" />
@@ -503,7 +503,7 @@ function CreateBotForm({ onCreated, onCancel }: { onCreated: () => void; onCance
   }
 
   return (
-    <div className="border rounded-lg p-4 mb-4 bg-blue-50 border-blue-200">
+    <div className="border rounded-lg p-4 mb-4 bg-cobalt/10 border-cobalt/30">
       <h3 className="font-semibold text-mist mb-3">New bot</h3>
       <form onSubmit={submit} className="flex gap-2 items-end flex-wrap">
         <div>
@@ -883,7 +883,7 @@ function EditBotModal({ bot, allTags, onSave, onClose }: {
             <div className="mt-2 space-y-2">
               <div className="flex flex-wrap gap-1.5 min-h-8 p-2 border rounded bg-navy-700">
                 {form.tagFilter.map(slug => (
-                  <span key={slug} className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-medium">
+                  <span key={slug} className="inline-flex items-center gap-1 bg-blue-100 text-cobalt-light px-2 py-0.5 rounded text-xs font-medium">
                     {allTags.find(t => t.slug === slug)?.name ?? slug}
                     <button type="button" onClick={() => toggleTag(slug)} className="hover:text-blue-900">
                       <X className="w-3 h-3" />
@@ -919,7 +919,7 @@ function EditBotModal({ bot, allTags, onSave, onClose }: {
                         key={tag.id}
                         type="button"
                         onClick={() => { toggleTag(tag.slug); setTagInput(''); setShowTagSuggestions(false) }}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 transition-colors border-b last:border-0"
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-cobalt/10 transition-colors border-b last:border-0"
                       >
                         <span className="font-medium">{tag.name}</span>
                         <span className="ml-2 text-[10px] text-gray-400">#{tag.slug}</span>
@@ -1013,10 +1013,10 @@ function relativeTime(iso: string): string {
 
 function actionBadge(action: string): string {
   switch (action) {
-    case 'CREATED_FORECAST': return 'bg-green-100 text-green-700'
-    case 'VOTED': return 'bg-blue-100 text-blue-700'
+    case 'CREATED_FORECAST': return 'bg-green-100 text-teal'
+    case 'VOTED': return 'bg-blue-100 text-cobalt-light'
     case 'SKIPPED': return 'bg-navy-700 text-gray-600'
-    case 'ERROR': return 'bg-red-100 text-red-700'
+    case 'ERROR': return 'bg-red-100 text-red-400'
     default: return 'bg-navy-700 text-gray-600'
   }
 }

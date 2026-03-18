@@ -93,7 +93,7 @@ export function ResolutionForm({ predictionId, outcomeType, options, onResolved 
 
   if (resolved) {
     return (
-      <div className="bg-green-50 border border-green-200 rounded-lg p-6 flex items-center gap-3 text-green-800">
+      <div className="bg-teal/10 border border-green-200 rounded-lg p-6 flex items-center gap-3 text-green-800">
         <CheckCircle className="w-6 h-6 text-green-600 shrink-0" />
         <div>
           <div className="font-semibold">Forecast resolved as: {outcome}</div>
@@ -117,7 +117,7 @@ export function ResolutionForm({ predictionId, outcomeType, options, onResolved 
           variant="secondary"
           size="sm"
           leftIcon={!isResearching && <Sparkles className="w-4 h-4" />}
-          className="text-blue-600 bg-blue-50 border border-blue-100 hover:bg-blue-100"
+          className="text-blue-600 bg-cobalt/10 border border-cobalt/20 hover:bg-blue-100"
         >
           AI Assist
         </Button>
@@ -131,7 +131,7 @@ export function ResolutionForm({ predictionId, outcomeType, options, onResolved 
             type="button"
             onClick={() => setOutcome('correct')}
             className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-all ${outcome === 'correct'
-              ? 'border-green-500 bg-green-50'
+              ? 'border-green-500 bg-teal/10'
               : 'border-navy-600 hover:border-green-300'
               }`}
           >
@@ -146,7 +146,7 @@ export function ResolutionForm({ predictionId, outcomeType, options, onResolved 
             type="button"
             onClick={() => setOutcome('wrong')}
             className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-all ${outcome === 'wrong'
-              ? 'border-red-500 bg-red-50'
+              ? 'border-red-500 bg-red-900/20'
               : 'border-navy-600 hover:border-red-300'
               }`}
           >
@@ -161,7 +161,7 @@ export function ResolutionForm({ predictionId, outcomeType, options, onResolved 
             type="button"
             onClick={() => setOutcome('void')}
             className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-all ${outcome === 'void'
-              ? 'border-yellow-500 bg-yellow-50'
+              ? 'border-yellow-500 bg-amber-900/20'
               : 'border-navy-600 hover:border-yellow-300'
               }`}
           >
@@ -200,7 +200,7 @@ export function ResolutionForm({ predictionId, outcomeType, options, onResolved 
                 type="button"
                 onClick={() => setCorrectOptionId(option.id)}
                 className={`flex items-center justify-between p-3 rounded-lg border transition-all text-sm ${correctOptionId === option.id
-                  ? 'border-blue-500 bg-blue-50 text-blue-700'
+                  ? 'border-blue-500 bg-cobalt/10 text-cobalt-light'
                   : 'border-navy-600 hover:bg-navy-800 text-text-secondary'
                   }`}
               >
@@ -244,7 +244,7 @@ export function ResolutionForm({ predictionId, outcomeType, options, onResolved 
       </div>
 
       {error && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+        <div className="p-3 bg-red-900/20 border border-red-800/50 rounded-lg text-red-400 text-sm">
           {error}
         </div>
       )}

@@ -166,7 +166,7 @@ export default async function ProfilePage() {
                       href={user.website}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                      className="flex items-center gap-1 text-sm text-blue-600 hover:text-cobalt-light font-medium"
                     >
                       <Globe className="w-4 h-4" />
                       {t('website')}
@@ -177,7 +177,7 @@ export default async function ProfilePage() {
                       href={`https://twitter.com/${user.twitterHandle}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                      className="flex items-center gap-1 text-sm text-blue-600 hover:text-cobalt-light font-medium"
                     >
                       <Twitter className="w-4 h-4" />
                       @{user.twitterHandle}
@@ -238,7 +238,7 @@ export default async function ProfilePage() {
                 <EmptyState
                   variant="dashed"
                   icon={<TrendingUp className="w-7 h-7 text-blue-400" />}
-                  iconBgClass="bg-blue-50"
+                  iconBgClass="bg-cobalt/10"
                   description={t('noStakes')}
                   action={{ label: t('browseForecasts'), href: '/' }}
                 />
@@ -269,7 +269,7 @@ export default async function ProfilePage() {
                 <EmptyState
                   variant="dashed"
                   icon={<Sparkles className="w-7 h-7 text-purple-400" />}
-                  iconBgClass="bg-purple-50"
+                  iconBgClass="bg-purple-900/20"
                   description={t('noForecasts')}
                   action={{ label: t('createForecast'), href: '/create', variant: 'purple' }}
                 />
@@ -287,9 +287,9 @@ export default async function ProfilePage() {
     createLogger('profile').error({ err: error }, 'Profile page error')
     return (
       <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
-        <div className="bg-red-50 border border-red-200 rounded-3xl p-8 text-center">
+        <div className="bg-red-900/20 border border-red-800/50 rounded-3xl p-8 text-center">
           <h1 className="text-2xl font-bold text-red-900 mb-2">{t('errorTitle')}</h1>
-          <p className="text-red-700 mb-6">
+          <p className="text-red-400 mb-6">
             {t('errorDesc')}
           </p>
           <div className="flex gap-4 justify-center">

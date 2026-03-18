@@ -172,7 +172,7 @@ export default function CommitmentForm({
   }
 
   return (
-    <div className="space-y-4 rounded-xl border border-blue-200 bg-blue-50/30 p-4 shadow-sm">
+    <div className="space-y-4 rounded-xl border border-cobalt/30 bg-cobalt/10/30 p-4 shadow-sm">
       <div className="flex items-center justify-between">
         <h3 className="text-base font-semibold text-white">
           {isUpdate ? t('updateCommitment') : t('makeCommitment')}
@@ -190,7 +190,7 @@ export default function CommitmentForm({
       </div>
 
       {error && (
-        <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">
+        <div className="rounded-md bg-red-900/20 p-3 text-sm text-red-400">
           {error}
         </div>
       )}
@@ -233,7 +233,7 @@ export default function CommitmentForm({
                 disabled={isSubmitting || pendingOutcome !== null}
                 className={`flex-1 rounded-lg border px-4 py-2.5 text-sm font-semibold transition-all shadow-sm ${isCurrentOutcome(true)
                   ? 'bg-green-600 text-white border-green-700 hover:bg-green-700'
-                  : 'bg-navy-700 text-text-secondary border-gray-300 hover:bg-green-50 hover:border-green-400 hover:text-green-700'
+                  : 'bg-navy-700 text-text-secondary border-gray-300 hover:bg-teal/10 hover:border-green-400 hover:text-teal'
                   } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 {isSubmitting ? '...' : isUpdate ? (isCurrentOutcome(true) ? t('update') : `Switch to ${t('willHappen')}`) : t('willHappen')}
@@ -244,7 +244,7 @@ export default function CommitmentForm({
                 disabled={isSubmitting || pendingOutcome !== null}
                 className={`flex-1 rounded-lg border px-4 py-2.5 text-sm font-semibold transition-all shadow-sm ${isCurrentOutcome(false)
                   ? 'bg-red-500 text-white border-red-600 hover:bg-red-600'
-                  : 'bg-navy-700 text-text-secondary border-gray-300 hover:bg-red-50 hover:border-red-400 hover:text-red-700'
+                  : 'bg-navy-700 text-text-secondary border-gray-300 hover:bg-red-900/20 hover:border-red-400 hover:text-red-400'
                   } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 {isSubmitting ? '...' : isUpdate ? (isCurrentOutcome(false) ? t('update') : `Switch to ${t('wontHappen')}`) : t('wontHappen')}
@@ -260,7 +260,7 @@ export default function CommitmentForm({
                   disabled={isSubmitting || pendingOutcome !== null}
                   className={`w-full text-left rounded-lg border px-4 py-3 text-sm font-medium transition-all shadow-sm flex items-center justify-between ${isCurrentOutcome(option.id)
                     ? 'bg-blue-600 text-white border-blue-700 hover:bg-blue-700'
-                    : 'bg-navy-700 text-white border-gray-300 hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700'
+                    : 'bg-navy-700 text-white border-gray-300 hover:bg-cobalt/10 hover:border-blue-400 hover:text-cobalt-light'
                     } disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   <span>{option.text}</span>
