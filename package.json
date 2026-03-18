@@ -1,6 +1,5 @@
 {
   "name": "daatan",
-  "version": "1.7.93",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -75,5 +74,6 @@
     "typescript": "^5",
     "vitest": "^4.0.17",
     "@vitest/coverage-v8": "^4.0.18"
-  }
+  },
+  "version": "1.7.94"
 }
