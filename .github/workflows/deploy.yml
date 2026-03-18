@@ -265,7 +265,7 @@ jobs:
         run: |
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -d text="✅ [staging] Deployment successful%0A%0AVersion: ${{ needs.build.outputs.app_version }}%0ACommit: ${{ github.sha }}%0A%0A<a href=\"https://github.com/${{ github.repository }}/commits/${{ github.sha }}\">View commit</a>" \
+            -d text="✅ [staging] Deployment successful%0A%0Av${{ needs.build.outputs.app_version }} · ${{ github.ref_name }}%0ACommit: ${{ github.sha }}%0A%0A<a href=\"https://github.com/${{ github.repository }}/commits/${{ github.sha }}\">View commit</a>" \
             -d parse_mode="HTML"
 
       - name: Notify Telegram - Staging Deployment Failure
@@ -273,7 +273,7 @@ jobs:
         run: |
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -d text="❌ [staging] Deployment failed%0A%0AVersion: ${{ needs.build.outputs.app_version }}%0ACommit: ${{ github.sha }}%0A%0A<a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">View logs</a>" \
+            -d text="❌ [staging] Deployment failed%0A%0Av${{ needs.build.outputs.app_version }} · ${{ github.ref_name }}%0ACommit: ${{ github.sha }}%0A%0A<a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">View logs</a>" \
             -d parse_mode="HTML"
 
   # Deploy to PRODUCTION (on tag push only)
@@ -460,7 +460,7 @@ jobs:
         run: |
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -d text="✅ [prod] Deployment successful%0A%0AVersion: ${{ steps.version.outputs.version }}%0ACommit: ${{ github.sha }}%0A%0A<a href=\"https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.tag }}\">View release</a>" \
+            -d text="✅ [prod] Deployment successful%0A%0Av${{ steps.version.outputs.version }} · ${{ github.ref_name }}%0ACommit: ${{ github.sha }}%0A%0A<a href=\"https://github.com/${{ github.repository }}/releases/tag/v${{ steps.version.outputs.version }}\">View release</a>" \
             -d parse_mode="HTML"
 
       - name: Notify Telegram - Production Deployment Failure
@@ -468,5 +468,5 @@ jobs:
         run: |
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -d text="❌ [prod] Deployment failed%0A%0AVersion: ${{ steps.version.outputs.version }}%0ACommit: ${{ github.sha }}%0A%0A<a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">View logs</a>" \
+            -d text="❌ [prod] Deployment failed%0A%0Av${{ steps.version.outputs.version }} · ${{ github.ref_name }}%0ACommit: ${{ github.sha }}%0A%0A<a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">View logs</a>" \
             -d parse_mode="HTML"
