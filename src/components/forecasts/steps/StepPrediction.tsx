@@ -76,8 +76,8 @@ export const StepPrediction = ({ formData, updateFormData }: Props) => {
           placeholder="e.g., Bitcoin will reach $100,000 before July 2026"
           rows={3}
           maxLength={500}
-          className={`w-full px-4 py-3 rounded-lg border ${isClaimTooShort ? 'border-amber-500' : 'border-navy-600'
-            } focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none`}
+          className={`w-full px-4 py-3 bg-navy-800 text-white placeholder:text-text-subtle rounded-lg border ${isClaimTooShort ? 'border-amber-500' : 'border-navy-600'
+            } focus:outline-none focus:ring-2 focus:ring-cobalt focus:border-transparent resize-none`}
         />
         <div className="flex justify-between mt-1">
           {isClaimTooShort && (
@@ -103,7 +103,7 @@ export const StepPrediction = ({ formData, updateFormData }: Props) => {
           placeholder="Add context, conditions, or criteria for resolution..."
           rows={4}
           maxLength={5000}
-          className="w-full px-4 py-3 rounded-lg border border-navy-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+          className="w-full px-4 py-3 bg-navy-800 text-white placeholder:text-text-subtle rounded-lg border border-navy-600 focus:outline-none focus:ring-2 focus:ring-cobalt focus:border-transparent resize-none"
         />
         <p className="text-sm text-gray-400 mt-1 text-right">{detailsLength}/5000</p>
       </div>
