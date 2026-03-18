@@ -70,7 +70,7 @@ export default async function RootLayout({
 
   return (
     <html lang={locale} dir={isRtl(locale) ? 'rtl' : 'ltr'} suppressHydrationWarning>
-      <body className="bg-white" suppressHydrationWarning>
+      <body suppressHydrationWarning>
         <GoogleAnalytics measurementId={gaMeasurementId} isStaging={isStaging} />
         <NextIntlClientProvider messages={messages}>
           <SessionWrapper>

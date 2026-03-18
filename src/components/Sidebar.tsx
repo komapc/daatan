@@ -128,14 +128,14 @@ const Sidebar = () => {
   return (
     <>
       {/* Mobile Header */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4 z-50">
+      <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-navy-900 border-b border-navy-600 flex items-center justify-between px-4 z-50">
         <Link href="/" className="flex items-center gap-2" onClick={handleCloseMenu}>
           <Image src="/logo-icon.svg" alt="DAATAN" width={40} height={40} priority />
-          <h1 className="text-lg font-bold text-gray-900">DAATAN</h1>
+          <h1 className="text-lg font-bold text-white">DAATAN</h1>
         </Link>
         <div className="flex items-center gap-2">
           {hasMounted && status === 'authenticated' && session?.user && (
-            <UserLink 
+            <UserLink
               userId={session.user.id}
               username={session.user.username}
               name={session.user.name}
@@ -150,15 +150,15 @@ const Sidebar = () => {
           <button
             onClick={handleToggleMenu}
             onKeyDown={handleKeyDown}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-2 rounded-lg hover:bg-navy-800 transition-colors"
             aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={isMobileMenuOpen}
             tabIndex={0}
           >
             {isMobileMenuOpen ? (
-              <X className="w-6 h-6 text-gray-600" />
+              <X className="w-6 h-6 text-text-secondary" />
             ) : (
-              <Menu className="w-6 h-6 text-gray-600" />
+              <Menu className="w-6 h-6 text-text-secondary" />
             )}
           </button>
         </div>
@@ -179,21 +179,21 @@ const Sidebar = () => {
       {/* Sidebar */}
       <aside
         className={`
-          fixed left-0 top-0 h-screen w-64 bg-white border-r border-gray-100 flex flex-col z-50
+          fixed left-0 top-0 h-screen w-64 bg-navy-900 border-r border-navy-600 flex flex-col z-50
           transform transition-transform duration-300 ease-in-out
           lg:translate-x-0
           ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
       >
         {/* Logo */}
-        <Link href="/" className="hidden lg:flex p-6 items-center gap-3 hover:bg-gray-50 transition-colors">
+        <Link href="/" className="hidden lg:flex p-6 items-center gap-3 hover:bg-navy-800 transition-colors">
           <Image src="/logo-icon.svg" alt="DAATAN" width={48} height={48} priority />
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-gray-900">DAATAN</h1>
-              <span className="text-xs text-gray-400 font-mono">v{VERSION}</span>
+              <h1 className="text-xl font-bold text-white">DAATAN</h1>
+              <span className="text-xs text-text-subtle font-mono">v{VERSION}</span>
             </div>
-            <p className="text-sm text-gray-400">Prediction Market</p>
+            <p className="text-sm text-text-secondary">Prediction Market</p>
           </div>
         </Link>
 
@@ -215,8 +215,8 @@ const Sidebar = () => {
                     className={`
                       flex items-center gap-3 px-4 py-3 rounded-lg transition-colors
                       ${isActive
-                        ? 'bg-blue-50 text-blue-600'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        ? 'bg-navy-700 text-cobalt-light'
+                        : 'text-text-secondary hover:bg-navy-800 hover:text-white'
                       }
                     `}
                     aria-current={isActive ? 'page' : undefined}
@@ -238,12 +238,12 @@ const Sidebar = () => {
         </nav>
 
         {/* User Section */}
-        <div className="p-4 border-t border-gray-100">
+        <div className="p-4 border-t border-navy-600">
           {effectiveStatus === 'loading' ? (
             <div className="animate-pulse flex items-center gap-3 px-4 py-3">
-              <div className="w-8 h-8 bg-gray-200 rounded-full" />
+              <div className="w-8 h-8 bg-navy-700 rounded-full" />
               <div className="flex-1">
-                <div className="h-4 bg-gray-200 rounded w-24" />
+                <div className="h-4 bg-navy-700 rounded w-24" />
               </div>
             </div>
           ) : effectiveStatus === 'authenticated' && session?.user ? (
@@ -256,31 +256,31 @@ const Sidebar = () => {
                 showAvatar={true}
                 avatarSize={32}
                 onClick={handleCloseMenu}
-                className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors w-full"
+                className="flex items-center gap-3 px-4 py-3 rounded-lg text-text-secondary hover:bg-navy-800 hover:text-white transition-colors w-full"
               >
                 <div className="flex-1 overflow-hidden text-left">
                   <div className="flex items-center gap-1.5">
-                    <p className="font-medium truncate text-sm">{session.user.username || session.user.name || 'User'}</p>
+                    <p className="font-medium truncate text-sm text-white">{session.user.username || session.user.name || 'User'}</p>
                     {session.user.role === 'ADMIN' && (
-                      <span className="inline-flex items-center justify-center w-4 h-4 text-[9px] font-bold text-red-700 bg-red-100 border border-red-200 rounded-full shrink-0" title="Admin" aria-label="Admin">A</span>
+                      <span className="inline-flex items-center justify-center w-4 h-4 text-[9px] font-bold text-red-400 bg-red-900/40 border border-red-700 rounded-full shrink-0" title="Admin" aria-label="Admin">A</span>
                     )}
                     {session.user.role === 'RESOLVER' && (
-                      <span className="inline-flex items-center justify-center w-4 h-4 text-[9px] font-bold text-blue-700 bg-blue-100 border border-blue-200 rounded-full shrink-0" title="Resolver" aria-label="Resolver">R</span>
+                      <span className="inline-flex items-center justify-center w-4 h-4 text-[9px] font-bold text-cobalt-light bg-navy-700 border border-navy-600 rounded-full shrink-0" title="Resolver" aria-label="Resolver">R</span>
                     )}
                     {session.user.role === 'APPROVER' && (
-                      <span className="inline-flex items-center justify-center w-4 h-4 text-[9px] font-bold text-purple-700 bg-purple-100 border border-purple-200 rounded-full shrink-0" title="Approver" aria-label="Approver">B</span>
+                      <span className="inline-flex items-center justify-center w-4 h-4 text-[9px] font-bold text-teal bg-navy-700 border border-navy-600 rounded-full shrink-0" title="Approver" aria-label="Approver">B</span>
                     )}
                   </div>
-                  <p className="text-xs text-gray-400 truncate mb-1">{session.user.email}</p>
-                  <div className="flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full w-fit">
-                    <span className="w-3 h-3 rounded-full border border-amber-600 flex items-center justify-center text-[8px] font-bold">C</span>
+                  <p className="text-xs text-text-subtle truncate mb-1">{session.user.email}</p>
+                  <div className="flex items-center gap-1 text-xs font-medium text-teal bg-navy-700 px-2 py-0.5 rounded-full w-fit">
+                    <span className="w-3 h-3 rounded-full border border-teal flex items-center justify-center text-[8px] font-bold">C</span>
                     {session.user.cuAvailable ?? 0} CU
                   </div>
                 </div>
               </UserLink>
               <button
                 onClick={handleSignOut}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-text-secondary hover:bg-red-900/30 hover:text-red-400 transition-colors"
               >
                 <LogOut className="w-5 h-5" />
                 <span className="font-medium">{c('signOut')}</span>
@@ -289,7 +289,7 @@ const Sidebar = () => {
           ) : (
             <button
               onClick={handleSignIn}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-cobalt hover:bg-navy-700 transition-colors"
             >
               <LogIn className="w-5 h-5" />
               <span className="font-medium">Sign In</span>

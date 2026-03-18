@@ -4,14 +4,33 @@
 @tailwind components;
 @tailwind utilities;
 
-.scrollbar-hide {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
+/* ── DAATAN COLOR SYSTEM ─────────────────────────────────── */
+:root {
+  /* Primary: Deep Navy */
+  --color-navy-900: #0B1F33;
+  --color-navy-800: #0E263D;
+  --color-navy-700: #132C45;
+  --color-navy-600: #1C3A5A;
+
+  /* Secondary: Cobalt Blue */
+  --color-cobalt:       #2F6BFF;
+  --color-cobalt-hover: #2459D6;
+  --color-cobalt-light: #5B8CFF;
+  --color-cobalt-soft:  #EAF1FF;
+
+  /* Accent: Analytical Teal */
+  --color-teal:       #2EC4B6;
+  --color-teal-hover: #25A798;
+  --color-teal-soft:  #E6FAF8;
+
+  /* Neutrals */
+  --color-white:          #FFFFFF;
+  --color-mist:           #E6E9EF;
+  --color-text-secondary: #A0AEC0;
+  --color-text-subtle:    #6B7280;
 }
 
+/* ── BASE ────────────────────────────────────────────────── */
 html {
   touch-action: manipulation;
   -ms-touch-action: manipulation;
@@ -19,9 +38,19 @@ html {
 }
 
 body {
+  background-color: var(--color-navy-900);
+  color: var(--color-white);
   font-family: 'Inter', system-ui, sans-serif;
   touch-action: manipulation;
   -webkit-text-size-adjust: 100%;
   overflow-x: hidden;
 }
 
+/* ── UTILITIES ───────────────────────────────────────────── */
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
