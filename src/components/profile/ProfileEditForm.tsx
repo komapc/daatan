@@ -167,7 +167,7 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
             value={formData.username}
             onChange={(e) => setFormData({ ...formData, username: e.target.value })}
             placeholder="your_username"
-            className="w-full px-4 py-3 border border-navy-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-4 py-3 bg-navy-800 text-white placeholder:text-text-subtle border border-navy-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-cobalt focus:border-transparent"
             maxLength={30}
           />
           <p className="text-xs text-gray-500 mt-1">Your public display name (letters, numbers, underscore only)</p>
@@ -185,7 +185,7 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
             value={formData.website}
             onChange={(e) => setFormData({ ...formData, website: e.target.value })}
             placeholder="https://yourwebsite.com"
-            className="w-full px-4 py-3 border border-navy-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-4 py-3 bg-navy-800 text-white placeholder:text-text-subtle border border-navy-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-cobalt focus:border-transparent"
           />
           <p className="text-xs text-gray-500 mt-1">Your personal website or blog</p>
         </div>

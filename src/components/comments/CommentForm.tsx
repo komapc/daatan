@@ -71,7 +71,7 @@ export default function CommentForm({
         placeholder={placeholder}
         rows={parentId ? 2 : 3}
         maxLength={2000}
-        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+        className="w-full px-4 py-3 bg-navy-800 text-white placeholder:text-text-subtle border border-navy-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cobalt resize-none"
         disabled={isSubmitting}
       />
       <div className="flex items-center justify-between">

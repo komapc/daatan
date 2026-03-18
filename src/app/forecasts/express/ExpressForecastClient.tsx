@@ -342,7 +342,7 @@ export default function ExpressForecastClient({
             value={userInput}
             onChange={(e) => handleUserInputChange(e.target.value)}
             placeholder="Describe your event OR paste a news article URL..."
-            className="w-full px-4 py-3 border border-navy-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            className="w-full px-4 py-3 bg-navy-800 text-white placeholder:text-text-subtle border border-navy-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-cobalt focus:border-transparent resize-none"
             rows={3}
             maxLength={1000} // Increased for URLs
           />
