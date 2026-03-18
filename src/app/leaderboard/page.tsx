@@ -108,7 +108,7 @@ export default function LeaderboardPage() {
         <div className="p-4 bg-yellow-50 rounded-2xl mb-4">
           <Trophy className="w-10 h-10 sm:w-12 sm:h-12 text-yellow-500" />
         </div>
-        <h1 className="text-3xl sm:text-4xl font-black text-gray-900 mb-2 tracking-tight">{t('title')}</h1>
+        <h1 className="text-3xl sm:text-4xl font-black text-white mb-2 tracking-tight">{t('title')}</h1>
         <p className="text-gray-500 max-w-md">{t('subtitle')}</p>
       </div>
 
@@ -121,7 +121,7 @@ export default function LeaderboardPage() {
             className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
               sortBy === value
                 ? 'bg-blue-600 text-white shadow-sm'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                : 'bg-navy-700 text-text-secondary hover:bg-navy-600'
             }`}
             aria-label={`Sort by ${label}`}
           >
@@ -147,11 +147,11 @@ export default function LeaderboardPage() {
           action={{ label: t('browseForecasts'), href: '/' }}
         />
       ) : (
-        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+        <div className="bg-navy-700 border border-navy-600 rounded-2xl shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-100">
+                <tr className="bg-navy-800 border-b border-navy-600">
                   <th className="px-4 sm:px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider w-16">{t('rank')}</th>
                   <th className="px-4 sm:px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">{t('predictor')}</th>
                   <th className="px-4 sm:px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center hidden sm:table-cell">{t('sortBy.accuracy')}</th>
@@ -172,14 +172,14 @@ export default function LeaderboardPage() {
                     <td className="px-4 sm:px-6 py-4">
                       <div className="flex items-center gap-3">
                         {user.image ? (
-                          <Image src={user.image} alt="" width={40} height={40} className="rounded-full border border-gray-200" />
+                          <Image src={user.image} alt="" width={40} height={40} className="rounded-full border border-navy-600" />
                         ) : (
                           <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
                             {user.name?.charAt(0) || user.username?.charAt(0) || '?'}
                           </div>
                         )}
                         <div className="min-w-0">
-                          <p className="font-bold text-gray-900 truncate">
+                          <p className="font-bold text-white truncate">
                             {user.name || user.username || 'Anonymous'}
                           </p>
                           <p className="text-xs text-gray-500 truncate">
@@ -190,7 +190,7 @@ export default function LeaderboardPage() {
                     </td>
                     <td className="px-4 sm:px-6 py-4 text-center hidden sm:table-cell">
                       <div className="flex flex-col items-center">
-                        <span className="font-bold text-gray-700">
+                        <span className="font-bold text-text-secondary">
                           {user.accuracy !== null ? `${user.accuracy}%` : '—'}
                         </span>
                         <span className="text-[10px] text-gray-400">
@@ -205,7 +205,7 @@ export default function LeaderboardPage() {
                       </div>
                     </td>
                     <td className="px-4 sm:px-6 py-4 text-right">
-                      <span className="font-black text-lg text-gray-900">
+                      <span className="font-black text-lg text-white">
                         {getHighlightValue(user)}
                       </span>
                     </td>
@@ -219,8 +219,8 @@ export default function LeaderboardPage() {
 
       {/* Legend */}
       <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-          <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
+        <div className="p-4 bg-navy-800 rounded-xl border border-navy-600">
+          <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-green-500" />
             {t('legend.rsTitle')}
           </h3>
@@ -228,8 +228,8 @@ export default function LeaderboardPage() {
             {t('legend.rsDesc')}
           </p>
         </div>
-        <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-          <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
+        <div className="p-4 bg-navy-800 rounded-xl border border-navy-600">
+          <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
             <Wallet className="w-4 h-4 text-blue-500" />
             {t('legend.cuTitle')}
           </h3>
@@ -237,8 +237,8 @@ export default function LeaderboardPage() {
             {t('legend.cuDesc')}
           </p>
         </div>
-        <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-          <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
+        <div className="p-4 bg-navy-800 rounded-xl border border-navy-600">
+          <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
             <Target className="w-4 h-4 text-purple-500" />
             {t('legend.brierTitle')}
           </h3>

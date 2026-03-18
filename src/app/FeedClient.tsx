@@ -156,7 +156,7 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
             <Home className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
           </div>
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{t('title')}</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">{t('title')}</h1>
             <p className="text-sm text-gray-500">{t('discover')}</p>
           </div>
         </div>
@@ -187,7 +187,7 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
               onClick={() => handleSetFilter('CLOSING_SOON')}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === 'CLOSING_SOON'
                 ? 'bg-blue-600 text-white shadow-sm'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                : 'bg-navy-700 text-text-secondary hover:bg-navy-600'
                 }`}
             >
               {t('filters.closingSoon')}
@@ -196,7 +196,7 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
               onClick={() => handleSetFilter('PENDING')}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === 'PENDING'
                 ? 'bg-blue-600 text-white shadow-sm'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                : 'bg-navy-700 text-text-secondary hover:bg-navy-600'
                 }`}
             >
               {t('filters.awaitingResolution')}
@@ -216,7 +216,7 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
               onClick={() => handleSetFilter('RESOLVED')}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === 'RESOLVED'
                 ? 'bg-blue-600 text-white shadow-sm'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                : 'bg-navy-700 text-text-secondary hover:bg-navy-600'
                 }`}
             >
               {t('filters.resolved')}
@@ -225,7 +225,7 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
               onClick={() => handleSetFilter('ALL')}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === 'ALL'
                 ? 'bg-blue-600 text-white shadow-sm'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                : 'bg-navy-700 text-text-secondary hover:bg-navy-600'
                 }`}
             >
               {t('filters.all')}
@@ -234,7 +234,7 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
             {/* Sort — hidden for Closing Soon (has its own implicit ordering) */}
             {filter !== 'CLOSING_SOON' && (
               <>
-                <div className="w-px h-5 bg-gray-200 mx-1 flex-shrink-0" />
+                <div className="w-px h-5 bg-navy-600 mx-1 flex-shrink-0" />
                 <ArrowDownUp className="w-4 h-4 text-gray-400 flex-shrink-0" />
                 {([
                   { value: 'newest', label: t('sort.newest') },
@@ -246,7 +246,7 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
                     onClick={() => handleSetSort(value)}
                     className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${sortBy === value
                       ? 'bg-gray-800 text-white shadow-sm'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      : 'bg-navy-700 text-gray-600 hover:bg-navy-600'
                     }`}
                   >
                     {label}
@@ -261,7 +261,7 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <Tag className="w-4 h-4 text-gray-400" />
-            <span className="text-sm font-medium text-gray-700">Tags:</span>
+            <span className="text-sm font-medium text-text-secondary">Tags:</span>
             {selectedTags.length > 0 && (
               <button
                 onClick={handleClearTags}
@@ -283,7 +283,7 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
                   aria-pressed={isSelected}
                   className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-150 flex items-center gap-1.5 ${isSelected
                     ? 'bg-blue-600 text-white shadow-sm ring-1 ring-blue-600'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800'
+                    : 'bg-navy-700 text-gray-600 hover:bg-navy-600 hover:text-mist'
                     }`}
                 >
                   {tag}
@@ -325,7 +325,7 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
       ) : (
         <div className="space-y-6">
           <div className="flex items-center justify-between px-2">
-            <h2 className="text-lg font-bold text-gray-800 uppercase tracking-wider">
+            <h2 className="text-lg font-bold text-mist uppercase tracking-wider">
               {filter === 'ACTIVE' && t('openForecasts')}
               {filter === 'CLOSING_SOON' && t('closingSoon')}
               {filter === 'PENDING' && t('awaitingResolution')}

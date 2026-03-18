@@ -36,8 +36,8 @@ export default function EmptyState({
     <div
       className={
         isCard
-          ? 'bg-white border border-gray-100 rounded-2xl p-12 text-center shadow-sm'
-          : 'bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center'
+          ? 'bg-navy-700 border border-navy-600 rounded-2xl p-12 text-center shadow-sm'
+          : 'bg-navy-800 border-2 border-dashed border-navy-600 rounded-2xl p-8 text-center'
       }
     >
       {iconBgClass ? (
@@ -51,7 +51,7 @@ export default function EmptyState({
       )}
 
       {title && (
-        <h2 className={isCard ? 'text-2xl font-bold text-gray-900 mb-3' : 'text-xl font-semibold text-gray-900 mb-2'}>
+        <h2 className={isCard ? 'text-2xl font-bold text-white mb-3' : 'text-xl font-semibold text-white mb-2'}>
           {title}
         </h2>
       )}

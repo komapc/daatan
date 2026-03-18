@@ -186,7 +186,7 @@ export default function NotificationList({
             <div
               key={notification.id}
               className={`w-full flex items-start gap-3 p-4 rounded-lg transition-colors group relative ${
-                !notification.read ? 'bg-blue-50/50' : 'hover:bg-gray-50'
+                !notification.read ? 'bg-blue-50/50' : 'hover:bg-navy-800'
               }`}
             >
               {/* Entire notification area links to target */}
@@ -197,14 +197,14 @@ export default function NotificationList({
               />
               
               <div className={`mt-0.5 p-2 rounded-full shrink-0 z-10 ${
-                !notification.read ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'
+                !notification.read ? 'bg-blue-100 text-blue-600' : 'bg-navy-700 text-gray-500'
               }`}>
                 <Icon className="w-4 h-4" />
               </div>
               
               <div className="flex-1 min-w-0 z-10 pointer-events-none">
                 <div className="flex items-start justify-between gap-2">
-                  <p className={`text-sm ${!notification.read ? 'font-semibold text-gray-900' : 'font-medium text-gray-700'}`}>
+                  <p className={`text-sm ${!notification.read ? 'font-semibold text-white' : 'font-medium text-text-secondary'}`}>
                     {notification.title}
                   </p>
                   {!notification.read && (

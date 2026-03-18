@@ -111,7 +111,7 @@ export default function ContextTimeline({
     <div className="mb-8">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+        <h2 className="text-lg font-semibold text-white flex items-center gap-2">
           <FileText className="w-5 h-5" />
           {t('title')}
         </h2>
@@ -133,7 +133,7 @@ export default function ContextTimeline({
 
       {/* Current context card */}
       {currentContext && (
-        <div className="p-4 border border-gray-200 rounded-xl bg-white shadow-sm">
+        <div className="p-4 border border-navy-600 rounded-xl bg-navy-700 shadow-sm">
           <p className="text-gray-600 whitespace-pre-wrap leading-relaxed">{currentContext}</p>
           {contextUpdatedAt && (
             <p className="text-xs text-gray-400 mt-2" suppressHydrationWarning>
@@ -142,7 +142,7 @@ export default function ContextTimeline({
           )}
           {/* Sources from latest snapshot */}
           {snapshots[0]?.sources && (snapshots[0].sources as Source[]).length > 0 && (
-            <div className="mt-3 pt-3 border-t border-gray-100">
+            <div className="mt-3 pt-3 border-t border-navy-600">
               <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">{t('sources')}</p>
               <div className="flex flex-wrap gap-2">
                 {(snapshots[0].sources as Source[]).map((src, i) => (
@@ -168,7 +168,7 @@ export default function ContextTimeline({
         <div className="mt-4">
           <button
             onClick={() => setIsTimelineOpen(!isTimelineOpen)}
-            className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+            className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-text-secondary transition-colors"
           >
             {isTimelineOpen ? (
               <ChevronUp className="w-4 h-4" />
@@ -182,7 +182,7 @@ export default function ContextTimeline({
 
           {/* Collapsible timeline */}
           {isTimelineOpen && (
-            <div className="mt-3 ml-2 border-l-2 border-gray-200 pl-4 space-y-4">
+            <div className="mt-3 ml-2 border-l-2 border-navy-600 pl-4 space-y-4">
               {previousSnapshots.map((snap) => (
                 <div key={snap.id} className="relative">
                   {/* Timeline dot */}

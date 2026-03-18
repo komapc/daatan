@@ -28,14 +28,14 @@ export default function CreateForecastClient({ userId }: CreateForecastClientPro
   return (
     <div className="max-w-4xl mx-auto">
       {/* Mode Toggle */}
-      <div className="mb-6 flex items-center justify-center gap-2 bg-gray-100 p-1 rounded-lg w-fit mx-auto">
+      <div className="mb-6 flex items-center justify-center gap-2 bg-navy-700 p-1 rounded-lg w-fit mx-auto">
         <button
           onClick={() => setMode('express')}
           className={`
             flex items-center gap-2 px-4 py-2 rounded-md font-medium transition-all
             ${mode === 'express'
-              ? 'bg-white text-blue-600 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
+              ? 'bg-navy-700 text-blue-600 shadow-sm'
+              : 'text-gray-600 hover:text-white'
             }
           `}
         >
@@ -47,8 +47,8 @@ export default function CreateForecastClient({ userId }: CreateForecastClientPro
           className={`
             flex items-center gap-2 px-4 py-2 rounded-md font-medium transition-all
             ${mode === 'manual'
-              ? 'bg-white text-blue-600 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
+              ? 'bg-navy-700 text-blue-600 shadow-sm'
+              : 'text-gray-600 hover:text-white'
             }
           `}
         >

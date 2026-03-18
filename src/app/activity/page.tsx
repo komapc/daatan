@@ -79,7 +79,7 @@ export default function ActivityFeedPage() {
       {/* Header */}
       <div className="flex items-center gap-3 mb-6 lg:mb-8">
         <Activity className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('title')}</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-white">{t('title')}</h1>
       </div>
       <p className="text-gray-500 text-sm mb-6">{t('subtitle')}</p>
 
@@ -92,7 +92,7 @@ export default function ActivityFeedPage() {
       ) : (
         <div className="relative">
           {/* Timeline line */}
-          <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-gray-100" aria-hidden="true" />
+          <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-navy-700" aria-hidden="true" />
 
           <div className="space-y-0">
             {activity.map((item) => (
@@ -106,21 +106,21 @@ export default function ActivityFeedPage() {
                     image={item.user.image}
                     showAvatar={true}
                     avatarSize={32}
-                    className="w-10 h-10 rounded-full bg-white border-2 border-gray-200 flex items-center justify-center group-hover:border-blue-300 transition-colors"
+                    className="w-10 h-10 rounded-full bg-navy-700 border-2 border-navy-600 flex items-center justify-center group-hover:border-blue-300 transition-colors"
                   >
                     {!item.user.image && <User className="w-5 h-5 text-gray-400" />}
                   </UserLink>
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 bg-white rounded-xl border border-gray-100 p-4 hover:border-blue-200 hover:shadow-sm transition-all">
+                <div className="flex-1 bg-navy-700 rounded-xl border border-navy-600 p-4 hover:border-blue-200 hover:shadow-sm transition-all">
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <div className="text-sm text-gray-700">
+                    <div className="text-sm text-text-secondary">
                       <UserLink 
                         userId={item.user.id}
                         username={item.user.username}
                         name={item.user.name}
-                        className="font-semibold text-gray-900"
+                        className="font-semibold text-white"
                       />
                       {' '}{t('committed')}{' '}
                       <span className="font-semibold text-amber-600">{item.cuCommitted} CU</span>

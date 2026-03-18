@@ -254,7 +254,7 @@ export const ForecastWizard = ({ isExpressFlow = false, initialClaim = '' }: For
                     w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0
                     ${isActive ? 'bg-blue-600 text-white' : ''}
                     ${isCompleted ? 'bg-green-500 text-white' : ''}
-                    ${!isActive && !isCompleted ? 'bg-gray-200' : ''}
+                    ${!isActive && !isCompleted ? 'bg-navy-600' : ''}
                   `}>
                     {isCompleted ? <Check className="w-4 h-4 sm:w-5 sm:h-5" /> : <Icon className="w-4 h-4 sm:w-5 sm:h-5" />}
                   </div>
@@ -280,7 +280,7 @@ export const ForecastWizard = ({ isExpressFlow = false, initialClaim = '' }: For
       )}
 
       {/* Step Content */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+      <div className="bg-navy-700 rounded-xl border border-navy-600 p-6 mb-6">
         {renderStep()}
       </div>
 

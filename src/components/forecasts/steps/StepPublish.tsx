@@ -47,7 +47,7 @@ export const StepPublish = ({ formData, updateFormData }: Props) => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+        <h2 className="text-xl font-semibold text-white mb-2">
           Review & Publish
         </h2>
         <p className="text-gray-500">
@@ -56,15 +56,15 @@ export const StepPublish = ({ formData, updateFormData }: Props) => {
       </div>
 
       {/* Summary Card */}
-      <div className="border border-gray-200 rounded-xl overflow-hidden">
+      <div className="border border-navy-600 rounded-xl overflow-hidden">
         {/* News Anchor */}
         {formData.newsAnchorTitle && (
-          <div className="p-4 bg-gray-50 border-b border-gray-200">
+          <div className="p-4 bg-navy-800 border-b border-navy-600">
             <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
               <Newspaper className="w-4 h-4" />
               News Anchor
             </div>
-            <p className="font-medium text-gray-900">{formData.newsAnchorTitle}</p>
+            <p className="font-medium text-white">{formData.newsAnchorTitle}</p>
             {formData.newsAnchorUrl && (
               <a
                 href={formData.newsAnchorUrl}
@@ -79,12 +79,12 @@ export const StepPublish = ({ formData, updateFormData }: Props) => {
         )}
 
         {/* Prediction */}
-        <div className="p-4 border-b border-gray-200">
+        <div className="p-4 border-b border-navy-600">
           <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
             <FileText className="w-4 h-4" />
             Prediction
           </div>
-          <p className="font-medium text-gray-900 text-lg">{formData.claimText || 'No claim set'}</p>
+          <p className="font-medium text-white text-lg">{formData.claimText || 'No claim set'}</p>
           {formData.detailsText && (
             <p className="text-gray-600 mt-2">{formData.detailsText}</p>
           )}
@@ -100,18 +100,18 @@ export const StepPublish = ({ formData, updateFormData }: Props) => {
         </div>
 
         {/* Outcome */}
-        <div className="p-4 border-b border-gray-200">
+        <div className="p-4 border-b border-navy-600">
           <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
             <Target className="w-4 h-4" />
             Outcome Type
           </div>
-          <p className="font-medium text-gray-900">{getOutcomeDescription()}</p>
+          <p className="font-medium text-white">{getOutcomeDescription()}</p>
 
           {formData.outcomeType === 'MULTIPLE_CHOICE' && formData.outcomeOptions && (
             <ul className="mt-2 space-y-1">
               {formData.outcomeOptions.map((option, index) => (
                 <li key={index} className="flex items-center gap-2 text-sm text-gray-600">
-                  <span className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center text-xs">
+                  <span className="w-5 h-5 rounded-full bg-navy-600 flex items-center justify-center text-xs">
                     {index + 1}
                   </span>
                   {option}
@@ -127,7 +127,7 @@ export const StepPublish = ({ formData, updateFormData }: Props) => {
             <Calendar className="w-4 h-4" />
             Resolution Deadline
           </div>
-          <p className="font-medium text-gray-900">{formatDate(formData.resolveByDatetime)}</p>
+          <p className="font-medium text-white">{formatDate(formData.resolveByDatetime)}</p>
           {formData.resolutionRules && (
             <p className="text-sm text-gray-600 mt-2">{formData.resolutionRules}</p>
           )}
@@ -135,10 +135,10 @@ export const StepPublish = ({ formData, updateFormData }: Props) => {
       </div>
 
       {/* Visibility Toggle */}
-      <div className="border border-gray-200 rounded-xl p-4">
+      <div className="border border-navy-600 rounded-xl p-4">
         <div className="flex items-center justify-between">
           <div>
-            <div className="font-medium text-gray-900">
+            <div className="font-medium text-white">
               {formData.isPublic ? 'Public' : 'Unlisted'}
             </div>
             <p className="text-sm text-gray-500 mt-0.5">
@@ -153,7 +153,7 @@ export const StepPublish = ({ formData, updateFormData }: Props) => {
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
               formData.isPublic
                 ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
-                : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                : 'bg-navy-800 text-gray-600 border-navy-600 hover:bg-navy-700'
             }`}
           >
             {formData.isPublic ? (

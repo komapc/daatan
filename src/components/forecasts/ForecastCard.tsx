@@ -251,7 +251,7 @@ export default function ForecastCard({
       case 'DRAFT':
         return {
           icon: <Clock className="w-3 h-3" />,
-          className: 'bg-gray-100 text-gray-700',
+          className: 'bg-navy-700 text-text-secondary',
           label: t('draft')
         }
       case 'ACTIVE':
@@ -294,7 +294,7 @@ export default function ForecastCard({
       default:
         return {
           icon: <Clock className="w-3 h-3" />,
-          className: 'bg-gray-100 text-gray-700',
+          className: 'bg-navy-700 text-text-secondary',
           label: status
         }
     }
@@ -305,14 +305,14 @@ export default function ForecastCard({
   return (
     <div
       onClick={handleCardClick}
-      className="group block p-4 sm:p-5 bg-white border border-gray-200 rounded-xl hover:border-blue-300 hover:shadow-md transition-all duration-200 cursor-pointer"
+      className="group block p-4 sm:p-5 bg-navy-700 border border-navy-600 rounded-xl hover:border-blue-300 hover:shadow-md transition-all duration-200 cursor-pointer"
     >
       <div className="flex items-center justify-between gap-4">
         {/* Mini Gauge (Desktop-only on side) */}
         {prediction.status === 'ACTIVE' && (
           <div className="hidden sm:block flex-shrink-0">
             {prediction._count.commitments === 0 ? (
-              <div className="w-16 h-10 flex items-center justify-center rounded-lg bg-gray-50 border border-gray-100">
+              <div className="w-16 h-10 flex items-center justify-center rounded-lg bg-navy-800 border border-navy-600">
                 <span className="text-xs text-gray-300 font-medium">—</span>
               </div>
             ) : prediction.outcomeType === 'BINARY' ? (
@@ -361,14 +361,14 @@ export default function ForecastCard({
                   </span>
                 ))}
                 {prediction.tags.length > 2 && (
-                  <span className="px-2 py-0.5 bg-gray-50 text-gray-400 text-[10px] sm:text-xs font-medium rounded-full border border-gray-100">
+                  <span className="px-2 py-0.5 bg-navy-800 text-gray-400 text-[10px] sm:text-xs font-medium rounded-full border border-navy-600">
                     +{prediction.tags.length - 2}
                   </span>
                 )}
               </>
             )}
             {prediction.isPublic === false && (
-              <span className="flex items-center gap-1 px-2 py-0.5 bg-gray-50 text-gray-500 text-[10px] sm:text-xs font-bold uppercase tracking-wider rounded-full border border-gray-200" title="This forecast is unlisted — only visible via direct link.">
+              <span className="flex items-center gap-1 px-2 py-0.5 bg-navy-800 text-gray-500 text-[10px] sm:text-xs font-bold uppercase tracking-wider rounded-full border border-navy-600" title="This forecast is unlisted — only visible via direct link.">
                 <EyeOff className="w-3 h-3" />
                 Unlisted
               </span>
@@ -377,7 +377,7 @@ export default function ForecastCard({
               <button
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowTranslated(!showTranslated); }}
                 className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider border transition-colors ${
-                  showTranslated ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-500 border-gray-200'
+                  showTranslated ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-navy-800 text-gray-500 border-navy-600'
                 }`}
                 title={showTranslated ? tt('showOriginal') : tt('translate')}
               >
@@ -391,13 +391,13 @@ export default function ForecastCard({
           </div>
 
           {/* Claim Text */}
-          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 group-hover:text-blue-700 transition-colors line-clamp-2 leading-snug">
+          <h3 className="text-base sm:text-lg font-semibold text-white mb-3 group-hover:text-blue-700 transition-colors line-clamp-2 leading-snug">
             {showTranslated && translatedClaim ? translatedClaim : prediction.claimText}
           </h3>
 
           {/* News Context (Optional) */}
           {prediction.newsAnchor && (
-            <div className="flex items-center gap-2 mb-4 p-2 bg-gray-50 rounded-lg border border-gray-100">
+            <div className="flex items-center gap-2 mb-4 p-2 bg-navy-800 rounded-lg border border-navy-600">
               {prediction.newsAnchor.imageUrl && (
                 <Image
                   src={prediction.newsAnchor.imageUrl}
@@ -428,11 +428,11 @@ export default function ForecastCard({
               image={prediction.author.image}
               showAvatar={true}
               avatarSize={24}
-              className="pr-4 border-r border-gray-100 last:border-0"
+              className="pr-4 border-r border-navy-600 last:border-0"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex flex-col">
-                <span className="font-medium text-gray-700 truncate max-w-[120px]">
+                <span className="font-medium text-text-secondary truncate max-w-[120px]">
                   {prediction.author.name || t('anonymous')}
                 </span>
                 {prediction.author.role && (
@@ -461,7 +461,7 @@ export default function ForecastCard({
             {prediction._count.commitments > 0 && (
               <div className="flex items-center gap-1.5">
                 <Users className="w-3.5 h-3.5 text-gray-400" />
-                <span className="font-medium text-gray-700">{prediction._count.commitments}</span>
+                <span className="font-medium text-text-secondary">{prediction._count.commitments}</span>
                 <span className="hidden sm:inline">{t('commitmentsLabel')}</span>
               </div>
             )}
@@ -505,17 +505,17 @@ export default function ForecastCard({
               <div className="relative">
                 <button
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowAdminMenu(v => !v) }}
-                  className="p-1 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                  className="p-1 rounded-full text-gray-400 hover:text-gray-600 hover:bg-navy-700 transition-colors"
                   aria-label="Admin actions"
                 >
                   <MoreHorizontal className="w-4 h-4" />
                 </button>
                 {showAdminMenu && (
-                  <div className="absolute right-0 top-6 z-10 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[120px]">
+                  <div className="absolute right-0 top-6 z-10 bg-navy-700 border border-navy-600 rounded-lg shadow-lg py-1 min-w-[120px]">
                     {canResolve && (
                       <button
                         onClick={handleResolve}
-                        className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-text-secondary hover:bg-navy-800 transition-colors"
                       >
                         <Gavel className="w-3.5 h-3.5" />
                         {t('resolve')}
@@ -524,7 +524,7 @@ export default function ForecastCard({
                     {canAdminister && isEditable && (
                       <button
                         onClick={handleEdit}
-                        className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-text-secondary hover:bg-navy-800 transition-colors"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
                         {t('edit')}
@@ -547,7 +547,7 @@ export default function ForecastCard({
         )}
 
         <div className="flex-shrink-0 self-center">
-          <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-blue-50 transition-colors">
+          <div className="w-8 h-8 rounded-full bg-navy-800 flex items-center justify-center group-hover:bg-blue-50 transition-colors">
             <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-blue-500" />
           </div>
         </div>

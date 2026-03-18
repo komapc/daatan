@@ -216,7 +216,7 @@ export default function BotsTable() {
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-semibold text-gray-800">Bots ({bots.length})</h2>
+        <h2 className="text-lg font-semibold text-mist">Bots ({bots.length})</h2>
         <button
           onClick={() => setShowCreateForm(true)}
           className="flex items-center gap-2 bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-blue-700 transition-colors"
@@ -268,8 +268,8 @@ export default function BotsTable() {
                 <p className="text-xs font-bold text-gray-500 uppercase">Detection results ({runResult.hotTopics.length} topics found)</p>
                 <div className="max-h-60 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
                   {runResult.hotTopics.map((topic, i) => (
-                    <div key={i} className="bg-white border rounded-lg p-3 text-sm shadow-sm group hover:border-blue-300 transition-colors">
-                      <div className="font-semibold text-gray-900 group-hover:text-blue-700">{topic.title}</div>
+                    <div key={i} className="bg-navy-700 border rounded-lg p-3 text-sm shadow-sm group hover:border-blue-300 transition-colors">
+                      <div className="font-semibold text-white group-hover:text-blue-700">{topic.title}</div>
                       <div className="text-[10px] text-gray-400 mt-0.5">Appears in {topic.sourceCount} sources</div>
                       <div className="mt-2 space-y-1">
                         {topic.items.slice(0, 3).map((item, j) => (
@@ -296,7 +296,7 @@ export default function BotsTable() {
                     <p className="text-xs font-bold text-gray-500 uppercase">
                       Debug: Fetched headlines ({runResult.fetchedCount} total)
                     </p>
-                    <div className="bg-white border rounded-lg p-3 text-xs text-gray-600 space-y-1 overflow-y-auto max-h-40">
+                    <div className="bg-navy-700 border rounded-lg p-3 text-xs text-gray-600 space-y-1 overflow-y-auto max-h-40">
                       {(runResult.sampleItems ?? []).map((title, i) => (
                         <div key={i} className="truncate">• {title}</div>
                       ))}
@@ -323,14 +323,14 @@ export default function BotsTable() {
           const logsLoading = loadingLogs.has(bot.id)
 
           return (
-            <div key={bot.id} className="border rounded-lg shadow-sm bg-white overflow-hidden">
+            <div key={bot.id} className="border rounded-lg shadow-sm bg-navy-700 overflow-hidden">
               <div className="p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-gray-900">{bot.user.name}</span>
+                      <span className="font-semibold text-white">{bot.user.name}</span>
                       <span className="text-xs font-mono text-gray-500">@{bot.user.username}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${bot.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${bot.isActive ? 'bg-green-100 text-green-700' : 'bg-navy-700 text-gray-500'
                         }`}>
                         {bot.isActive ? 'Active' : 'Disabled'}
                       </span>
@@ -414,7 +414,7 @@ export default function BotsTable() {
               {/* Run log toggle */}
               <button
                 onClick={() => toggleLogs(bot.id)}
-                className="w-full flex items-center justify-between px-4 py-2 bg-gray-50 border-t text-xs text-gray-500 hover:bg-gray-100 transition-colors"
+                className="w-full flex items-center justify-between px-4 py-2 bg-navy-800 border-t text-xs text-gray-500 hover:bg-navy-700 transition-colors"
               >
                 <span>Run log</span>
                 {logsExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
@@ -446,7 +446,7 @@ export default function BotsTable() {
                           {log.generatedText && (
                             <details className="mt-1">
                               <summary className="text-xs text-blue-600 cursor-pointer">Generated text</summary>
-                              <pre className="mt-1 text-xs text-gray-700 whitespace-pre-wrap bg-gray-50 p-2 rounded max-h-40 overflow-y-auto">
+                              <pre className="mt-1 text-xs text-text-secondary whitespace-pre-wrap bg-navy-800 p-2 rounded max-h-40 overflow-y-auto">
                                 {log.generatedText}
                               </pre>
                             </details>
@@ -504,7 +504,7 @@ function CreateBotForm({ onCreated, onCancel }: { onCreated: () => void; onCance
 
   return (
     <div className="border rounded-lg p-4 mb-4 bg-blue-50 border-blue-200">
-      <h3 className="font-semibold text-gray-800 mb-3">New bot</h3>
+      <h3 className="font-semibold text-mist mb-3">New bot</h3>
       <form onSubmit={submit} className="flex gap-2 items-end flex-wrap">
         <div>
           <label className="block text-xs text-gray-600 mb-1">Display name</label>
@@ -527,7 +527,7 @@ function CreateBotForm({ onCreated, onCancel }: { onCreated: () => void; onCance
             {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
             Create
           </button>
-          <button type="button" onClick={onCancel} className="p-1.5 text-gray-500 hover:text-gray-700">
+          <button type="button" onClick={onCancel} className="p-1.5 text-gray-500 hover:text-text-secondary">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -643,9 +643,9 @@ function EditBotModal({ bot, allTags, onSave, onClose }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
-        <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white z-10">
-          <h3 className="font-semibold text-gray-900">Edit bot: {bot.user.name}</h3>
+      <div className="bg-navy-700 rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
+        <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-navy-700 z-10">
+          <h3 className="font-semibold text-white">Edit bot: {bot.user.name}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X className="w-5 h-5" />
           </button>
@@ -722,7 +722,7 @@ function EditBotModal({ bot, allTags, onSave, onClose }: {
               onChange={(v) => setForm({ ...form, maxForecastsPerHour: v })} />
           </div>
 
-          <div className="border rounded-lg p-3 space-y-3 bg-gray-50">
+          <div className="border rounded-lg p-3 space-y-3 bg-navy-800">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions &amp; Bias</p>
             <div className="flex flex-wrap gap-4">
               <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
@@ -754,7 +754,7 @@ function EditBotModal({ bot, allTags, onSave, onClose }: {
                 <span className="text-xs text-gray-400 font-normal">(skip approval queue)</span>
               </label>
             </div>
-            <div className="flex flex-wrap gap-4 pt-2 border-t border-gray-200">
+            <div className="flex flex-wrap gap-4 pt-2 border-t border-navy-600">
               <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
                 <input
                   type="checkbox"
@@ -815,7 +815,7 @@ function EditBotModal({ bot, allTags, onSave, onClose }: {
             </div>
           </div>
 
-          <div className="border rounded-lg p-3 space-y-3 bg-gray-50">
+          <div className="border rounded-lg p-3 space-y-3 bg-navy-800">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Active Window (UTC)</p>
             <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
               <input
@@ -853,7 +853,7 @@ function EditBotModal({ bot, allTags, onSave, onClose }: {
             )}
           </div>
 
-          <div className="border rounded-lg p-3 space-y-3 bg-gray-50">
+          <div className="border rounded-lg p-3 space-y-3 bg-navy-800">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">CU Auto-Refill</p>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -881,7 +881,7 @@ function EditBotModal({ bot, allTags, onSave, onClose }: {
 
           <Field label="Tag filter" hint="Bot only acts on forecasts with these tags. Leave empty for all tags.">
             <div className="mt-2 space-y-2">
-              <div className="flex flex-wrap gap-1.5 min-h-8 p-2 border rounded bg-white">
+              <div className="flex flex-wrap gap-1.5 min-h-8 p-2 border rounded bg-navy-700">
                 {form.tagFilter.map(slug => (
                   <span key={slug} className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-medium">
                     {allTags.find(t => t.slug === slug)?.name ?? slug}
@@ -913,7 +913,7 @@ function EditBotModal({ bot, allTags, onSave, onClose }: {
                   }}
                 />
                 {showTagSuggestions && tagInput && (
-                  <div className="absolute top-full left-0 right-0 z-20 mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto">
+                  <div className="absolute top-full left-0 right-0 z-20 mt-1 bg-navy-700 border rounded shadow-lg max-h-40 overflow-y-auto">
                     {filteredTags.map(tag => (
                       <button
                         key={tag.id}
@@ -937,7 +937,7 @@ function EditBotModal({ bot, allTags, onSave, onClose }: {
           </Field>
 
           <div className="flex justify-end gap-2 pt-2 pb-4">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-sm border rounded hover:bg-gray-50">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-sm border rounded hover:bg-navy-800">
               Cancel
             </button>
             <button
@@ -957,7 +957,7 @@ function EditBotModal({ bot, allTags, onSave, onClose }: {
 
 function Stat({ label, value, color }: { label: string; value: number | string; color: string }) {
   return (
-    <div className="bg-white p-2 rounded-lg border text-center">
+    <div className="bg-navy-700 p-2 rounded-lg border text-center">
       <div className={`text-xl font-bold ${color}`}>{value}</div>
       <div className="text-[10px] text-gray-400 uppercase font-medium">{label}</div>
     </div>
@@ -967,7 +967,7 @@ function Stat({ label, value, color }: { label: string; value: number | string; 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <label className="block text-sm font-medium text-text-secondary mb-1">{label}</label>
       {hint && <p className="text-xs text-gray-400 mb-1">{hint}</p>}
       {children}
     </div>
@@ -1015,8 +1015,8 @@ function actionBadge(action: string): string {
   switch (action) {
     case 'CREATED_FORECAST': return 'bg-green-100 text-green-700'
     case 'VOTED': return 'bg-blue-100 text-blue-700'
-    case 'SKIPPED': return 'bg-gray-100 text-gray-600'
+    case 'SKIPPED': return 'bg-navy-700 text-gray-600'
     case 'ERROR': return 'bg-red-100 text-red-700'
-    default: return 'bg-gray-100 text-gray-600'
+    default: return 'bg-navy-700 text-gray-600'
   }
 }

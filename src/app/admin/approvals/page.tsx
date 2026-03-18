@@ -116,7 +116,7 @@ export default function ApprovalsPage() {
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h2 className="text-xl font-bold text-gray-900">Pending Approvals</h2>
+                    <h2 className="text-xl font-bold text-white">Pending Approvals</h2>
                     <p className="text-sm text-gray-500 mt-1">
                         Bot-generated forecasts awaiting human review before going live.
                     </p>
@@ -157,7 +157,7 @@ export default function ApprovalsPage() {
                                     ? 'bg-green-50 border-2 border-green-400 opacity-75'
                                     : isRejected
                                     ? 'bg-red-50 border-2 border-red-300 opacity-75'
-                                    : 'bg-white border border-amber-200 hover:border-amber-300'
+                                    : 'bg-navy-700 border border-amber-200 hover:border-amber-300'
                             }`}
                         >
                             {/* Approved / Rejected banner */}
@@ -185,7 +185,7 @@ export default function ApprovalsPage() {
                                             showAvatar={true}
                                             avatarSize={20}
                                         >
-                                            <span className="text-sm font-medium text-gray-700">
+                                            <span className="text-sm font-medium text-text-secondary">
                                                 {p.author.username || p.author.name || 'Anon'}
                                             </span>
                                         </UserLink>
@@ -201,7 +201,7 @@ export default function ApprovalsPage() {
 
                                     <Link
                                         href={`/forecasts/${p.slug || p.id}`}
-                                        className="text-gray-900 font-medium hover:text-blue-600 transition-colors line-clamp-2"
+                                        className="text-white font-medium hover:text-blue-600 transition-colors line-clamp-2"
                                     >
                                         {p.claimText}
                                     </Link>
@@ -244,7 +244,7 @@ export default function ApprovalsPage() {
                                     <button
                                         onClick={() => handleReject(p.id)}
                                         disabled={actioningId === p.id}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-red-200 text-red-600 text-sm font-medium rounded-lg hover:bg-red-50 disabled:opacity-50 transition-colors"
+                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-navy-700 border border-red-200 text-red-600 text-sm font-medium rounded-lg hover:bg-red-50 disabled:opacity-50 transition-colors"
                                         title="Reject — set to VOID"
                                     >
                                         <XCircle className="w-4 h-4" />

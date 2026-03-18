@@ -93,8 +93,8 @@ export default function CommentsTable() {
       ) : (
         <>
           <div className="overflow-x-auto border rounded-lg shadow-sm">
-            <table className="w-full border-collapse bg-white">
-              <thead className="bg-gray-50 text-gray-700 text-sm font-semibold uppercase tracking-wider">
+            <table className="w-full border-collapse bg-navy-700">
+              <thead className="bg-navy-800 text-text-secondary text-sm font-semibold uppercase tracking-wider">
                 <tr>
                   <th className="p-3 border-b text-left">Content</th>
                   <th className="p-3 border-b text-left">Author</th>
@@ -105,7 +105,7 @@ export default function CommentsTable() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {comments.map((c) => (
-                  <tr key={c.id} className={`hover:bg-gray-50 transition-colors ${c.deletedAt ? 'opacity-50' : ''}`}>
+                  <tr key={c.id} className={`hover:bg-navy-800 transition-colors ${c.deletedAt ? 'opacity-50' : ''}`}>
                     <td className="p-3 max-w-md truncate">{c.text}</td>
                     <td className="p-3 text-sm">{c.author.name}</td>
                     <td className="p-3 text-sm max-w-xs truncate">{c.prediction?.claimText || 'N/A'}</td>
@@ -134,14 +134,14 @@ export default function CommentsTable() {
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-gray-50"
+                className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-navy-800"
               >
                 Previous
               </button>
               <button
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-gray-50"
+                className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-navy-800"
               >
                 Next
               </button>

@@ -45,7 +45,7 @@ export const LanguagePicker = ({ currentLocale }: LanguagePickerProps) => {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+      <div className="flex items-center gap-2 text-sm font-medium text-text-secondary">
         <Globe className="w-4 h-4" />
         <span>Language</span>
         {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500" />}
@@ -59,7 +59,7 @@ export const LanguagePicker = ({ currentLocale }: LanguagePickerProps) => {
             className={`flex items-center justify-between px-4 py-3 rounded-lg border text-sm font-medium transition-all ${
               selected === locale
                 ? 'border-blue-500 bg-blue-50 text-blue-700'
-                : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                : 'border-navy-600 bg-navy-700 text-text-secondary hover:border-gray-300 hover:bg-navy-800'
             }`}
             aria-label={`Switch to ${localeLabels[locale]}`}
           >

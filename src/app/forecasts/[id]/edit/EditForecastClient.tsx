@@ -150,7 +150,7 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
       <div className="p-4 sm:p-6 lg:p-8">
         <div className="text-center py-12">
           <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+          <h2 className="text-xl font-semibold text-white mb-2">
             {error || t('notFound')}
           </h2>
           <PrimaryLink href="/">
@@ -166,7 +166,7 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
       {/* Back Link */}
       <Link
         href={`/forecasts/${prediction.slug || prediction.id}`}
-        className="inline-flex items-center gap-1 text-gray-500 hover:text-gray-700 mb-6"
+        className="inline-flex items-center gap-1 text-gray-500 hover:text-text-secondary mb-6"
       >
         <ChevronLeft className="w-4 h-4" />
         {t('backToForecast')}
@@ -174,7 +174,7 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
 
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
+        <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
           {t('title')}
         </h1>
         <p className="text-sm text-gray-500 mt-1">
@@ -186,7 +186,7 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
       <div className="space-y-6">
         {/* Claim Text */}
         <div>
-          <label htmlFor="claimText" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="claimText" className="block text-sm font-medium text-text-secondary mb-2">
             {t('claimLabel')} <span className="text-red-500">*</span>
           </label>
           <textarea
@@ -203,7 +203,7 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
 
         {/* Details Text */}
         <div>
-          <label htmlFor="detailsText" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="detailsText" className="block text-sm font-medium text-text-secondary mb-2">
             {t('detailsLabel')}
           </label>
           <textarea
@@ -218,7 +218,7 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
 
         {/* Resolution Rules */}
         <div>
-          <label htmlFor="resolutionRules" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="resolutionRules" className="block text-sm font-medium text-text-secondary mb-2">
             {t('resolutionRulesLabel')}
           </label>
           <textarea
@@ -233,7 +233,7 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
 
         {/* Resolve By Date */}
         <div>
-          <label htmlFor="resolveByDatetime" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="resolveByDatetime" className="block text-sm font-medium text-text-secondary mb-2">
             {t('resolveByLabel')} <span className="text-red-500">*</span>
           </label>
           <div className="relative">
@@ -254,7 +254,7 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
 
         {/* Visibility */}
         <div className="pt-2">
-          <label className="block text-sm font-medium text-gray-700 mb-3">
+          <label className="block text-sm font-medium text-text-secondary mb-3">
             {t('visibilityLabel')}
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -263,10 +263,10 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
               className={`flex items-center gap-3 p-4 border rounded-xl transition-all ${
                 formData.isPublic 
                   ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' 
-                  : 'border-gray-200 bg-white hover:border-gray-300'
+                  : 'border-navy-600 bg-navy-700 hover:border-gray-300'
               }`}
             >
-              <div className={`p-2 rounded-lg ${formData.isPublic ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
+              <div className={`p-2 rounded-lg ${formData.isPublic ? 'bg-blue-100 text-blue-600' : 'bg-navy-700 text-gray-500'}`}>
                 <Unlock className="w-5 h-5" />
               </div>
               <div className="text-left">
@@ -280,10 +280,10 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
               className={`flex items-center gap-3 p-4 border rounded-xl transition-all ${
                 !formData.isPublic 
                   ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' 
-                  : 'border-gray-200 bg-white hover:border-gray-300'
+                  : 'border-navy-600 bg-navy-700 hover:border-gray-300'
               }`}
             >
-              <div className={`p-2 rounded-lg ${!formData.isPublic ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
+              <div className={`p-2 rounded-lg ${!formData.isPublic ? 'bg-blue-100 text-blue-600' : 'bg-navy-700 text-gray-500'}`}>
                 <Lock className="w-5 h-5" />
               </div>
               <div className="text-left">
@@ -295,7 +295,7 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
         </div>
 
         {/* Action Buttons */}
-        <div className="pt-6 border-t border-gray-100 flex flex-col sm:flex-row gap-3">
+        <div className="pt-6 border-t border-navy-600 flex flex-col sm:flex-row gap-3">
           <Button
             onClick={handleSave}
             loading={isSaving}

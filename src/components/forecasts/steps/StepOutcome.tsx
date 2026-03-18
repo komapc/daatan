@@ -72,7 +72,7 @@ export const StepOutcome = ({ formData, updateFormData }: Props) => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+        <h2 className="text-xl font-semibold text-white mb-2">
           Define Outcome & Deadline
         </h2>
         <p className="text-gray-500">
@@ -82,7 +82,7 @@ export const StepOutcome = ({ formData, updateFormData }: Props) => {
 
       {/* Outcome Type */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-3">
+        <label className="block text-sm font-medium text-text-secondary mb-3">
           Outcome Type *
         </label>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -99,12 +99,12 @@ export const StepOutcome = ({ formData, updateFormData }: Props) => {
                   p-4 rounded-lg border-2 text-left transition-colors
                   ${isSelected 
                     ? 'border-blue-500 bg-blue-50' 
-                    : 'border-gray-200 hover:border-gray-300'
+                    : 'border-navy-600 hover:border-gray-300'
                   }
                 `}
               >
                 <Icon className={`w-6 h-6 mb-2 ${isSelected ? 'text-blue-600' : 'text-gray-400'}`} />
-                <div className={`font-medium ${isSelected ? 'text-blue-700' : 'text-gray-900'}`}>
+                <div className={`font-medium ${isSelected ? 'text-blue-700' : 'text-white'}`}>
                   {type.label}
                 </div>
                 <div className="text-sm text-gray-500">{type.description}</div>
@@ -117,7 +117,7 @@ export const StepOutcome = ({ formData, updateFormData }: Props) => {
       {/* Multiple Choice Options */}
       {formData.outcomeType === 'MULTIPLE_CHOICE' && (
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-3">
+          <label className="block text-sm font-medium text-text-secondary mb-3">
             Options *
           </label>
           <div className="space-y-2">
@@ -131,7 +131,7 @@ export const StepOutcome = ({ formData, updateFormData }: Props) => {
                   value={option}
                   onChange={(e) => handleOptionChange(index, e.target.value)}
                   placeholder={`Option ${index + 1}`}
-                  className="flex-1 px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="flex-1 px-4 py-2 rounded-lg border border-navy-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   maxLength={500}
                 />
                 {options.length > 2 && (
@@ -164,7 +164,7 @@ export const StepOutcome = ({ formData, updateFormData }: Props) => {
       {formData.outcomeType === 'NUMERIC_THRESHOLD' && (
         <div className="space-y-4">
           <div>
-            <label htmlFor="metric" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="metric" className="block text-sm font-medium text-text-secondary mb-2">
               Metric *
             </label>
             <input
@@ -180,13 +180,13 @@ export const StepOutcome = ({ formData, updateFormData }: Props) => {
                 },
               })}
               placeholder="e.g., Bitcoin price in USD"
-              className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 rounded-lg border border-navy-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="direction" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="direction" className="block text-sm font-medium text-text-secondary mb-2">
                 Direction *
               </label>
               <select
@@ -200,7 +200,7 @@ export const StepOutcome = ({ formData, updateFormData }: Props) => {
                     direction: e.target.value as 'above' | 'below' | 'exactly',
                   },
                 })}
-                className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                className="w-full px-4 py-3 rounded-lg border border-navy-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-navy-700"
               >
                 <option value="above">Goes above</option>
                 <option value="below">Goes below</option>
@@ -209,7 +209,7 @@ export const StepOutcome = ({ formData, updateFormData }: Props) => {
             </div>
 
             <div>
-              <label htmlFor="threshold" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="threshold" className="block text-sm font-medium text-text-secondary mb-2">
                 Threshold Value *
               </label>
               <input
@@ -225,7 +225,7 @@ export const StepOutcome = ({ formData, updateFormData }: Props) => {
                   },
                 })}
                 placeholder="100000"
-                className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 rounded-lg border border-navy-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -234,7 +234,7 @@ export const StepOutcome = ({ formData, updateFormData }: Props) => {
 
       {/* Resolution Date */}
       <div>
-        <label htmlFor="resolveByDatetime" className="block text-sm font-medium text-gray-700 mb-2">
+        <label htmlFor="resolveByDatetime" className="block text-sm font-medium text-text-secondary mb-2">
           Resolution Deadline *
         </label>
         <div className="relative">
@@ -246,7 +246,7 @@ export const StepOutcome = ({ formData, updateFormData }: Props) => {
             onChange={(e) => updateFormData({ resolveByDatetime: e.target.value })}
             min={minDate}
             className={`w-full pl-12 pr-4 py-3 rounded-lg border ${
-              isDateInPast ? 'border-red-500' : 'border-gray-200'
+              isDateInPast ? 'border-red-500' : 'border-navy-600'
             } focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
           />
         </div>
@@ -260,7 +260,7 @@ export const StepOutcome = ({ formData, updateFormData }: Props) => {
 
       {/* Resolution Rules */}
       <div>
-        <label htmlFor="resolutionRules" className="block text-sm font-medium text-gray-700 mb-2">
+        <label htmlFor="resolutionRules" className="block text-sm font-medium text-text-secondary mb-2">
           Resolution Rules
           <span className="text-gray-400 font-normal ml-2">(optional)</span>
         </label>
@@ -271,7 +271,7 @@ export const StepOutcome = ({ formData, updateFormData }: Props) => {
           placeholder="How should this be resolved? What sources will be used?"
           rows={3}
           maxLength={2000}
-          className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+          className="w-full px-4 py-3 rounded-lg border border-navy-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
         />
       </div>
     </div>

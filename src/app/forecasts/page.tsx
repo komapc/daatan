@@ -67,7 +67,7 @@ export default function PredictionsPage() {
       <div className="flex items-center justify-between mb-6 lg:mb-8">
         <div className="flex items-center gap-3">
           <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Predictions</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white">Predictions</h1>
         </div>
         <Link
           href="/predictions/new"
@@ -93,7 +93,7 @@ export default function PredictionsPage() {
             onClick={() => setFilter('ACTIVE')}
             className={`px-4 py-2 rounded-lg font-medium transition-all ${filter === 'ACTIVE'
               ? 'bg-blue-600 text-white shadow-sm'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              : 'bg-navy-700 text-text-secondary hover:bg-navy-600'
               }`}
           >
             Open
@@ -102,7 +102,7 @@ export default function PredictionsPage() {
             onClick={() => setFilter('CLOSING_SOON')}
             className={`px-4 py-2 rounded-lg font-medium transition-all ${filter === 'CLOSING_SOON'
               ? 'bg-blue-600 text-white shadow-sm'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              : 'bg-navy-700 text-text-secondary hover:bg-navy-600'
               }`}
           >
             Closing Soon
@@ -111,7 +111,7 @@ export default function PredictionsPage() {
             onClick={() => setFilter('PENDING')}
             className={`px-4 py-2 rounded-lg font-medium transition-all ${filter === 'PENDING'
               ? 'bg-blue-600 text-white shadow-sm'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              : 'bg-navy-700 text-text-secondary hover:bg-navy-600'
               }`}
           >
             Awaiting Resolution
@@ -120,7 +120,7 @@ export default function PredictionsPage() {
             onClick={() => setFilter('RESOLVED')}
             className={`px-4 py-2 rounded-lg font-medium transition-all ${filter === 'RESOLVED'
               ? 'bg-blue-600 text-white shadow-sm'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              : 'bg-navy-700 text-text-secondary hover:bg-navy-600'
               }`}
           >
             Resolved
@@ -129,7 +129,7 @@ export default function PredictionsPage() {
             onClick={() => setFilter('ALL')}
             className={`px-4 py-2 rounded-lg font-medium transition-all ${filter === 'ALL'
               ? 'bg-blue-600 text-white shadow-sm'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              : 'bg-navy-700 text-text-secondary hover:bg-navy-600'
               }`}
           >
             All
@@ -146,7 +146,7 @@ export default function PredictionsPage() {
         <EmptyState
           variant="dashed"
           icon={<TrendingUp className="w-8 h-8 text-gray-400" />}
-          iconBgClass="bg-gray-100"
+          iconBgClass="bg-navy-700"
           title="No predictions yet"
           description="Be the first to make a prediction!"
           action={{ label: 'Create Prediction', href: '/predictions/new', icon: <Plus className="w-5 h-5" /> }}
@@ -155,7 +155,7 @@ export default function PredictionsPage() {
         /* Predictions List */
         <div className="space-y-4">
           <div className="flex items-center justify-between px-2">
-            <h2 className="text-lg font-semibold text-gray-700">
+            <h2 className="text-lg font-semibold text-text-secondary">
               {filter === 'ACTIVE' && 'Open Predictions'}
               {filter === 'CLOSING_SOON' && 'Closing Soon'}
               {filter === 'PENDING' && 'Awaiting Resolution'}

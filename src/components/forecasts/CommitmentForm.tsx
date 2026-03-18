@@ -174,7 +174,7 @@ export default function CommitmentForm({
   return (
     <div className="space-y-4 rounded-xl border border-blue-200 bg-blue-50/30 p-4 shadow-sm">
       <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold text-gray-900">
+        <h3 className="text-base font-semibold text-white">
           {isUpdate ? t('updateCommitment') : t('makeCommitment')}
         </h3>
         {onCancel && (
@@ -182,7 +182,7 @@ export default function CommitmentForm({
             type="button"
             onClick={onCancel}
             disabled={isSubmitting}
-            className="text-sm font-medium text-gray-500 hover:text-gray-700 disabled:opacity-50"
+            className="text-sm font-medium text-gray-500 hover:text-text-secondary disabled:opacity-50"
           >
             Cancel
           </button>
@@ -198,18 +198,18 @@ export default function CommitmentForm({
       <div className="flex flex-col sm:flex-row gap-4 sm:items-stretch">
         {/* CU + Probability inputs */}
         <div className="flex flex-col gap-2 self-start sm:self-auto">
-          <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-gray-300 shadow-sm w-fit">
+          <div className="flex items-center gap-2 bg-navy-700 px-3 py-2 rounded-lg border border-gray-300 shadow-sm w-fit">
             <input
               type="number"
               min="1"
               max={maxCu}
               value={cuAmount}
               onChange={(e) => setCuAmount(e.target.value === '' ? '' : Number(e.target.value))}
-              className="w-16 sm:w-20 text-lg font-bold text-gray-900 outline-none bg-transparent"
+              className="w-16 sm:w-20 text-lg font-bold text-white outline-none bg-transparent"
             />
             <span className="text-gray-500 font-medium">CU</span>
           </div>
-          <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-gray-200 w-fit" title="Your probability estimate that this forecast will happen (1–99%). Used to compute your Brier score.">
+          <div className="flex items-center gap-2 bg-navy-700 px-3 py-1.5 rounded-lg border border-navy-600 w-fit" title="Your probability estimate that this forecast will happen (1–99%). Used to compute your Brier score.">
             <input
               type="number"
               min="1"
@@ -217,7 +217,7 @@ export default function CommitmentForm({
               placeholder="—"
               value={probability}
               onChange={(e) => setProbability(e.target.value === '' ? '' : Number(e.target.value))}
-              className="w-10 text-sm font-medium text-gray-700 outline-none bg-transparent"
+              className="w-10 text-sm font-medium text-text-secondary outline-none bg-transparent"
             />
             <span className="text-gray-400 text-xs">{t('percentYes')}</span>
           </div>
@@ -233,7 +233,7 @@ export default function CommitmentForm({
                 disabled={isSubmitting || pendingOutcome !== null}
                 className={`flex-1 rounded-lg border px-4 py-2.5 text-sm font-semibold transition-all shadow-sm ${isCurrentOutcome(true)
                   ? 'bg-green-600 text-white border-green-700 hover:bg-green-700'
-                  : 'bg-white text-gray-700 border-gray-300 hover:bg-green-50 hover:border-green-400 hover:text-green-700'
+                  : 'bg-navy-700 text-text-secondary border-gray-300 hover:bg-green-50 hover:border-green-400 hover:text-green-700'
                   } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 {isSubmitting ? '...' : isUpdate ? (isCurrentOutcome(true) ? t('update') : `Switch to ${t('willHappen')}`) : t('willHappen')}
@@ -244,7 +244,7 @@ export default function CommitmentForm({
                 disabled={isSubmitting || pendingOutcome !== null}
                 className={`flex-1 rounded-lg border px-4 py-2.5 text-sm font-semibold transition-all shadow-sm ${isCurrentOutcome(false)
                   ? 'bg-red-500 text-white border-red-600 hover:bg-red-600'
-                  : 'bg-white text-gray-700 border-gray-300 hover:bg-red-50 hover:border-red-400 hover:text-red-700'
+                  : 'bg-navy-700 text-text-secondary border-gray-300 hover:bg-red-50 hover:border-red-400 hover:text-red-700'
                   } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 {isSubmitting ? '...' : isUpdate ? (isCurrentOutcome(false) ? t('update') : `Switch to ${t('wontHappen')}`) : t('wontHappen')}
@@ -260,7 +260,7 @@ export default function CommitmentForm({
                   disabled={isSubmitting || pendingOutcome !== null}
                   className={`w-full text-left rounded-lg border px-4 py-3 text-sm font-medium transition-all shadow-sm flex items-center justify-between ${isCurrentOutcome(option.id)
                     ? 'bg-blue-600 text-white border-blue-700 hover:bg-blue-700'
-                    : 'bg-white text-gray-900 border-gray-300 hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700'
+                    : 'bg-navy-700 text-white border-gray-300 hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700'
                     } disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   <span>{option.text}</span>
@@ -300,7 +300,7 @@ export default function CommitmentForm({
                 setPenaltyInfo(null)
               }}
               disabled={isSubmitting}
-              className="flex-1 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium py-2 rounded-lg transition-colors disabled:opacity-50"
+              className="flex-1 bg-navy-700 border border-gray-300 text-text-secondary hover:bg-navy-800 font-medium py-2 rounded-lg transition-colors disabled:opacity-50"
             >
               Cancel
             </button>

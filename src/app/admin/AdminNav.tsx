@@ -41,7 +41,7 @@ export default function AdminNav({ isAdmin }: { isAdmin: boolean }) {
             href={href}
             className={`px-3 sm:px-4 py-2 shrink-0 text-sm transition-colors ${active
               ? 'border-b-2 border-blue-500 font-bold text-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
+              : 'text-gray-500 hover:text-text-secondary'
               }`}
           >
             {t.label}

@@ -186,7 +186,7 @@ export const StepNewsAnchor = ({ formData, updateFormData }: Props) => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+        <h2 className="text-xl font-semibold text-white mb-2">
           Select News Anchor
         </h2>
         <p className="text-gray-500">
@@ -198,7 +198,7 @@ export const StepNewsAnchor = ({ formData, updateFormData }: Props) => {
         <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <h3 className="font-medium text-gray-900">{selectedAnchor.title}</h3>
+              <h3 className="font-medium text-white">{selectedAnchor.title}</h3>
               <a
                 href={selectedAnchor.url}
                 target="_blank"
@@ -226,7 +226,7 @@ export const StepNewsAnchor = ({ formData, updateFormData }: Props) => {
       ) : (
         <div className="space-y-4">
           <div>
-            <label htmlFor="url" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="url" className="block text-sm font-medium text-text-secondary mb-2">
               Article URL
             </label>
             <div className="relative">
@@ -237,13 +237,13 @@ export const StepNewsAnchor = ({ formData, updateFormData }: Props) => {
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://example.com/article"
-                className={`w-full pl-10 pr-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${isUrl ? 'border-blue-300 bg-blue-50/30' : 'border-gray-200'}`}
+                className={`w-full pl-10 pr-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${isUrl ? 'border-blue-300 bg-blue-50/30' : 'border-navy-600'}`}
               />
             </div>
           </div>
 
           <div className={`transition-all duration-300 origin-top ${isUrl ? 'opacity-100 max-h-40' : 'opacity-0 max-h-0 overflow-hidden'}`}>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="title" className="block text-sm font-medium text-text-secondary mb-2">
               Article Title
             </label>
             <div className="relative">
@@ -254,7 +254,7 @@ export const StepNewsAnchor = ({ formData, updateFormData }: Props) => {
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder={isSearching ? 'Fetching title...' : 'Enter article headline'}
                 disabled={isSearching}
-                className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50"
+                className="w-full px-4 py-3 rounded-lg border border-navy-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-navy-800"
               />
               {isSearching && (
                 <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-blue-500" />
@@ -284,7 +284,7 @@ export const StepNewsAnchor = ({ formData, updateFormData }: Props) => {
             <button
               onClick={handleUrlSubmit}
               disabled={!isUrl || !title || isSearching || isExtracting}
-              className="flex-1 py-3.5 px-6 rounded-xl bg-white text-gray-700 font-semibold border-2 border-gray-100 hover:bg-gray-50 hover:border-gray-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex-1 py-3.5 px-6 rounded-xl bg-navy-700 text-text-secondary font-semibold border-2 border-navy-600 hover:bg-navy-800 hover:border-navy-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               Add Manually
             </button>
@@ -314,7 +314,7 @@ export const StepNewsAnchor = ({ formData, updateFormData }: Props) => {
             onChange={(e) => handleSkipNewsToggle(e.target.checked)}
             className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
           />
-          <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
+          <span className="text-sm font-medium text-text-secondary group-hover:text-white">
             Create prediction without a URL
           </span>
         </label>

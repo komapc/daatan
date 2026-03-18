@@ -121,7 +121,7 @@ export default async function ProfilePage() {
     return (
       <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
         {/* Profile Header */}
-        <div className="bg-white border border-gray-100 rounded-3xl p-6 sm:p-10 shadow-sm mb-8">
+        <div className="bg-navy-700 border border-navy-600 rounded-3xl p-6 sm:p-10 shadow-sm mb-8">
           <div className="flex flex-col md:flex-row items-center gap-8">
             <div className="relative">
               {user.image ? (
@@ -137,20 +137,20 @@ export default async function ProfilePage() {
                   {user.name?.charAt(0) || user.username?.charAt(0) || '?'}
                 </div>
               )}
-              <div className="absolute -bottom-2 -right-2 bg-white p-2 rounded-xl shadow-md border border-gray-50">
+              <div className="absolute -bottom-2 -right-2 bg-navy-700 p-2 rounded-xl shadow-md border border-gray-50">
                 <Award className="w-6 h-6 text-yellow-500" />
               </div>
             </div>
 
             <div className="flex-1 text-center md:text-left">
               <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
-                <h1 className="text-3xl sm:text-4xl font-black text-gray-900">{user.name || 'Anonymous'}</h1>
+                <h1 className="text-3xl sm:text-4xl font-black text-white">{user.name || 'Anonymous'}</h1>
                 {user.role && (
                   <RoleBadge role={user.role as any} size="md" />
                 )}
                 <Link
                   href="/profile/edit"
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-2 hover:bg-navy-700 rounded-lg transition-colors"
                   title="Edit profile"
                 >
                   <Settings className="w-5 h-5 text-gray-400 hover:text-gray-600" />
@@ -187,16 +187,16 @@ export default async function ProfilePage() {
               )}
 
               <div className="flex flex-wrap justify-center md:justify-start gap-4">
-                <div className="px-4 py-2 bg-gray-50 rounded-xl border border-gray-100">
+                <div className="px-4 py-2 bg-navy-800 rounded-xl border border-navy-600">
                   <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block">{t('joined')}</span>
-                  <span className="text-sm font-bold text-gray-700">{new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+                  <span className="text-sm font-bold text-text-secondary">{new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
                 </div>
-                <div className="px-4 py-2 bg-gray-50 rounded-xl border border-gray-100">
+                <div className="px-4 py-2 bg-navy-800 rounded-xl border border-navy-600">
                   <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block">{t('predictions')}</span>
-                  <span className="text-sm font-bold text-gray-700">{user._count.predictions} {t('created')}</span>
+                  <span className="text-sm font-bold text-text-secondary">{user._count.predictions} {t('created')}</span>
                 </div>
                 {avgBrierScore !== null && (
-                  <div className="px-4 py-2 bg-gray-50 rounded-xl border border-gray-100" title="Brier Score = (probability − outcome)². Lower is better. Only computed when you enter a % yes estimate at stake time.">
+                  <div className="px-4 py-2 bg-navy-800 rounded-xl border border-navy-600" title="Brier Score = (probability − outcome)². Lower is better. Only computed when you enter a % yes estimate at stake time.">
                     <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block">{t('brierScore')}</span>
                     <span className="text-sm font-bold text-purple-700">{avgBrierScore.toFixed(3)}</span>
                     <span className="text-[10px] text-gray-400 block">{brierStats._count.brierScore} {t('scored')}</span>
@@ -228,7 +228,7 @@ export default async function ProfilePage() {
           {/* Recent Stakes */}
           <section>
             <div className="flex items-center justify-between mb-4 px-2">
-              <h2 className="text-xl font-black text-gray-900 flex items-center gap-2">
+              <h2 className="text-xl font-black text-white flex items-center gap-2">
                 <History className="w-5 h-5 text-blue-500" />
                 {t('recentStakes')}
               </h2>
@@ -259,7 +259,7 @@ export default async function ProfilePage() {
           {/* My Predictions */}
           <section>
             <div className="flex items-center justify-between mb-4 px-2">
-              <h2 className="text-xl font-black text-gray-900 flex items-center gap-2">
+              <h2 className="text-xl font-black text-white flex items-center gap-2">
                 <Award className="w-5 h-5 text-purple-500" />
                 {t('myForecasts')}
               </h2>
@@ -301,7 +301,7 @@ export default async function ProfilePage() {
             </Link>
             <Link
               href="/auth/signin"
-              className="px-6 py-3 bg-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-300 transition-colors"
+              className="px-6 py-3 bg-navy-600 text-text-secondary font-bold rounded-xl hover:bg-gray-300 transition-colors"
             >
               {t('signOutAndBack')}
             </Link>

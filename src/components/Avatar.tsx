@@ -67,7 +67,7 @@ export function Avatar({ src, name, size = 32, className = '' }: AvatarProps) {
       alt={name || 'User'}
       width={size}
       height={size}
-      className={`rounded-full border border-gray-200 ${className}`}
+      className={`rounded-full border border-navy-600 ${className}`}
       onError={() => setImageError(true)}
     />
   )

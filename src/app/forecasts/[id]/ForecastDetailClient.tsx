@@ -116,7 +116,7 @@ function ForecastInfoPanel({ prediction, variant = 'desktop', isMounted }: Forec
     <>
       <div className={variant === 'mobile' ? 'grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8' : 'grid grid-cols-1 gap-3'}>
         {/* Author */}
-        <div className="p-4 border border-gray-200 rounded-xl bg-white shadow-sm">
+        <div className="p-4 border border-navy-600 rounded-xl bg-navy-700 shadow-sm">
           <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-gray-400 mb-2">
             <User className="w-3.5 h-3.5" />
             {t('author')}
@@ -131,7 +131,7 @@ function ForecastInfoPanel({ prediction, variant = 'desktop', isMounted }: Forec
           >
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-semibold text-gray-900">{prediction.author.name}</span>
+                <span className="font-semibold text-white">{prediction.author.name}</span>
                 {prediction.author.role && (
                   <RoleBadge role={prediction.author.role} size="sm" />
                 )}
@@ -142,12 +142,12 @@ function ForecastInfoPanel({ prediction, variant = 'desktop', isMounted }: Forec
         </div>
 
         {/* Deadline */}
-        <div className="p-4 border border-gray-200 rounded-xl bg-white shadow-sm">
+        <div className="p-4 border border-navy-600 rounded-xl bg-navy-700 shadow-sm">
           <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-gray-400 mb-2">
             <Calendar className="w-3.5 h-3.5" />
             {t('deadline')}
           </div>
-          <div className="text-gray-900 font-semibold truncate" suppressHydrationWarning>
+          <div className="text-white font-semibold truncate" suppressHydrationWarning>
             {isMounted && new Date(prediction.resolveByDatetime).toLocaleDateString('en-US', {
               month: 'short',
               day: 'numeric',
@@ -159,14 +159,14 @@ function ForecastInfoPanel({ prediction, variant = 'desktop', isMounted }: Forec
         </div>
 
         {/* Category/Tags */}
-        <div className="p-4 border border-gray-200 rounded-xl bg-white shadow-sm">
+        <div className="p-4 border border-navy-600 rounded-xl bg-navy-700 shadow-sm">
           <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-gray-400 mb-2">
             <Target className="w-3.5 h-3.5" />
             Tags
           </div>
           <div className="flex flex-wrap gap-1">
             {prediction.extractedEntities?.slice(0, 3).map((tag, i) => (
-              <span key={i} className="px-2 py-0.5 bg-gray-50 text-gray-600 text-[10px] font-bold uppercase tracking-wider rounded border border-gray-100">
+              <span key={i} className="px-2 py-0.5 bg-navy-800 text-gray-600 text-[10px] font-bold uppercase tracking-wider rounded border border-navy-600">
                 {tag}
               </span>
             )) || <span className="text-gray-400 italic text-xs">None</span>}
@@ -286,7 +286,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'DRAFT': return 'bg-gray-100 text-gray-700'
+      case 'DRAFT': return 'bg-navy-700 text-text-secondary'
       case 'ACTIVE': return 'bg-green-100 text-green-700'
       case 'PENDING': return 'bg-yellow-100 text-yellow-700'
       case 'PENDING_APPROVAL': return 'bg-amber-100 text-amber-700'
@@ -294,7 +294,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
       case 'RESOLVED_WRONG': return 'bg-red-100 text-red-700'
       case 'UNRESOLVABLE':
       case 'VOID': return 'bg-orange-100 text-orange-700'
-      default: return 'bg-gray-100 text-gray-700'
+      default: return 'bg-navy-700 text-text-secondary'
     }
   }
 
@@ -311,7 +311,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
       <div className="p-4 sm:p-6 lg:p-8">
         <div className="text-center py-12">
           <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+          <h2 className="text-xl font-semibold text-white mb-2">
             {error || 'Prediction not found'}
           </h2>
           <button 
@@ -330,7 +330,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
       {/* Back Link */}
       <button
         onClick={() => { router.push('/'); router.refresh(); }}
-        className="inline-flex items-center gap-1 text-gray-500 hover:text-gray-700 mb-6"
+        className="inline-flex items-center gap-1 text-gray-500 hover:text-text-secondary mb-6"
       >
         <ChevronLeft className="w-4 h-4" />
         Back to Feed
@@ -348,7 +348,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
               {prediction.status.replace('_', ' ')}
             </span>
             {prediction.isPublic === false && (
-              <span className="flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-600 text-sm font-medium rounded-full">
+              <span className="flex items-center gap-1 px-3 py-1 bg-navy-700 text-gray-600 text-sm font-medium rounded-full">
                 <EyeOff className="w-4 h-4" />
                 Unlisted
               </span>
@@ -360,7 +360,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium transition-colors ${
                   showTranslated 
                     ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' 
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    : 'bg-navy-700 text-gray-600 hover:bg-navy-600'
                 }`}
               >
                 {isTranslating ? (
@@ -385,7 +385,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
           )}
         </div>
 
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight leading-tight mb-4">
+        <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight leading-tight mb-4">
           {showTranslated && translatedFields?.claimText ? translatedFields.claimText : prediction.claimText}
         </h1>
 
@@ -401,7 +401,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
         )}
 
         {(showTranslated && translatedFields?.detailsText ? translatedFields.detailsText : prediction.detailsText) && (
-          <div className="prose prose-sm max-w-none text-gray-700 mb-8 whitespace-pre-wrap">
+          <div className="prose prose-sm max-w-none text-text-secondary mb-8 whitespace-pre-wrap">
             {showTranslated && translatedFields?.detailsText ? translatedFields.detailsText : prediction.detailsText}
           </div>
         )}
@@ -422,7 +422,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
           
           return (
             <div className="flex flex-col items-center">
-              <div className="w-full max-w-sm relative rounded-xl border border-gray-200 bg-white p-6 flex flex-col items-center justify-center hover:border-blue-300 transition-colors shadow-sm">
+              <div className="w-full max-w-sm relative rounded-xl border border-navy-600 bg-navy-700 p-6 flex flex-col items-center justify-center hover:border-blue-300 transition-colors shadow-sm">
                 <Speedometer
                   percentage={prob}
                   label={prob > 50 ? 'Likely' : prob < 50 ? 'Unlikely' : 'Toss-up'}
@@ -432,11 +432,11 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
                 <div className="w-full grid grid-cols-2 gap-4 mt-6">
                   <div className="text-center p-3 rounded-lg bg-green-50/50 border border-green-100/50">
                     <div className="text-xs font-bold text-green-600 uppercase tracking-wider mb-1">Yes</div>
-                    <div className="text-xl font-bold text-gray-900">{prob}%</div>
+                    <div className="text-xl font-bold text-white">{prob}%</div>
                   </div>
                   <div className="text-center p-3 rounded-lg bg-red-50/50 border border-red-100/50">
                     <div className="text-xs font-bold text-red-600 uppercase tracking-wider mb-1">No</div>
-                    <div className="text-xl font-bold text-gray-900">{100 - prob}%</div>
+                    <div className="text-xl font-bold text-white">{100 - prob}%</div>
                   </div>
                 </div>
               </div>
@@ -457,7 +457,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
 
           return (
             <div className="flex flex-col items-center">
-              <div className="w-full max-w-sm relative rounded-xl border border-gray-200 bg-white p-6 flex flex-col items-center justify-center hover:border-blue-300 transition-colors shadow-sm mb-6">
+              <div className="w-full max-w-sm relative rounded-xl border border-navy-600 bg-navy-700 p-6 flex flex-col items-center justify-center hover:border-blue-300 transition-colors shadow-sm mb-6">
                 <Speedometer
                   percentage={leadingOption.pct}
                   label={`Leading: ${leadingOption.text}`}
@@ -465,17 +465,17 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
                   size="lg"
                 />
                 <p className="mt-4 text-sm text-gray-500">
-                  <span className="font-semibold text-gray-900">{leadingOption.commitCount}</span> commitment{leadingOption.commitCount !== 1 ? 's' : ''} ({leadingOption.pct}%)
+                  <span className="font-semibold text-white">{leadingOption.commitCount}</span> commitment{leadingOption.commitCount !== 1 ? 's' : ''} ({leadingOption.pct}%)
                 </p>
               </div>
 
               {otherOptions.length > 0 && (
                 <div className="w-full max-w-sm space-y-2">
                   <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest text-center mb-3">Other Options</h4>
-                  <div className="bg-gray-50/50 rounded-xl border border-gray-100 p-3 divide-y divide-gray-100">
+                  <div className="bg-navy-800/50 rounded-xl border border-navy-600 p-3 divide-y divide-gray-100">
                     {otherOptions.map(option => (
                       <div key={option.id} className="flex items-center justify-between py-2 text-sm">
-                        <span className="text-gray-700 font-medium truncate pr-4">{option.text}</span>
+                        <span className="text-text-secondary font-medium truncate pr-4">{option.text}</span>
                         <span className="text-gray-500 shrink-0 font-mono">{option.pct}%</span>
                       </div>
                     ))}
@@ -488,7 +488,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
       </div>
 
       {/* Commit Form — mobile only (desktop renders in right column) */}
-      <div className="lg:hidden mb-8 p-5 border border-gray-200 rounded-xl bg-white shadow-sm space-y-6">
+      <div className="lg:hidden mb-8 p-5 border border-navy-600 rounded-xl bg-navy-700 shadow-sm space-y-6">
         <CUBalanceIndicator
           cuAvailable={session?.user?.cuAvailable ?? 0}
           cuLocked={session?.user?.cuLocked ?? 0}
@@ -570,7 +570,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
             <button
               onClick={() => handleApproveAction('VOID')}
               disabled={isApproving}
-              className="flex items-center gap-1.5 px-4 py-2 bg-white border border-red-200 text-red-600 text-sm font-medium rounded-lg hover:bg-red-50 disabled:opacity-50 transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2 bg-navy-700 border border-red-200 text-red-600 text-sm font-medium rounded-lg hover:bg-red-50 disabled:opacity-50 transition-colors"
             >
               Reject
             </button>
@@ -583,7 +583,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
                   <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                     prediction.sentiment === 'positive' ? 'bg-green-100 text-green-700' :
                     prediction.sentiment === 'negative' ? 'bg-red-100 text-red-700' :
-                    'bg-gray-100 text-gray-700'
+                    'bg-navy-700 text-text-secondary'
                   }`}>
                     {prediction.sentiment}
                   </span>
@@ -620,11 +620,11 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
       {/* Commitments List */}
       {prediction.commitments.length > 0 && (
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <Users className="w-5 h-5" />
             All Commitments
           </h2>
-          <div className="border border-gray-200 rounded-lg divide-y divide-gray-100">
+          <div className="border border-navy-600 rounded-lg divide-y divide-gray-100">
             {prediction.commitments.map((commitment) => (
               <div key={commitment.id} className="p-4 flex items-center justify-between">
                 <UserLink
@@ -636,7 +636,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
                   avatarSize={32}
                 >
                   <div>
-                    <div className="font-medium text-gray-900">{commitment.user.name}</div>
+                    <div className="font-medium text-white">{commitment.user.name}</div>
                     <div className="text-sm text-gray-500">
                       {prediction.outcomeType === 'BINARY'
                         ? (commitment.binaryChoice ? 'Will happen' : 'Won\'t happen')
@@ -655,7 +655,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
       )}
 
       {/* Comments Section */}
-      <div className="border-t border-gray-200 pt-8">
+      <div className="border-t border-navy-600 pt-8">
         <CommentThread predictionId={prediction.id} />
       </div>
 
@@ -668,7 +668,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
             isMounted={isMounted}
           />
           
-          <div className="p-5 border border-gray-200 rounded-xl bg-white shadow-sm space-y-6">
+          <div className="p-5 border border-navy-600 rounded-xl bg-navy-700 shadow-sm space-y-6">
             <CUBalanceIndicator 
               cuAvailable={session?.user?.cuAvailable ?? 0} 
               cuLocked={session?.user?.cuLocked ?? 0} 
