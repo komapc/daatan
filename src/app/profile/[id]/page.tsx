@@ -57,15 +57,15 @@ export async function generateMetadata({ params }: ProfilePageProps): Promise<Me
 
 export default async function PublicProfilePage({ params }: ProfilePageProps) {
   const { id } = await params
-  
+
+  // Check session before try/catch — redirect() throws internally and would be
+  // caught by the catch block, causing a spurious 404.
+  const session = await auth()
+  if (session?.user?.id === id) {
+    redirect('/profile')
+  }
+
   try {
-    const session = await auth()
-
-    // If it's the current user's ID, redirect to their private profile
-    if (session?.user?.id === id) {
-      redirect('/profile')
-    }
-
     // Try to find by ID or Username
     const user = await prisma.user.findFirst({
       where: {
