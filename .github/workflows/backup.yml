@@ -2,8 +2,8 @@ name: Database Backup
 
 on:
   schedule:
-    - cron: '0 3 * * *'   # 03:00 UTC daily
-    - cron: '0 15 * * *'  # 15:00 UTC daily (RPO ≤ 12h)
+    - cron: '0 4 * * *'   # 04:00 UTC daily
+    - cron: '0 16 * * *'  # 16:00 UTC daily (RPO ≤ 12h)
   workflow_dispatch:
 
 jobs:
