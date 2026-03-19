@@ -20,6 +20,9 @@ vi.mock('@/lib/prisma', () => ({
       update: vi.fn(),
       delete: vi.fn(),
     },
+    predictionTranslation: {
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+    },
     commitment: {
       findFirst: vi.fn(),
     }

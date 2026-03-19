@@ -159,6 +159,12 @@ export async function PATCH(
       return apiError('Forecast is locked and cannot be edited', 400)
     }
 
+    // Invalidate translation cache when translatable fields change
+    const translatableFieldsChanged = data.claimText || data.detailsText !== undefined || data.resolutionRules !== undefined
+    if (translatableFieldsChanged) {
+      await prisma.predictionTranslation.deleteMany({ where: { predictionId: id } })
+    }
+
     // Perform update
     const updated = await prisma.prediction.update({
       where: { id },

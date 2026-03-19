@@ -7,16 +7,13 @@
 ## Open Tasks
 
 ### Reliability & Infrastructure
-- [ ] **I18n: Translation Cache Implementation**
-  - **Goal:** Reduce LLM costs and latency for multi-language support.
-  - **Implementation:** Create a caching layer (Prisma model) for user-generated content (Forecasts, Comments, Context) to store translations for supported locales (HE, RU). Ensure the cache is invalidated when the source text is edited.
+- [x] **I18n: Translation Cache Implementation** (v1.7.104)
+  - DB-level cache already in place (`PredictionTranslation`, `CommentTranslation` models, cache-aside in `translation.ts`).
+  - Added cache invalidation: `deleteMany` on `predictionTranslation` when `claimText/detailsText/resolutionRules` edited; `deleteMany` on `commentTranslation` when comment text edited.
 - [x] **Type System: Global Strictness Audit** (v1.7.71)
   - `strict: true` already set in tsconfig. Eliminated production `any` usages: `SearchResult` type in context route, typed `handleChange` in EditForecastClient, removed author casts in forecast page. Remaining `as any` are in test mocks (acceptable Vitest pattern).
 - [x] **Analytics: Resolve Google Analytics Blocking** (v1.7.71 — won't fix)
   - **Decision:** `net::ERR_BLOCKED_BY_CLIENT` is expected behaviour — ad-blockers intentionally block `google-analytics.com`. The app loads GA non-blocking and never throws. A real fix requires a server-side DNS proxy, which is a significant infrastructure change. Accepted as known limitation.
-- [ ] **State Logic: Audit "Locked" CU Mechanism**
-  - **Goal:** Deeply understand and validate the `cuLocked` (Committed Units) lifecycle.
-  - **Implementation:** Review the database schema and service logic to ensure that CU remains "locked" during the active phase of a forecast and is correctly released or slashed upon resolution. Audit the bot voting logic to ensure it doesn't double-lock or leak locked state during high-concurrency periods.
 - [x] **Backup: Twice Daily Redundancy** (v1.7.71)
   - `.github/workflows/backup.yml` triggers `backup-db.sh` via SSM at 03:00 and 15:00 UTC. RPO now ≤ 12h. Telegram alert on failure.
 - [x] **Watchdog: 5-Minute Health Sentinel** (v1.7.71)

@@ -24,6 +24,9 @@ export const PATCH = withAuth(async (request, user, { params }) => {
   const body = await request.json()
   const data = updateCommentSchema.parse(body)
 
+  // Invalidate translation cache when comment text changes
+  await prisma.commentTranslation.deleteMany({ where: { commentId: params.id } })
+
   const updated = await prisma.comment.update({
     where: { id: params.id },
     data: {
