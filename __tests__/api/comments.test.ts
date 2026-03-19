@@ -56,6 +56,9 @@ vi.mock('@/lib/prisma', () => ({
       upsert: vi.fn(),
       deleteMany: vi.fn(),
     },
+    commentTranslation: {
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+    },
   },
 }))
 
