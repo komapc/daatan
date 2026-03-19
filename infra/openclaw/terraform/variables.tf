@@ -11,9 +11,9 @@ variable "project_name" {
 }
 
 variable "ec2_instance_type" {
-  description = "EC2 instance type for OpenClaw"
+  description = "EC2 instance type. t3.large (2 vCPU, 8 GB, ~$60/mo) is minimum for stable OpenClaw + LiteLLM. ARM alternative: t4g.large (~$52/mo) — change AMI arch to arm64 if using."
   type        = string
-  default     = "t4g.medium"
+  default     = "t3.large"
 }
 
 variable "ssh_key_name" {
@@ -36,4 +36,11 @@ variable "aws_account_id" {
   description = "AWS account ID for Secrets Manager ARN"
   type        = string
   default     = "272007598366"
+}
+
+variable "litellm_master_key" {
+  description = "LiteLLM proxy auth key (OpenClaw uses this to talk to LiteLLM). Change from default."
+  type        = string
+  default     = "sk-openclaw-local"
+  sensitive   = true
 }

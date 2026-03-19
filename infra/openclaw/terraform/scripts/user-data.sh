@@ -1,120 +1,80 @@
 #!/bin/bash
-# EC2 user_data: install Docker, Ollama, fetch secrets, provision ~/projects layout.
-# Run by cloud-init at first boot.
+# EC2 user_data: install Docker, fetch secrets, set up OpenClaw + LiteLLM.
+# Templated by Terraform — variables in ${} are replaced at plan time.
 
 set -euo pipefail
-
 exec > >(tee /var/log/user-data.log) 2>&1
 
 echo "=== OpenClaw EC2 Provisioning Started ==="
+echo "Instance: $(curl -s http://169.254.169.254/latest/meta-data/instance-type)"
 echo "Date: $(date)"
 
 # =============================================================================
 # System Setup
 # =============================================================================
-
-echo "==> Updating system..."
 apt-get update
 apt-get upgrade -y
 
-echo "==> Installing Docker..."
-apt-get install -y ca-certificates curl gnupg unzip
+apt-get install -y ca-certificates curl gnupg unzip jq
+
+# Docker
 install -m 0755 -d /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 chmod a+r /etc/apt/keyrings/docker.gpg
-
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
-  tee /etc/apt/sources.list.d/docker.list > /dev/null
-
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
+  > /etc/apt/sources.list.d/docker.list
 apt-get update
 apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-
 usermod -aG docker ubuntu
 
-echo "==> Installing Ollama..."
-curl -fsSL https://ollama.com/install.sh | sh
-
-mkdir -p /etc/systemd/system/ollama.service.d
-printf '%s\n%s\n' '[Service]' 'Environment="OLLAMA_HOST=0.0.0.0"' > /etc/systemd/system/ollama.service.d/override.conf
-
-systemctl daemon-reload
-systemctl restart ollama
-
-echo "==> Pulling Qwen model (with timeout)..."
-timeout 300 sudo -u ubuntu ollama pull qwen2.5:1.5b || echo "Warning: Ollama pull failed or timed out"
+# SSM Agent (needed for remote access without SSH)
+snap install amazon-ssm-agent --classic || true
+systemctl enable snap.amazon-ssm-agent.amazon-ssm-agent.service
+systemctl start  snap.amazon-ssm-agent.amazon-ssm-agent.service
 
 # =============================================================================
 # Fetch Secrets from AWS Secrets Manager
 # =============================================================================
-
-echo "==> Fetching secrets from AWS Secrets Manager..."
-
-# Install AWS CLI if not available (should be available via IAM role)
-if ! command -v aws &> /dev/null; then
-    echo "Installing AWS CLI..."
-    curl "https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip" -o "awscliv2.zip"
-    unzip -q awscliv2.zip
-    ./aws/install
-    rm -rf aws awscliv2.zip
-fi
-
-# Function to get secret value
 get_secret() {
-    local secret_name="$1"
-    aws secretsmanager get-secret-value \
-        --secret-id "$secret_name" \
-        --query SecretString \
-        --output text \
-        --region eu-central-1 2>/dev/null || echo ""
+  aws secretsmanager get-secret-value \
+    --secret-id "$1" --region "${aws_region}" \
+    --query SecretString --output text 2>/dev/null || echo ""
 }
 
-# Create .env from secrets
 mkdir -p /home/ubuntu/projects/openclaw
-cat > /home/ubuntu/projects/openclaw/.env << EOF
-# OpenClaw .env (generated from AWS Secrets Manager)
+cat > /home/ubuntu/projects/openclaw/.env << ENV
+# OpenClaw .env — generated from AWS Secrets Manager at boot
 # Generated: $(date -Iseconds)
 
-EOF
-
-# Function to append secret to .env if not empty
-append_secret() {
-    local key="$1"
-    local secret_name="$2"
-    local val
-    val=$(get_secret "$secret_name")
-    if [[ -n "$val" ]]; then
-        echo "$key=$val" >> /home/ubuntu/projects/openclaw/.env
-    fi
-}
-
-append_secret "GEMINI_API_KEY" "openclaw/gemini-api-key"
-append_secret "OPENROUTER_API_KEY" "openclaw/openrouter-api-key"
-append_secret "ANTHROPIC_API_KEY" "openclaw/anthropic-api-key"
-append_secret "TELEGRAM_BOT_TOKEN_DAATAN" "openclaw/telegram-bot-token-daatan"
-append_secret "TELEGRAM_BOT_TOKEN_CALENDAR" "openclaw/telegram-bot-token-calendar"
-echo "TELEGRAM_CHAT_ID=" >> /home/ubuntu/projects/openclaw/.env
-
+OPENROUTER_API_KEY=$(get_secret "openclaw/openrouter-api-key")
+ANTHROPIC_API_KEY=$(get_secret "openclaw/anthropic-api-key")
+GEMINI_API_KEY=$(get_secret "openclaw/gemini-api-key")
+TELEGRAM_BOT_TOKEN=$(get_secret "openclaw/telegram-bot-token")
+LITELLM_MASTER_KEY=${litellm_master_key}
+OPENCLAW_GATEWAY_TOKEN=openclaw-web-chat-token
+ENV
 chmod 600 /home/ubuntu/projects/openclaw/.env
 
-echo "==> Secrets fetched successfully"
-
 # =============================================================================
-# Create Projects Directory
+# Directory Layout
 # =============================================================================
-
-echo "==> Creating projects directory..."
 mkdir -p /home/ubuntu/projects
-chown ubuntu:ubuntu /home/ubuntu/projects
+mkdir -p /home/ubuntu/.openclaw
+mkdir -p /home/ubuntu/.ssh
 
-# Generate SSH key for GitHub access
-echo "==> Generating SSH key for GitHub..."
-sudo -u ubuntu ssh-keygen -t ed25519 -N "" -f /home/ubuntu/.ssh/id_github
+# GitHub deploy key
+sudo -u ubuntu ssh-keygen -t ed25519 -N "" -f /home/ubuntu/.ssh/id_github -C "openclaw-ec2"
+chown -R ubuntu:ubuntu /home/ubuntu/{projects,.openclaw,.ssh}
 
-echo "=== OpenClaw EC2 Provisioning Complete ==="
-echo "Next steps:"
-echo "  1. Copy infra to instance: scp -r infra/openclaw ubuntu@<IP>:~/projects/"
-echo "  2. Run setup: ssh ubuntu@<IP> '~/projects/openclaw/scripts/setup/on-ec2.sh'"
+# /app symlink — required by OpenClaw for Docker sibling container volume mounts
+ln -sfn /home/ubuntu/projects/openclaw /app
+
+echo "=== Provisioning Complete ==="
 echo ""
-echo "Secrets stored in: /home/ubuntu/projects/openclaw/.env"
+echo "Next steps (run from your machine):"
+echo "  1. Copy infra:  scp -r infra/openclaw ubuntu@<IP>:~/projects/openclaw"
+echo "  2. Build:       ssh ubuntu@<IP> 'cd ~/projects/openclaw && docker compose build'"
+echo "  3. Start:       ssh ubuntu@<IP> 'cd ~/projects/openclaw && docker compose up -d'"
+echo "  4. Deploy key:  ssh ubuntu@<IP> 'cat ~/.ssh/id_github.pub'  → add to GitHub"
+echo ""
+echo "Or use SSM: aws ssm start-session --target <instance-id> --region ${aws_region}"

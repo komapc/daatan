@@ -1,0 +1,109 @@
+# LiteLLM proxy config for OpenClaw
+# Proxies Anthropic-API calls from Claude Code → cheapest OpenRouter models
+#
+# MODEL MATRIX — cheapest OpenRouter models for autonomous agents:
+#
+# Alias                  | Router model ID                              | $/M in  | $/M out | Context | Tool use | Best for
+# ---------------------- | -------------------------------------------- | ------- | ------- | ------- | -------- | ---------
+# claude-sonnet-4-6      | google/gemini-2.5-flash                      | 0.15    | 0.60    | 1M      | ✓ native | default: fast + smart
+# claude-opus-4-6        | google/gemini-2.5-pro                        | 1.25    | 10.00   | 1M      | ✓ native | heavy reasoning
+# cheap/fast             | google/gemini-2.0-flash-lite                 | 0.075   | 0.30    | 1M      | ✓        | quick lookups
+# cheap/smart            | qwen/qwen-2.5-72b-instruct                   | 0.35    | 0.40    | 128K    | ✓        | analysis + code
+# cheap/code             | qwen/qwen-2.5-coder-32b-instruct             | 0.10    | 0.18    | 32K     | ✓        | code / file writes
+# cheap/mini             | google/gemini-flash-1.5-8b                   | 0.0375  | 0.15    | 1M      | ✓        | simple tasks
+# cheap/deepseek         | deepseek/deepseek-chat-v3-0324               | 0.28    | 1.10    | 64K     | ✓        | reasoning/DB
+# cheap/mistral          | mistralai/mistral-small-3.2-24b-instruct     | 0.10    | 0.30    | 128K    | ✓        | general
+# free/llama             | meta-llama/llama-3.1-8b-instruct:free        | 0.00    | 0.00    | 128K    | limited  | non-critical/testing
+# free/qwen              | qwen/qwen-2.5-7b-instruct:free               | 0.00    | 0.00    | 128K    | limited  | non-critical/testing
+#
+# Web request capability: all models can browse via Claude Code's shell tools (curl, python).
+# "Tool use" = function calling (required for file writes, DB queries via MCP).
+# Models marked :free have rate limits; use for testing or fallback only.
+
+model_list:
+
+  # ── Primary (default for all Claude-model-name requests) ──────────────────
+  - model_name: claude-sonnet-4-6
+    litellm_params:
+      model: openrouter/google/gemini-2.5-flash
+      api_key: os.environ/OPENROUTER_API_KEY
+
+  - model_name: claude-sonnet-4-5
+    litellm_params:
+      model: openrouter/google/gemini-2.5-flash
+      api_key: os.environ/OPENROUTER_API_KEY
+
+  - model_name: claude-3-5-sonnet-20241022
+    litellm_params:
+      model: openrouter/google/gemini-2.5-flash
+      api_key: os.environ/OPENROUTER_API_KEY
+
+  - model_name: claude-3-5-sonnet-20240620
+    litellm_params:
+      model: openrouter/google/gemini-2.5-flash
+      api_key: os.environ/OPENROUTER_API_KEY
+
+  # ── Pro / heavy reasoning ─────────────────────────────────────────────────
+  - model_name: claude-opus-4-6
+    litellm_params:
+      model: openrouter/google/gemini-2.5-pro
+      api_key: os.environ/OPENROUTER_API_KEY
+
+  # ── Explicit cheap tiers (use these in openclaw agent config) ─────────────
+
+  # Fastest + cheapest with real tool use
+  - model_name: cheap/mini
+    litellm_params:
+      model: openrouter/google/gemini-flash-1.5-8b
+      api_key: os.environ/OPENROUTER_API_KEY
+
+  # Ultra-cheap flash (good balance of speed+quality)
+  - model_name: cheap/fast
+    litellm_params:
+      model: openrouter/google/gemini-2.0-flash-lite
+      api_key: os.environ/OPENROUTER_API_KEY
+
+  # Code + file/DB writes — Qwen Coder is excellent at structured output
+  - model_name: cheap/code
+    litellm_params:
+      model: openrouter/qwen/qwen-2.5-coder-32b-instruct
+      api_key: os.environ/OPENROUTER_API_KEY
+
+  # Smarter analysis (72B, still cheap)
+  - model_name: cheap/smart
+    litellm_params:
+      model: openrouter/qwen/qwen-2.5-72b-instruct
+      api_key: os.environ/OPENROUTER_API_KEY
+
+  # DeepSeek — best for reasoning + structured DB writes
+  - model_name: cheap/deepseek
+    litellm_params:
+      model: openrouter/deepseek/deepseek-chat-v3-0324
+      api_key: os.environ/OPENROUTER_API_KEY
+
+  # Mistral Small — solid all-rounder, low cost
+  - model_name: cheap/mistral
+    litellm_params:
+      model: openrouter/mistralai/mistral-small-3.2-24b-instruct
+      api_key: os.environ/OPENROUTER_API_KEY
+
+  # ── Free tier (rate-limited, for testing / non-critical tasks) ────────────
+  - model_name: free/llama
+    litellm_params:
+      model: openrouter/meta-llama/llama-3.1-8b-instruct:free
+      api_key: os.environ/OPENROUTER_API_KEY
+
+  - model_name: free/qwen
+    litellm_params:
+      model: openrouter/qwen/qwen-2.5-7b-instruct:free
+      api_key: os.environ/OPENROUTER_API_KEY
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+  num_retries: 3
+  request_timeout: 120
+  # Fallback: if primary fails, try the next cheapest
+  fallbacks:
+    - cheap/fast:
+        - cheap/mini
+        - free/llama
