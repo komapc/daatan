@@ -41,7 +41,9 @@ data "aws_ami" "ubuntu" {
   }
 }
 
-# --- IAM: Secrets Manager + SSM access (no SSH key needed for ops) ---
+# --- IAM: Secrets Manager + Bedrock + SSM access ---
+# Bedrock: allows OpenClaw to call Claude models directly via IAM (no API key needed).
+# Switch to OpenRouter later by adding OPENROUTER_API_KEY to Secrets Manager — no IAM changes needed.
 resource "aws_iam_role" "openclaw" {
   name = "openclaw-ec2-role"
 
@@ -72,7 +74,31 @@ resource "aws_iam_role_policy" "openclaw_secrets" {
   })
 }
 
-# SSM Session Manager — allows shell access without opening port 22
+# Bedrock: invoke Claude models without API keys
+resource "aws_iam_role_policy" "openclaw_bedrock" {
+  name = "openclaw-bedrock-policy"
+  role = aws_iam_role.openclaw.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = [
+        "bedrock:InvokeModel",
+        "bedrock:InvokeModelWithResponseStream",
+        "bedrock:ListFoundationModels"
+      ]
+      # Scope to Claude models only — remove the condition to allow all Bedrock models
+      Resource = [
+        "arn:aws:bedrock:*::foundation-model/anthropic.claude-3-5-haiku-20241022-v1:0",
+        "arn:aws:bedrock:*::foundation-model/anthropic.claude-3-5-sonnet-20241022-v2:0",
+        "arn:aws:bedrock:*::foundation-model/anthropic.claude-3-haiku-20240307-v1:0"
+      ]
+    }]
+  })
+}
+
+# SSM Session Manager — shell access without opening port 22
 resource "aws_iam_role_policy_attachment" "ssm" {
   role       = aws_iam_role.openclaw.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
