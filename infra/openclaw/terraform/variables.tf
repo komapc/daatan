@@ -11,9 +11,23 @@ variable "project_name" {
 }
 
 variable "ec2_instance_type" {
-  description = "EC2 instance type for OpenClaw"
+  description = <<-EOT
+    EC2 instance type for OpenClaw + LiteLLM. Choose based on usage:
+
+    Instance     | vCPU | RAM  | Cost/mo | Use case
+    -------------|------|------|---------|----------------------------------------------
+    t3.small     |  2   | 2 GB | ~$15    | Gateway-only, single user, Bedrock backend
+    t3.medium    |  2   | 4 GB | ~$30    | 1-2 concurrent agents, light workloads ← budget pick
+    t3.large     |  2   | 8 GB | ~$60    | 3-5 concurrent agents + LiteLLM ← recommended
+    t3.xlarge    |  4   |16 GB | ~$120   | Heavy use, self-hosted small LLM (Ollama 7B)
+    t4g.medium   |  2   | 4 GB | ~$22    | ARM equivalent of t3.medium (change AMI to arm64)
+    t4g.large    |  2   | 8 GB | ~$37    | ARM equivalent of t3.large — cheapest for 8 GB
+
+    Note: t3.small is too small when running LiteLLM alongside OpenClaw.
+    Use t3.medium (no LiteLLM, call OpenRouter directly) or t3.large (with LiteLLM).
+  EOT
   type        = string
-  default     = "t4g.medium"
+  default     = "t3.large"
 }
 
 variable "ssh_key_name" {
@@ -36,4 +50,11 @@ variable "aws_account_id" {
   description = "AWS account ID for Secrets Manager ARN"
   type        = string
   default     = "272007598366"
+}
+
+variable "litellm_master_key" {
+  description = "LiteLLM proxy auth key (OpenClaw uses this to talk to LiteLLM). Change from default."
+  type        = string
+  default     = "sk-openclaw-local"
+  sensitive   = true
 }
