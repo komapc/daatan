@@ -194,24 +194,31 @@ SSM path pattern: `/daatan/{env}/prompts/{prompt-name}` where `env` is `prod` or
 
 ### Updating a Prompt
 
-1. Open the prompt in the [AWS Bedrock Console](https://eu-central-1.console.aws.amazon.com/bedrock/home?region=eu-central-1#/prompt-management).
-2. Edit the DRAFT variant and save.
-3. Click **Create version** to publish a new immutable version (e.g. `:3`).
-4. Update the SSM parameter to point to the new ARN:
-   ```bash
-   aws ssm put-parameter \
-     --name "/daatan/prod/prompts/<prompt-name>" \
-     --value "arn:aws:bedrock:eu-central-1:272007598366:prompt/<ID>:<version>" \
-     --type String --overwrite --region eu-central-1
-   # repeat for /daatan/staging/prompts/<prompt-name>
-   ```
-5. The app picks up the new prompt within 5 minutes (cache TTL).
+All prompts are stored as source files in `prompts/*.txt` (source of truth). Edit the file, then publish:
+
+```bash
+# 1. Edit the prompt text
+vim prompts/<name>.txt
+
+# 2. Publish to staging first
+./scripts/create-bedrock-prompt.sh <name> prompts/<name>.txt --env staging
+
+# 3. Validate on staging, then promote to prod
+./scripts/promote-prompt.sh prod <name> <new-arn>
+
+# 4. Rollback if needed
+./scripts/promote-prompt.sh <env> <name> --rollback
+```
+
+The app picks up the new prompt within 5 minutes (cache TTL).
 
 ### Prompt Reference
 
 | Prompt Name | Bedrock ID | Current Version | Used By | Purpose |
 |-------------|-----------|-----------------|---------|---------|
 | `bot-config-generation` | `V7KWZIDZ5G` | `:2` | Admin: create bot | Generate persona/forecast/vote prompts and RSS sources from bot name |
+| `content-moderation` | `7DWWBJAS1O` | `:1` | Forecast + comment creation | Validate content against safety policies; geopolitical forecasts explicitly allowed |
+| `guess-chances` | fallback only | — | Express flow | Suggest probability (0–100%) for a forecast based on news context |
 | `bot-forecast-generation` | `4VVM1AE8WG` | `:2` | Bot runner | Create a verifiable forecast JSON from a hot RSS topic |
 | `bot-vote-decision` | `FMSCSIWJ0N` | `:2` | Bot runner | Decide whether and how to vote on an open forecast |
 | `dedupe-check` | `E3UJXEIV39` | `:2` | Bot runner | Detect if a new topic duplicates an existing active forecast |
