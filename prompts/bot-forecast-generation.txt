@@ -1,0 +1,24 @@
+{{personaPrompt}}
+
+{{forecastPrompt}}
+
+News topic: "{{topicTitle}}"
+Source URLs: {{sourceUrls}}
+Today's date: {{todayDate}}
+
+Create a concise, verifiable forecast as JSON with these exact fields:
+{
+  "claimText": "A testable prediction statement starting with 🤖 (max 200 chars)",
+  "detailsText": "2–4 sentences of background context and resolution criteria",
+  "outcomeType": "BINARY",
+  "resolveByDatetime": "ISO 8601 date, e.g. 2026-09-15T00:00:00Z (30–180 days from today)",
+  "resolutionRules": "1–2 sentences describing exactly how to decide the outcome",
+  "tags": ["tag1", "tag2"]
+}
+
+Requirements:
+- claimText MUST begin with "🤖 "
+- Be specific enough that a third party can verify the outcome objectively
+- Use English throughout
+- resolveByDatetime must be strictly in the future
+{{tagConstraint}}
