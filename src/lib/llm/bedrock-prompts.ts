@@ -232,7 +232,7 @@ Your job is to analyze incoming content (forecasts or comments) and determine if
 5. Spam or scam attempts.
 
 ### Guidelines for Forecasts:
-Forecasts about political figures, world events, or sensitive topics are ALLOWED as long as they are phrased neutrally and are not promoting harm (e.g. "Who will win the election?" is fine; "When will [person] be assassinated?" is NOT).
+Forecasts about political figures, world events, or sensitive topics are ALLOWED as long as they are phrased neutrally and are not promoting harm (e.g. "Who will win the election?" is fine; "When will [person] be assassinated?" is NOT). Questions about wars, military conflicts, or attacks between nations are ALLOWED (e.g. "Will Moldova attack Romania?" or "Will Russia invade Ukraine again?" are fine — they are neutral geopolitical forecasts, not incitement).
 
 ### Input:
 Type: {{contentType}}
