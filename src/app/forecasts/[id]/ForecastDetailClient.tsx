@@ -416,9 +416,9 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
       {/* Probability Display (only for binary/MC) */}
       <div className="mb-8">
         {prediction.outcomeType === 'BINARY' && (() => {
-          const yesVotes = prediction.commitments.filter(c => c.binaryChoice === true).length
-          const totalVotes = prediction.commitments.length
-          const prob = totalVotes > 0 ? Math.round((yesVotes / totalVotes) * 100) : 50
+          const yesTokens = prediction.commitments.filter(c => c.binaryChoice === true).reduce((sum, c) => sum + c.cuCommitted, 0)
+          const totalTokens = prediction.commitments.reduce((sum, c) => sum + c.cuCommitted, 0)
+          const prob = totalTokens > 0 ? Math.round((yesTokens / totalTokens) * 100) : 50
           
           return (
             <div className="flex flex-col items-center">

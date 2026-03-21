@@ -511,7 +511,7 @@ export default function ExpressForecastClient({
                 <textarea
                   value={editForm?.claimText}
                   onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditForm(prev => prev ? ({ ...prev, claimText: e.target.value }) : null)}
-                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-3 rounded-lg input-dark"
                   rows={3}
                 />
               ) : (
@@ -528,7 +528,7 @@ export default function ExpressForecastClient({
                   value={editForm?.resolveByDatetime?.slice(0, 16)} // Format for input
                   min={new Date(Date.now() + 60000).toISOString().slice(0, 16)}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditForm(prev => prev ? ({ ...prev, resolveByDatetime: new Date(e.target.value).toISOString() }) : null)}
-                  className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 ${editForm?.resolveByDatetime && new Date(editForm.resolveByDatetime) <= new Date() ? 'border-red-500' : ''}`}
+                  className={`w-full p-3 rounded-lg input-dark ${editForm?.resolveByDatetime && new Date(editForm.resolveByDatetime) <= new Date() ? 'border-red-500' : ''}`}
                 />
               ) : (
                 <p className="text-white">
@@ -559,7 +559,7 @@ export default function ExpressForecastClient({
                       onChange={e => setNewTag(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && addTag()}
                       placeholder="Add tag..."
-                      className="px-3 py-1 border rounded-full text-sm w-32"
+                      className="px-3 py-1 rounded-full text-sm w-32 input-dark"
                     />
                     <button onClick={addTag} className="p-1 text-blue-600 hover:bg-cobalt/10 rounded-full">
                       <Plus className="w-4 h-4" />
@@ -599,7 +599,7 @@ export default function ExpressForecastClient({
                             value={option}
                             onChange={(e) => handleOptionChange(index, e.target.value)}
                             placeholder={`Option ${index + 1}`}
-                            className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                            className="flex-1 px-3 py-2 rounded-lg text-sm input-dark"
                             maxLength={500}
                           />
                           {(editForm?.options || []).length > 2 && (
@@ -648,7 +648,7 @@ export default function ExpressForecastClient({
                 <textarea
                   value={editForm?.detailsText}
                   onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditForm(prev => prev ? ({ ...prev, detailsText: e.target.value }) : null)}
-                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-3 rounded-lg input-dark"
                   rows={4}
                 />
               ) : (
@@ -663,7 +663,7 @@ export default function ExpressForecastClient({
                 <textarea
                   value={editForm?.resolutionRules}
                   onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditForm(prev => prev ? ({ ...prev, resolutionRules: e.target.value }) : null)}
-                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-3 rounded-lg input-dark"
                   rows={2}
                 />
               ) : (
