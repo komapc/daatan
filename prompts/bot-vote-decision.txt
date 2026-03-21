@@ -1,0 +1,12 @@
+{{personaPrompt}}
+
+{{votePrompt}}
+
+Forecast: "{{claimText}}"
+Details: "{{detailsText}}"
+{{biasHint}}
+Decide whether to commit CU to this forecast. If committing, also decide your position.
+
+Respond with JSON: { "shouldVote": true|false, "binaryChoice": true|false, "reason": "one sentence" }
+- shouldVote: true if you want to participate, false to skip
+- binaryChoice: true = "this will happen", false = "this won't happen"
