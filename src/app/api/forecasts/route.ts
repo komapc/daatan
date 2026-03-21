@@ -172,8 +172,8 @@ export async function GET(request: NextRequest) {
       let yesCount = 0
       let noCount = 0
       if (pred.outcomeType === 'BINARY' && commitments) {
-        yesCount = commitments.filter(c => c.binaryChoice === true).length
-        noCount = commitments.filter(c => c.binaryChoice === false).length
+        yesCount = commitments.filter(c => c.binaryChoice === true).reduce((sum: number, c: any) => sum + c.cuCommitted, 0)
+        noCount = commitments.filter(c => c.binaryChoice === false).reduce((sum: number, c: any) => sum + c.cuCommitted, 0)
       }
 
       const options = (pred as any).options?.map((opt: any) => ({

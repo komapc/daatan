@@ -46,6 +46,13 @@ body {
   overflow-x: hidden;
 }
 
+/* ── COMPONENTS ─────────────────────────────────────────── */
+@layer components {
+  .input-dark {
+    @apply border border-navy-600 bg-navy-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500;
+  }
+}
+
 /* ── UTILITIES ───────────────────────────────────────────── */
 .scrollbar-hide {
   scrollbar-width: none;
