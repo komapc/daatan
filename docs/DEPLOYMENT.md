@@ -2,9 +2,9 @@
 
 ## Overview
 
-Daatan uses a blue-green deployment strategy on a single AWS EC2 instance that hosts
-both the **production** and **staging** containers side-by-side. Docker images are
-stored in Amazon ECR. All server access goes through AWS SSM (no open SSH port).
+Daatan uses a blue-green deployment strategy on two dedicated AWS EC2 instances —
+one for **production** and one for **staging**. Docker images are stored in Amazon ECR.
+All server access goes through AWS SSM (no open SSH port).
 
 ```
 GitHub → CI/CD (GitHub Actions) → ECR → EC2 via SSM → Blue-green swap → Health check
@@ -14,13 +14,12 @@ GitHub → CI/CD (GitHub Actions) → ECR → EC2 via SSM → Blue-green swap �
 
 ## Environments
 
-| Environment | URL                        | Trigger              | Image tag       |
-|-------------|----------------------------|----------------------|-----------------|
-| Staging     | https://staging.daatan.com | Push to `main`       | `staging-latest`|
-| Production  | https://daatan.com         | Git tag `v*`         | `1.7.X`         |
+| Environment | URL                        | Trigger              | Image tag       | EC2 Instance            |
+|-------------|----------------------------|----------------------|-----------------|-------------------------|
+| Staging     | https://staging.daatan.com | Push to `main`       | `staging-latest`| `i-0286f62b47117b85c`   |
+| Production  | https://daatan.com         | Git tag `v*`         | `1.7.X`         | `i-04ea44d4243d35624`   |
 
-Both environments run on the same EC2 instance (`Environment=staging` tag,
-`i-0286f62b47117b85c`). The production EC2 instance is unused.
+Each environment has its own EC2 instance, Postgres container, nginx, and SSL certificate.
 
 ---
 
@@ -110,7 +109,7 @@ build ──┬──► deploy-staging   (on push to main)
 ### `deploy-staging` job
 
 1. Configure AWS credentials (OIDC)
-2. Check EC2 SSM health
+2. Check EC2 SSM health (`Environment=staging` instance)
 3. SSM command to server: download deploy scripts, pull `staging-latest` from ECR, run `blue-green-deploy.sh staging`
 4. Poll command status (via `.github/actions/ssm-deploy`)
 5. Verify `https://staging.daatan.com/api/health` reports correct version
@@ -121,7 +120,7 @@ build ──┬──► deploy-staging   (on push to main)
 1. Configure AWS credentials
 2. Resolve version from tag name
 3. Verify staging version ≥ production target (safety gate)
-4. Check EC2 SSM health
+4. Check EC2 SSM health (`Environment=prod` instance)
 5. SSM command: pull versioned image from ECR, run `blue-green-deploy.sh production`
 6. Poll + verify (via `.github/actions/ssm-deploy`)
 7. Send Telegram notification
@@ -135,11 +134,15 @@ Inputs: `command-id`, `health-url`, `app-version`.
 
 ## Infrastructure
 
-### EC2 Instance
+### EC2 Instances
 
-- **Instance**: `i-0286f62b47117b85c` (tag `Name=daatan-backend`, `Environment=staging`)
-- **Access**: AWS SSM only — port 22 is closed
-- **Role**: `daatan-ec2-role-staging` (allows ECR pull + SSM)
+| Role        | Instance ID             | IP               | Tag                   | IAM Role                  |
+|-------------|-------------------------|------------------|-----------------------|---------------------------|
+| Production  | `i-04ea44d4243d35624`   | `3.126.238.216`  | `Environment=prod`    | `daatan-ec2-role-prod`    |
+| Staging     | `i-0286f62b47117b85c`   | `63.182.198.80`  | `Environment=staging` | `daatan-ec2-role-staging`  |
+
+- **Access**: AWS SSM only — port 22 is closed on both instances
+- **SSL**: Each instance has its own Let's Encrypt certificate via `certbot/dns-route53`
 
 ### ECR Registry
 
@@ -187,12 +190,12 @@ full health check. See `.claude/commands/` for details.
 
 ## Required Secrets
 
-| Secret                      | Used by                              |
-|-----------------------------|--------------------------------------|
-| `AWS_ROLE_ARN`              | OIDC auth for all AWS operations     |
-| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Baked into Docker image at build  |
-| `TELEGRAM_BOT_TOKEN`        | Deploy success/failure notifications |
-| `TELEGRAM_CHAT_ID`          | Deploy notifications target          |
-| `BOT_RUNNER_SECRET`         | Bot cron trigger (`bots.yml`)        |
-| `STAGING_URL`               | Bot cron target URL                  |
-| `OPENROUTER_API_KEY`        | Bot LLM calls (staging only)         |
+| Secret                        | Used by                              |
+|-------------------------------|--------------------------------------|
+| `AWS_ROLE_ARN`                | OIDC auth for all AWS operations     |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Baked into Docker image at build   |
+| `TELEGRAM_BOT_TOKEN`          | Deploy success/failure notifications |
+| `TELEGRAM_CHAT_ID`            | Deploy notifications target          |
+| `BOT_RUNNER_SECRET`           | Bot cron trigger (`bots.yml`)        |
+| `STAGING_URL`                 | Bot cron target URL                  |
+| `OPENROUTER_API_KEY`          | Bot LLM calls (staging only)         |
