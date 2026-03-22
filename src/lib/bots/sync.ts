@@ -1,8 +1,11 @@
 import { prisma } from '@/lib/prisma'
 import { BOT_REGISTRY } from '@/agents/bots'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('bots-sync')
 
 export async function syncBotsToDatabase() {
-    console.log('[Bots] Starting synchronization of bot configurations...')
+    log.info('Starting synchronization of bot configurations...')
 
     const activeUsernames = new Set<string>()
 
@@ -86,7 +89,7 @@ export async function syncBotsToDatabase() {
                     },
                 },
             })
-            console.log(`[Bots] Created new bot user: ${bot.username}`)
+            log.info({ username: bot.username }, 'Created new bot user')
         }
     }
 
@@ -107,5 +110,5 @@ export async function syncBotsToDatabase() {
         }
     }
 
-    console.log(`[Bots] Synchronized ${BOT_REGISTRY.length} active bots. Disabled ${disabledCount} stale bots.`)
+    log.info({ activeBots: BOT_REGISTRY.length, disabledCount }, 'Bot synchronization complete')
 }

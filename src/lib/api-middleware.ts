@@ -1,22 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { apiError, handleRouteError } from '@/lib/api-error'
-import type { UserRole } from '@prisma/client'
 import { createLogger } from '@/lib/logger'
+import type { AuthUser } from '@/lib/types/user'
+
+export type { AuthUser }
 
 const log = createLogger('api-middleware')
-
-/** Authenticated session user (from NextAuth JWT callback). */
-interface AuthUser {
-  id: string
-  email: string
-  name?: string | null
-  image?: string | null
-  role: UserRole
-  rs: number
-  cuAvailable: number
-  cuLocked: number
-}
 
 /** Route handler context with typed params (resolved). */
 export interface RouteContext {

@@ -4,6 +4,9 @@ import { apiError, handleRouteError } from '@/lib/api-error'
 import { prisma } from '@/lib/prisma'
 import { createCommitment } from '@/lib/services/commitment'
 import { notifyBotForecastApproved } from '@/lib/services/telegram'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('approve-route')
 
 export const dynamic = 'force-dynamic'
 
@@ -80,7 +83,7 @@ export const POST = withAuth(async (_request, user, { params }) => {
 
       if (!stakeResult.ok) {
         // Log the warning but don't fail the approval - forecast is now active
-        console.warn(
+        log.warn(
           { botId: prediction.author.id, predictionId: prediction.id, error: stakeResult.error },
           'Failed to stake on approved forecast'
         )

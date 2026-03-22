@@ -3,6 +3,7 @@ import type { Prisma, PredictionOption } from '@prisma/client'
 import { notifyNewCommitment } from '@/lib/services/telegram'
 import { createNotification } from '@/lib/services/notification'
 import { createLogger } from '@/lib/logger'
+import type { ServiceResult } from '@/lib/types/service'
 
 const log = createLogger('commitment-service')
 
@@ -41,11 +42,6 @@ interface UpdateCommitmentData {
   optionId?: string
   probability?: number
 }
-
-/** Standard result from a service operation. */
-type ServiceResult<T> =
-  | { ok: true; data: T; status: number }
-  | { ok: false; error: string; status: number }
 
 // ============================================
 // Penalty helpers
