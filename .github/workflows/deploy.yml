@@ -333,9 +333,8 @@ jobs:
 
       - name: Check Instance SSM Health
         run: |
-          # Production containers run on the staging-tagged instance (both envs on same host)
           INSTANCE_ID=$(aws ec2 describe-instances \
-            --filters "Name=tag:Name,Values=daatan-backend" "Name=tag:Environment,Values=staging" \
+            --filters "Name=tag:Name,Values=daatan-backend" "Name=tag:Environment,Values=prod" \
             --query "Reservations[0].Instances[0].InstanceId" \
             --output text)
 
@@ -354,9 +353,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Production containers run on the staging-tagged instance (both envs on same host)
           INSTANCE_ID=$(aws ec2 describe-instances \
-            --filters "Name=tag:Name,Values=daatan-backend" "Name=tag:Environment,Values=staging" \
+            --filters "Name=tag:Name,Values=daatan-backend" "Name=tag:Environment,Values=prod" \
             --query "Reservations[0].Instances[0].InstanceId" \
             --output text)
           echo "Found Production Instance: $INSTANCE_ID"

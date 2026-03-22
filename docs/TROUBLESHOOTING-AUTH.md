@@ -48,20 +48,25 @@ Compare `NEXTAUTH_URL` in the response to the environment you’re testing (stag
 
 Staging and production use **different EC2 instances** and **different** `~/app/.env` files. Production sign-in uses **only** the production instance’s `.env`.
 
-1. **SSH to the production instance**  
-   (Use your normal method; see DEPLOYMENT.md / SECRETS.md. Prod instance tag: `Environment=prod`.)
+All server access is via **AWS SSM** — port 22 is closed. Use the `/ssm` slash command
+in Claude Code, or `aws ssm send-command` directly (prod instance tag: `Environment=prod`,
+instance ID: `i-04ea44d4243d35624`).
 
-2. **Inspect (do not paste secrets into chat/slack):**
+1. **Inspect the production `.env` via SSM** (do not paste secrets into chat/slack):
    ```bash
-   cd ~/app
-   grep -E '^GOOGLE_CLIENT_ID=|^GOOGLE_CLIENT_SECRET=|^NEXTAUTH_URL=' .env
+   aws ssm send-command \
+     --instance-ids i-04ea44d4243d35624 \
+     --document-name AWS-RunShellScript \
+     --parameters ‘commands=["grep -E \"^GOOGLE_CLIENT_ID=|^GOOGLE_CLIENT_SECRET=|^NEXTAUTH_URL=\" ~/app/.env"]’
    ```
    - `GOOGLE_CLIENT_ID` must look like `…something….apps.googleusercontent.com`.
    - `GOOGLE_CLIENT_SECRET` must be a long string (no placeholders like `your-google-client-secret`).
    - `NEXTAUTH_URL` must be exactly `https://daatan.com` for production.
 
-3. **Optional: compare with staging**  
-   SSH to staging instance and run the same `grep`. If the **same** `GOOGLE_CLIENT_ID` is used for both, the OAuth client in Google must have **both** redirect URIs (see step 4).
+2. **Optional: compare with staging**
+   Run the same command against the staging instance (`i-0286f62b47117b85c`). If the **same**
+   `GOOGLE_CLIENT_ID` is used for both, the OAuth client in Google must have **both** redirect
+   URIs (see step 4).
 
 ---
 
@@ -83,15 +88,20 @@ If you use **separate** OAuth clients for staging and prod, the production serve
 
 ## 5. Restart the app after config changes
 
-After changing **only** `.env** on the server (no code deploy):
+After changing **only** `.env` on the server (no code deploy), restart via SSM:
 
 ```bash
-# On production instance
-cd ~/app
-docker compose -f docker-compose.prod.yml restart app
+# Production instance
+aws ssm send-command \
+  --instance-ids i-04ea44d4243d35624 \
+  --document-name AWS-RunShellScript \
+  --parameters 'commands=["cd ~/app && docker compose -f docker-compose.prod.yml restart app"]'
 
-# On staging instance (if you changed staging .env)
-docker compose -f docker-compose.prod.yml restart app-staging
+# Staging instance (if you changed staging .env)
+aws ssm send-command \
+  --instance-ids i-0286f62b47117b85c \
+  --document-name AWS-RunShellScript \
+  --parameters 'commands=["cd ~/app && docker compose -f docker-compose.prod.yml restart app-staging"]'
 ```
 
 After a **code/image deploy**, the deploy process already restarts the container; no extra step needed.
@@ -104,10 +114,14 @@ After a **code/image deploy**, the deploy process already restarts the container
    - Try sign-in again; note the final URL and any error message.
    - DevTools → **Network**: find the redirect to `accounts.google.com` and the redirect back; note query params and status codes.
 2. **Server logs**
-   - On the **production** instance:
+   - On the **production** instance (via SSM):
      ```bash
-     docker logs daatan-app --tail 100 2>&1
+     aws ssm send-command \
+       --instance-ids i-04ea44d4243d35624 \
+       --document-name AWS-RunShellScript \
+       --parameters 'commands=["docker logs daatan-app --tail 100 2>&1"]'
      ```
+     Or use the `/logs prod` slash command in Claude Code.
    - Look for NextAuth/OAuth or `Configuration` errors (and ensure no secrets are shared when pasting logs).
 
 With the exact error (e.g. `redirect_uri_mismatch`, `invalid_client`, or our `error=OAuthSignin`/`Configuration`) and the checks above, you can usually narrow it to: wrong/missing redirect URI, wrong client ID/secret on the server, or cookie/URL building (the codebase now sets `AUTH_TRUST_HOST` and explicit cookies for prod as well as staging to reduce that class of issue).
