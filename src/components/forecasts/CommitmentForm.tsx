@@ -174,8 +174,11 @@ export default function CommitmentForm({
   return (
     <div className="space-y-4 rounded-xl border border-cobalt/30 bg-cobalt/10/30 p-4 shadow-sm">
       <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold text-white">
+        <h3 className="text-base font-semibold text-white flex items-center gap-2">
           {isUpdate ? t('updateCommitment') : t('makeCommitment')}
+          {isUpdate && (
+            <span className="text-xs font-medium text-green-400 bg-green-900/30 px-2 py-0.5 rounded-full">✓ Voted</span>
+          )}
         </h3>
         {onCancel && (
           <button
@@ -308,12 +311,6 @@ export default function CommitmentForm({
         </div>
       )}
 
-      {isUpdate && isLocked && pendingOutcome === null && (
-        <p className="mt-2 text-xs text-orange-600">
-          ⚠️ Prediction is locked — changing your side or increasing your CU will incur
-          an exit penalty (min 10%, based on pool share). Reducing CU on the same side is free.
-        </p>
-      )}
       {!isUpdate && !isLocked && Number(cuAmount || 0) > maxCu && (
         <p className="mt-2 text-xs text-red-600">
           You only have {maxCu} CU available.
