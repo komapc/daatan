@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { apiError, handleRouteError } from '@/lib/api-error'
 import { createLogger } from '@/lib/logger'
+import type { UserRole } from '@prisma/client'
 import type { AuthUser } from '@/lib/types/user'
 
 export type { AuthUser }
