@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('unread-count')
 
 export const dynamic = 'force-dynamic'
 
@@ -21,7 +24,7 @@ export async function GET() {
 
     return NextResponse.json({ count })
   } catch (error) {
-    console.error('Failed to fetch unread count:', error)
+    log.error({ err: error }, 'Failed to fetch unread count')
     return NextResponse.json({ count: 0 })
   }
 }
