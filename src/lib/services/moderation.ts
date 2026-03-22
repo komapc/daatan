@@ -2,6 +2,7 @@ import { SchemaType, type Schema } from '@google/generative-ai'
 import { getPromptTemplate, fillPrompt } from '../llm/bedrock-prompts'
 import { llmService } from '../llm'
 import { createLogger } from '@/lib/logger'
+import { z } from 'zod'
 
 const log = createLogger('moderation-service')
 
@@ -25,6 +26,11 @@ export interface ModerationResult {
   isOffensive: boolean
   reason: string
 }
+
+const moderationResultSchema = z.object({
+  isOffensive: z.boolean(),
+  reason: z.string(),
+})
 
 /**
  * Check if text content is offensive or violates policies.
@@ -51,7 +57,7 @@ export async function checkContent(
       temperature: 0, // High consistency for moderation
     })
 
-    const parsed: ModerationResult = JSON.parse(result.text)
+    const parsed = moderationResultSchema.parse(JSON.parse(result.text))
     
     if (parsed.isOffensive) {
       log.warn({ contentType, text: text.substring(0, 100), reason: parsed.reason }, 'Content blocked by AI moderation')

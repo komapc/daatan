@@ -3,6 +3,7 @@ import { withAuth } from '@/lib/api-middleware'
 import { apiError, handleRouteError } from '@/lib/api-error'
 import { prisma } from '@/lib/prisma'
 import { notifyBotForecastRejected } from '@/lib/services/telegram'
+import { rejectForecastSchema } from '@/lib/validations/prediction'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,7 +11,7 @@ export const dynamic = 'force-dynamic'
 export const POST = withAuth(async (request, user, { params }) => {
   try {
     const body = await request.json()
-    const { keywords, description } = body
+    const { keywords, description } = rejectForecastSchema.parse(body)
 
     const prediction = await prisma.prediction.findUnique({
       where: { id: params.id },

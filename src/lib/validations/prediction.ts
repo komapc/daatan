@@ -155,6 +155,11 @@ export const resolvePredictionSchema = z.object({
   correctOptionId: z.string().cuid().optional(),
 })
 
+export const rejectForecastSchema = z.object({
+  keywords: z.array(z.string().min(1).max(100)).max(20).optional(),
+  description: z.string().max(500).optional(),
+})
+
 // ============================================
 // QUERY SCHEMAS
 // ============================================
@@ -179,5 +184,6 @@ export type CreateCommitmentInput = z.infer<typeof createCommitmentSchema>
 export type UpdateCommitmentInput = z.infer<typeof updateCommitmentSchema>
 export type ListCommitmentsQuery = z.infer<typeof listCommitmentsQuerySchema>
 export type ResolvePredictionInput = z.infer<typeof resolvePredictionSchema>
+export type RejectForecastInput = z.infer<typeof rejectForecastSchema>
 export type ListPredictionsQuery = z.infer<typeof listPredictionsQuerySchema>
 
