@@ -90,7 +90,7 @@ describe('Speedometer — probability calculation', () => {
       { binaryChoice: true,  cuCommitted: 2   },
       { binaryChoice: false, cuCommitted: 100 },
     ])
-    const call = speedometerMock.mock.calls[0][0] as { percentage: number }
+    const call = (speedometerMock.mock.calls[0] as unknown as [{ percentage: number }])[0]
     expect(call.percentage).not.toBe(50)
     expect(call.percentage).toBe(2)
   })
