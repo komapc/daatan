@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { resolvePredictionSchema } from '@/lib/validations/prediction'
-import { handleRouteError } from '@/lib/api-error'
+import { apiError } from '@/lib/api-error'
 import { withAuth } from '@/lib/api-middleware'
 import { notifyForecastResolved } from '@/lib/services/telegram'
 import { createNotification } from '@/lib/services/notification'
@@ -10,13 +10,20 @@ export const POST = withAuth(async (request, user, { params }) => {
   const body = await request.json()
   const { outcome, evidenceLinks, resolutionNote, correctOptionId } = resolvePredictionSchema.parse(body)
 
-  const { result, prediction } = await resolvePrediction(params.id, {
-    outcome,
-    resolvedById: user.id,
-    evidenceLinks,
-    resolutionNote,
-    correctOptionId,
-  })
+  let resolveResult: Awaited<ReturnType<typeof resolvePrediction>>
+  try {
+    resolveResult = await resolvePrediction(params.id, {
+      outcome,
+      resolvedById: user.id,
+      evidenceLinks,
+      resolutionNote,
+      correctOptionId,
+    })
+  } catch (err: any) {
+    if (err.statusCode) return apiError(err.message, err.statusCode)
+    throw err
+  }
+  const { result, prediction } = resolveResult
 
   notifyForecastResolved(prediction, outcome, prediction.commitments.length)
 
