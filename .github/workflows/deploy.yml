@@ -236,36 +236,14 @@ jobs:
             --output text \
             --query "Command.CommandId")
 
-          echo "✅ Command sent. ID: $COMMAND_ID"
+          echo "COMMAND_ID=$COMMAND_ID" >> $GITHUB_ENV
 
-          echo '⏳ Waiting for command execution (Timeout: 10m)...'
-          START_TIME=$(date +%s)
-          while true; do
-            STATUS=$(aws ssm list-command-invocations --command-id "$COMMAND_ID" --details --query "CommandInvocations[0].Status" --output text)
-            echo "Status: $STATUS"
-            if [[ "$STATUS" == "Success" ]]; then
-              echo "✅ Deployment successful!"
-              break
-            elif [[ "$STATUS" == "Failed" || "$STATUS" == "Cancelled" || "$STATUS" == "TimedOut" ]]; then
-              echo "❌ Deployment failed!"
-              aws ssm list-command-invocations --command-id "$COMMAND_ID" --details --query "CommandInvocations[0].CommandPlugins[0].Output" --output text
-               exit 1
-            fi
-
-            CURRENT_TIME=$(date +%s)
-            ELAPSED=$((CURRENT_TIME - START_TIME))
-            if [[ $ELAPSED -gt 600 ]]; then
-              echo "❌ Deployment timed out after 10 minutes!"
-              exit 1
-            fi
-
-            sleep 10
-          done
-
-      - name: Verify staging site (External)
-        run: |
-          sleep 5
-          ./scripts/verify-health.sh "https://staging.daatan.com" "${{ needs.build.outputs.app_version }}"
+      - name: Wait and verify staging deployment
+        uses: ./.github/actions/ssm-deploy
+        with:
+          command-id: ${{ env.COMMAND_ID }}
+          health-url: https://staging.daatan.com
+          app-version: ${{ needs.build.outputs.app_version }}
 
       - name: Notify Telegram - Staging Deployment Success
         if: success()
@@ -431,36 +409,14 @@ jobs:
             --output text \
             --query "Command.CommandId")
 
-          echo "✅ Command sent. ID: $COMMAND_ID"
+          echo "COMMAND_ID=$COMMAND_ID" >> $GITHUB_ENV
 
-          echo '⏳ Waiting for command execution (Timeout: 10m)...'
-          START_TIME=$(date +%s)
-          while true; do
-            STATUS=$(aws ssm list-command-invocations --command-id "$COMMAND_ID" --details --query "CommandInvocations[0].Status" --output text)
-            echo "Status: $STATUS"
-            if [[ "$STATUS" == "Success" ]]; then
-              echo "✅ Deployment successful!"
-              break
-            elif [[ "$STATUS" == "Failed" || "$STATUS" == "Cancelled" || "$STATUS" == "TimedOut" ]]; then
-              echo "❌ Deployment failed!"
-              aws ssm list-command-invocations --command-id "$COMMAND_ID" --details --query "CommandInvocations[0].CommandPlugins[0].Output" --output text
-               exit 1
-            fi
-
-            CURRENT_TIME=$(date +%s)
-            ELAPSED=$((CURRENT_TIME - START_TIME))
-            if [[ $ELAPSED -gt 600 ]]; then
-              echo "❌ Deployment timed out after 10 minutes!"
-              exit 1
-            fi
-
-            sleep 10
-          done
-
-      - name: Verify production site
-        run: |
-          sleep 5
-          ./scripts/verify-health.sh "https://daatan.com" "${{ needs.build.outputs.app_version }}"
+      - name: Wait and verify production deployment
+        uses: ./.github/actions/ssm-deploy
+        with:
+          command-id: ${{ env.COMMAND_ID }}
+          health-url: https://daatan.com
+          app-version: ${{ needs.build.outputs.app_version }}
 
       - name: Notify Telegram - Production Deployment Success
         if: success()

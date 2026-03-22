@@ -1,0 +1,51 @@
+name: 'SSM Deploy'
+description: 'Check SSM instance health and poll an SSM command to completion'
+
+inputs:
+  command-id:
+    description: 'SSM Command ID returned by send-command'
+    required: true
+  health-url:
+    description: 'URL to verify after deployment (e.g. https://staging.daatan.com)'
+    required: true
+  app-version:
+    description: 'Expected app version reported by the health endpoint'
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Wait for SSM command
+      shell: bash
+      run: |
+        COMMAND_ID="${{ inputs.command-id }}"
+        echo "⏳ Waiting for SSM command $COMMAND_ID (timeout: 10m)..."
+        START_TIME=$(date +%s)
+        while true; do
+          STATUS=$(aws ssm list-command-invocations \
+            --command-id "$COMMAND_ID" --details \
+            --query "CommandInvocations[0].Status" --output text)
+          echo "Status: $STATUS"
+          if [[ "$STATUS" == "Success" ]]; then
+            echo "✅ SSM command succeeded"
+            break
+          elif [[ "$STATUS" == "Failed" || "$STATUS" == "Cancelled" || "$STATUS" == "TimedOut" ]]; then
+            echo "❌ SSM command failed ($STATUS)"
+            aws ssm list-command-invocations \
+              --command-id "$COMMAND_ID" --details \
+              --query "CommandInvocations[0].CommandPlugins[0].Output" --output text
+            exit 1
+          fi
+          ELAPSED=$(( $(date +%s) - START_TIME ))
+          if [[ $ELAPSED -gt 600 ]]; then
+            echo "❌ Timed out after 10 minutes waiting for SSM command"
+            exit 1
+          fi
+          sleep 10
+        done
+
+    - name: Verify health endpoint
+      shell: bash
+      run: |
+        sleep 5
+        ./scripts/verify-health.sh "${{ inputs.health-url }}" "${{ inputs.app-version }}"
