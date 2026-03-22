@@ -185,8 +185,10 @@ BACKUP
   user_data_replace_on_change = false
 
   tags = {
-    Name        = "daatan-production"
-    Environment = "production"
+    Name        = "daatan-backend"
+    Environment = "prod"
+    Project     = "daatan"
+    ManagedBy   = "terraform"
   }
 
   lifecycle {
@@ -357,8 +359,10 @@ BACKUP
   user_data_replace_on_change = false
 
   tags = {
-    Name        = "daatan-staging"
+    Name        = "daatan-backend"
     Environment = "staging"
+    Project     = "daatan"
+    ManagedBy   = "terraform"
   }
 
   lifecycle {

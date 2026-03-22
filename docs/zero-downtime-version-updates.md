@@ -1,28 +1,46 @@
 # Zero-Downtime Version Updates
 
-## Overview
-DAATAN supports updating the application version without rebuilding Docker images or causing downtime. The version is read from an environment variable at runtime instead of being baked into the build.
+> **Note:** This technique is rarely needed. The standard CI/CD pipeline (`deploy.yml`)
+> handles version updates automatically on every tag push. Use this only for hotfix
+> version-number corrections without a full code rebuild.
 
-## How It Works
-1. Version is stored in `APP_VERSION` environment variable
-2. The health endpoint (`/api/health`) reads version at runtime
-3. Container restart picks up new version from `.env` file
-4. Restart takes ~10 seconds (minimal downtime vs full rebuild)
+## Overview
+
+The application version is baked into the Docker image at build time via
+`NEXT_PUBLIC_APP_VERSION`. To update the displayed version without rebuilding:
+1. Update `APP_VERSION` in the server's `.env` file
+2. Restart the container (picks up the new value at startup)
+3. Restart takes ~10 seconds — minimal downtime vs a full rebuild
+
+## Access
+
+All server access is via **AWS SSM** — port 22 is closed. Use the `/ssm` slash command
+in Claude Code, or `aws ssm send-command` directly:
+
+```bash
+# Start an interactive session
+aws ssm start-session --target i-04ea44d4243d35624   # production
+aws ssm start-session --target i-0286f62b47117b85c   # staging
+```
 
 ## Usage
 
 ### Update Version (Production)
+
 ```bash
-ssh daatan
-cd ~/app
-./scripts/update-version.sh production 0.1.33
+aws ssm send-command \
+  --instance-ids i-04ea44d4243d35624 \
+  --document-name AWS-RunShellScript \
+  --parameters 'commands=["cd ~/app && ./scripts/update-version.sh production 1.7.X"]'
 ```
 
 ### Update Version (Staging)
+
 ```bash
-ssh daatan
-cd ~/app
-./scripts/update-version.sh staging 0.1.33
+aws ssm send-command \
+  --instance-ids i-0286f62b47117b85c \
+  --document-name AWS-RunShellScript \
+  --parameters 'commands=["cd ~/app && ./scripts/update-version.sh staging 1.7.X"]'
 ```
 
 ## What Happens
@@ -38,14 +56,13 @@ cd ~/app
 - **Improvement**: 30-60x faster
 
 ## When to Use
-- Hotfix version bumps
-- Quick version corrections
-- Any version change without code changes
+- Hotfix version-number corrections
+- Quick version corrections without code changes
 
 ## When NOT to Use
-- Code changes (requires rebuild)
+- Code changes (requires rebuild via CI/CD)
 - Dependency updates (requires rebuild)
-- Environment variable changes (use docker compose restart)
+- Environment variable changes (use docker compose restart on the server)
 
 ## Verification
 Check deployed version:
@@ -55,10 +72,10 @@ curl https://staging.daatan.com/api/health | jq .version
 ```
 
 ## Rollback
-If version update fails, the script automatically shows logs and exits with error. Container remains running with old version.
+If version update fails, the script automatically shows logs and exits with error.
+Container remains running with old version.
 
 ## Technical Details
 - Version source: `src/lib/version.ts`
-- Reads from: `process.env.APP_VERSION`
-- Fallback: Build-time version (0.1.19)
+- Reads from: `process.env.NEXT_PUBLIC_APP_VERSION` (baked at build) or `APP_VERSION` (runtime fallback)
 - Container env: Set in `docker-compose.prod.yml`
