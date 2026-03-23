@@ -271,8 +271,8 @@ model ContextSnapshot {
   summary String @db.Text
   sources Json   // Array of { title, url, source, publishedDate }
 
-  externalProbability Int?    // 0–100, AI's probability estimate
-  externalReasoning   String? @db.Text // Brief AI reasoning
+  externalProbability Int?    @map("external_probability") // 0–100, AI's probability estimate
+  externalReasoning   String? @db.Text @map("external_reasoning") // Brief AI reasoning
 
   createdAt DateTime @default(now())
 
