@@ -197,7 +197,7 @@ jobs:
           echo "Found Staging Instance: $INSTANCE_ID"
 
           RAW_BASE="https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}"
-          DEPLOY_FILES="scripts/blue-green-deploy.sh scripts/verify-health.sh scripts/verify-logs.sh scripts/verify-deploy.sh docker-compose.prod.yml infra/nginx/nginx-ssl.conf"
+          DEPLOY_FILES="scripts/blue-green-deploy.sh scripts/verify-health.sh scripts/verify-logs.sh scripts/verify-deploy.sh docker-compose.staging.yml infra/nginx/nginx-staging-ssl.conf"
 
           echo "🚀 Sending SSM Command..."
           COMMAND_ID=$(aws ssm send-command \
@@ -216,8 +216,8 @@ jobs:
               "for f in '"$DEPLOY_FILES"'; do curl -sfL -H \"Authorization: token '"$GH_TOKEN"'\" \"'"$RAW_BASE"'/$f\" -o \"$f\" && echo \"  ✅ $f\" || { echo \"  ❌ Failed: $f\"; exit 1; }; done",
               "chmod +x scripts/*.sh",
               "",
-              "echo \"🔄 Reloading nginx to apply config...\"",
-              "docker compose -f docker-compose.prod.yml exec -T nginx nginx -s reload 2>/dev/null || true",
+              "echo \"🔄 Testing and reloading nginx config...\"",
+              "docker exec daatan-nginx nginx -t && docker exec daatan-nginx nginx -s reload || true",
               "",
               "echo \"🔐 Logging in to ECR (Region: eu-central-1)...\"",
               "aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin '"$ECR_REGISTRY"'",
@@ -368,7 +368,7 @@ jobs:
           echo "Deploying Image Tag: $IMAGE_TAG"
 
           RAW_BASE="https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}"
-          DEPLOY_FILES="scripts/blue-green-deploy.sh scripts/verify-health.sh scripts/verify-logs.sh scripts/verify-deploy.sh docker-compose.prod.yml infra/nginx/nginx-ssl.conf"
+          DEPLOY_FILES="scripts/blue-green-deploy.sh scripts/verify-health.sh scripts/verify-logs.sh scripts/verify-deploy.sh docker-compose.prod.yml infra/nginx/nginx-prod-ssl.conf"
 
           echo "🚀 Sending SSM Command..."
           COMMAND_ID=$(aws ssm send-command \
@@ -387,8 +387,8 @@ jobs:
               "for f in '"$DEPLOY_FILES"'; do curl -sfL -H \"Authorization: token '"$GH_TOKEN"'\" \"'"$RAW_BASE"'/$f\" -o \"$f\" && echo \"  ✅ $f\" || { echo \"  ❌ Failed: $f\"; exit 1; }; done",
               "chmod +x scripts/*.sh",
               "",
-              "echo \"🔄 Reloading nginx to apply config...\"",
-              "docker compose -f docker-compose.prod.yml exec -T nginx nginx -s reload 2>/dev/null || true",
+              "echo \"🔄 Testing and reloading nginx config...\"",
+              "docker exec daatan-nginx nginx -t && docker exec daatan-nginx nginx -s reload || true",
               "",
               "echo \"🔐 Logging in to ECR (Region: eu-central-1)...\"",
               "aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin '"$ECR_REGISTRY"'",
