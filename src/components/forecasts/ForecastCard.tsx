@@ -368,7 +368,7 @@ export default function ForecastCard({
             {prediction.status === 'ACTIVE' && (
               <div className="hidden sm:block flex-shrink-0">
                 {prediction._count.commitments === 0 ? (
-                  <div className="w-16 h-10 flex items-center justify-center rounded-lg bg-navy-800 border border-navy-600">
+                  <div className="w-[120px] h-[72px] flex items-center justify-center rounded-lg bg-navy-800 border border-navy-600">
                     <span className="text-xs text-gray-300 font-medium">—</span>
                   </div>
                 ) : prediction.outcomeType === 'BINARY' ? (
@@ -376,7 +376,7 @@ export default function ForecastCard({
                     percentage={Math.round(((prediction.yesCount || 0) / ((prediction.yesCount || 0) + (prediction.noCount || 0))) * 100)}
                     label=""
                     color="green"
-                    size="xs"
+                    size="sm"
                   />
                 ) : prediction.outcomeType === 'MULTIPLE_CHOICE' && prediction.options && prediction.options.length > 0 && prediction._count.commitments > 0 ? (() => {
                   const sortedOptions = [...prediction.options].sort((a, b) => (b.commitmentsCount || 0) - (a.commitmentsCount || 0))
@@ -387,7 +387,7 @@ export default function ForecastCard({
                       percentage={pct}
                       label=""
                       color="green"
-                      size="xs"
+                      size="sm"
                     />
                   )
                 })() : null}
