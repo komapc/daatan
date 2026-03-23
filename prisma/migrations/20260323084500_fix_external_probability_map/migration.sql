@@ -1,0 +1,3 @@
+-- No-op: columns already exist as external_probability / external_reasoning (snake_case).
+-- This migration records the addition of @map() annotations to the Prisma schema
+-- so the generated client uses the correct snake_case column names.
