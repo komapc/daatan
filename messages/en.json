@@ -16,7 +16,7 @@
     "noResults": "No results found"
   },
   "nav": {
-    "feed": "Feed",
+    "feed": "Forecasts",
     "create": "Create",
     "notifications": "Notifications",
     "commitments": "My Commitments",
@@ -29,7 +29,7 @@
     "admin": "Admin"
   },
   "feed": {
-    "title": "Feed",
+    "title": "Forecasts",
     "discover": "Discover active predictions and commit your CU",
     "newForecast": "New Forecast",
     "filters": {
