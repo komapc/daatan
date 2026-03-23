@@ -31,6 +31,13 @@ if [ "$2" = "--no-cache" ]; then
     NO_CACHE_FLAG="--no-cache"
 fi
 
+# Select compose file for this environment
+if [ "$ENVIRONMENT" = "staging" ]; then
+    COMPOSE_FILE="docker-compose.staging.yml"
+else
+    COMPOSE_FILE="docker-compose.prod.yml"
+fi
+
 # Determine container and compose service names
 # SERVICE_ALIAS is the DNS name nginx uses to reach the app container
 if [ "$ENVIRONMENT" = "staging" ]; then
@@ -94,7 +101,7 @@ echo "Git commit:   ${GIT_COMMIT:0:8}"
 # ─── Phase 1: Ensure database is running ───────────────────────────────────────
 echo ""
 echo "📦 Phase 1: Ensuring database is running..."
-docker compose -f docker-compose.prod.yml up -d $DB_SERVICE
+docker compose -f $COMPOSE_FILE up -d $DB_SERVICE
 sleep 5
 
 # ─── Phase 2: Build new image (old container still serving traffic) ─────────────
@@ -345,7 +352,7 @@ if echo "$AUTH_CHECK" | grep -q "google"; then
     echo "✅ Authentication working"
 else
     echo "⚠️ Auth check failed, restarting with env vars..."
-    docker compose -f docker-compose.prod.yml --env-file .env restart $SERVICE
+    docker compose -f $COMPOSE_FILE --env-file .env restart $SERVICE
     sleep 10
     AUTH_CHECK=$(curl -s "$HEALTH_URL/api/auth/providers" | head -c 50)
     if echo "$AUTH_CHECK" | grep -q "google"; then

@@ -7,11 +7,11 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./infra/nginx/nginx-prod-ssl.conf:/etc/nginx/nginx.conf:ro
+      - ./infra/nginx/nginx-staging-ssl.conf:/etc/nginx/nginx.conf:ro
       - ./certbot/www:/var/www/certbot:ro
       - ./certbot/conf:/etc/letsencrypt:ro
     depends_on:
-      - app
+      - app-staging
     healthcheck:
       test: [ "CMD", "wget", "-q", "--spider", "--header=Host: localhost", "http://127.0.0.1/health" ]
       interval: 30s
@@ -23,31 +23,32 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  app:
+  app-staging:
     build:
       context: .
       dockerfile: Dockerfile
       args:
-        - DATABASE_URL=postgresql://daatan:${POSTGRES_PASSWORD}@postgres:5432/daatan
-        - NEXTAUTH_URL=https://daatan.com
+        - NEXT_PUBLIC_ENV=staging
+        - DATABASE_URL=postgresql://daatan:${POSTGRES_PASSWORD}@postgres-staging:5432/daatan_staging
+        - NEXTAUTH_URL=https://staging.daatan.com
     image: ${ECR_REGISTRY:-272007598366.dkr.ecr.eu-central-1.amazonaws.com}/daatan-app:staging-latest
-    container_name: daatan-app
+    container_name: daatan-app-staging
     restart: unless-stopped
     expose:
       - "3000"
     environment:
       - NODE_ENV=production
-      - APP_ENV=production
-      - DATABASE_URL=postgresql://daatan:${POSTGRES_PASSWORD}@postgres:5432/daatan
-      - NEXT_PUBLIC_ENV=production
+      - APP_ENV=staging
+      - DATABASE_URL=postgresql://daatan:${POSTGRES_PASSWORD}@postgres-staging:5432/daatan_staging
+      - NEXT_PUBLIC_ENV=staging
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
-      - NEXTAUTH_URL=https://daatan.com
+      - NEXTAUTH_URL=https://staging.daatan.com
       - AUTH_TRUST_HOST=true
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - SERPER_API_KEY=${SERPER_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - GA_MEASUREMENT_ID=${GA_MEASUREMENT_ID_PROD}
+      - GA_MEASUREMENT_ID=${GA_MEASUREMENT_ID_STAGING}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
       - BOT_RUNNER_SECRET=${BOT_RUNNER_SECRET}
@@ -57,7 +58,7 @@ services:
       - NEXT_PUBLIC_VAPID_PUBLIC_KEY=${NEXT_PUBLIC_VAPID_PUBLIC_KEY}
       - APP_VERSION=${APP_VERSION:-0.1.19}
     depends_on:
-      postgres:
+      postgres-staging:
         condition: service_healthy
     healthcheck:
       test: [ "CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health" ]
@@ -71,20 +72,20 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  postgres:
+  postgres-staging:
     image: postgres:16-alpine
-    container_name: daatan-postgres
+    container_name: daatan-postgres-staging
     restart: unless-stopped
     expose:
       - "5432"
     environment:
       - POSTGRES_USER=daatan
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=daatan
+      - POSTGRES_DB=daatan_staging
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_staging_data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U daatan -d daatan" ]
+      test: [ "CMD-SHELL", "pg_isready -U daatan -d daatan_staging" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -94,16 +95,13 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # Certbot for SSL renewal — uses DNS challenge via Route53 (requires daatan-ec2-role-prod IAM permissions)
   certbot:
-    image: certbot/dns-route53
+    image: certbot/certbot
     container_name: daatan-certbot
-    environment:
-      - AWS_DEFAULT_REGION=eu-central-1
     volumes:
       - ./certbot/www:/var/www/certbot
       - ./certbot/conf:/etc/letsencrypt
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
 
 volumes:
-  postgres_data:
+  postgres_staging_data:
