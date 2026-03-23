@@ -4,14 +4,7 @@ resource "aws_security_group" "ec2" {
   description = "Security group for DAATAN EC2 instance"
   vpc_id      = aws_vpc.main.id
 
-  # SSH - Restricted to allowed_ssh_cidr for security
-  ingress {
-    description = "SSH (restricted access)"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = [var.allowed_ssh_cidr]
-  }
+  # SSH intentionally omitted — all access via AWS SSM (port 22 is closed)
 
   # ICMP (Ping) - For debugging connectivity issues
   ingress {

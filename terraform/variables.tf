@@ -17,14 +17,9 @@ variable "domain_name" {
 }
 
 variable "ssh_key_name" {
-  description = "Name of the SSH key pair in AWS"
+  description = "Name of the SSH key pair in AWS (kept for EC2 bootstrap compatibility)"
   type        = string
   default     = "daatan-key"
-}
-
-variable "allowed_ssh_cidr" {
-  description = "CIDR block allowed for SSH access (your IP)"
-  type        = string
 }
 
 variable "ec2_instance_type" {
