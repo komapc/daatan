@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { FileText, RefreshCw, Loader2, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react'
+import Speedometer from '@/components/forecasts/Speedometer'
 import { toast } from 'react-hot-toast'
 import { useTranslations } from 'next-intl'
 import { createClientLogger } from '@/lib/client-logger'
@@ -20,6 +21,8 @@ type Snapshot = {
   summary: string
   sources: Source[]
   createdAt: string
+  externalProbability?: number | null
+  externalReasoning?: string | null
 }
 
 type Props = {
@@ -158,6 +161,22 @@ export default function ContextTimeline({
                   </a>
                 ))}
               </div>
+            </div>
+          )}
+          {/* AI probability estimate */}
+          {snapshots[0]?.externalProbability != null && (
+            <div className="mt-3 pt-3 border-t border-navy-600 flex flex-col items-center gap-1">
+              <Speedometer
+                percentage={snapshots[0].externalProbability}
+                label="AI estimate"
+                color={snapshots[0].externalProbability >= 50 ? 'green' : 'red'}
+                size="sm"
+              />
+              {snapshots[0].externalReasoning && (
+                <p className="text-xs text-gray-400 text-center max-w-xs">
+                  {snapshots[0].externalReasoning}
+                </p>
+              )}
             </div>
           )}
         </div>
