@@ -307,37 +307,7 @@ export default function ForecastCard({
       onClick={handleCardClick}
       className="group block p-4 sm:p-5 bg-navy-700 border border-navy-600 rounded-xl hover:border-blue-300 hover:shadow-md transition-all duration-200 cursor-pointer"
     >
-      <div className="flex items-center justify-between gap-4">
-        {/* Mini Gauge (Desktop-only on side) */}
-        {prediction.status === 'ACTIVE' && (
-          <div className="hidden sm:block flex-shrink-0">
-            {prediction._count.commitments === 0 ? (
-              <div className="w-16 h-10 flex items-center justify-center rounded-lg bg-navy-800 border border-navy-600">
-                <span className="text-xs text-gray-300 font-medium">—</span>
-              </div>
-            ) : prediction.outcomeType === 'BINARY' ? (
-              <Speedometer
-                percentage={Math.round(((prediction.yesCount || 0) / ((prediction.yesCount || 0) + (prediction.noCount || 0))) * 100)}
-                label=""
-                color="green"
-                size="xs"
-              />
-            ) : prediction.outcomeType === 'MULTIPLE_CHOICE' && prediction.options && prediction.options.length > 0 && prediction._count.commitments > 0 ? (() => {
-              const sortedOptions = [...prediction.options].sort((a, b) => (b.commitmentsCount || 0) - (a.commitmentsCount || 0))
-              const topOption = sortedOptions[0]
-              const pct = Math.round(((topOption.commitmentsCount || 0) / prediction._count.commitments) * 100)
-              return (
-                <Speedometer
-                  percentage={pct}
-                  label=""
-                  color="green"
-                  size="xs"
-                />
-              )
-            })() : null}
-          </div>
-        )}
-
+      <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           {/* Header: Status & Category */}
           <div className="flex items-center flex-wrap gap-2 mb-3">
@@ -390,10 +360,40 @@ export default function ForecastCard({
             )}
           </div>
 
-          {/* Claim Text */}
-          <h3 className="text-base sm:text-lg font-semibold text-white mb-3 group-hover:text-cobalt-light transition-colors line-clamp-2 leading-snug">
-            {showTranslated && translatedClaim ? translatedClaim : prediction.claimText}
-          </h3>
+          {/* Claim Text + Mini Gauge */}
+          <div className="flex items-start gap-3 mb-3">
+            <h3 className="flex-1 text-base sm:text-lg font-semibold text-white group-hover:text-cobalt-light transition-colors line-clamp-2 leading-snug">
+              {showTranslated && translatedClaim ? translatedClaim : prediction.claimText}
+            </h3>
+            {prediction.status === 'ACTIVE' && (
+              <div className="hidden sm:block flex-shrink-0">
+                {prediction._count.commitments === 0 ? (
+                  <div className="w-16 h-10 flex items-center justify-center rounded-lg bg-navy-800 border border-navy-600">
+                    <span className="text-xs text-gray-300 font-medium">—</span>
+                  </div>
+                ) : prediction.outcomeType === 'BINARY' ? (
+                  <Speedometer
+                    percentage={Math.round(((prediction.yesCount || 0) / ((prediction.yesCount || 0) + (prediction.noCount || 0))) * 100)}
+                    label=""
+                    color="green"
+                    size="xs"
+                  />
+                ) : prediction.outcomeType === 'MULTIPLE_CHOICE' && prediction.options && prediction.options.length > 0 && prediction._count.commitments > 0 ? (() => {
+                  const sortedOptions = [...prediction.options].sort((a, b) => (b.commitmentsCount || 0) - (a.commitmentsCount || 0))
+                  const topOption = sortedOptions[0]
+                  const pct = Math.round(((topOption.commitmentsCount || 0) / prediction._count.commitments) * 100)
+                  return (
+                    <Speedometer
+                      percentage={pct}
+                      label=""
+                      color="green"
+                      size="xs"
+                    />
+                  )
+                })() : null}
+              </div>
+            )}
+          </div>
 
           {/* News Context (Optional) */}
           {prediction.newsAnchor && (
