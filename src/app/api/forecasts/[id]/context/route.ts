@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { getPromptTemplate, fillPrompt } from '@/lib/llm/bedrock-prompts'
 import { llmService } from '@/lib/llm'
 import { searchArticles, type SearchResult } from '@/lib/utils/webSearch'
+import { guessChances } from '@/lib/llm/expressPrediction'
 
 export const dynamic = 'force-dynamic'
 
@@ -129,13 +130,35 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
         const newContextSummary = result.text.trim()
         const now = new Date()
 
-        // 3. Create snapshot + update prediction in a transaction
+        // 3. Guess AI probability based on same articles
+        const articlesMapped = searchResults.map((r: SearchResult) => ({
+            title: r.title,
+            source: r.source || 'Unknown',
+            snippet: r.snippet,
+        }))
+        let externalProbability: number | null = null
+        let externalReasoning: string | null = null
+        try {
+            const chances = await guessChances(
+                prediction.claimText,
+                prediction.detailsText ?? '',
+                articlesMapped
+            )
+            externalProbability = chances.probability
+            externalReasoning = chances.reasoning
+        } catch (err) {
+            // Non-fatal: proceed without probability estimate
+        }
+
+        // 4. Create snapshot + update prediction in a transaction
         const [snapshot] = await prisma.$transaction([
             prisma.contextSnapshot.create({
                 data: {
                     predictionId: prediction.id,
                     summary: newContextSummary,
                     sources,
+                    externalProbability,
+                    externalReasoning,
                 },
             }),
             prisma.prediction.update({
