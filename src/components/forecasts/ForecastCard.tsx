@@ -73,11 +73,13 @@ export type Prediction = {
 interface ForecastCardProps {
   prediction: Prediction
   showModerationControls?: boolean
+  onMutated?: (id: string) => void
 }
 
 export default function ForecastCard({
   prediction,
   showModerationControls = false,
+  onMutated,
 }: ForecastCardProps) {
   const { data: session } = useSession()
   const router = useRouter()
@@ -187,8 +189,9 @@ export default function ForecastCard({
         body: JSON.stringify({ status: 'ACTIVE' }),
       })
       if (response.ok) {
-        router.refresh()
         toast.success(t('approveSuccess'))
+        onMutated?.(prediction.id)
+        router.refresh()
       } else {
         toast.error(t('approveError'))
         setIsApproving(false)
@@ -211,8 +214,9 @@ export default function ForecastCard({
         body: JSON.stringify({ status: 'VOID' }),
       })
       if (response.ok) {
-        router.refresh()
         toast.success(t('rejectSuccess'))
+        onMutated?.(prediction.id)
+        router.refresh()
       } else {
         toast.error(t('rejectError'))
       }

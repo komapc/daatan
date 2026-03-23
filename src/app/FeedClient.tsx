@@ -344,7 +344,12 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
         <div className="space-y-6">
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             {predictions.map((prediction) => (
-              <ForecastCard key={prediction.id} prediction={prediction} showModerationControls={true} />
+              <ForecastCard
+                key={prediction.id}
+                prediction={prediction}
+                showModerationControls={true}
+                onMutated={(id) => setPredictions(prev => prev.filter(p => p.id !== id))}
+              />
             ))}
           </div>
         </div>
