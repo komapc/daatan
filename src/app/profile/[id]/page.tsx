@@ -39,13 +39,13 @@ export async function generateMetadata({ params }: ProfilePageProps): Promise<Me
     title,
     description,
     alternates: {
-      canonical: `/profile/${user.username}`,
+      canonical: `https://daatan.com/profile/${user.username}`,
     },
     openGraph: {
       title,
       description,
       type: 'profile',
-      url: `/profile/${user.username}`,
+      url: `https://daatan.com/profile/${user.username}`,
     },
     twitter: {
       card: 'summary_large_image',

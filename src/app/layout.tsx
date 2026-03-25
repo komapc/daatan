@@ -39,8 +39,24 @@ export async function generateMetadata(): Promise<Metadata> {
     verification: {
       google: 'ATwti6XWdVyDu_RJlJhqcBsq-Z_lkjA7nq8ooac',
     },
+    openGraph: {
+      type: 'website',
+      siteName: 'DAATAN',
+      title: 'DAATAN - Prediction Market',
+      description: 'Prove you were right — without shouting into the void.',
+      url: 'https://daatan.com',
+      images: [{ url: '/logo-icon.png', width: 512, height: 512, alt: 'DAATAN' }],
+    },
+    twitter: {
+      card: 'summary',
+      title: 'DAATAN - Prediction Market',
+      description: 'Prove you were right — without shouting into the void.',
+    },
     alternates: {
-      canonical: './',
+      languages: {
+        'x-default': 'https://daatan.com',
+        'en': 'https://daatan.com',
+      },
     },
     robots: {
       index: isProd,

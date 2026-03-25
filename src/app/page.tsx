@@ -1,10 +1,20 @@
 import { Suspense } from 'react'
 import { headers } from 'next/headers'
 import { Loader2 } from 'lucide-react'
+import type { Metadata } from 'next'
 import FeedClient from './FeedClient'
 import type { Prediction } from '@/components/forecasts/ForecastCard'
 
 export const dynamic = 'force-dynamic'
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: 'https://daatan.com',
+  },
+  openGraph: {
+    url: 'https://daatan.com',
+  },
+}
 
 function FeedLoading() {
   return (

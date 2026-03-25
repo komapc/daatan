@@ -92,13 +92,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: prediction.claimText,
     description: prediction.detailsText || 'Make your prediction on DAATAN.',
     alternates: {
-      canonical: `/forecasts/${slug}`,
+      canonical: `https://daatan.com/forecasts/${slug}`,
     },
     openGraph: {
       title: prediction.claimText,
       description: prediction.detailsText || 'Make your prediction on DAATAN.',
       type: 'article',
-      url: `/forecasts/${slug}`,
+      url: `https://daatan.com/forecasts/${slug}`,
     },
     twitter: {
       card: 'summary_large_image',

@@ -1,6 +1,14 @@
+import type { Metadata } from 'next'
 import { Info, Target, Users, TrendingUp, Shield, Mail, GitCommit, Zap, Github, BookOpen, Lightbulb } from 'lucide-react'
 import { VERSION } from '@/lib/version'
 import Link from 'next/link'
+
+export const metadata: Metadata = {
+  title: 'About',
+  description: 'Learn how DAATAN works — a prediction market where you commit Confidence Units to prove your forecasts.',
+  alternates: { canonical: '/about' },
+  openGraph: { url: '/about', type: 'website' },
+}
 
 export default function AboutPage() {
   const gitCommit = process.env.GIT_COMMIT || null
