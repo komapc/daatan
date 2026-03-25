@@ -1,7 +1,6 @@
 import type { MetadataRoute } from 'next'
 import { prisma } from '@/lib/prisma'
 import { env } from '@/env'
-import { locales } from '@/i18n/config'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,29 +13,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     return []
   }
 
-  const paths = [
+  // 1. Static Routes
+  const staticRoutes = [
     '',
     '/about',
     '/forecasts',
     '/leaderboard',
     '/activity',
-  ]
+  ].map((route) => ({
+    url: `${baseUrl}${route}`,
+    lastModified: new Date(),
+    changeFrequency: 'daily' as const,
+    priority: route === '' ? 1 : 0.8,
+  }))
 
-  // 1. Static Routes (Localized)
-  const staticRoutes: MetadataRoute.Sitemap = []
-  for (const locale of locales) {
-    const prefix = locale === 'en' ? '' : `/${locale}`
-    for (const path of paths) {
-      staticRoutes.push({
-        url: `${baseUrl}${prefix}${path}`,
-        lastModified: new Date(),
-        changeFrequency: 'daily' as const,
-        priority: path === '' ? 1 : 0.8,
-      })
-    }
-  }
-
-  // 2. Dynamic Forecasts (Localized)
+  // 2. Dynamic Forecasts
   const predictions = await prisma.prediction.findMany({
     where: {
       isPublic: true,
@@ -53,22 +44,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   })
 
   const resolvedStatuses = ['RESOLVED_CORRECT', 'RESOLVED_WRONG']
-  const forecastRoutes: MetadataRoute.Sitemap = []
-  
-  for (const locale of locales) {
-    const prefix = locale === 'en' ? '' : `/${locale}`
-    for (const p of predictions) {
-      const isResolved = resolvedStatuses.includes(p.status)
-      forecastRoutes.push({
-        url: `${baseUrl}${prefix}/forecasts/${p.slug || p.id}`,
-        lastModified: p.updatedAt,
-        changeFrequency: (isResolved ? 'monthly' : 'hourly') as 'monthly' | 'hourly',
-        priority: isResolved ? 0.5 : 0.7,
-      })
+  const forecastRoutes = predictions.map((p) => {
+    const isResolved = resolvedStatuses.includes(p.status)
+    return {
+      url: `${baseUrl}/forecasts/${p.slug || p.id}`,
+      lastModified: p.updatedAt,
+      changeFrequency: (isResolved ? 'monthly' : 'hourly') as 'monthly' | 'hourly',
+      priority: isResolved ? 0.5 : 0.7,
     }
-  }
+  })
 
-  // 3. Dynamic Profiles (Localized)
+  // 3. Dynamic Profiles
   const users = await prisma.user.findMany({
     where: {
       isPublic: true,
@@ -80,18 +66,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   })
 
-  const profileRoutes: MetadataRoute.Sitemap = []
-  for (const locale of locales) {
-    const prefix = locale === 'en' ? '' : `/${locale}`
-    for (const u of users) {
-      profileRoutes.push({
-        url: `${baseUrl}${prefix}/profile/${u.username}`,
-        lastModified: u.updatedAt,
-        changeFrequency: 'weekly' as const,
-        priority: 0.5,
-      })
-    }
-  }
+  const profileRoutes = users.map((u) => ({
+    url: `${baseUrl}/profile/${u.username}`,
+    lastModified: u.updatedAt,
+    changeFrequency: 'weekly' as const,
+    priority: 0.5,
+  }))
 
   return [...staticRoutes, ...forecastRoutes, ...profileRoutes]
 }

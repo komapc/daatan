@@ -1,6 +1,7 @@
 'use client'
 
-import { Link, usePathname, useRouter } from '@/i18n/routing'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { useSession, signOut, signIn } from 'next-auth/react'
@@ -29,7 +30,7 @@ import {
 import { useTranslations } from 'next-intl'
 
 type NavItem = {
-  href: any // use any to support next-intl localized href types
+  href: string
   labelKey: string
   icon: React.ComponentType<{ className?: string }>
 }

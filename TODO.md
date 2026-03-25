@@ -13,6 +13,10 @@
 - [ ] **Localized RSS Feeds** — generate language-specific RSS feeds (e.g., `/he/feed.xml`) for local news aggregators.
 
 ### Reliability & Infrastructure
+- [ ] **Speed up PR merge & Deployment pipeline** — current cycle is taking too long during critical fixes.
+    - [ ] Optimize `npm install` and `npm run build` in GitHub Actions using better caching or selective builds.
+    - [ ] Evaluate "Quick Deploy" path for critical middleware/hotfixes that skips full ECR rebuilds when possible.
+    - [ ] Reduce Vitest execution time by parallelizing tests or using `--changed` more aggressively in CI.
 - [ ] **GitHub Actions: Migrate to Node.js 24** — Node.js 20 actions are deprecated (removal scheduled for Sept 2026).
     - [ ] Update `actions/checkout`, `actions/setup-node`, `aws-actions/configure-aws-credentials`, and `docker/build-push-action` to versions supporting Node.js 24 once released.
     - [ ] Update `node-version` in `.github/workflows/deploy.yml` from `'20'` to `'24'`.

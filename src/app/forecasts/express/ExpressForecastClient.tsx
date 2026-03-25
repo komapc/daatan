@@ -330,7 +330,7 @@ export default function ExpressForecastClient({
   }
 
   return (
-    <div className="space-y-6" data-testid="express-client">
+    <div className="space-y-6">
       {/* Input Step */}
       {step === 'input' && (
         <div className="bg-navy-700 border border-navy-600 rounded-3xl p-6 sm:p-8 shadow-sm">
