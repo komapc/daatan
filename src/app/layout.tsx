@@ -38,6 +38,9 @@ export async function generateMetadata(): Promise<Metadata> {
     manifest: '/manifest.webmanifest',
     verification: {
       google: 'ATwti6XWdVyDu_RJlJhqcBsq-Z_lkjA7nq8ooac',
+      other: {
+        'msvalidate.01': 'CAFA7BE0D5D83695993D635831499022',
+      },
     },
     openGraph: {
       type: 'website',
