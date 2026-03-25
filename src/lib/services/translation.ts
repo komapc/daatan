@@ -2,11 +2,25 @@ import { llmService } from '@/lib/llm'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
 import { getPromptTemplate, fillPrompt } from '@/lib/llm/bedrock-prompts'
+import { locales, defaultLocale } from '@/i18n/config'
 
 const log = createLogger('translation-service')
 
 const TRANSLATABLE_FIELDS = ['claimText', 'detailsText', 'resolutionRules'] as const
 type TranslatableField = (typeof TRANSLATABLE_FIELDS)[number]
+
+/**
+ * Translates a prediction to all non-default locales in the background.
+ */
+export async function translatePredictionToAllLocales(predictionId: string): Promise<void> {
+  const targetLocales = locales.filter((l) => l !== defaultLocale)
+  
+  // We use Promise.allSettled to ensure one language failure doesn't block others
+  // and we don't await the whole thing if called from a request (though usually we will)
+  await Promise.allSettled(
+    targetLocales.map((locale) => translatePrediction(predictionId, locale))
+  )
+}
 
 async function callGeminiTranslate(text: string, language: string): Promise<string> {
   const template = await getPromptTemplate('translate')

@@ -2,16 +2,18 @@ import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { prisma } from '@/lib/prisma'
+import { translatePrediction } from '@/lib/services/translation'
+import { defaultLocale, type Locale } from '@/i18n/config'
 import ForecastDetailClient from './ForecastDetailClient'
 import { Loader2 } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
 interface Props {
-  params: Promise<{ id: string }>
+  params: Promise<{ id: string; locale?: string }>
 }
 
-async function getPrediction(idOrSlug: string) {
+async function getPrediction(idOrSlug: string, locale?: string) {
   const prediction = await prisma.prediction.findFirst({
     where: {
       OR: [
@@ -53,9 +55,21 @@ async function getPrediction(idOrSlug: string) {
 
   if (!prediction) return null
 
+  // If we have a non-default locale, merge translations
+  let claimText = prediction.claimText
+  let detailsText = prediction.detailsText
+
+  if (locale && locale !== defaultLocale) {
+    const translations = await translatePrediction(prediction.id, locale)
+    if (translations.claimText) claimText = translations.claimText
+    if (translations.detailsText) detailsText = translations.detailsText
+  }
+
   // Format date to ISO string for JSON serialization
   return {
     ...prediction,
+    claimText,
+    detailsText,
     resolveByDatetime: prediction.resolveByDatetime.toISOString(),
     contextUpdatedAt: prediction.contextUpdatedAt?.toISOString(),
     publishedAt: prediction.publishedAt?.toISOString(),
@@ -69,7 +83,7 @@ async function getPrediction(idOrSlug: string) {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id: idOrSlug } = await params
+  const { id: idOrSlug, locale } = await params
   const prediction = await prisma.prediction.findFirst({
     where: {
       OR: [
@@ -87,23 +101,31 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   const slug = prediction.slug || prediction.id
+  let claimText = prediction.claimText
+  let detailsText = prediction.detailsText
+
+  if (locale && locale !== defaultLocale) {
+    const translations = await translatePrediction(prediction.id, locale)
+    if (translations.claimText) claimText = translations.claimText
+    if (translations.detailsText) detailsText = translations.detailsText
+  }
 
   return {
-    title: prediction.claimText,
-    description: prediction.detailsText || 'Make your prediction on DAATAN.',
+    title: claimText,
+    description: detailsText || 'Make your prediction on DAATAN.',
     alternates: {
       canonical: `https://daatan.com/forecasts/${slug}`,
     },
     openGraph: {
-      title: prediction.claimText,
-      description: prediction.detailsText || 'Make your prediction on DAATAN.',
+      title: claimText,
+      description: detailsText || 'Make your prediction on DAATAN.',
       type: 'article',
       url: `https://daatan.com/forecasts/${slug}`,
     },
     twitter: {
       card: 'summary_large_image',
-      title: prediction.claimText,
-      description: prediction.detailsText || 'Make your prediction on DAATAN.',
+      title: claimText,
+      description: detailsText || 'Make your prediction on DAATAN.',
     },
   }
 }
@@ -117,8 +139,8 @@ function ForecastLoading() {
 }
 
 export default async function ForecastDetailPage({ params }: Props) {
-  const { id } = await params
-  const prediction = await getPrediction(id)
+  const { id, locale } = await params
+  const prediction = await getPrediction(id, locale)
 
   if (!prediction) {
     notFound()

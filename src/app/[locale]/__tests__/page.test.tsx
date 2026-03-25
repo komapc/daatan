@@ -2,7 +2,7 @@ import { render, screen, waitFor, act } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import FeedClient from '../FeedClient'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
-import messages from '../../../messages/en.json'
+import messages from '../../../../messages/en.json'
 
 // Mock fetch
 const mockFetch = vi.fn()

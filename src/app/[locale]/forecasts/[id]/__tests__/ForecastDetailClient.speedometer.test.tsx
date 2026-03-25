@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { useSession } from 'next-auth/react'
 import { NextIntlClientProvider } from 'next-intl'
 import ForecastDetailClient from '../ForecastDetailClient'
-import enMessages from '../../../../../messages/en.json'
+import enMessages from '../../../../../../messages/en.json'
 
 // Capture Speedometer calls so we can assert on the percentage prop
 const { speedometerMock } = vi.hoisted(() => ({ speedometerMock: vi.fn(() => null) }))
