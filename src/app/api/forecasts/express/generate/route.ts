@@ -55,6 +55,13 @@ export const POST = withAuth(async (request) => {
             message: `Moderation: ${reason}`
           }) + '\n'
           controller.enqueue(encoder.encode(errorMessage))
+        } else if (error instanceof Error && /Search API error: (400|401|403|429)/.test(error.message)) {
+          const errorMessage = JSON.stringify({
+            stage: 'error',
+            error: 'SEARCH_UNAVAILABLE',
+            message: 'Search service is temporarily unavailable. Please try again later or create a forecast manually.'
+          }) + '\n'
+          controller.enqueue(encoder.encode(errorMessage))
         } else {
           const errorMessage = JSON.stringify({
             stage: 'error',
