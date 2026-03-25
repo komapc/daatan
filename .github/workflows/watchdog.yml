@@ -26,30 +26,57 @@ jobs:
           FAILED=()
 
           check() {
-            local label="$1" url="$2" expect_key="${3:-status}" expect_val="${4:-ok}"
-            echo "🔍 $label → $url"
-            RESPONSE=$(curl -sf --max-time 15 -w "\n%{http_code}" "$url" 2>&1) || {
-              echo "  ❌ Connection failed"
-              FAILED+=("$label (connection failed)")
+            local label="$1" url="$2" expect_key="${3:-}" expect_val="${4:-}"
+            echo "Checking $label -> $url"
+
+            # Use -L to follow redirects (up to 5), capture both status code and
+            # redirect count. We do NOT use -f so we can handle non-2xx manually.
+            # -w appends a two-line trailer: http_code and num_redirects.
+            HTTP_AND_REDIRECTS=$(curl -L --max-redirs 5 --max-time 15 \
+              -w "\n%{http_code}\n%{num_redirects}" \
+              -o /tmp/curl_body.txt \
+              "$url" 2>/tmp/curl_err.txt)
+            CURL_EXIT=$?
+
+            # curl exit code 47 = too many redirects; any non-zero is a failure
+            if [ $CURL_EXIT -ne 0 ]; then
+              ERR=$(cat /tmp/curl_err.txt | head -1)
+              echo "  FAIL curl exit $CURL_EXIT: $ERR"
+              FAILED+=("$label (curl error $CURL_EXIT)")
               return
-            }
-            HTTP=$(echo "$RESPONSE" | tail -1)
-            BODY=$(echo "$RESPONSE" | head -n -1)
+            fi
+
+            HTTP=$(echo "$HTTP_AND_REDIRECTS" | head -1)
+            NUM_REDIRECTS=$(echo "$HTTP_AND_REDIRECTS" | tail -1)
+            BODY=$(cat /tmp/curl_body.txt)
+
+            # Any redirect from a canonical HTTPS URL is suspicious — flag it.
+            # If we followed redirects and the final status is OK, that masks loops
+            # like the 307-loop incident. Treat any redirect as a failure.
+            if [ "$NUM_REDIRECTS" -gt 0 ]; then
+              echo "  FAIL unexpected redirect(s) detected (count: $NUM_REDIRECTS, final HTTP $HTTP)"
+              echo "  These URLs should be canonical HTTPS — any redirect indicates misconfiguration"
+              FAILED+=("$label ($NUM_REDIRECTS redirect(s) detected — possible redirect loop)")
+              return
+            fi
+
             if [[ "$HTTP" -lt 200 || "$HTTP" -ge 400 ]]; then
-              echo "  ❌ HTTP $HTTP"
+              echo "  FAIL HTTP $HTTP"
               FAILED+=("$label (HTTP $HTTP)")
               return
             fi
+
             # For JSON endpoints: validate a key=value pair
             if [[ -n "$expect_key" ]]; then
               if ! echo "$BODY" | grep -q "\"$expect_key\":\"$expect_val\""; then
-                echo "  ❌ Expected $expect_key=$expect_val in response"
+                echo "  FAIL expected $expect_key=$expect_val in response"
                 echo "  Body: $BODY"
                 FAILED+=("$label ($expect_key != $expect_val)")
                 return
               fi
             fi
-            echo "  ✅ OK (HTTP $HTTP)"
+
+            echo "  OK (HTTP $HTTP, redirects: $NUM_REDIRECTS)"
           }
 
           # API health + DB
@@ -57,15 +84,15 @@ jobs:
           check "Health DB flag"  "$BASE/api/health" "db" "true"
 
           # Public pages
-          check "Homepage"     "$BASE"           ""
-          check "Forecast feed" "$BASE/forecasts" ""
-          check "Leaderboard"  "$BASE/leaderboard" ""
-          check "About/login"  "$BASE/auth/signin" ""
+          check "Homepage"      "$BASE"             ""
+          check "Forecast feed" "$BASE/forecasts"   ""
+          check "Leaderboard"   "$BASE/leaderboard" ""
+          check "About/login"   "$BASE/auth/signin" ""
 
           if [ ${#FAILED[@]} -gt 0 ]; then
             echo "failed=true" >> "$GITHUB_OUTPUT"
             echo "failures=${FAILED[*]}" >> "$GITHUB_OUTPUT"
-            printf '  ❌ %s\n' "${FAILED[@]}"
+            printf '  FAIL %s\n' "${FAILED[@]}"
           else
             echo "failed=false" >> "$GITHUB_OUTPUT"
           fi
@@ -81,3 +108,46 @@ jobs:
             -d "text=$MSG" \
             -d "parse_mode=HTML" \
             -d "disable_web_page_preview=true"
+
+      # Advisory-only: detect when production is running a version older than staging.
+      # This catches the situation where staging was updated but production was not,
+      # which is a common cause of incidents (e.g. deploying a hotfix to staging but
+      # forgetting to promote it to production).
+      - name: Check version drift (prod vs staging)
+        if: matrix.env.name == 'production'
+        run: |
+          # Helper: convert semver to a zero-padded integer for numeric comparison.
+          # e.g. "1.7.140" -> "001007140"
+          ver() { echo "$@" | awk -F. '{ printf("%d%03d%03d\n", $1,$2,$3); }'; }
+
+          PROD_HEALTH=$(curl -s --max-time 5 "https://daatan.com/api/health" 2>/dev/null || echo "")
+          STAGING_HEALTH=$(curl -s --max-time 5 "https://staging.daatan.com/api/health" 2>/dev/null || echo "")
+
+          # Extract version fields; bail out if either is unreachable
+          PROD_VER=$(echo "$PROD_HEALTH" | grep -o '"version":"[^"]*"' | cut -d'"' -f4)
+          STAGING_VER=$(echo "$STAGING_HEALTH" | grep -o '"version":"[^"]*"' | cut -d'"' -f4)
+
+          if [ -z "$STAGING_VER" ]; then
+            echo "Staging unreachable or version not found — skipping drift check"
+            exit 0
+          fi
+
+          if [ -z "$PROD_VER" ]; then
+            echo "Production version not found — skipping drift check"
+            exit 0
+          fi
+
+          echo "Production version : $PROD_VER"
+          echo "Staging version    : $STAGING_VER"
+
+          if [ "$(ver "$STAGING_VER")" -gt "$(ver "$PROD_VER")" ]; then
+            echo "Version drift detected: staging ($STAGING_VER) > production ($PROD_VER)"
+            MSG="⚠️ [prod] Version drift: prod is running v$PROD_VER but staging has v$STAGING_VER — consider deploying to production"
+            curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+              -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+              -d "text=$MSG" \
+              -d "parse_mode=HTML" \
+              -d "disable_web_page_preview=true"
+          else
+            echo "No version drift — production is up to date"
+          fi

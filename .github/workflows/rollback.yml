@@ -1,0 +1,241 @@
+name: Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to roll back'
+        required: true
+        default: production
+        type: choice
+        options:
+          - production
+          - staging
+      version:
+        description: 'Version to roll back to (e.g. 1.7.140). Check ECR for available tags.'
+        required: true
+        type: string
+      reason:
+        description: 'Reason for rollback (shown in Telegram notification)'
+        required: false
+        type: string
+
+env:
+  ECR_REGISTRY: 272007598366.dkr.ecr.eu-central-1.amazonaws.com
+
+jobs:
+  rollback:
+    name: Rollback ${{ inputs.environment }} to v${{ inputs.version }}
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: eu-central-1
+
+      - name: Verify ECR image tag exists
+        run: |
+          echo "Checking ECR for image tag: ${{ inputs.version }}"
+          if ! aws ecr describe-images \
+              --repository-name daatan-app \
+              --image-ids imageTag=${{ inputs.version }} \
+              --region eu-central-1 \
+              --output text > /dev/null 2>&1; then
+            echo "ERROR: Image tag '${{ inputs.version }}' not found in ECR repository 'daatan-app'"
+            echo ""
+            echo "Available tags (most recent 20):"
+            aws ecr describe-images \
+              --repository-name daatan-app \
+              --region eu-central-1 \
+              --query 'sort_by(imageDetails,&imagePushedAt)[-20:].imageTags' \
+              --output json 2>/dev/null || echo "(could not list tags)"
+            exit 1
+          fi
+          echo "Image tag '${{ inputs.version }}' confirmed in ECR"
+
+      - name: Find EC2 instance
+        id: instance
+        run: |
+          if [ "${{ inputs.environment }}" = "production" ]; then
+            ENV_TAG="prod"
+          else
+            ENV_TAG="staging"
+          fi
+
+          INSTANCE_ID=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=daatan-backend" "Name=tag:Environment,Values=$ENV_TAG" \
+            --query "Reservations[0].Instances[0].InstanceId" \
+            --output text)
+
+          if [ -z "$INSTANCE_ID" ] || [ "$INSTANCE_ID" = "None" ]; then
+            echo "ERROR: Could not find EC2 instance with Environment=$ENV_TAG"
+            exit 1
+          fi
+
+          echo "Found instance: $INSTANCE_ID"
+          echo "instance_id=$INSTANCE_ID" >> $GITHUB_OUTPUT
+
+      - name: Check Instance SSM Health
+        run: |
+          PING_STATUS=$(aws ssm describe-instance-information \
+            --filters "Key=InstanceIds,Values=${{ steps.instance.outputs.instance_id }}" \
+            --query "InstanceInformationList[0].PingStatus" \
+            --output text)
+
+          echo "Instance ${{ steps.instance.outputs.instance_id }} PingStatus: $PING_STATUS"
+          if [[ "$PING_STATUS" != "Online" ]]; then
+            echo "ERROR: Instance is $PING_STATUS. SSM command will fail."
+            exit 1
+          fi
+
+      - name: Send rollback command via SSM
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RAW_BASE="https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}"
+
+          if [ "${{ inputs.environment }}" = "production" ]; then
+            DEPLOY_FILES="scripts/blue-green-deploy.sh scripts/verify-health.sh scripts/verify-logs.sh scripts/verify-deploy.sh docker-compose.prod.yml infra/nginx/nginx-prod-ssl.conf"
+            LOCAL_TAG="daatan-app:latest"
+            BG_ENV="production"
+          else
+            DEPLOY_FILES="scripts/blue-green-deploy.sh scripts/verify-health.sh scripts/verify-logs.sh scripts/verify-deploy.sh docker-compose.staging.yml infra/nginx/nginx-staging-ssl.conf"
+            LOCAL_TAG="daatan-app:staging-latest"
+            BG_ENV="staging"
+          fi
+
+          IMAGE_TAG="${{ inputs.version }}"
+          FULL_IMAGE="$ECR_REGISTRY/daatan-app:$IMAGE_TAG"
+
+          echo "Sending rollback SSM command..."
+          COMMAND_ID=$(aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --targets "Key=instanceids,Values=${{ steps.instance.outputs.instance_id }}" \
+            --comment "Rollback ${{ inputs.environment }} to ${{ inputs.version }}" \
+            --timeout-seconds 600 \
+            --parameters commands='[
+              "set -e",
+              "export HOME=/home/ubuntu",
+              "export PATH=$PATH:/usr/local/bin:/usr/bin",
+              "",
+              "echo \"📦 Downloading deploy scripts from GitHub...\"",
+              "mkdir -p ~/app/scripts ~/app/infra/nginx",
+              "cd ~/app",
+              "for f in '"$DEPLOY_FILES"'; do curl -sfL -H \"Authorization: token '"$GH_TOKEN"'\" \"'"$RAW_BASE"'/$f\" -o \"$f\" && echo \"  OK: $f\" || { echo \"  FAIL: $f\"; exit 1; }; done",
+              "chmod +x scripts/*.sh",
+              "",
+              "echo \"🔐 Logging in to ECR...\"",
+              "aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin '"$ECR_REGISTRY"'",
+              "",
+              "echo \"⬇️ Pulling rollback image: '"$FULL_IMAGE"'\"",
+              "docker pull '"$FULL_IMAGE"'",
+              "",
+              "echo \"🏷️ Tagging image as '"$LOCAL_TAG"'\"",
+              "docker tag '"$FULL_IMAGE"' '"$LOCAL_TAG"'",
+              "",
+              "echo \"🔄 Executing blue-green rollback deployment...\"",
+              "export GIT_COMMIT=rollback-'"$IMAGE_TAG"'",
+              "export SKIP_BUILD=true",
+              "export ECR_REGISTRY='"$ECR_REGISTRY"'",
+              "export IMAGE_TAG='"$IMAGE_TAG"'",
+              "./scripts/blue-green-deploy.sh '"$BG_ENV"'"
+            ]' \
+            --output text \
+            --query "Command.CommandId")
+
+          echo "COMMAND_ID=$COMMAND_ID" >> $GITHUB_ENV
+          echo "SSM Command ID: $COMMAND_ID"
+
+      - name: Wait for SSM command to complete
+        id: ssm_result
+        run: |
+          COMMAND_ID="${{ env.COMMAND_ID }}"
+          INSTANCE_ID="${{ steps.instance.outputs.instance_id }}"
+          MAX_ATTEMPTS=60
+          SLEEP_SECS=15
+
+          echo "Polling SSM command $COMMAND_ID ..."
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            STATUS=$(aws ssm get-command-invocation \
+              --command-id "$COMMAND_ID" \
+              --instance-id "$INSTANCE_ID" \
+              --query "Status" \
+              --output text 2>/dev/null || echo "Pending")
+
+            echo "Attempt $i/$MAX_ATTEMPTS: $STATUS"
+
+            case "$STATUS" in
+              Success)
+                echo "SSM command succeeded"
+                # Print output for visibility
+                aws ssm get-command-invocation \
+                  --command-id "$COMMAND_ID" \
+                  --instance-id "$INSTANCE_ID" \
+                  --query "StandardOutputContent" \
+                  --output text 2>/dev/null | tail -50 || true
+                echo "ssm_status=success" >> $GITHUB_OUTPUT
+                exit 0
+                ;;
+              Failed|Cancelled|TimedOut|Undeliverable|Terminated)
+                echo "SSM command failed with status: $STATUS"
+                aws ssm get-command-invocation \
+                  --command-id "$COMMAND_ID" \
+                  --instance-id "$INSTANCE_ID" \
+                  --query "StandardErrorContent" \
+                  --output text 2>/dev/null | tail -50 || true
+                aws ssm get-command-invocation \
+                  --command-id "$COMMAND_ID" \
+                  --instance-id "$INSTANCE_ID" \
+                  --query "StandardOutputContent" \
+                  --output text 2>/dev/null | tail -50 || true
+                echo "ssm_status=failed" >> $GITHUB_OUTPUT
+                exit 1
+                ;;
+              *)
+                sleep $SLEEP_SECS
+                ;;
+            esac
+          done
+
+          echo "Timed out waiting for SSM command to complete"
+          echo "ssm_status=timeout" >> $GITHUB_OUTPUT
+          exit 1
+
+      - name: Notify Telegram - Rollback Success
+        if: success()
+        run: |
+          REASON="${{ inputs.reason }}"
+          REASON_TEXT=""
+          if [ -n "$REASON" ]; then
+            REASON_TEXT="%0AReason: $REASON"
+          fi
+          MSG="🔄 [${{ inputs.environment }}] Rollback to v${{ inputs.version }} complete.$REASON_TEXT%0A%0ATriggered by: ${{ github.actor }}"
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d "text=$MSG" \
+            -d "parse_mode=HTML" \
+            -d "disable_web_page_preview=true"
+
+      - name: Notify Telegram - Rollback Failed
+        if: failure()
+        run: |
+          REASON="${{ inputs.reason }}"
+          REASON_TEXT=""
+          if [ -n "$REASON" ]; then
+            REASON_TEXT="%0AReason: $REASON"
+          fi
+          MSG="❌ [${{ inputs.environment }}] Rollback to v${{ inputs.version }} FAILED. Manual intervention required.$REASON_TEXT%0A%0A<a href='https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'>View logs</a>"
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d "text=$MSG" \
+            -d "parse_mode=HTML" \
+            -d "disable_web_page_preview=true"
