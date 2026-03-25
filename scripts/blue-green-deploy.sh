@@ -102,7 +102,11 @@ echo "Git commit:   ${GIT_COMMIT:0:8}"
 echo ""
 echo "📦 Phase 1: Ensuring database is running..."
 docker compose -f $COMPOSE_FILE up -d $DB_SERVICE
-sleep 5
+# Wait for DB to be ready — check pg_isready instead of sleeping unconditionally
+DB_CONTAINER=$(docker compose -f $COMPOSE_FILE ps -q $DB_SERVICE 2>/dev/null | head -1)
+for _i in 1 2 3 4 5; do
+    docker exec "$DB_CONTAINER" pg_isready -q 2>/dev/null && break || sleep 1
+done
 
 # ─── Phase 2: Build new image (old container still serving traffic) ─────────────
 echo ""
@@ -113,9 +117,11 @@ echo "🧹 Pre-build cleanup: Docker disk usage before prune"
 docker system df || true
 
 echo ""
-echo "🧹 Pre-build cleanup: pruning unused Docker data to free space..."
+echo "🧹 Pre-build cleanup: pruning unused Docker images to free space..."
 docker image prune -f || true
-docker builder prune -af || true
+# docker builder prune -af is intentionally omitted: CI deploys use SKIP_BUILD=true
+# (images arrive pre-built from ECR), so there is no build cache on the server to prune.
+# Running it would destroy BuildKit cache uselessly and takes 10-20 seconds.
 # docker volume prune -f || true  <-- DISABLING TO PREVENT DATA LOSS
 
 echo ""
@@ -256,7 +262,7 @@ echo "✅ New container started as $CONTAINER_NEW"
 echo ""
 echo "🏥 Phase 4: Health-checking new container..."
 echo "   URL: http://127.0.0.1:3000/api/health"
-sleep 5
+sleep 2
 
 for i in {1..50}; do
     HEALTH_RESPONSE=$(docker exec $CONTAINER_NEW wget -qO- http://127.0.0.1:3000/api/health 2>&1 || echo "CONNECTION_ERROR")
@@ -337,8 +343,6 @@ echo "✅ Old container removed, new container is now $CONTAINER"
 # ─── Phase 7: External verification ────────────────────────────────────────────
 echo ""
 echo "🔍 Phase 7: Verifying deployment externally..."
-echo "   (waiting for nginx DNS cache to expire...)"
-sleep 3
 if ./scripts/verify-health.sh "$HEALTH_URL"; then
     echo "✅ Health check passed"
 else

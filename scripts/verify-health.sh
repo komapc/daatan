@@ -28,8 +28,8 @@ echo -e "${BLUE}🔍 Verifying deployment at $URL${NC}"
 
 # Check Health and Version (with retries — container may still be starting)
 echo -n "Checking Health... "
-MAX_RETRIES=12
-RETRY_INTERVAL=10
+MAX_RETRIES=18
+RETRY_INTERVAL=5
 HEALTH_STATUS=""
 HEALTH_RESPONSE=""
 DEPLOYED_VERSION=""

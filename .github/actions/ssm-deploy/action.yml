@@ -41,11 +41,10 @@ runs:
             echo "❌ Timed out after 10 minutes waiting for SSM command"
             exit 1
           fi
-          sleep 10
+          sleep 5
         done
 
     - name: Verify health endpoint
       shell: bash
       run: |
-        sleep 5
         ./scripts/verify-health.sh "${{ inputs.health-url }}" "${{ inputs.app-version }}"
