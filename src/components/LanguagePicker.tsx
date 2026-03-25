@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { useRouter, usePathname } from '@/i18n/routing'
+import { useRouter } from 'next/navigation'
 import { Globe, Check, Loader2 } from 'lucide-react'
 import { locales, localeLabels, type Locale } from '@/i18n/config'
 import { createClientLogger } from '@/lib/client-logger'
@@ -14,7 +14,6 @@ interface LanguagePickerProps {
 
 export const LanguagePicker = ({ currentLocale }: LanguagePickerProps) => {
   const router = useRouter()
-  const pathname = usePathname()
   const [isPending, startTransition] = useTransition()
   const [selected, setSelected] = useState<Locale>(currentLocale as Locale)
 
@@ -37,8 +36,7 @@ export const LanguagePicker = ({ currentLocale }: LanguagePickerProps) => {
       })
 
       startTransition(() => {
-        // Use localized router to navigate to the same path but with new locale
-        router.push(pathname, { locale })
+        router.refresh()
       })
     } catch (error) {
       log.error({ err: error }, 'Failed to change language')

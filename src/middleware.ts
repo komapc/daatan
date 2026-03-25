@@ -1,36 +1,25 @@
 import NextAuth from "next-auth"
 import authConfig from "./auth.config"
-import createMiddleware from 'next-intl/middleware'
-import { routing } from './i18n/routing'
 import { NextResponse } from "next/server"
-import type { NextRequest } from "next/server"
 
 const { auth } = NextAuth(authConfig)
-const intlMiddleware = createMiddleware(routing)
 
 export default auth((req) => {
-  const { pathname } = req.nextUrl
-  
-  // 1. Determine if this is an admin route (potentially with locale prefix)
-  const pathParts = pathname.split('/').filter(Boolean)
-  const isLocalePrefixed = routing.locales.includes(pathParts[0] as any)
-  const actualPath = isLocalePrefixed ? `/${pathParts.slice(1).join('/')}` : pathname
+  const isAuth = !!req.auth
+  const pathname = req.nextUrl.pathname
 
-  // 2. Auth Logic - ONLY if it's an admin route
-  if (actualPath.startsWith('/admin')) {
-    const isAuth = !!req.auth
+  // Admin routes require ADMIN role
+  if (pathname.startsWith('/admin')) {
     if (!isAuth || req.auth?.user?.role !== 'ADMIN') {
-      const locale = isLocalePrefixed ? pathParts[0] : 'en'
-      const signInUrl = new URL(locale === 'en' ? '/auth/signin' : `/${locale}/auth/signin`, req.url)
-      return NextResponse.redirect(signInUrl)
+      return NextResponse.redirect(new URL('/auth/signin', req.url))
     }
   }
 
-  // 3. I18n Logic - Handle all other cases
-  return intlMiddleware(req)
+  return NextResponse.next()
 })
 
 export const config = {
-  // Skip internal paths and static files
-  matcher: ['/((?!api|_next|_vercel|static|.*\\..*).*)']
+  matcher: [
+    "/admin/:path*",
+  ]
 }

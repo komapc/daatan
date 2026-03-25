@@ -16,26 +16,10 @@ vi.mock('next/navigation', () => ({
     push: vi.fn(),
     replace: vi.fn(),
     prefetch: vi.fn(),
-    refresh: vi.fn(),
   }),
   useSearchParams: () => ({
     get: vi.fn(),
   }),
-}))
-
-// Mock @/i18n/routing
-vi.mock('@/i18n/routing', () => ({
-  usePathname: () => '/',
-  useRouter: () => ({
-    push: vi.fn(),
-    replace: vi.fn(),
-    prefetch: vi.fn(),
-    refresh: vi.fn(),
-  }),
-  Link: ({ children, href, ...props }: any) => {
-    // Basic Link mock that just renders children
-    return (<a href={href} {...props}>{children}</a>)
-  },
 }))
 
 // Mock next-auth/react

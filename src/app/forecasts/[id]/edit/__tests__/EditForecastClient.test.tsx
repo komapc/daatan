@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import EditForecastClient from '../EditForecastClient'
-import messages from '../../../../../../../messages/en.json'
+import messages from '../../../../../../messages/en.json'
 
 // Mock next/navigation
 const mockPush = vi.fn()
