@@ -17,6 +17,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes = [
     '',
     '/about',
+    '/forecasts',
     '/leaderboard',
     '/activity',
   ].map((route) => ({
@@ -37,16 +38,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     select: {
       id: true,
       slug: true,
+      status: true,
       updatedAt: true,
     },
   })
 
-  const forecastRoutes = predictions.map((p) => ({
-    url: `${baseUrl}/forecasts/${p.slug || p.id}`,
-    lastModified: p.updatedAt,
-    changeFrequency: 'hourly' as const,
-    priority: 0.7,
-  }))
+  const resolvedStatuses = ['RESOLVED_CORRECT', 'RESOLVED_WRONG']
+  const forecastRoutes = predictions.map((p) => {
+    const isResolved = resolvedStatuses.includes(p.status)
+    return {
+      url: `${baseUrl}/forecasts/${p.slug || p.id}`,
+      lastModified: p.updatedAt,
+      changeFrequency: (isResolved ? 'monthly' : 'hourly') as 'monthly' | 'hourly',
+      priority: isResolved ? 0.5 : 0.7,
+    }
+  })
 
   // 3. Dynamic Profiles
   const users = await prisma.user.findMany({
