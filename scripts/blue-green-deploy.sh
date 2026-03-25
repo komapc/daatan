@@ -302,6 +302,12 @@ docker exec $CONTAINER_NEW node prisma/seed.js 2>&1 || {
 }
 echo "✅ Database seed completed"
 
+# Save the old container's image reference NOW — before we stop or remove it in
+# Phase 6. If Phase 7 (external health check) fails after the swap, we need this
+# to start a replacement container from the previously-working image.
+OLD_IMAGE=$(docker inspect $CONTAINER --format '{{.Config.Image}}' 2>/dev/null || echo "")
+echo "   Old image saved for rollback: ${OLD_IMAGE:-<none>}"
+
 # ─── Phase 6: Swap traffic via network aliases (zero downtime) ──────────────────
 echo ""
 echo "🔄 Phase 6: Swapping traffic to new container..."
@@ -336,7 +342,29 @@ sleep 3
 if ./scripts/verify-health.sh "$HEALTH_URL"; then
     echo "✅ Health check passed"
 else
-    echo "❌ External health check failed"
+    echo "❌ External health check failed — initiating automatic rollback..."
+    if [ -n "$OLD_IMAGE" ]; then
+        echo "🔄 Rolling back to: $OLD_IMAGE"
+        # New container is currently named $CONTAINER — stop and remove it
+        docker network disconnect $NETWORK $CONTAINER 2>/dev/null || true
+        docker stop $CONTAINER 2>/dev/null || true
+        docker rm -f $CONTAINER 2>/dev/null || true
+        # Start old image with canonical name and service alias
+        docker run -d \
+            --name $CONTAINER \
+            --network $NETWORK \
+            --restart unless-stopped \
+            $ENV_ARGS \
+            $OLD_IMAGE
+        docker network disconnect $NETWORK $CONTAINER 2>/dev/null || true
+        docker network connect --alias $SERVICE_ALIAS $NETWORK $CONTAINER
+        docker exec daatan-nginx nginx -s reload 2>/dev/null || true
+        echo "✅ Rollback complete — old version is serving traffic again"
+        echo "   Rolled back to image: $OLD_IMAGE"
+    else
+        echo "⚠️  Could not rollback: old image reference not available"
+        echo "   Manual intervention required"
+    fi
     docker logs $CONTAINER --tail 50
     exit 1
 fi
