@@ -27,10 +27,11 @@
 - If truly ambiguous, ask ONE focused question
 
 ## Deployment Tasks
-- When fixing staging/production issues, the task is NOT complete until code is pushed
-- After local tests pass, immediately commit and push to trigger deployment
-- Don't stop at "tests pass" - follow through to deployment
-- Check Docker build logs if pages are missing from production - local builds may differ from Docker builds
+- **NEVER** push a PR branch to the remote repository without explicit permission from the user.
+- **NEVER** deploy to production (via tags, releases, or merges to main) without explicit permission from the user.
+- The task is considered complete when the changes are verified locally and the user has been notified.
+- Wait for a direct instruction like "push the PR" or "deploy to prod" before taking action on remote environments.
+- Check Docker build logs if pages are missing from production - local builds may differ from Docker builds.
 
 ## Next.js App Router Gotchas
 - `export const dynamic = 'force-dynamic'` only works in Server Components
