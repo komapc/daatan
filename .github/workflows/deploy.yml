@@ -126,6 +126,8 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=272007598366.dkr.ecr.eu-central-1.amazonaws.com/daatan-app:buildcache
+          cache-to: type=registry,ref=272007598366.dkr.ecr.eu-central-1.amazonaws.com/daatan-app:buildcache,mode=max
           build-args: |
             NEXT_PUBLIC_APP_VERSION=${{ steps.app_version.outputs.version }}
             GIT_COMMIT=${{ github.sha }}
@@ -213,7 +215,7 @@ jobs:
               "echo \"📦 Downloading deploy files from GitHub...\"",
               "mkdir -p ~/app/scripts ~/app/infra/nginx",
               "cd ~/app",
-              "for f in '"$DEPLOY_FILES"'; do curl -sfL -H \"Authorization: token '"$GH_TOKEN"'\" \"'"$RAW_BASE"'/$f\" -o \"$f\" && echo \"  ✅ $f\" || { echo \"  ❌ Failed: $f\"; exit 1; }; done",
+              "pids=(); for f in '"$DEPLOY_FILES"'; do curl -sfL -H \"Authorization: token '"$GH_TOKEN"'\" \"'"$RAW_BASE"'/$f\" -o \"$f\" & pids+=(\\$!); done; for pid in \"\\${pids[@]}\"; do wait \"\\$pid\" || { echo \"  ❌ Download failed\"; exit 1; }; done; echo \"  ✅ All deploy files downloaded\"",
               "chmod +x scripts/*.sh",
               "",
               "echo \"🔄 Testing and reloading nginx config...\"",
@@ -384,7 +386,7 @@ jobs:
               "echo \"📦 Downloading deploy files from GitHub...\"",
               "mkdir -p ~/app/scripts ~/app/infra/nginx",
               "cd ~/app",
-              "for f in '"$DEPLOY_FILES"'; do curl -sfL -H \"Authorization: token '"$GH_TOKEN"'\" \"'"$RAW_BASE"'/$f\" -o \"$f\" && echo \"  ✅ $f\" || { echo \"  ❌ Failed: $f\"; exit 1; }; done",
+              "pids=(); for f in '"$DEPLOY_FILES"'; do curl -sfL -H \"Authorization: token '"$GH_TOKEN"'\" \"'"$RAW_BASE"'/$f\" -o \"$f\" & pids+=(\\$!); done; for pid in \"\\${pids[@]}\"; do wait \"\\$pid\" || { echo \"  ❌ Download failed\"; exit 1; }; done; echo \"  ✅ All deploy files downloaded\"",
               "chmod +x scripts/*.sh",
               "",
               "echo \"🔄 Testing and reloading nginx config...\"",
