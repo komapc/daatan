@@ -131,7 +131,7 @@ describe('searchArticles', () => {
   })
 
   it('throws when Serper API returns a non-OK status', async () => {
-    fetchMock.mockResolvedValue({ ok: false, status: 401 })
+    fetchMock.mockResolvedValue({ ok: false, status: 401, text: async () => 'Unauthorized' })
     await expect(searchArticles('test')).rejects.toThrow('Search API error: 401')
   })
 

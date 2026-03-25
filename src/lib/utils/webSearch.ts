@@ -54,6 +54,8 @@ export async function searchArticles(
     })
 
     if (!response.ok) {
+      const errorBody = await response.text().catch(() => '(no body)')
+      log.error({ status: response.status, body: errorBody }, 'Serper API error')
       throw new Error(`Search API error: ${response.status}`)
     }
 
