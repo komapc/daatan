@@ -25,7 +25,7 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
-vi.mock('@/lib/services/telegram', () => ({ notifyNewCommitment: vi.fn() }))
+vi.mock('@/lib/services/telegram', () => ({ notifyNewCommitment: vi.fn(), notifyServerError: vi.fn() }))
 vi.mock('@/lib/services/notification', () => ({ createNotification: vi.fn() }))
 vi.mock('@/lib/logger', () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),

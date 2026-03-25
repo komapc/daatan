@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // Must be set before the module is imported so the guard inside searchArticles sees it
 process.env.SERPER_API_KEY = 'test-serper-key'
+// SERPAPI_API_KEY intentionally NOT set so tests only hit Serper unless explicitly changed
 
 const fetchMock = vi.fn()
 global.fetch = fetchMock as unknown as typeof fetch
@@ -20,6 +21,12 @@ const makeNewsItem = (overrides: Record<string, unknown> = {}) => ({
 const okResponse = (body: unknown) => ({
   ok: true,
   json: async () => body,
+})
+
+// DDG fallback returns an empty page (no matching result patterns)
+const ddgEmptyResponse = () => ({
+  ok: true,
+  text: async () => '<html><body><p>No results</p></body></html>',
 })
 
 describe('searchArticles', () => {
@@ -123,20 +130,46 @@ describe('searchArticles', () => {
     expect(results).toHaveLength(3)
   })
 
-  it('throws when SERPER_API_KEY is not configured', async () => {
-    const original = process.env.SERPER_API_KEY
+  it('falls back to DDG when Serper returns non-OK, returns results from DDG', async () => {
+    // Serper fails, DDG returns empty HTML (no matching patterns → empty results)
+    fetchMock
+      .mockResolvedValueOnce({ ok: false, status: 400, text: async () => 'Bad Request' })
+      .mockResolvedValueOnce(ddgEmptyResponse())
+
+    const results = await searchArticles('test')
+    expect(results).toHaveLength(0)
+    // Should have called fetch twice: once for Serper, once for DDG
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    const ddgCall = fetchMock.mock.calls[1]
+    expect(ddgCall[0]).toBe('https://lite.duckduckgo.com/lite/')
+  })
+
+  it('throws when all providers fail', async () => {
+    // Serper fails, DDG also fails
+    fetchMock
+      .mockResolvedValueOnce({ ok: false, status: 401, text: async () => 'Unauthorized' })
+      .mockRejectedValueOnce(new Error('Network failure'))
+
+    await expect(searchArticles('test')).rejects.toThrow('Search API not available')
+  })
+
+  it('throws when no providers are configured and DDG fails', async () => {
+    const originalSerper = process.env.SERPER_API_KEY
     delete process.env.SERPER_API_KEY
-    await expect(searchArticles('test')).rejects.toThrow('Search API not configured')
-    process.env.SERPER_API_KEY = original
-  })
-
-  it('throws when Serper API returns a non-OK status', async () => {
-    fetchMock.mockResolvedValue({ ok: false, status: 401, text: async () => 'Unauthorized' })
-    await expect(searchArticles('test')).rejects.toThrow('Search API error: 401')
-  })
-
-  it('re-throws network errors', async () => {
+    // DDG fails
     fetchMock.mockRejectedValue(new Error('Network failure'))
-    await expect(searchArticles('test')).rejects.toThrow('Network failure')
+
+    await expect(searchArticles('test')).rejects.toThrow('Search API not available')
+
+    process.env.SERPER_API_KEY = originalSerper
+  })
+
+  it('re-throws as Search API not available when Serper has a network error', async () => {
+    // Serper network error → DDG also fails
+    fetchMock
+      .mockRejectedValueOnce(new Error('Network failure'))
+      .mockRejectedValueOnce(new Error('Network failure'))
+
+    await expect(searchArticles('test')).rejects.toThrow('Search API not available')
   })
 })

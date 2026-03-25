@@ -47,6 +47,65 @@ async function sendChannelNotification(message: string): Promise<void> {
 }
 
 // ============================================
+// Error notifications (rate-limited)
+// ============================================
+
+const errorCooldowns = new Map<string, number>()
+const ERROR_COOLDOWN_MS = 5 * 60 * 1000 // 5 minutes — avoid flooding the channel
+
+function canNotify(key: string): boolean {
+  const last = errorCooldowns.get(key)
+  if (last && Date.now() - last < ERROR_COOLDOWN_MS) return false
+  errorCooldowns.set(key, Date.now())
+  return true
+}
+
+function isDevEnv(): boolean {
+  const env = process.env.APP_ENV || process.env.NEXT_PUBLIC_APP_ENV || 'staging'
+  return env === 'development'
+}
+
+export function notifyServerError(route: string, error: Error): void {
+  if (isDevEnv()) return
+  const key = `server-error:${route}:${error.constructor.name}`
+  if (!canNotify(key)) return
+
+  const msg = [
+    `🚨 <b>Server Error</b>`,
+    `Route: <code>${route}</code>`,
+    `Error: <code>${truncate(error.message, 200)}</code>`,
+  ].join('\n')
+
+  sendChannelNotification(msg)
+}
+
+export function notifyAllSearchProvidersFailed(query?: string): void {
+  if (isDevEnv()) return
+  if (!canNotify('search-all-providers-failed')) return
+
+  const msg = [
+    `⚠️ <b>All search providers failed</b>`,
+    query ? `Query: <code>${truncate(query, 100)}</code>` : '',
+    `Check Serper and SerpAPI credits — express forecast generation is degraded`,
+  ].filter(Boolean).join('\n')
+
+  sendChannelNotification(msg)
+}
+
+export function notifySearchCreditsLow(provider: string, remaining: number): void {
+  if (isDevEnv()) return
+  if (!canNotify(`search-credits-low:${provider}`)) return
+
+  const msg = [
+    `⚠️ <b>Search credits low: ${provider}</b>`,
+    `Remaining: <b>${remaining}</b>`,
+    `Top up to avoid express forecast generation degradation`,
+  ].join('\n')
+
+  sendChannelNotification(msg)
+}
+
+// ============================================
 // Event-specific notification helpers
 // ============================================
 
