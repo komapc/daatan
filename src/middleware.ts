@@ -9,16 +9,16 @@ const { auth } = NextAuth(authConfig)
 const intlMiddleware = createMiddleware(routing)
 
 export default auth((req) => {
-  const isAuth = !!req.auth
   const { pathname } = req.nextUrl
-
-  // Check if the current route is a locale-prefixed route
+  
+  // 1. Determine if this is an admin route (potentially with locale prefix)
   const pathParts = pathname.split('/').filter(Boolean)
   const isLocalePrefixed = routing.locales.includes(pathParts[0] as any)
   const actualPath = isLocalePrefixed ? `/${pathParts.slice(1).join('/')}` : pathname
 
-  // Protection for admin routes
+  // 2. Auth Logic - ONLY if it's an admin route
   if (actualPath.startsWith('/admin')) {
+    const isAuth = !!req.auth
     if (!isAuth || req.auth?.user?.role !== 'ADMIN') {
       const locale = isLocalePrefixed ? pathParts[0] : 'en'
       const signInUrl = new URL(locale === 'en' ? '/auth/signin' : `/${locale}/auth/signin`, req.url)
@@ -26,15 +26,11 @@ export default auth((req) => {
     }
   }
 
+  // 3. I18n Logic - Handle all other cases
   return intlMiddleware(req)
 })
 
 export const config = {
-  // Match all pathnames except for
-  // - /api (API routes)
-  // - /_next (Next.js internals)
-  // - /_vercel (Vercel internals)
-  // - /static (static files)
-  // - all files (e.g. favicon.ico, logo.png)
+  // Skip internal paths and static files
   matcher: ['/((?!api|_next|_vercel|static|.*\\..*).*)']
 }
