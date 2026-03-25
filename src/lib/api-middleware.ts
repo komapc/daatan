@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { apiError, handleRouteError } from '@/lib/api-error'
 import { createLogger } from '@/lib/logger'
+import { notifyServerError } from '@/lib/services/telegram'
+import { z } from 'zod'
 import type { UserRole } from '@prisma/client'
 import type { AuthUser } from '@/lib/types/user'
 
@@ -59,11 +61,16 @@ export function withAuth(
       const context: RouteContext = { params: await rawContext.params }
       return await handler(request, user, context)
     } catch (error) {
+      const pathname = request.nextUrl.pathname
       log.error({
         err: error,
-        url: request.nextUrl.pathname,
+        url: pathname,
         userId: session?.user?.id,
       }, 'API route error caught in withAuth middleware')
+      // Notify TG for unexpected 500-level errors (not user input/auth errors)
+      if (error instanceof Error && !(error instanceof z.ZodError)) {
+        notifyServerError(pathname, error)
+      }
       return handleRouteError(error)
     }
   }

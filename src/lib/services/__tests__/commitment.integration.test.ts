@@ -4,7 +4,8 @@ import { createCommitment } from '../commitment'
 
 // Mock external services that have side effects we don't want in DB tests
 vi.mock('@/lib/services/telegram', () => ({
-  notifyNewCommitment: vi.fn().mockResolvedValue(undefined)
+  notifyNewCommitment: vi.fn().mockResolvedValue(undefined),
+  notifyServerError: vi.fn(),
 }))
 
 vi.mock('@/lib/services/notification', () => ({
