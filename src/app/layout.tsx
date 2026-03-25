@@ -85,28 +85,32 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  const locale = await getLocale() as Locale
+  const messages = await getMessages()
   const isStaging = env.NEXT_PUBLIC_ENV === 'staging'
   const gaMeasurementId = isStaging ? 'G-Z4XXM7GYHW' : (process.env.GA_MEASUREMENT_ID ?? '')
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} dir={isRtl(locale) ? 'rtl' : 'ltr'} suppressHydrationWarning>
       <body suppressHydrationWarning>
         <GoogleAnalytics measurementId={gaMeasurementId} isStaging={isStaging} />
-        <SessionWrapper>
-          <AnalyticsUserSync />
-          <StagingBanner />
-          <div className="flex min-h-screen overflow-x-hidden">
-            <Sidebar />
-            {/* Main content with responsive margin */}
-            <main className="flex-1 min-w-0 lg:ml-64 mt-16 lg:mt-0 overflow-x-hidden">
-              {children}
-            </main>
-          </div>
-          <PwaInstaller />
-          <PushPermissionPrompt />
-          <CookieConsent />
-          <Toaster position="bottom-right" />
-        </SessionWrapper>
+        <NextIntlClientProvider messages={messages}>
+          <SessionWrapper>
+            <AnalyticsUserSync />
+            <StagingBanner />
+            <div className="flex min-h-screen overflow-x-hidden">
+              <Sidebar />
+              {/* Main content with responsive margin */}
+              <main className="flex-1 min-w-0 lg:ml-64 mt-16 lg:mt-0 overflow-x-hidden">
+                {children}
+              </main>
+            </div>
+            <PwaInstaller />
+            <PushPermissionPrompt />
+            <CookieConsent />
+            <Toaster position="bottom-right" />
+          </SessionWrapper>
+        </NextIntlClientProvider>
       </body>
     </html>
   )

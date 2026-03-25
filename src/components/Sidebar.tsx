@@ -88,12 +88,8 @@ const Sidebar = () => {
     handleCloseMenu()
   }
 
-  // Mock translations while next-intl is disabled for recovery
-  const t = (key: string) => key.charAt(0).toUpperCase() + key.slice(1)
-  const c = (key: string) => key === 'signOut' ? 'Sign Out' : key
-
-  // const t = useTranslations('nav')
-  // const c = useTranslations('common')
+  const t = useTranslations('nav')
+  const c = useTranslations('common')
 
   const { count: unreadCount } = useUnreadCount()
 
