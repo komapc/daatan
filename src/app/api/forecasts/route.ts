@@ -8,6 +8,10 @@ import { prisma } from '@/lib/prisma'
 import { transitionExpiredPredictions } from '@/lib/services/prediction-lifecycle'
 import { hashUrl } from '@/lib/utils/hash'
 import { checkContent } from '@/lib/services/moderation'
+import { translatePredictionToAllLocales } from '@/lib/services/translation'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('api-forecasts')
 
 export const dynamic = 'force-dynamic'
 
@@ -393,6 +397,11 @@ export const POST = withAuth(async (request, user) => {
         orderBy: { displayOrder: 'asc' },
       },
     },
+  })
+
+  // Trigger background translations (non-blocking)
+  translatePredictionToAllLocales(prediction.id).catch(err => {
+    log.error({ err, predictionId: prediction.id }, 'Background translation failed')
   })
 
   return NextResponse.json(result, { status: 201 })

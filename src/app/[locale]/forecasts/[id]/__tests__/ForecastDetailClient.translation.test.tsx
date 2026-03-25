@@ -3,8 +3,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { useSession } from 'next-auth/react'
 import { NextIntlClientProvider } from 'next-intl'
 import ForecastDetailClient from '../ForecastDetailClient'
-import enMessages from '../../../../../messages/en.json'
-import heMessages from '../../../../../messages/he.json'
+import enMessages from '../../../../../../messages/en.json'
+import heMessages from '../../../../../../messages/he.json'
 
 // Helper to render with internationalization
 const renderWithIntl = (ui: React.ReactElement, locale: 'en' | 'he' = 'en') => {

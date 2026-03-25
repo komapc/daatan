@@ -3,6 +3,17 @@ import Sidebar from '../Sidebar'
 import { useSession } from 'next-auth/react'
 import { vi, describe, it, expect } from 'vitest'
 
+vi.mock('@/i18n/routing', () => ({
+  Link: ({ children, href, onClick }: any) => <a href={href} onClick={onClick}>{children}</a>,
+  usePathname: () => '/',
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    refresh: vi.fn(),
+    prefetch: vi.fn(),
+  })
+}))
+
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => {
     if (key === 'signIn') return 'Sign In'

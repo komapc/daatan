@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Zap, Edit3 } from 'lucide-react'
-import ExpressForecastClient from '@/app/forecasts/express/ExpressForecastClient'
+import ExpressForecastClient from '../forecasts/express/ExpressForecastClient'
 import { ForecastWizard } from '@/components/forecasts/ForecastWizard'
 
 interface CreateForecastClientProps {
