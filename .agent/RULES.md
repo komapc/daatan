@@ -2,12 +2,10 @@
 
 ## 🚨 CRITICAL GIT WORKFLOW RULES
 
-### NEVER Push or Merge to Main or Staging
-- **NEVER** push directly to `main` or `staging` branches.
-- **NEVER** use `gh pr merge` or merge manually. The user is the ONLY one allowed to merge PRs.
-- **ALWAYS** create a feature/fix branch (`feat/`, `fix/`, `chore/`).
-- **ALWAYS** create a PR for review.
-- After creating a PR, **STOP** and wait for user review/merge.
+### NEVER Push to the Remote Repository Without Permission
+- **NEVER** push a feature branch or PR branch to origin without explicit permission.
+- **NEVER** merge or push directly to `main` or `staging`.
+- **STOP** after local verification and wait for the user to say "push the PR" or "deploy to prod."
 
 ### NO UNAUTHORIZED PRODUCTION UPDATES
 - **NEVER** create or push a version tag (e.g., `git tag v1.x.x`) without explicit permission.
