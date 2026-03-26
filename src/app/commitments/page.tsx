@@ -2,6 +2,9 @@
 
 import React from 'react'
 import { useTranslations, useLocale } from 'next-intl'
+import { createClientLogger } from '@/lib/client-logger'
+
+const log = createClientLogger('CommitmentsPage')
 import { 
   History, 
   ArrowUpCircle, 
@@ -53,7 +56,7 @@ export default function CommitmentsPage() {
           setCommitments(data.commitments ?? [])
         }
       } catch (error) {
-        console.error('Failed to fetch commitments:', error)
+        log.error({ err: error }, 'Failed to fetch commitments')
       } finally {
         setLoading(false)
       }
