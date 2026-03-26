@@ -341,7 +341,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
         Back to Feed
       </button>
 
-      <div className="lg:grid lg:grid-cols-[1fr_300px] xl:grid-cols-[1fr_360px] lg:gap-6 xl:gap-8 lg:items-start">
+      <div className="xl:grid xl:grid-cols-[1fr_360px] xl:gap-8 xl:items-start">
         {/* Left column */}
         <div className="min-w-0">
 
@@ -399,7 +399,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
           {showTranslated && translatedFields?.claimText ? translatedFields.claimText : prediction.claimText}
         </h1>
 
-        <div className="lg:hidden">
+        <div className="xl:hidden">
           <ForecastInfoPanel prediction={prediction} variant="mobile" isMounted={isMounted} />
         </div>
 
@@ -498,7 +498,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
       </div>
 
       {/* Commit Form — mobile only (desktop renders in right column) */}
-      <div className="lg:hidden mb-8 p-5 border border-navy-600 rounded-xl bg-navy-700 shadow-sm space-y-6">
+      <div className="xl:hidden mb-8 p-5 border border-navy-600 rounded-xl bg-navy-700 shadow-sm space-y-6">
         <CUBalanceIndicator
           cuAvailable={session?.user?.cuAvailable ?? 0}
           cuLocked={session?.user?.cuLocked ?? 0}
@@ -672,7 +672,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
         </div>{/* end left column */}
 
         {/* Right column — sticky on desktop */}
-        <div className="hidden lg:block lg:sticky lg:top-8 space-y-4">
+        <div className="hidden xl:block xl:sticky xl:top-8 space-y-4">
           <ForecastInfoPanel
             prediction={prediction}
             isMounted={isMounted}
