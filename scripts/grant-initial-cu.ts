@@ -40,6 +40,7 @@ async function main() {
           amount: GRANT_AMOUNT,
           type: 'INITIAL_GRANT',
           note: 'Initial CU grant for existing users',
+          balanceAfter: user.cuAvailable + GRANT_AMOUNT,
         },
       }),
     ])
