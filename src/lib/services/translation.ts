@@ -101,6 +101,28 @@ export async function translatePrediction(
 }
 
 /**
+ * Returns cached translated fields for a prediction WITHOUT triggering new translations.
+ * Safe to call from SSR pages — never calls Gemini. Returns {} on cache miss.
+ */
+export async function getCachedPredictionTranslation(
+  predictionId: string,
+  language: string,
+): Promise<Partial<Record<TranslatableField, string>>> {
+  const cached = await prisma.predictionTranslation.findMany({
+    where: { predictionId, language },
+    select: { fieldName: true, translatedText: true },
+  })
+
+  return Object.fromEntries(
+    cached
+      .filter((c): c is typeof c & { fieldName: TranslatableField } =>
+        TRANSLATABLE_FIELDS.includes(c.fieldName as TranslatableField)
+      )
+      .map((c) => [c.fieldName, c.translatedText]),
+  ) as Partial<Record<TranslatableField, string>>
+}
+
+/**
  * Returns translated text for a comment, fetching from cache or translating on demand.
  */
 export async function translateComment(commentId: string, language: string): Promise<string> {
