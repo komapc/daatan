@@ -341,7 +341,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
         Back to Feed
       </button>
 
-      <div className="lg:grid lg:grid-cols-[1fr_360px] lg:gap-8 lg:items-start">
+      <div className="lg:grid lg:grid-cols-[1fr_300px] xl:grid-cols-[1fr_360px] lg:gap-6 xl:gap-8 lg:items-start">
         {/* Left column */}
         <div className="min-w-0">
 
@@ -395,7 +395,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
           )}
         </div>
 
-        <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight leading-tight mb-4">
+        <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight leading-tight mb-4 break-words">
           {showTranslated && translatedFields?.claimText ? translatedFields.claimText : prediction.claimText}
         </h1>
 
