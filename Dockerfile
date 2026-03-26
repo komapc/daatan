@@ -6,13 +6,11 @@ RUN apt-get update && apt-get install -y openssl libssl-dev && rm -rf /var/lib/a
 
 WORKDIR /app
 
-# Accept build arguments
+# Stable build args (rarely change — declared before npm ci to maximise layer cache)
 ARG DATABASE_URL
 ARG NEXTAUTH_URL
 ARG NEXT_PUBLIC_ENV="production"
-ARG NEXT_PUBLIC_APP_VERSION
 ARG NEXT_PUBLIC_VAPID_PUBLIC_KEY
-ARG GIT_COMMIT="unknown"
 
 # Hardcoded fallback values for the build phase only (@t3-oss/env-nextjs validates at runtime; skip during build)
 ENV SKIP_ENV_VALIDATION=1
@@ -22,16 +20,23 @@ ENV NEXTAUTH_URL=${NEXTAUTH_URL:-"http://localhost:3000"}
 ENV GOOGLE_CLIENT_ID=123456789-dummy.apps.googleusercontent.com
 ENV GOOGLE_CLIENT_SECRET=dummysecret12
 ENV NEXT_PUBLIC_ENV=$NEXT_PUBLIC_ENV
-ENV NEXT_PUBLIC_APP_VERSION=$NEXT_PUBLIC_APP_VERSION
 ENV NEXT_PUBLIC_VAPID_PUBLIC_KEY=$NEXT_PUBLIC_VAPID_PUBLIC_KEY
-ENV GIT_COMMIT=$GIT_COMMIT
 
-# Copy package files
+# Copy package files and install dependencies.
+# These layers are cached by ECR BuildKit when package.json is unchanged.
+# IMPORTANT: volatile per-build args (APP_VERSION, GIT_COMMIT) are declared
+# AFTER this block so they don't bust the npm ci cache on every deploy.
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Install dependencies
 RUN npm ci
+
+# Per-build args — injected after npm ci so that version/commit changes
+# do not invalidate the expensive dependency install layer above.
+ARG NEXT_PUBLIC_APP_VERSION
+ARG GIT_COMMIT="unknown"
+ENV NEXT_PUBLIC_APP_VERSION=$NEXT_PUBLIC_APP_VERSION
+ENV GIT_COMMIT=$GIT_COMMIT
 
 # Copy source
 COPY . .

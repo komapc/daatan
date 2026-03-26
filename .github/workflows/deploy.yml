@@ -66,6 +66,15 @@ jobs:
           SKIP_ENV_VALIDATION: 1
         run: npm test
 
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.tsx', '**/*.js', '**/*.css') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-
+            ${{ runner.os }}-nextjs-
+
       - name: Build application
         env:
           DATABASE_URL: "postgresql://dummy:dummy@localhost:5432/dummy"

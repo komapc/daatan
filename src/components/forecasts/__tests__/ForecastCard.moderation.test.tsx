@@ -150,3 +150,41 @@ describe('ForecastCard moderation controls', () => {
   })
 })
 
+describe('ForecastCard source badge', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+    vi.mocked(useSession).mockReturnValue({
+      data: null,
+      status: 'unauthenticated',
+    } as any)
+  })
+
+  it('shows Personal badge when source is manual and no news anchor', () => {
+    const prediction = { ...basePrediction, source: 'manual', newsAnchor: null }
+    renderWithIntl(<ForecastCard prediction={prediction} />)
+    expect(screen.getByText('Personal')).toBeInTheDocument()
+  })
+
+  it('does not show Personal badge when news anchor is present', () => {
+    const prediction = {
+      ...basePrediction,
+      source: 'manual',
+      newsAnchor: { id: 'a1', title: 'Some article', source: 'Reuters', imageUrl: null },
+    }
+    renderWithIntl(<ForecastCard prediction={prediction} />)
+    expect(screen.queryByText('Personal')).toBeNull()
+  })
+
+  it('does not show Personal badge when source is null', () => {
+    const prediction = { ...basePrediction, source: null, newsAnchor: null }
+    renderWithIntl(<ForecastCard prediction={prediction} />)
+    expect(screen.queryByText('Personal')).toBeNull()
+  })
+
+  it('does not show Personal badge when source is bot', () => {
+    const prediction = { ...basePrediction, source: 'bot', newsAnchor: null }
+    renderWithIntl(<ForecastCard prediction={prediction} />)
+    expect(screen.queryByText('Personal')).toBeNull()
+  })
+})
+

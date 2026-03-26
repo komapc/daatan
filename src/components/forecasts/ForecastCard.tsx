@@ -54,6 +54,7 @@ export type Prediction = {
     imageUrl?: string | null
   } | null
   isPublic?: boolean
+  source?: string | null
   tags?: { name: string }[]
   options?: Array<{
     id: string
@@ -398,6 +399,15 @@ export default function ForecastCard({
               </div>
             )}
           </div>
+
+          {/* Personal badge (no news anchor, manually created) */}
+          {!prediction.newsAnchor && prediction.source === 'manual' && (
+            <div className="mb-4">
+              <span className="inline-flex items-center gap-1 text-xs text-purple-400 bg-purple-400/10 px-2 py-0.5 rounded-full border border-purple-400/20">
+                Personal
+              </span>
+            </div>
+          )}
 
           {/* News Context (Optional) */}
           {prediction.newsAnchor && (
