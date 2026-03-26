@@ -247,5 +247,10 @@
     "sources": "Источники",
     "previousUpdates": "{count} предыдущее обновление",
     "previousUpdatesPlural": "{count} предыдущих обновлений"
+  },
+  "footer": {
+    "privacy": "Политика конфиденциальности",
+    "terms": "Условия использования",
+    "allRightsReserved": "Все права защищены."
   }
 }

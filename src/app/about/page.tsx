@@ -285,7 +285,7 @@ export default function AboutPage() {
               </a>
             </div>
           </div>
-          <div className="pt-4 border-t border-navy-600 flex flex-wrap items-center justify-between gap-2">
+          <div className="pt-4 border-t border-navy-600 flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-4 text-sm text-text-subtle">
               <span>Version <span className="font-mono">{VERSION}</span></span>
               {commitShort && (
@@ -302,9 +302,13 @@ export default function AboutPage() {
                 </span>
               )}
             </div>
-            <p className="text-sm text-text-subtle">
-              &copy; {new Date().getFullYear()} DAATAN
-            </p>
+            <div className="flex items-center gap-4 text-sm text-text-subtle">
+              <Link href="/privacy" className="hover:text-white hover:underline">Privacy Policy</Link>
+              <Link href="/terms" className="hover:text-white hover:underline">Terms of Service</Link>
+              <p>
+                &copy; {new Date().getFullYear()} DAATAN
+              </p>
+            </div>
           </div>
         </div>
       </div>

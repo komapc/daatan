@@ -247,5 +247,10 @@
     "sources": "מקורות",
     "previousUpdates": "עדכון קודם אחד",
     "previousUpdatesPlural": "{count} עדכונים קודמים"
+  },
+  "footer": {
+    "privacy": "מדיניות פרטיות",
+    "terms": "תנאי שימוש",
+    "allRightsReserved": "כל הזכויות שמורות."
   }
 }
