@@ -88,6 +88,10 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: eu-central-1
 
+      - name: Set up Docker Buildx
+        if: github.event_name != 'pull_request'
+        uses: docker/setup-buildx-action@v3
+
       - name: Login to Amazon ECR
         if: github.event_name != 'pull_request'
         id: login-ecr
