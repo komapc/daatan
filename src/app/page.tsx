@@ -57,9 +57,23 @@ export default async function FeedPage({
   const hasCustomParams = params.status || params.tags || params.sortBy
   const initialPredictions = hasCustomParams ? [] : await getInitialFeed()
 
+  const websiteJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'DAATAN',
+    url: 'https://daatan.com',
+    description: 'Prove you were right — without shouting into the void.',
+  }
+
   return (
-    <Suspense fallback={<FeedLoading />}>
-      <FeedClient initialPredictions={initialPredictions} />
-    </Suspense>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+      />
+      <Suspense fallback={<FeedLoading />}>
+        <FeedClient initialPredictions={initialPredictions} />
+      </Suspense>
+    </>
   )
 }
