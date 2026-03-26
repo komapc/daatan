@@ -39,7 +39,7 @@ async function main() {
           userId: user.id,
           amount: GRANT_AMOUNT,
           type: 'INITIAL_GRANT',
-          description: 'Initial CU grant for existing users',
+          note: 'Initial CU grant for existing users',
         },
       }),
     ])
