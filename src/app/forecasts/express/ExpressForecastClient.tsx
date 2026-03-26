@@ -167,7 +167,6 @@ export default function ExpressForecastClient({
   const handleTryAgain = () => {
     setStep('input')
     setError('')
-    handleUserInputChange('')
     setGenerated(null)
     setEditForm(null)
     setIsEditing(false)
