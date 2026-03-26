@@ -54,6 +54,49 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   })
 
+  // 2b. Locale forecast variants — only for predictions with cached translations
+  const translatedPredictionIds = await prisma.predictionTranslation.findMany({
+    where: { language: { in: ['he', 'ru'] } },
+    select: { predictionId: true, language: true },
+    distinct: ['predictionId', 'language'],
+  })
+
+  const translatedSet = new Set(
+    translatedPredictionIds.map((t) => `${t.predictionId}:${t.language}`),
+  )
+
+  const localeForecastRoutes = predictions.flatMap((p) => {
+    const slug = p.slug || p.id
+    const isResolved = resolvedStatuses.includes(p.status)
+    return (['he', 'ru'] as const).flatMap((locale) => {
+      if (!translatedSet.has(`${p.id}:${locale}`)) return []
+      return [
+        {
+          url: `${baseUrl}/${locale}/forecasts/${slug}`,
+          lastModified: p.updatedAt,
+          changeFrequency: (isResolved ? 'monthly' : 'hourly') as 'monthly' | 'hourly',
+          priority: isResolved ? 0.4 : 0.6,
+        },
+      ]
+    })
+  })
+
+  // 2c. Static locale routes
+  const localeStaticRoutes = (['he', 'ru'] as const).flatMap((locale) => [
+    {
+      url: `${baseUrl}/${locale}`,
+      lastModified: new Date(),
+      changeFrequency: 'daily' as const,
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/${locale}/forecasts`,
+      lastModified: new Date(),
+      changeFrequency: 'daily' as const,
+      priority: 0.7,
+    },
+  ])
+
   // 3. Dynamic Profiles
   const users = await prisma.user.findMany({
     where: {
@@ -73,5 +116,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.5,
   }))
 
-  return [...staticRoutes, ...forecastRoutes, ...profileRoutes]
+  return [
+    ...staticRoutes,
+    ...localeStaticRoutes,
+    ...forecastRoutes,
+    ...localeForecastRoutes,
+    ...profileRoutes,
+  ]
 }

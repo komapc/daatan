@@ -59,6 +59,8 @@ export async function generateMetadata(): Promise<Metadata> {
       languages: {
         'x-default': 'https://daatan.com',
         'en': 'https://daatan.com',
+        'he': 'https://daatan.com/he',
+        'ru': 'https://daatan.com/ru',
       },
     },
     robots: {

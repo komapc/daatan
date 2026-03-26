@@ -81,21 +81,40 @@ describe('Locale folder <-> routing config consistency', () => {
     }
   })
 
-  it('if src/app/[locale] directory exists, middleware must import next-intl/middleware', () => {
-    // Inverse check: [locale]/ folder without next-intl middleware means pages
-    // are unreachable — requests go to the [locale] route but no rewrite sets the
-    // locale param, so every page returns 404 or a params error.
-    if (fs.existsSync(LOCALE_APP_DIR)) {
-      const src = readMiddleware()
-      expect(
-        middlewareUsesNextIntl(src),
-        '[locale] folder exists but middleware is not using next-intl routing — ' +
-        'pages won\'t be served correctly. Add next-intl createMiddleware to src/middleware.ts ' +
-        'or move pages out of the [locale] folder.'
-      ).toBe(true)
-    } else {
-      // [locale] folder absent — nothing to check
+  it('if src/app/[locale] directory exists without next-intl, layout.tsx must have a notFound() guard', () => {
+    // Inverse check: [locale]/ folder without next-intl middleware is valid ONLY
+    // if layout.tsx contains a notFound() guard that rejects unsupported locales.
+    // Without the guard, arbitrary path segments (e.g. /about) match the dynamic
+    // route and every page gets broken locale params.
+    if (!fs.existsSync(LOCALE_APP_DIR)) {
       expect(fs.existsSync(LOCALE_APP_DIR)).toBe(false)
+      return
+    }
+
+    const src = readMiddleware()
+    if (middlewareUsesNextIntl(src)) {
+      // next-intl middleware is handling routing — guard not required
+      return
+    }
+
+    // Without next-intl: layout.tsx must exist and contain notFound()
+    const layoutPath = path.join(LOCALE_APP_DIR, 'layout.tsx')
+    const layoutExists = fs.existsSync(layoutPath)
+    expect(
+      layoutExists,
+      '[locale] folder exists without next-intl middleware but src/app/[locale]/layout.tsx ' +
+      'is missing. Add a layout with a notFound() guard to prevent arbitrary segments from ' +
+      'matching, or add next-intl createMiddleware to src/middleware.ts.',
+    ).toBe(true)
+
+    if (layoutExists) {
+      const layoutSrc = fs.readFileSync(layoutPath, 'utf-8')
+      expect(
+        /notFound\(\)/.test(layoutSrc),
+        '[locale] folder exists without next-intl middleware but layout.tsx has no notFound() ' +
+        'guard. The guard must reject any locale not in the ALLOWED_LOCALES list to prevent ' +
+        'arbitrary path segments from producing broken pages.',
+      ).toBe(true)
     }
   })
 })

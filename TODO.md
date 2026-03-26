@@ -1,6 +1,6 @@
 # TODO.md — Task Queue
 
-*Last updated: March 25, 2026 · v1.7.141*
+*Last updated: March 25, 2026 · v1.7.147*
 
 ---
 
@@ -8,7 +8,8 @@
 
 ### SEO & Localization (v1.7.141)
 - [ ] **Verify Bing indexing** — monitor Bing Webmaster Tools for `daatan.com/BingSiteAuth.xml` verification and crawl status.
-- [ ] **Add more languages** — evaluate adding Arabic (AR) or Spanish (ES) to `src/i18n/config.ts` to expand reach.
+- [ ] **Add Arabic (AR) and Turkish (TR) as source languages** — configure RSS/news sources in Arabic and Turkish so bots can ingest and create predictions from those feeds. Separate from UI translation: this is about the *input* side (what the bot reads), not the display language.
+- [ ] **Add Esperanto (EO) to UI** — add `eo` locale to `src/i18n/config.ts`, create `messages/eo.json`, wire up the language picker. Esperanto is already the internal dev language; making it an official UI option is a small lift.
 - [ ] **DeepL Integration** — evaluate switching from LLM-based translation to DeepL API for lower cost and faster background pre-translation at scale.
 - [ ] **Localized RSS Feeds** — generate language-specific RSS feeds (e.g., `/he/feed.xml`) for local news aggregators.
 
@@ -27,6 +28,7 @@
 - ✅ **Telegram bot token refresh** — updated to @DaatanClawBot token in GitHub Actions secret + both Secrets Manager entries; containers restarted.
 
 ### Features & UX
+- [ ] **Source-free predictions** — users can currently only create predictions that have an associated news source; when no source is found the creation fails. Personal/expertise predictions (e.g. "Andrej will become a grandmaster") have no news source by nature. Add an explicit "No source" option that lets users submit without one, skipping source validation. The prediction should be marked clearly (e.g. `source: 'manual'`) so it can be filtered/displayed differently.
 - ✅ **Bug: Edit button changes input field background to white** — fixed
 - ✅ **Bug: Prediction filter too strict** — fixed
 - ✅ **Bug: Speedometer shows wrong value** — fixed
