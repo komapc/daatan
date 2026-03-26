@@ -96,6 +96,7 @@ export async function GET(
           cuCommitted: true,
           binaryChoice: true,
           optionId: true,
+          createdAt: true,
         }
       })
     }
