@@ -16,7 +16,7 @@ jobs:
           - name: production
             base_url: https://daatan.com
           - name: staging
-            base_url: ${{ secrets.STAGING_URL }}
+            base_url: https://staging.daatan.com
 
     steps:
       - name: Check pages
