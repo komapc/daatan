@@ -15,16 +15,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // 1. Static Routes
   const staticRoutes = [
-    '',
-    '/about',
-    '/forecasts',
-    '/leaderboard',
-    '/activity',
-  ].map((route) => ({
+    { route: '', frequency: 'daily' as const, priority: 1 },
+    { route: '/about', frequency: 'daily' as const, priority: 0.8 },
+    { route: '/forecasts', frequency: 'daily' as const, priority: 0.8 },
+    { route: '/leaderboard', frequency: 'daily' as const, priority: 0.8 },
+    { route: '/activity', frequency: 'daily' as const, priority: 0.8 },
+    { route: '/privacy', frequency: 'monthly' as const, priority: 0.3 },
+    { route: '/terms', frequency: 'monthly' as const, priority: 0.3 },
+  ].map(({ route, frequency, priority }) => ({
     url: `${baseUrl}${route}`,
     lastModified: new Date(),
-    changeFrequency: 'daily' as const,
-    priority: route === '' ? 1 : 0.8,
+    changeFrequency: frequency,
+    priority,
   }))
 
   // 2. Dynamic Forecasts
