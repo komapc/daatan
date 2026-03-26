@@ -161,15 +161,31 @@ export default async function PublicProfilePage({ params }: ProfilePageProps) {
       take: 5,
     })
 
+    const personJsonLd = {
+      '@context': 'https://schema.org',
+      '@type': 'Person',
+      name: user.name,
+      identifier: `@${user.username}`,
+      url: `https://daatan.com/profile/${user.username}`,
+      ...(user.image && { image: user.image }),
+      ...(user.website && { sameAs: [user.website] }),
+    }
+
     return (
-      <UserProfileView
-        user={user}
-        commitments={commitments}
-        myPredictions={myPredictions}
-        avgBrierScore={avgBrierScore}
-        brierCount={brierStats._count.brierScore}
-        isOwnProfile={false}
-      />
+      <>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd) }}
+        />
+        <UserProfileView
+          user={user}
+          commitments={commitments}
+          myPredictions={myPredictions}
+          avgBrierScore={avgBrierScore}
+          brierCount={brierStats._count.brierScore}
+          isOwnProfile={false}
+        />
+      </>
     )
   } catch (error) {
     createLogger('public-profile').error({ err: error, userId: id }, 'Public profile page error')

@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { getCachedPredictionTranslation } from '@/lib/services/translation'
 import ForecastDetailClient from '@/app/forecasts/[id]/ForecastDetailClient'
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 60
 
 interface Props {
   params: Promise<{ locale: string; id: string }>
@@ -120,9 +120,38 @@ export default async function LocaleForecastDetailPage({ params }: Props) {
     resolutionRules: translations.resolutionRules || prediction.resolutionRules,
   }
 
+  const slug = prediction.slug || prediction.id
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: localizedPrediction.claimText,
+    description: localizedPrediction.detailsText || undefined,
+    url: `https://daatan.com/forecasts/${slug}`,
+    image: `https://daatan.com/forecasts/${slug}/opengraph-image`,
+    datePublished: prediction.publishedAt,
+    dateModified: prediction.updatedAt,
+    author: {
+      '@type': 'Person',
+      name: prediction.author.name || prediction.author.username,
+      url: `https://daatan.com/profile/${prediction.author.username}`,
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: 'DAATAN',
+      url: 'https://daatan.com',
+      logo: { '@type': 'ImageObject', url: 'https://daatan.com/logo-icon.png' },
+    },
+  }
+
   return (
-    <Suspense fallback={<ForecastLoading />}>
-      <ForecastDetailClient initialData={localizedPrediction as any} />
-    </Suspense>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <Suspense fallback={<ForecastLoading />}>
+        <ForecastDetailClient initialData={localizedPrediction as any} />
+      </Suspense>
+    </>
   )
 }

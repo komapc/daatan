@@ -15,16 +15,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // 1. Static Routes
   const staticRoutes = [
-    { route: '', frequency: 'daily' as const, priority: 1 },
-    { route: '/about', frequency: 'daily' as const, priority: 0.8 },
-    { route: '/forecasts', frequency: 'daily' as const, priority: 0.8 },
-    { route: '/leaderboard', frequency: 'daily' as const, priority: 0.8 },
-    { route: '/activity', frequency: 'daily' as const, priority: 0.8 },
-    { route: '/privacy', frequency: 'monthly' as const, priority: 0.3 },
-    { route: '/terms', frequency: 'monthly' as const, priority: 0.3 },
-  ].map(({ route, frequency, priority }) => ({
+    { route: '', lastModified: new Date(), frequency: 'daily' as const, priority: 1 },
+    { route: '/about', lastModified: new Date('2026-03-26'), frequency: 'daily' as const, priority: 0.8 },
+    { route: '/forecasts', lastModified: new Date(), frequency: 'daily' as const, priority: 0.8 },
+    { route: '/leaderboard', lastModified: new Date(), frequency: 'daily' as const, priority: 0.8 },
+    { route: '/activity', lastModified: new Date(), frequency: 'daily' as const, priority: 0.8 },
+    { route: '/privacy', lastModified: new Date('2026-03-26'), frequency: 'monthly' as const, priority: 0.3 },
+    { route: '/terms', lastModified: new Date('2026-03-26'), frequency: 'monthly' as const, priority: 0.3 },
+  ].map(({ route, lastModified, frequency, priority }) => ({
     url: `${baseUrl}${route}`,
-    lastModified: new Date(),
+    lastModified,
     changeFrequency: frequency,
     priority,
   }))
@@ -99,13 +99,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     {
       url: `${baseUrl}/${locale}/privacy`,
-      lastModified: new Date(),
+      lastModified: new Date('2026-03-26'),
       changeFrequency: 'monthly' as const,
       priority: 0.3,
     },
     {
       url: `${baseUrl}/${locale}/terms`,
-      lastModified: new Date(),
+      lastModified: new Date('2026-03-26'),
       changeFrequency: 'monthly' as const,
       priority: 0.3,
     },

@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma'
 import ForecastDetailClient from './ForecastDetailClient'
 import { Loader2 } from 'lucide-react'
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 60
 
 interface Props {
   params: Promise<{ id: string }>
@@ -130,18 +130,27 @@ export default async function ForecastDetailPage({ params }: Props) {
     notFound()
   }
 
+  const slug = prediction.slug || prediction.id
   // Structured Data (JSON-LD)
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Article',
     headline: prediction.claimText,
-    description: prediction.detailsText,
+    description: prediction.detailsText || undefined,
+    url: `https://daatan.com/forecasts/${slug}`,
+    image: `https://daatan.com/forecasts/${slug}/opengraph-image`,
     datePublished: prediction.publishedAt,
     dateModified: prediction.updatedAt,
     author: {
       '@type': 'Person',
       name: prediction.author.name || prediction.author.username,
       url: `https://daatan.com/profile/${prediction.author.username}`,
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: 'DAATAN',
+      url: 'https://daatan.com',
+      logo: { '@type': 'ImageObject', url: 'https://daatan.com/logo-icon.png' },
     },
   }
 
