@@ -247,5 +247,10 @@
     "sources": "Sources",
     "previousUpdates": "{count} previous update",
     "previousUpdatesPlural": "{count} previous updates"
+  },
+  "footer": {
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "allRightsReserved": "All rights reserved."
   }
 }
