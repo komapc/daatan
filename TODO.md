@@ -32,6 +32,15 @@
 - ✅ **Bug: Edit button changes input field background to white** — fixed
 - ✅ **Bug: Prediction filter too strict** — fixed
 - ✅ **Bug: Speedometer shows wrong value** — fixed
+- 🔄 **Bug: Forecast detail layout overflow** — right column too wide at lg: screens squeezes left column; PR #538 in review
+- [ ] **Bug: Second visual issue** — TBD (user to confirm after PR #538 merges)
+- [ ] **Page loading optimization** — forecast pages and feed are slow to load; investigate SSR, ISR, and bundle size
+- [ ] **Check multi-lingual indexing** — verify Hebrew and Russian forecast pages are indexed by Google; check GSC for coverage errors
+- [ ] **Console messages** — clean up browser console errors/warnings in production
+- [ ] **Google Analytics warnings** — investigate and fix GA4 warnings (likely consent mode or misconfigured events)
+- [ ] **Bing warnings** — check Bing Webmaster Tools for crawl/indexing warnings
+- [ ] **Telegram updates** — refresh Telegram bot token or fix notification delivery issues
+- [ ] **Add CU to all users** — grant initial CU balance to all existing users who have 0
 
 ---
 
