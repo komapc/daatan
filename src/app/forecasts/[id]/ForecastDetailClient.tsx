@@ -57,6 +57,7 @@ type Prediction = {
   extractedEntities?: string[]
   consensusLine?: string | null
   sourceSummary?: string | null
+  source?: string | null
   author: {
     id: string
     name: string
@@ -355,6 +356,11 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
               <span className="flex items-center gap-1 px-3 py-1 bg-navy-700 text-gray-600 text-sm font-medium rounded-full">
                 <EyeOff className="w-4 h-4" />
                 Unlisted
+              </span>
+            )}
+            {!prediction.newsAnchor && prediction.source === 'manual' && (
+              <span className="inline-flex items-center gap-1 px-3 py-1 text-sm font-medium text-purple-400 bg-purple-400/10 rounded-full border border-purple-400/20">
+                Personal
               </span>
             )}
             {locale !== 'en' && (

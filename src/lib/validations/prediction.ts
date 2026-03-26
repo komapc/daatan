@@ -57,6 +57,9 @@ export const createPredictionSchema = z.object({
 
   // Visibility
   isPublic: z.boolean().optional().default(true),
+
+  // Source tracking
+  source: z.literal('manual').optional(),
 }).superRefine((data, ctx) => {
   const payload = data.outcomePayload as Record<string, unknown> | undefined
 

@@ -28,7 +28,7 @@
 - ✅ **Telegram bot token refresh** — updated to @DaatanClawBot token in GitHub Actions secret + both Secrets Manager entries; containers restarted.
 
 ### Features & UX
-- [ ] **Source-free predictions** — users can currently only create predictions that have an associated news source; when no source is found the creation fails. Personal/expertise predictions (e.g. "Andrej will become a grandmaster") have no news source by nature. Add an explicit "No source" option that lets users submit without one, skipping source validation. The prediction should be marked clearly (e.g. `source: 'manual'`) so it can be filtered/displayed differently.
+- ✅ **Source-free predictions** — `source: 'manual'` is now set when no news anchor is provided; "Personal" badge shown on forecast cards and detail pages.
 - ✅ **Bug: Edit button changes input field background to white** — fixed
 - ✅ **Bug: Prediction filter too strict** — fixed
 - ✅ **Bug: Speedometer shows wrong value** — fixed

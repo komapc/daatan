@@ -58,6 +58,8 @@ interface ForecastWizardProps {
   initialClaim?: string
 }
 
+const DRAFT_KEY = 'daatan:forecast-draft'
+
 export const ForecastWizard = ({ isExpressFlow = false, initialClaim = '' }: ForecastWizardProps) => {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(isExpressFlow ? 2 : 1)
@@ -71,6 +73,31 @@ export const ForecastWizard = ({ isExpressFlow = false, initialClaim = '' }: For
     resolveByDatetime: '',
     isPublic: true,
   })
+
+  // Restore saved draft from sessionStorage on mount (manual flow only)
+  useEffect(() => {
+    if (isExpressFlow) return
+    try {
+      const saved = sessionStorage.getItem(DRAFT_KEY)
+      if (!saved) return
+      const { formData: savedData, currentStep: savedStep } = JSON.parse(saved)
+      setFormData(prev => ({ ...prev, ...savedData }))
+      setCurrentStep(savedStep ?? 1)
+    } catch {
+      // Corrupt or missing — ignore
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Persist form state to sessionStorage on every change (manual flow only)
+  useEffect(() => {
+    if (isExpressFlow) return
+    if (!formData.claimText && !formData.newsAnchorUrl) return
+    try {
+      sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ formData, currentStep }))
+    } catch {
+      // sessionStorage full or unavailable — ignore
+    }
+  }, [formData, currentStep, isExpressFlow])
 
   // Load express prediction data from localStorage after mount (avoids hydration mismatch)
   useEffect(() => {
@@ -161,6 +188,7 @@ export const ForecastWizard = ({ isExpressFlow = false, initialClaim = '' }: For
           resolutionRules: formData.resolutionRules,
           resolveByDatetime: new Date(formData.resolveByDatetime).toISOString(),
           isPublic: formData.isPublic,
+          source: (!formData.newsAnchorId && !formData.newsAnchorUrl) ? 'manual' : undefined,
         }),
       })
 
@@ -189,7 +217,7 @@ export const ForecastWizard = ({ isExpressFlow = false, initialClaim = '' }: For
         is_express: isExpressFlow,
       })
 
-      // Redirect to prediction page
+      try { sessionStorage.removeItem(DRAFT_KEY) } catch { /* ignore */ }
       router.push(`/forecasts/${prediction.slug || prediction.id}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')

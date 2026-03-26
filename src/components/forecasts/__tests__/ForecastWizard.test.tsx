@@ -11,8 +11,9 @@ vi.mock('next/navigation', () => ({
 
 describe('ForecastWizard', () => {
   beforeEach(() => {
-    // Clear localStorage before each test
+    // Clear localStorage and sessionStorage before each test
     localStorage.clear()
+    sessionStorage.clear()
     // Clear URL search params
     delete (window as any).location
       ; (window as any).location = { search: '' }
@@ -74,6 +75,50 @@ describe('ForecastWizard', () => {
   it('handles missing localStorage data gracefully', () => {
     // Should not throw
     expect(() => render(<ForecastWizard isExpressFlow={true} />)).not.toThrow()
+  })
+
+  it('restores form data from sessionStorage on mount (manual flow)', async () => {
+    const draft = {
+      formData: {
+        claimText: 'Restored claim text',
+        tags: [],
+        outcomeType: 'BINARY',
+        resolveByDatetime: '',
+        isPublic: true,
+      },
+      currentStep: 2,
+    }
+    sessionStorage.setItem('daatan:forecast-draft', JSON.stringify(draft))
+
+    await act(async () => {
+      render(<ForecastWizard isExpressFlow={false} />)
+    })
+
+    // Should be on step 2 (Prediction) with the claim text visible in the input
+    await waitFor(() => {
+      const input = screen.getByPlaceholderText(/Bitcoin will reach/i) as HTMLInputElement
+      expect(input.value).toBe('Restored claim text')
+    })
+  })
+
+  it('does not restore sessionStorage in express flow', async () => {
+    const draft = {
+      formData: { claimText: 'Should not appear', tags: [], outcomeType: 'BINARY', resolveByDatetime: '', isPublic: true },
+      currentStep: 2,
+    }
+    sessionStorage.setItem('daatan:forecast-draft', JSON.stringify(draft))
+
+    await act(async () => {
+      render(<ForecastWizard isExpressFlow={true} />)
+    })
+
+    // sessionStorage data should be ignored in express flow
+    expect(screen.queryByDisplayValue('Should not appear')).toBeNull()
+  })
+
+  it('handles corrupt sessionStorage data gracefully', () => {
+    sessionStorage.setItem('daatan:forecast-draft', 'not valid json {{{')
+    expect(() => render(<ForecastWizard isExpressFlow={false} />)).not.toThrow()
   })
 
   it('converts ISO datetime to YYYY-MM-DD for the date input in express flow', async () => {

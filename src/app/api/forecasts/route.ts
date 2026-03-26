@@ -310,6 +310,7 @@ export const POST = withAuth(async (request, user) => {
           resolveByDatetime: new Date(data.resolveByDatetime),
           status: 'DRAFT',
           isPublic: data.isPublic ?? true,
+          source: data.source ?? null,
           shareToken,
           // Connect or create tags
           tags: data.tags?.length
