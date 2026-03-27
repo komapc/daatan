@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
@@ -189,10 +189,6 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
   const locale = useLocale()
   const [prediction, setPrediction] = useState<Prediction | null>(initialData || null)
   const [isLoading, setIsLoading] = useState(!initialData)
-  // Capture initialData at mount only — used in the fetch effect so that
-  // router.refresh() (which changes the initialData prop) does NOT re-trigger
-  // a fetch that would overwrite freshly-set local state.
-  const initialDataRef = useRef(initialData)
   const [error, setError] = useState<string | null>(null)
   const [isApproving, setIsApproving] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
@@ -211,10 +207,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
   }, [])
 
   useEffect(() => {
-    const initial = initialDataRef.current
     async function fetchPrediction() {
-      if (initial && (initial.id === id || initial.slug === id)) return
-
       try {
         const response = await fetch(`/api/forecasts/${id}`)
         if (!response.ok) {
