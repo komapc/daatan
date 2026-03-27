@@ -337,7 +337,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
         Back to Feed
       </button>
 
-      <div className="xl:grid xl:grid-cols-[1fr_360px] xl:gap-8 xl:items-start">
+      <div className="xl:grid xl:grid-cols-[1fr_420px] xl:gap-8 xl:items-start">
         {/* Left column */}
         <div className="min-w-0">
 
