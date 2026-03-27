@@ -414,23 +414,21 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
       </div>
 
       {/* Resolution Rules */}
-      {prediction.resolutionRules && (
-        <div className="mb-6">
-          <button
-            type="button"
-            onClick={() => setShowRules(v => !v)}
-            className="flex items-center gap-1.5 text-sm font-medium text-gray-400 hover:text-text-secondary transition-colors"
-          >
-            {showRules ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            Resolution Rules
-          </button>
-          {showRules && (
-            <div className="mt-2 p-3 bg-navy-800 border border-navy-600 rounded-lg text-sm text-text-secondary whitespace-pre-wrap">
-              {prediction.resolutionRules}
-            </div>
-          )}
-        </div>
-      )}
+      <div className="mb-6">
+        <button
+          type="button"
+          onClick={() => setShowRules(v => !v)}
+          className="flex items-center gap-1.5 text-sm font-medium text-gray-400 hover:text-text-secondary transition-colors"
+        >
+          {showRules ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          Resolution Rules
+        </button>
+        {showRules && (
+          <div className="mt-2 p-3 bg-navy-800 border border-navy-600 rounded-lg text-sm text-text-secondary whitespace-pre-wrap">
+            {prediction.resolutionRules ?? 'No resolution rules specified.'}
+          </div>
+        )}
+      </div>
 
       {/* Context/Timeline */}
       <ContextTimeline
