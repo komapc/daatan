@@ -1,7 +1,6 @@
 import { withAuth } from '@/lib/api-middleware'
 import { prisma } from '@/lib/prisma'
 import { llmService } from '@/lib/llm'
-import { apiError } from '@/lib/api-middleware'
 import { SchemaType } from '@google/generative-ai'
 import type { Schema } from '@google/generative-ai'
 
