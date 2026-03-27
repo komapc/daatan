@@ -172,7 +172,7 @@ export default function CommitmentForm({
   }
 
   return (
-    <div className="space-y-4 rounded-xl border border-cobalt/30 bg-cobalt/10/30 p-4 shadow-sm">
+    <div className="space-y-4 rounded-xl border border-cobalt/30 bg-cobalt/10/30 p-4 shadow-sm overflow-hidden">
       <div className="flex items-center justify-between">
         <h3 className="text-base font-semibold text-white flex items-center gap-2">
           {isUpdate ? t('updateCommitment') : t('makeCommitment')}
@@ -239,7 +239,7 @@ export default function CommitmentForm({
                   : 'bg-navy-700 text-text-secondary border-gray-300 hover:bg-teal/10 hover:border-green-400 hover:text-teal'
                   } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
-                {isSubmitting ? '...' : isUpdate ? (isCurrentOutcome(true) ? t('update') : `Switch to ${t('willHappen')}`) : t('willHappen')}
+                {isSubmitting ? '...' : isUpdate ? (isCurrentOutcome(true) ? t('update') : t('willHappen')) : t('willHappen')}
               </button>
               <button
                 type="button"
@@ -250,7 +250,7 @@ export default function CommitmentForm({
                   : 'bg-navy-700 text-text-secondary border-gray-300 hover:bg-red-900/20 hover:border-red-400 hover:text-red-400'
                   } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
-                {isSubmitting ? '...' : isUpdate ? (isCurrentOutcome(false) ? t('update') : `Switch to ${t('wontHappen')}`) : t('wontHappen')}
+                {isSubmitting ? '...' : isUpdate ? (isCurrentOutcome(false) ? t('update') : t('wontHappen')) : t('wontHappen')}
               </button>
             </div>
           ) : (
