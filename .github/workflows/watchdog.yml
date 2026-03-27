@@ -68,7 +68,7 @@ jobs:
 
             # For JSON endpoints: validate a key=value pair
             if [[ -n "$expect_key" ]]; then
-              if ! echo "$BODY" | grep -q "\"$expect_key\":\"$expect_val\""; then
+              if ! echo "$BODY" | grep -qE "\"$expect_key\":(\"$expect_val\"|$expect_val)"; then
                 echo "  FAIL expected $expect_key=$expect_val in response"
                 echo "  Body: $BODY"
                 FAILED+=("$label ($expect_key != $expect_val)")

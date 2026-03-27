@@ -1,8 +1,14 @@
 /**
- * One-time script: grant 100 CU to all users currently at 0.
+ * One-time script: grant 100 CU to users.
  *
- * Usage (local against prod DB):
+ * By default targets only users currently at 0.
+ * Set ALL_USERS=true to grant to every non-bot user regardless of balance.
+ *
+ * Usage (local against staging DB):
  *   DATABASE_URL="..." tsx scripts/grant-initial-cu.ts
+ *
+ * Usage (all users, e.g. staging bonus):
+ *   ALL_USERS=true DATABASE_URL="..." tsx scripts/grant-initial-cu.ts
  *
  * Usage (dry-run, no writes):
  *   DRY_RUN=true DATABASE_URL="..." tsx scripts/grant-initial-cu.ts
@@ -13,14 +19,17 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 const GRANT_AMOUNT = 100
 const DRY_RUN = process.env.DRY_RUN === 'true'
+const ALL_USERS = process.env.ALL_USERS === 'true'
 
 async function main() {
+  const where = ALL_USERS ? { isBot: false } : { cuAvailable: 0, isBot: false }
   const targets = await prisma.user.findMany({
-    where: { cuAvailable: 0, isBot: false },
+    where,
     select: { id: true, name: true, username: true, cuAvailable: true },
   })
 
-  console.log(`Found ${targets.length} users with 0 CU${DRY_RUN ? ' [DRY RUN — no writes]' : ''}`)
+  const scope = ALL_USERS ? 'all users' : 'users with 0 CU'
+  console.log(`Found ${targets.length} ${scope}${DRY_RUN ? ' [DRY RUN — no writes]' : ''}`)
 
   if (targets.length === 0 || DRY_RUN) {
     targets.forEach((u) => console.log(`  ${u.username ?? u.id} (${u.name})`))
@@ -39,7 +48,7 @@ async function main() {
           userId: user.id,
           amount: GRANT_AMOUNT,
           type: 'INITIAL_GRANT',
-          note: 'Initial CU grant for existing users',
+          note: ALL_USERS ? 'CU grant — 100 CU to all users' : 'Initial CU grant for existing users',
           balanceAfter: user.cuAvailable + GRANT_AMOUNT,
         },
       }),
