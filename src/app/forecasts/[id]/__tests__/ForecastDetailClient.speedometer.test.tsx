@@ -148,10 +148,14 @@ describe('Speedometer — state update after voting (router.refresh regression)'
     vi.mocked(useSession).mockReturnValue({ data: null, status: 'unauthenticated' } as any)
   })
 
-  it('does not re-fetch when initialData prop changes (simulates router.refresh)', async () => {
-    // Regression: router.refresh() delivers new initialData prop → useEffect was re-running
-    // and overwriting fresh local state with stale server data.
-    const fetchMock = vi.fn()
+  it('fetches once on mount but not again when initialData prop changes (simulates router.refresh)', async () => {
+    // The component always fetches from the API on mount to get fresh data (bypassing ISR cache).
+    // When router.refresh() delivers new initialData prop with the same id, the effect
+    // does NOT re-run (id dependency unchanged), so fetch is called exactly once.
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => makePrediction([]),
+    })
     global.fetch = fetchMock
 
     const initial = makePrediction([])
@@ -161,8 +165,8 @@ describe('Speedometer — state update after voting (router.refresh regression)'
     const refreshedInitial = { ...initial, claimText: 'Server-refreshed claim' }
     rerender(wrap(<ForecastDetailClient initialData={refreshedInitial as any} />))
 
-    // fetch should NOT have been called — initialData matches the id, no re-fetch needed
-    expect(fetchMock).not.toHaveBeenCalled()
+    // fetch is called once on mount, but NOT again on re-render with same id
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
   })
 
   it('re-fetches when navigating to a different forecast id', async () => {

@@ -110,11 +110,20 @@ jobs:
             -d "disable_web_page_preview=true"
 
       # Advisory-only: detect when production is running a version older than staging.
-      # This catches the situation where staging was updated but production was not,
-      # which is a common cause of incidents (e.g. deploying a hotfix to staging but
-      # forgetting to promote it to production).
+      # Notifies at most once per unique (prod, staging) version pair — subsequent
+      # watchdog runs skip the Telegram alert until the versions change again.
+      - name: Restore version-drift notification cache
+        if: matrix.env.name == 'production'
+        id: drift-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: /tmp/drift-notified
+          key: version-drift-notified-${{ hashFiles('/tmp/drift-key.txt') }}
+          restore-keys: version-drift-notified-
+
       - name: Check version drift (prod vs staging)
         if: matrix.env.name == 'production'
+        id: drift
         run: |
           # Helper: convert semver to a zero-padded integer for numeric comparison.
           # e.g. "1.7.140" -> "001007140"
@@ -123,7 +132,6 @@ jobs:
           PROD_HEALTH=$(curl -s --max-time 5 "https://daatan.com/api/health" 2>/dev/null || echo "")
           STAGING_HEALTH=$(curl -s --max-time 5 "https://staging.daatan.com/api/health" 2>/dev/null || echo "")
 
-          # Extract version fields; bail out if either is unreachable
           PROD_VER=$(echo "$PROD_HEALTH" | grep -o '"version":"[^"]*"' | cut -d'"' -f4)
           STAGING_VER=$(echo "$STAGING_HEALTH" | grep -o '"version":"[^"]*"' | cut -d'"' -f4)
 
@@ -140,14 +148,33 @@ jobs:
           echo "Production version : $PROD_VER"
           echo "Staging version    : $STAGING_VER"
 
+          DRIFT_KEY="prod-${PROD_VER}__staging-${STAGING_VER}"
+          echo "$DRIFT_KEY" > /tmp/drift-key.txt
+
           if [ "$(ver "$STAGING_VER")" -gt "$(ver "$PROD_VER")" ]; then
             echo "Version drift detected: staging ($STAGING_VER) > production ($PROD_VER)"
-            MSG="⚠️ [prod] Version drift: prod is running v$PROD_VER but staging has v$STAGING_VER — consider deploying to production"
-            curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-              -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
-              -d "text=$MSG" \
-              -d "parse_mode=HTML" \
-              -d "disable_web_page_preview=true"
+
+            # Only notify if this exact (prod, staging) pair hasn't been notified before
+            CACHED_KEY=$(cat /tmp/drift-notified 2>/dev/null || echo "")
+            if [ "$CACHED_KEY" = "$DRIFT_KEY" ]; then
+              echo "Already notified for this drift — skipping Telegram alert"
+            else
+              MSG="⚠️ [prod] Version drift: prod is running v$PROD_VER but staging has v$STAGING_VER — consider deploying to production"
+              curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+                -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+                -d "text=$MSG" \
+                -d "parse_mode=HTML" \
+                -d "disable_web_page_preview=true"
+              echo "$DRIFT_KEY" > /tmp/drift-notified
+              echo "save_cache=true" >> "$GITHUB_OUTPUT"
+            fi
           else
             echo "No version drift — production is up to date"
           fi
+
+      - name: Save version-drift notification cache
+        if: matrix.env.name == 'production' && steps.drift.outputs.save_cache == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: /tmp/drift-notified
+          key: version-drift-notified-${{ hashFiles('/tmp/drift-key.txt') }}

@@ -87,9 +87,15 @@ describe('ForecastDetailClient Translation', () => {
   })
 
   it('triggers translation and shows Hebrew toggle + disclaimer in Hebrew locale', async () => {
+    // First mock: initial API fetch on mount (returns base prediction)
     vi.mocked(fetch).mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ 
+      json: async () => basePrediction,
+    } as Response)
+    // Second mock: translation fetch
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
         claimText: 'תרגום כותרת',
         detailsText: 'תרגום פירוט'
       }),
