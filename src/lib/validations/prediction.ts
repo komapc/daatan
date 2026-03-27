@@ -49,7 +49,7 @@ export const createPredictionSchema = z.object({
   outcomePayload: z.record(z.string(), z.unknown()).optional(),
 
   // Resolution
-  resolutionRules: z.string().max(2000).optional(),
+  resolutionRules: z.string().min(10, 'Resolution rules must be at least 10 characters').max(2000),
   resolveByDatetime: z.string().datetime(),
 
   // Tags (0-5 tags from STANDARD_TAGS)

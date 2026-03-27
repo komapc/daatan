@@ -248,7 +248,7 @@ export const ForecastWizard = ({ isExpressFlow = false, initialClaim = '' }: For
       case 2:
         return formData.claimText.length >= 10
       case 3:
-        return formData.resolveByDatetime && new Date(formData.resolveByDatetime) > new Date()
+        return !!(formData.resolveByDatetime && new Date(formData.resolveByDatetime) > new Date() && formData.resolutionRules && formData.resolutionRules.trim().length >= 10)
       case 4:
         return true
       default:

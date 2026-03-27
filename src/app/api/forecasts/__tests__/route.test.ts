@@ -175,6 +175,7 @@ describe('/api/forecasts', () => {
                 claimText: 'New Forecast',
                 resolveByDatetime: '2026-12-31T23:59:59Z',
                 outcomeType: 'BINARY',
+                resolutionRules: 'Resolves YES if the event occurs as described.',
             }
 
             const request = new NextRequest('http://localhost/api/forecasts', {
@@ -233,6 +234,7 @@ describe('/api/forecasts', () => {
                 claimText: 'AI Prediction',
                 resolveByDatetime: '2026-12-31T23:59:59Z',
                 outcomeType: 'BINARY',
+                resolutionRules: 'Resolves YES if the event occurs as described.',
                 tags: ['AI', 'Technology'],
             }
 
@@ -276,6 +278,7 @@ describe('/api/forecasts', () => {
                 claimText: 'Simple Prediction',
                 resolveByDatetime: '2026-12-31T23:59:59Z',
                 outcomeType: 'BINARY',
+                resolutionRules: 'Resolves YES if the event occurs as described.',
             }
 
             const request = new NextRequest('http://localhost/api/forecasts', {
@@ -320,6 +323,7 @@ describe('/api/forecasts', () => {
                 claimText: 'AI Prediction',
                 resolveByDatetime: '2026-12-31T23:59:59Z',
                 outcomeType: 'BINARY',
+                resolutionRules: 'Resolves YES if the event occurs as described.',
                 tags: ['AI', 'Technology'],
             }
 
