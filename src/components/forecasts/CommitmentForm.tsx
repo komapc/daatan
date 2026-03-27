@@ -172,7 +172,7 @@ export default function CommitmentForm({
   }
 
   return (
-    <div className="space-y-4 rounded-xl border border-cobalt/30 bg-cobalt/10/30 p-4 shadow-sm">
+    <div className="space-y-4 rounded-xl border border-cobalt/30 bg-cobalt/10/30 p-4 shadow-sm overflow-hidden">
       <div className="flex items-center justify-between">
         <h3 className="text-base font-semibold text-white flex items-center gap-2">
           {isUpdate ? t('updateCommitment') : t('makeCommitment')}
@@ -229,12 +229,12 @@ export default function CommitmentForm({
         {/* Action Buttons */}
         <div className="flex-1 space-y-2">
           {prediction.outcomeType === 'BINARY' ? (
-            <div className="flex gap-2 h-full">
+            <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => handleActionClick(true)}
                 disabled={isSubmitting || pendingOutcome !== null}
-                className={`flex-1 rounded-lg border px-4 py-2.5 text-sm font-semibold transition-all shadow-sm ${isCurrentOutcome(true)
+                className={`flex-1 min-w-0 rounded-lg border px-3 py-2.5 text-sm font-semibold transition-all shadow-sm text-center ${isCurrentOutcome(true)
                   ? 'bg-green-600 text-white border-green-700 hover:bg-green-700'
                   : 'bg-navy-700 text-text-secondary border-gray-300 hover:bg-teal/10 hover:border-green-400 hover:text-teal'
                   } disabled:opacity-50 disabled:cursor-not-allowed`}
@@ -245,7 +245,7 @@ export default function CommitmentForm({
                 type="button"
                 onClick={() => handleActionClick(false)}
                 disabled={isSubmitting || pendingOutcome !== null}
-                className={`flex-1 rounded-lg border px-4 py-2.5 text-sm font-semibold transition-all shadow-sm ${isCurrentOutcome(false)
+                className={`flex-1 min-w-0 rounded-lg border px-3 py-2.5 text-sm font-semibold transition-all shadow-sm text-center ${isCurrentOutcome(false)
                   ? 'bg-red-500 text-white border-red-600 hover:bg-red-600'
                   : 'bg-navy-700 text-text-secondary border-gray-300 hover:bg-red-900/20 hover:border-red-400 hover:text-red-400'
                   } disabled:opacity-50 disabled:cursor-not-allowed`}
