@@ -1,13 +1,13 @@
 # TODO.md — Task Queue
 
-*Last updated: March 25, 2026 · v1.7.147*
+*Last updated: March 27, 2026 · v1.7.160*
 
 ---
 
 ## Open Tasks
 
 ### SEO & Localization (v1.7.141)
-- [ ] **Verify Bing indexing** — monitor Bing Webmaster Tools for `daatan.com/BingSiteAuth.xml` verification and crawl status.
+- [ ] **Verify Bing indexing** — code is correct (msvalidate tag in layout, sitemap configured, robots.ts clean); check Bing Webmaster Tools for crawl lag or coverage errors.
 - [ ] **Add Arabic (AR) and Turkish (TR) as source languages** — configure RSS/news sources in Arabic and Turkish so bots can ingest and create predictions from those feeds. Separate from UI translation: this is about the *input* side (what the bot reads), not the display language.
 - [ ] **Add Esperanto (EO) to UI** — add `eo` locale to `src/i18n/config.ts`, create `messages/eo.json`, wire up the language picker. Esperanto is already the internal dev language; making it an official UI option is a small lift.
 - [ ] **DeepL Integration** — evaluate switching from LLM-based translation to DeepL API for lower cost and faster background pre-translation at scale.
@@ -32,15 +32,14 @@
 - ✅ **Bug: Edit button changes input field background to white** — fixed
 - ✅ **Bug: Prediction filter too strict** — fixed
 - ✅ **Bug: Speedometer shows wrong value** — fixed
-- 🔄 **Bug: Forecast detail layout overflow** — right column too wide at lg: screens squeezes left column; PR #538 in review
-- [ ] **Bug: Second visual issue** — TBD (user to confirm after PR #538 merges)
-- [ ] **Page loading optimization** — forecast pages and feed are slow to load; investigate SSR, ISR, and bundle size
+- ✅ **Bug: Forecast detail layout overflow** — switched two-column grid to xl: (1280px+) so right column always has full 360px; PR #538 + #540
+- ✅ **Console messages** — replaced `console.error` in CommitmentsPage with structured `createClientLogger`; PR #539
+- ✅ **Google Analytics warnings** — added full GA4 consent mode v2 fields (`functionality_storage`, `personalization_storage`, `security_storage`, `wait_for_update: 500`); PR #539
+- ✅ **Add CU to all users** — `scripts/grant-initial-cu.ts` ready; grants 100 CU + INITIAL_GRANT ledger entry to all non-bot users at 0; PR #539
+- ✅ **Page loading optimization** — investigated; ISR already on forecast detail pages; no critical issues found; missing loading.tsx skeletons are a medium-effort improvement if needed
+- ✅ **Bing warnings** — code config correct; no code changes needed; monitor Bing WMT directly
 - [ ] **Check multi-lingual indexing** — verify Hebrew and Russian forecast pages are indexed by Google; check GSC for coverage errors
-- [ ] **Console messages** — clean up browser console errors/warnings in production
-- [ ] **Google Analytics warnings** — investigate and fix GA4 warnings (likely consent mode or misconfigured events)
-- [ ] **Bing warnings** — check Bing Webmaster Tools for crawl/indexing warnings
-- [ ] **Telegram updates** — refresh Telegram bot token or fix notification delivery issues
-- [ ] **Add CU to all users** — grant initial CU balance to all existing users who have 0
+- [ ] **Telegram updates** — token was refreshed (see Reliability section) but delivery should be re-verified end-to-end
 
 ---
 
