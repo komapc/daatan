@@ -234,7 +234,7 @@ export default function CommitmentForm({
                 type="button"
                 onClick={() => handleActionClick(true)}
                 disabled={isSubmitting || pendingOutcome !== null}
-                className={`flex-1 min-w-0 rounded-lg border px-3 py-2.5 text-sm font-semibold transition-all shadow-sm text-center ${isCurrentOutcome(true)
+                className={`flex-1 min-w-0 rounded-lg border px-3 py-2.5 text-sm font-semibold transition-all shadow-sm text-center whitespace-normal leading-tight ${isCurrentOutcome(true)
                   ? 'bg-green-600 text-white border-green-700 hover:bg-green-700'
                   : 'bg-navy-700 text-text-secondary border-gray-300 hover:bg-teal/10 hover:border-green-400 hover:text-teal'
                   } disabled:opacity-50 disabled:cursor-not-allowed`}
@@ -245,7 +245,7 @@ export default function CommitmentForm({
                 type="button"
                 onClick={() => handleActionClick(false)}
                 disabled={isSubmitting || pendingOutcome !== null}
-                className={`flex-1 min-w-0 rounded-lg border px-3 py-2.5 text-sm font-semibold transition-all shadow-sm text-center ${isCurrentOutcome(false)
+                className={`flex-1 min-w-0 rounded-lg border px-3 py-2.5 text-sm font-semibold transition-all shadow-sm text-center whitespace-normal leading-tight ${isCurrentOutcome(false)
                   ? 'bg-red-500 text-white border-red-600 hover:bg-red-600'
                   : 'bg-navy-700 text-text-secondary border-gray-300 hover:bg-red-900/20 hover:border-red-400 hover:text-red-400'
                   } disabled:opacity-50 disabled:cursor-not-allowed`}
