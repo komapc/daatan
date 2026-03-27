@@ -223,7 +223,7 @@ export function ResolutionForm({ predictionId, outcomeType, options, onResolved 
           onChange={(e) => setEvidenceLinks(e.target.value)}
           placeholder="https://example.com/source-article"
           rows={2}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+          className="w-full px-3 py-2 bg-navy-800 border border-navy-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-white placeholder-gray-500"
         />
         <p className="mt-1 text-xs text-gray-400">One URL per line (optional)</p>
       </div>
@@ -239,7 +239,7 @@ export function ResolutionForm({ predictionId, outcomeType, options, onResolved 
           onChange={(e) => setResolutionNote(e.target.value)}
           placeholder="Brief explanation for the users..."
           rows={3}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+          className="w-full px-3 py-2 bg-navy-800 border border-navy-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-white placeholder-gray-500"
         />
       </div>
 
