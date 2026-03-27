@@ -261,8 +261,7 @@ export const StepOutcome = ({ formData, updateFormData }: Props) => {
       {/* Resolution Rules */}
       <div>
         <label htmlFor="resolutionRules" className="block text-sm font-medium text-text-secondary mb-2">
-          Resolution Rules
-          <span className="text-gray-400 font-normal ml-2">(optional)</span>
+          Resolution Rules <span className="text-red-400">*</span>
         </label>
         <textarea
           id="resolutionRules"
