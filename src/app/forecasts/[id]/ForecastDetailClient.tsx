@@ -14,6 +14,8 @@ import {
   Loader2,
   AlertCircle,
   ChevronLeft,
+  ChevronDown,
+  ChevronUp,
   Edit2,
   EyeOff,
   Languages,
@@ -194,6 +196,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
   const [error, setError] = useState<string | null>(null)
   const [isApproving, setIsApproving] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
+  const [showRules, setShowRules] = useState(false)
 
   // Translation state
   const [translatedFields, setTranslatedFields] = useState<Record<string, string> | null>(null)
@@ -417,8 +420,27 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
         )}
       </div>
 
+      {/* Resolution Rules */}
+      {prediction.resolutionRules && (
+        <div className="mb-6">
+          <button
+            type="button"
+            onClick={() => setShowRules(v => !v)}
+            className="flex items-center gap-1.5 text-sm font-medium text-gray-400 hover:text-text-secondary transition-colors"
+          >
+            {showRules ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            Resolution Rules
+          </button>
+          {showRules && (
+            <div className="mt-2 p-3 bg-navy-800 border border-navy-600 rounded-lg text-sm text-text-secondary whitespace-pre-wrap">
+              {prediction.resolutionRules}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Context/Timeline */}
-      <ContextTimeline 
+      <ContextTimeline
         predictionId={prediction.id} 
         canAnalyze={session?.user?.role === 'ADMIN' || session?.user?.role === 'RESOLVER'} 
       />
