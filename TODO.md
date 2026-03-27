@@ -18,6 +18,7 @@
 
 ### Features & UX
 - [ ] **Unlimited CU mode** — allow users (or specific roles) to commit without CU balance constraints; useful for power users, admins, or a premium tier.
+- [ ] **Fix "Won't Happen" button visual bug** — visual issue with the "Won't Happen" commitment button; investigate and fix display.
 
 ---
 

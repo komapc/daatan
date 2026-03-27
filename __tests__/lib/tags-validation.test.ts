@@ -6,6 +6,7 @@ describe('Tags Validation', () => {
     claimText: 'Test prediction claim',
     resolveByDatetime: '2026-12-31T23:59:59Z',
     outcomeType: 'BINARY' as const,
+    resolutionRules: 'Resolves YES if the event occurs as described.',
   }
 
   describe('createPredictionSchema', () => {
