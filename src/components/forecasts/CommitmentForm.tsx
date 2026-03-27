@@ -172,7 +172,7 @@ export default function CommitmentForm({
   }
 
   return (
-    <div className="space-y-4 rounded-xl border border-cobalt/30 bg-cobalt/10/30 p-4 shadow-sm overflow-hidden">
+    <div className="space-y-4 rounded-xl border border-cobalt/30 bg-cobalt/10/30 p-4 shadow-sm">
       <div className="flex items-center justify-between">
         <h3 className="text-base font-semibold text-white flex items-center gap-2">
           {isUpdate ? t('updateCommitment') : t('makeCommitment')}
