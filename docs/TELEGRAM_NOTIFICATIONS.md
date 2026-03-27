@@ -10,10 +10,10 @@ Sent by `deploy.yml`, `backup.yml`, `rollback.yml`.
 
 | Event | Icon | Message |
 |---|---|---|
-| Staging deploy success | ✅ | `[staging] Deployment successful` — version, branch, commit link |
-| Staging deploy failure | ❌ | `[staging] Deployment failed` — version, branch, logs link |
-| Production deploy success | ✅ | `[prod] Deployment successful` — version, tag, release link |
-| Production deploy failure | ❌ | `[prod] Deployment failed` — version, tag, logs link |
+| Staging deploy success | ✅ | `[staging] Deployment successful` — version, PR number+title, PR link |
+| Staging deploy failure | ❌ | `[staging] Deployment failed` — version, PR number+title, PR link + logs link |
+| Production deploy success | ✅ | `[prod] Deployment successful` — version, PR number+title, PR link |
+| Production deploy failure | ❌ | `[prod] Deployment failed` — version, PR number+title, PR link + logs link |
 | DB backup failure | 🚨 | `DB Backup FAILED` — timestamp |
 | Rollback success | 🔄 | `[env] Rollback to vX complete` — reason, triggered-by |
 | Rollback failure | ❌ | `[env] Rollback to vX FAILED. Manual intervention required` — reason, logs link |

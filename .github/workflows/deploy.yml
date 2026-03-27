@@ -260,21 +260,42 @@ jobs:
           health-url: https://staging.daatan.com
           app-version: ${{ needs.build.outputs.app_version }}
 
+      - name: Get merged PR info
+        id: pr_info
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          DATA=$(gh api "/repos/${{ github.repository }}/commits/${{ github.sha }}/pulls" \
+            -H "Accept: application/vnd.github+json" \
+            --jq 'if length > 0 then .[0] | "#\(.number) \(.title)|\(.html_url)" else "" end' 2>/dev/null || echo "")
+          if [ -n "$DATA" ]; then
+            echo "label=$(echo "$DATA" | cut -d'|' -f1)" >> "$GITHUB_OUTPUT"
+            echo "url=$(echo "$DATA" | cut -d'|' -f2)" >> "$GITHUB_OUTPUT"
+          else
+            SHORT=$(echo "${{ github.sha }}" | cut -c1-7)
+            echo "label=commit $SHORT" >> "$GITHUB_OUTPUT"
+            echo "url=https://github.com/${{ github.repository }}/commit/${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Notify Telegram - Staging Deployment Success
         if: success()
         run: |
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -d text="✅ [staging] Deployment successful%0A%0Av${{ needs.build.outputs.app_version }} · ${{ steps.source_branch.outputs.name }} → main%0ACommit: ${{ github.sha }}%0A%0A<a href=\"https://github.com/${{ github.repository }}/commits/${{ github.sha }}\">View commit</a>" \
-            -d parse_mode="HTML"
+            -d text="✅ [staging] Deployment successful%0A%0Av${{ needs.build.outputs.app_version }} · ${{ steps.pr_info.outputs.label }}%0A%0A<a href=\"${{ steps.pr_info.outputs.url }}\">View changes →</a>" \
+            -d parse_mode="HTML" \
+            -d disable_web_page_preview="true"
 
       - name: Notify Telegram - Staging Deployment Failure
         if: failure()
         run: |
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -d text="❌ [staging] Deployment failed%0A%0Av${{ needs.build.outputs.app_version }} · ${{ steps.source_branch.outputs.name }} → main%0ACommit: ${{ github.sha }}%0A%0A<a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">View logs</a>" \
-            -d parse_mode="HTML"
+            -d text="❌ [staging] Deployment failed%0A%0Av${{ needs.build.outputs.app_version }} · ${{ steps.pr_info.outputs.label }}%0A%0A<a href=\"${{ steps.pr_info.outputs.url }}\">View changes →</a> · <a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">View logs →</a>" \
+            -d parse_mode="HTML" \
+            -d disable_web_page_preview="true"
 
   # Deploy to PRODUCTION (on tag push only)
   deploy-production:
@@ -431,18 +452,39 @@ jobs:
           health-url: https://daatan.com
           app-version: ${{ needs.build.outputs.app_version }}
 
+      - name: Get merged PR info
+        id: pr_info
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          DATA=$(gh api "/repos/${{ github.repository }}/commits/${{ github.sha }}/pulls" \
+            -H "Accept: application/vnd.github+json" \
+            --jq 'if length > 0 then .[0] | "#\(.number) \(.title)|\(.html_url)" else "" end' 2>/dev/null || echo "")
+          if [ -n "$DATA" ]; then
+            echo "label=$(echo "$DATA" | cut -d'|' -f1)" >> "$GITHUB_OUTPUT"
+            echo "url=$(echo "$DATA" | cut -d'|' -f2)" >> "$GITHUB_OUTPUT"
+          else
+            SHORT=$(echo "${{ github.sha }}" | cut -c1-7)
+            echo "label=commit $SHORT" >> "$GITHUB_OUTPUT"
+            echo "url=https://github.com/${{ github.repository }}/commit/${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Notify Telegram - Production Deployment Success
         if: success()
         run: |
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -d text="✅ [prod] Deployment successful%0A%0Av${{ steps.version.outputs.version }} · ${{ github.ref_name }}%0ACommit: ${{ github.sha }}%0A%0A<a href=\"https://github.com/${{ github.repository }}/releases/tag/v${{ steps.version.outputs.version }}\">View release</a>" \
-            -d parse_mode="HTML"
+            -d text="✅ [prod] Deployment successful%0A%0Av${{ steps.version.outputs.version }} · ${{ steps.pr_info.outputs.label }}%0A%0A<a href=\"${{ steps.pr_info.outputs.url }}\">View changes →</a>" \
+            -d parse_mode="HTML" \
+            -d disable_web_page_preview="true"
 
       - name: Notify Telegram - Production Deployment Failure
         if: failure()
         run: |
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -d text="❌ [prod] Deployment failed%0A%0Av${{ steps.version.outputs.version }} · ${{ github.ref_name }}%0ACommit: ${{ github.sha }}%0A%0A<a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">View logs</a>" \
-            -d parse_mode="HTML"
+            -d text="❌ [prod] Deployment failed%0A%0Av${{ steps.version.outputs.version }} · ${{ steps.pr_info.outputs.label }}%0A%0A<a href=\"${{ steps.pr_info.outputs.url }}\">View changes →</a> · <a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">View logs →</a>" \
+            -d parse_mode="HTML" \
+            -d disable_web_page_preview="true"
