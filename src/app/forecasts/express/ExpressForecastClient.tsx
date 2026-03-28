@@ -245,6 +245,7 @@ export default function ExpressForecastClient({
         body: JSON.stringify({
           claimText: finalData.claimText,
           detailsText: finalData.detailsText,
+          resolutionRules: finalData.resolutionRules,
           resolveByDatetime: finalData.resolveByDatetime,
           outcomeType: finalData.outcomeType,
           outcomePayload: finalData.outcomeType === 'MULTIPLE_CHOICE' ? { options: finalData.options } : undefined,
