@@ -14,7 +14,7 @@ import type { Metadata } from 'next'
  * segment priority. English routes are completely unaffected.
  */
 
-const ALLOWED_LOCALES = ['he', 'ru'] as const
+const ALLOWED_LOCALES = ['he', 'ru', 'eo'] as const
 type AllowedLocale = (typeof ALLOWED_LOCALES)[number]
 
 interface Props {
@@ -35,6 +35,7 @@ export async function generateMetadata({
         en: 'https://daatan.com',
         he: 'https://daatan.com/he',
         ru: 'https://daatan.com/ru',
+        eo: 'https://daatan.com/eo',
       },
     },
     openGraph: {
@@ -53,7 +54,9 @@ export default async function LocaleLayout({ children, params }: Props) {
   const messages =
     locale === 'he'
       ? (await import('../../../messages/he.json')).default
-      : (await import('../../../messages/ru.json')).default
+      : locale === 'eo'
+        ? (await import('../../../messages/eo.json')).default
+        : (await import('../../../messages/ru.json')).default
 
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>

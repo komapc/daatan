@@ -4,7 +4,7 @@ import { withAuth } from '@/lib/api-middleware'
 import { prisma } from '@/lib/prisma'
 
 const languageSchema = z.object({
-  language: z.enum(['en', 'he']),
+  language: z.enum(['en', 'he', 'ru', 'eo']),
 })
 
 // PATCH /api/profile/language - Update user's preferred language
