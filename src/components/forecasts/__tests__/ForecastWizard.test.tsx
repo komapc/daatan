@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen, waitFor, act, fireEvent } from '@testing-library/react'
 import { ForecastWizard } from '../ForecastWizard'
 
@@ -8,6 +8,29 @@ vi.mock('next/navigation', () => ({
     push: vi.fn(),
   }),
 }))
+
+// Mock analytics to avoid noise
+vi.mock('@/lib/analytics', () => ({ analytics: { forecastCreated: vi.fn() } }))
+
+/** Render the wizard with step 4 active and controllable formData via sessionStorage. */
+async function renderAtStep4(overrides: Record<string, unknown> = {}) {
+  const tomorrow = new Date()
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  const draft = {
+    formData: {
+      claimText: 'This is a valid claim for testing purposes',
+      tags: [],
+      outcomeType: 'BINARY',
+      resolveByDatetime: tomorrow.toISOString().split('T')[0],
+      resolutionRules: 'Resolved YES if confirmed by two credible sources.',
+      isPublic: true,
+      ...overrides,
+    },
+    currentStep: 4,
+  }
+  sessionStorage.setItem('daatan:forecast-draft', JSON.stringify(draft))
+  await act(async () => { render(<ForecastWizard isExpressFlow={false} />) })
+}
 
 describe('ForecastWizard', () => {
   beforeEach(() => {
@@ -119,6 +142,130 @@ describe('ForecastWizard', () => {
   it('handles corrupt sessionStorage data gracefully', () => {
     sessionStorage.setItem('daatan:forecast-draft', 'not valid json {{{')
     expect(() => render(<ForecastWizard isExpressFlow={false} />)).not.toThrow()
+  })
+
+  // ── Submit guard (stale draft protection) ────────────────────────────────
+
+  describe('submit guard — publish with stale/incomplete draft', () => {
+    beforeEach(() => {
+      vi.stubGlobal('fetch', vi.fn())
+    })
+
+    afterEach(() => {
+      vi.restoreAllMocks()
+    })
+
+    it('navigates to step 2 and shows error when claimText is too short', async () => {
+      await renderAtStep4({ claimText: 'short' })
+      const publishBtn = screen.getAllByRole('button', { name: /publish/i }).at(-1)!
+      await act(async () => { fireEvent.click(publishBtn) })
+      await waitFor(() => {
+        expect(screen.getByText(/prediction claim must be at least 10 characters/i)).toBeInTheDocument()
+        // Step 2 heading should be visible
+        expect(screen.getByRole('heading', { name: /write your forecast/i })).toBeInTheDocument()
+      })
+      // fetch should NOT have been called
+      expect(vi.mocked(fetch)).not.toHaveBeenCalled()
+    })
+
+    it('navigates to step 3 and shows error when resolutionRules is missing', async () => {
+      await renderAtStep4({ resolutionRules: undefined })
+      const publishBtn = screen.getAllByRole('button', { name: /publish/i }).at(-1)!
+      await act(async () => { fireEvent.click(publishBtn) })
+      await waitFor(() => {
+        expect(screen.getByText(/resolution rules are required/i)).toBeInTheDocument()
+      })
+      expect(vi.mocked(fetch)).not.toHaveBeenCalled()
+    })
+
+    it('navigates to step 3 and shows error when resolutionRules is too short', async () => {
+      await renderAtStep4({ resolutionRules: 'short' })
+      const publishBtn = screen.getAllByRole('button', { name: /publish/i }).at(-1)!
+      await act(async () => { fireEvent.click(publishBtn) })
+      await waitFor(() => {
+        expect(screen.getByText(/resolution rules are required/i)).toBeInTheDocument()
+      })
+      expect(vi.mocked(fetch)).not.toHaveBeenCalled()
+    })
+
+    it('navigates to step 3 and shows error when resolveByDatetime is in the past', async () => {
+      await renderAtStep4({ resolveByDatetime: '2020-01-01' })
+      const publishBtn = screen.getAllByRole('button', { name: /publish/i }).at(-1)!
+      await act(async () => { fireEvent.click(publishBtn) })
+      await waitFor(() => {
+        // Error banner (bg-red-900) and StepOutcome inline validation may both show this text
+        const matches = screen.getAllByText(/resolution date must be in the future/i)
+        expect(matches.length).toBeGreaterThan(0)
+      })
+      expect(vi.mocked(fetch)).not.toHaveBeenCalled()
+    })
+
+    it('navigates to step 3 and shows error when resolveByDatetime is missing', async () => {
+      await renderAtStep4({ resolveByDatetime: '' })
+      const publishBtn = screen.getAllByRole('button', { name: /publish/i }).at(-1)!
+      await act(async () => { fireEvent.click(publishBtn) })
+      await waitFor(() => {
+        expect(screen.getByText(/resolution date must be in the future/i)).toBeInTheDocument()
+      })
+      expect(vi.mocked(fetch)).not.toHaveBeenCalled()
+    })
+
+    it('calls fetch when all required fields are valid', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ id: 'pred-1', slug: 'test-slug' }),
+      } as Response)
+      // Second call for /publish
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({}),
+      } as Response)
+
+      await renderAtStep4()
+      const publishBtn = screen.getAllByRole('button', { name: /publish/i }).at(-1)!
+      await act(async () => { fireEvent.click(publishBtn) })
+
+      await waitFor(() => {
+        expect(vi.mocked(fetch)).toHaveBeenCalled()
+        const body = JSON.parse((vi.mocked(fetch).mock.calls[0][1] as RequestInit).body as string)
+        expect(body.resolutionRules).toBeDefined()
+        expect(body.claimText).toBeDefined()
+      })
+    })
+
+    it('navigates to correct step when server returns field validation details', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({
+          error: 'Validation failed: resolutionRules (Resolution rules must be at least 10 characters)',
+          details: [{ path: ['resolutionRules'], message: 'Resolution rules must be at least 10 characters' }],
+        }),
+      } as Response)
+
+      await renderAtStep4()
+      const publishBtn = screen.getAllByRole('button', { name: /publish/i }).at(-1)!
+      await act(async () => { fireEvent.click(publishBtn) })
+
+      await waitFor(() => {
+        expect(screen.getByText(/validation failed/i)).toBeInTheDocument()
+      })
+    })
+
+    it('skips publish guard when saving as draft', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ id: 'pred-1', slug: 'draft-slug' }),
+      } as Response)
+
+      await renderAtStep4({ resolutionRules: undefined, claimText: 'ok' })
+      const draftBtn = screen.getByRole('button', { name: /save draft/i })
+      await act(async () => { fireEvent.click(draftBtn) })
+
+      // fetch should be called even with missing fields (draft allows partial saves)
+      await waitFor(() => {
+        expect(vi.mocked(fetch)).toHaveBeenCalled()
+      })
+    })
   })
 
   it('converts ISO datetime to YYYY-MM-DD for the date input in express flow', async () => {
