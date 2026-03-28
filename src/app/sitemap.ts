@@ -58,7 +58,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // 2b. Locale forecast variants — only for predictions with cached translations
   const translatedPredictionIds = await prisma.predictionTranslation.findMany({
-    where: { language: { in: ['he', 'ru'] } },
+    where: { language: { in: ['he', 'ru', 'eo'] } },
     select: { predictionId: true, language: true },
     distinct: ['predictionId', 'language'],
   })
@@ -70,7 +70,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const localeForecastRoutes = predictions.flatMap((p) => {
     const slug = p.slug || p.id
     const isResolved = resolvedStatuses.includes(p.status)
-    return (['he', 'ru'] as const).flatMap((locale) => {
+    return (['he', 'ru', 'eo'] as const).flatMap((locale) => {
       if (!translatedSet.has(`${p.id}:${locale}`)) return []
       return [
         {
@@ -84,7 +84,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   })
 
   // 2c. Static locale routes
-  const localeStaticRoutes = (['he', 'ru'] as const).flatMap((locale) => [
+  const localeStaticRoutes = (['he', 'ru', 'eo'] as const).flatMap((locale) => [
     {
       url: `${baseUrl}/${locale}`,
       lastModified: new Date(),

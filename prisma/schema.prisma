@@ -506,6 +506,7 @@ model PredictionTranslation {
   createdAt      DateTime   @default(now())
 
   @@unique([predictionId, fieldName, language])
+  @@index([language])
   @@map("prediction_translations")
 }
 
@@ -518,6 +519,7 @@ model CommentTranslation {
   createdAt      DateTime @default(now())
 
   @@unique([commentId, language])
+  @@index([language])
   @@map("comment_translations")
 }
 

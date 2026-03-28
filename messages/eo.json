@@ -21,7 +21,7 @@
     "notifications": "Sciigoj",
     "commitments": "Miaj Engaĝoj",
     "activity": "Agado",
-    "leaderboard": "Gvidant-Tabelo",
+    "leaderboard": "Rangolisto",
     "profile": "Profilo",
     "settings": "Agordoj",
     "about": "Pri",
@@ -43,7 +43,7 @@
     "sort": {
       "newest": "Plej Nova",
       "byDeadline": "Laŭ Limdato",
-      "mostStaked": "Plej Pariita"
+      "mostStaked": "Plej Stakita"
     },
     "openForecasts": "Malfermitaj Prognozoj",
     "closingSoon": "Baldaŭ Fermiĝos",
@@ -157,14 +157,14 @@
     "viewPrediction": "Vidi prognozon"
   },
   "leaderboard": {
-    "title": "Gvidant-Tabelo",
+    "title": "Rangolisto",
     "subtitle": "Plej bonaj prognozantoj ordigitaj laŭ rendimento. Pruvu vian precizecon kaj grimpu la rangojn.",
     "rank": "Rango",
     "predictor": "Prognozanto",
     "correct": "Ĝusta",
     "resolvedLabel": "solvita",
     "noUsers": "Ankoraŭ neniu prognozanto trovita.",
-    "noUsersDesc": "Faru kelkajn engaĝojn por aperi en la tabelo",
+    "noUsersDesc": "Faru kelkajn engaĝojn por aperi en la rangolisto",
     "browseForecasts": "Trafoliumu Prognozojn",
     "calculating": "Kalkulante rangojn...",
     "sortBy": {
