@@ -158,6 +158,25 @@ export const ForecastWizard = ({ isExpressFlow = false, initialClaim = '' }: For
   }
 
   const handleSubmit = async (asDraft: boolean = false) => {
+    // Guard against stale drafts: validate required fields before API call
+    if (!asDraft) {
+      if (!formData.claimText || formData.claimText.length < 10) {
+        setCurrentStep(2)
+        setError('Prediction claim must be at least 10 characters.')
+        return
+      }
+      if (!formData.resolutionRules || formData.resolutionRules.trim().length < 10) {
+        setCurrentStep(3)
+        setError('Resolution rules are required (minimum 10 characters).')
+        return
+      }
+      if (!formData.resolveByDatetime || new Date(formData.resolveByDatetime + 'T23:59:59.999Z') <= new Date()) {
+        setCurrentStep(3)
+        setError('Resolution date must be in the future.')
+        return
+      }
+    }
+
     setIsSubmitting(true)
     setError(null)
 
