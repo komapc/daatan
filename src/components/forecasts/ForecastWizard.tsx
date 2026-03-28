@@ -214,6 +214,16 @@ export const ForecastWizard = ({ isExpressFlow = false, initialClaim = '' }: For
 
       if (!response.ok) {
         const data = await response.json()
+        // If the server returns field-level validation details, navigate to the right step
+        if (data.details?.length) {
+          const fieldToStep: Record<string, number> = {
+            claimText: 2, detailsText: 2, tags: 2,
+            resolutionRules: 3, resolveByDatetime: 3, outcomeType: 3, outcomePayload: 3,
+          }
+          const firstField = String(data.details[0]?.path?.[0] ?? '')
+          const targetStep = fieldToStep[firstField]
+          if (targetStep) setCurrentStep(targetStep)
+        }
         throw new Error(data.error || 'Failed to create prediction')
       }
 
