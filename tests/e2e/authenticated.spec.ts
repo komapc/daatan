@@ -10,8 +10,9 @@ test.describe('authenticated flows', () => {
 
   test('user can navigate to create forecast', async ({ page }) => {
     await page.goto('/create');
-    await expect(page.getByRole('heading', { name: /create forecast/i })).toBeVisible();
-    await expect(page.getByPlaceholder(/what is the prediction/i)).toBeVisible();
+    // Wizard starts at Step 1 (News Anchor); claim input is on Step 2
+    await expect(page.getByRole('heading', { name: /news anchor/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /next/i })).toBeEnabled();
   });
 
   test('user can see notifications', async ({ page }) => {
