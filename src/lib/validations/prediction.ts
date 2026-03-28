@@ -48,8 +48,8 @@ export const createPredictionSchema = z.object({
   outcomeType: z.enum(['BINARY', 'MULTIPLE_CHOICE', 'NUMERIC_THRESHOLD']),
   outcomePayload: z.record(z.string(), z.unknown()).optional(),
 
-  // Resolution
-  resolutionRules: z.string().min(10, 'Resolution rules must be at least 10 characters').max(2000),
+  // Resolution (resolutionRules optional for drafts — enforced at publish time)
+  resolutionRules: z.string().min(10, 'Resolution rules must be at least 10 characters').max(2000).optional(),
   resolveByDatetime: z.string().datetime(),
 
   // Tags (0-5 tags from STANDARD_TAGS)
