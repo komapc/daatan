@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import type { Session } from 'next-auth'
 import { auth } from '@/auth'
 import { apiError, handleRouteError } from '@/lib/api-error'
 import { createLogger } from '@/lib/logger'
@@ -40,7 +41,7 @@ export function withAuth(
   options?: WithAuthOptions,
 ) {
   return async (request: NextRequest, rawContext: RawRouteContext) => {
-    let session: any = null
+    let session: Session | null = null
     try {
       session = await auth()
 
