@@ -42,7 +42,8 @@ export const StepOutcome = ({ formData, updateFormData }: Props) => {
   const [options, setOptions] = useState<string[]>(formData.outcomeOptions || ['', ''])
   
   const minDate = new Date().toISOString().split('T')[0]
-  const isDateInPast = formData.resolveByDatetime && new Date(formData.resolveByDatetime) <= new Date()
+  // Use end-of-day to match how the wizard interprets the selected date
+  const isDateInPast = formData.resolveByDatetime && new Date(formData.resolveByDatetime + 'T23:59:59.999Z') <= new Date()
 
   // Sync options with form data
   useEffect(() => {

@@ -177,16 +177,17 @@ export const ForecastWizard = ({ isExpressFlow = false, initialClaim = '' }: For
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          newsAnchorId: formData.newsAnchorId,
-          newsAnchorUrl: formData.newsAnchorUrl,
-          newsAnchorTitle: formData.newsAnchorTitle,
+          newsAnchorId: formData.newsAnchorId || undefined,
+          newsAnchorUrl: formData.newsAnchorUrl || undefined,
+          newsAnchorTitle: formData.newsAnchorTitle || undefined,
           claimText: formData.claimText,
           detailsText: formData.detailsText,
           tags: formData.tags,
           outcomeType: formData.outcomeType,
           outcomePayload,
           resolutionRules: formData.resolutionRules,
-          resolveByDatetime: new Date(formData.resolveByDatetime).toISOString(),
+          // Interpret selected date as end-of-day UTC so picking "today" remains valid
+          resolveByDatetime: new Date(formData.resolveByDatetime + 'T23:59:59.999Z').toISOString(),
           isPublic: formData.isPublic,
           source: (!formData.newsAnchorId && !formData.newsAnchorUrl) ? 'manual' : undefined,
         }),
@@ -247,8 +248,14 @@ export const ForecastWizard = ({ isExpressFlow = false, initialClaim = '' }: For
         return true // News anchor is optional
       case 2:
         return formData.claimText.length >= 10
-      case 3:
-        return !!(formData.resolveByDatetime && new Date(formData.resolveByDatetime) > new Date() && formData.resolutionRules && formData.resolutionRules.trim().length >= 10)
+      case 3: {
+        // Interpret the selected date as end-of-day UTC so "today" stays valid
+        const dateOk = !!(formData.resolveByDatetime && new Date(formData.resolveByDatetime + 'T23:59:59.999Z') > new Date())
+        const rulesOk = !!(formData.resolutionRules && formData.resolutionRules.trim().length >= 10)
+        const optionsOk = formData.outcomeType !== 'MULTIPLE_CHOICE' ||
+          (formData.outcomeOptions ?? []).filter(o => o.trim()).length >= 2
+        return dateOk && rulesOk && optionsOk
+      }
       case 4:
         return true
       default:
