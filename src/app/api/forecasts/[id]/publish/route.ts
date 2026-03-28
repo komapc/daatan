@@ -35,6 +35,10 @@ export const POST = withAuth(async (_request, user, { params }) => {
       return apiError('Claim text must be at least 10 characters', 400)
     }
 
+    if (!prediction.resolutionRules || prediction.resolutionRules.length < 10) {
+      return apiError('Resolution rules are required to publish (minimum 10 characters)', 400)
+    }
+
     if (prediction.resolveByDatetime <= new Date()) {
       return apiError('Resolution date must be in the future', 400)
     }
