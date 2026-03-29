@@ -38,6 +38,7 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
   const initialStatus = searchParams.get('status') as FilterStatus | null
   const initialTags = searchParams.get('tags')?.split(',').filter(Boolean) || []
   const initialSort = (searchParams.get('sortBy') as SortBy | null) || 'newest'
+  const initialSortOrder = (searchParams.get('sortOrder') as 'asc' | 'desc' | null) || (initialSort === 'deadline' ? 'asc' : 'desc')
 
   const [predictions, setPredictions] = useState<Prediction[]>(initialPredictions ?? [])
   const [isLoading, setIsLoading] = useState(!initialPredictions?.length)
@@ -47,7 +48,8 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
     !!(initialPredictions?.length) &&
     (!initialStatus || initialStatus === 'ACTIVE') &&
     initialTags.length === 0 &&
-    initialSort === 'newest'
+    initialSort === 'newest' &&
+    initialSortOrder === 'desc'
   )
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [filter, setFilter] = useState<FilterStatus>(
@@ -55,26 +57,41 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
   )
   const [selectedTags, setSelectedTags] = useState<string[]>(initialTags)
   const [sortBy, setSortBy] = useState<SortBy>(initialSort)
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(initialSortOrder)
   const [tagsVisible, setTagsVisible] = useState(selectedTags.length > 0)
 
   // Sync state to URL search params
-  const syncToUrl = useCallback((status: FilterStatus, tags: string[], sort: SortBy) => {
+  const syncToUrl = useCallback((status: FilterStatus, tags: string[], sort: SortBy, order: 'asc' | 'desc') => {
     const params = new URLSearchParams()
     if (status !== 'ACTIVE') params.set('status', status)
     if (tags.length > 0) params.set('tags', tags.join(','))
     if (sort !== 'newest') params.set('sortBy', sort)
+    
+    // Only set sortOrder if it differs from the default for that sort type
+    const defaultOrder = sort === 'deadline' ? 'asc' : 'desc'
+    if (order !== defaultOrder) params.set('sortOrder', order)
+    
     const qs = params.toString()
     router.replace(qs ? `?${qs}` : '/', { scroll: false })
   }, [router])
 
   const handleSetFilter = (newFilter: FilterStatus) => {
     setFilter(newFilter)
-    syncToUrl(newFilter, selectedTags, sortBy)
+    syncToUrl(newFilter, selectedTags, sortBy, sortOrder)
   }
 
   const handleSetSort = (newSort: SortBy) => {
+    // When switching sort type, set a sensible default order
+    const newOrder = newSort === 'deadline' ? 'asc' : 'desc'
     setSortBy(newSort)
-    syncToUrl(filter, selectedTags, newSort)
+    setSortOrder(newOrder)
+    syncToUrl(filter, selectedTags, newSort, newOrder)
+  }
+
+  const handleToggleSortOrder = () => {
+    const newOrder = sortOrder === 'asc' ? 'desc' : 'asc'
+    setSortOrder(newOrder)
+    syncToUrl(filter, selectedTags, sortBy, newOrder)
   }
 
   const handleToggleTag = (tag: string) => {
@@ -82,12 +99,12 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
       ? selectedTags.filter(t => t !== tag)
       : [...selectedTags, tag]
     setSelectedTags(newTags)
-    syncToUrl(filter, newTags, sortBy)
+    syncToUrl(filter, newTags, sortBy, sortOrder)
   }
 
   const handleClearTags = () => {
     setSelectedTags([])
-    syncToUrl(filter, [], sortBy)
+    syncToUrl(filter, [], sortBy, sortOrder)
   }
 
   useEffect(() => {
@@ -121,8 +138,9 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
         }
 
         // Don't send sortBy for CLOSING_SOON — that filter has its own implicit ordering
-        if (filter !== 'CLOSING_SOON' && sortBy !== 'newest') {
-          url += `&sortBy=${sortBy}`
+        if (filter !== 'CLOSING_SOON') {
+          if (sortBy !== 'newest') url += `&sortBy=${sortBy}`
+          url += `&sortOrder=${sortOrder}`
         }
 
         const response = await fetch(url, {
@@ -151,7 +169,7 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
     }
 
     fetchFeed()
-  }, [filter, selectedTags, sortBy])
+  }, [filter, selectedTags, sortBy, sortOrder])
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -240,7 +258,16 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
             {filter !== 'CLOSING_SOON' && (
               <>
                 <div className="w-px h-5 bg-navy-600 mx-1 flex-shrink-0" />
-                <ArrowDownUp className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                <button
+                  onClick={handleToggleSortOrder}
+                  className="p-1.5 rounded-lg bg-navy-700 hover:bg-navy-600 text-gray-400 hover:text-white transition-all group relative"
+                  title={sortOrder === 'asc' ? 'Ascending' : 'Descending'}
+                >
+                  <ArrowDownUp className={`w-4 h-4 transition-transform duration-300 ${sortOrder === 'asc' ? 'rotate-180' : ''}`} />
+                  <span className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-gray-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                    {sortOrder === 'asc' ? 'Ascending' : 'Descending'}
+                  </span>
+                </button>
                 {([
                   { value: 'newest', label: t('sort.newest') },
                   { value: 'deadline', label: t('sort.byDeadline') },
@@ -336,8 +363,8 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
           variant="card"
           icon={<TrendingUp className="w-10 h-10 text-blue-500" />}
           iconBgClass="bg-cobalt/10"
-          title={t('empty')}
-          description={t('emptyDesc')}
+          title={t(`empty_${filter}` as any)}
+          description={t(`emptyDesc_${filter}` as any)}
           action={{ label: t('createFirst'), href: '/create', icon: <Plus className="w-4 h-4" /> }}
         />
       ) : (

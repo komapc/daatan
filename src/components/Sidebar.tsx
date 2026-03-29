@@ -194,7 +194,7 @@ const Sidebar = () => {
               <h1 className="text-xl font-bold text-white">DAATAN</h1>
               <span className="text-xs text-text-subtle font-mono">v{VERSION}</span>
             </div>
-            <p className="text-sm text-text-secondary">Prediction Market</p>
+            <p className="text-sm text-text-secondary">Forecast Tracking</p>
           </div>
         </Link>
 

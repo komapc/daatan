@@ -18,9 +18,9 @@ export default function TermsPage() {
       </section>
 
       <section>
-        <h2 className="text-xl font-semibold text-white mb-3">2. Prediction Market Nature</h2>
+        <h2 className="text-xl font-semibold text-white mb-3">2. Forecast Tracking Nature</h2>
         <p>
-          DAATAN is a prediction market platform for informational and entertainment purposes. Confidence Units (CU) and Reputation Score (RS) have <strong>no monetary value</strong>. They cannot be bought, sold, or redeemed for cash or physical goods.
+          DAATAN is a forecast tracking platform for informational and entertainment purposes. Confidence Units (CU) and Reputation Score (RS) have <strong>no monetary value</strong>. They cannot be bought, sold, or redeemed for cash or physical goods.
         </p>
       </section>
 
