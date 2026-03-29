@@ -278,12 +278,12 @@ export default function CommitmentForm({
       </div>
 
       {pendingOutcome !== null && penaltyInfo && (
-        <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-lg shadow-sm">
-          <h4 className="text-sm font-semibold text-orange-800 mb-2">{t('penaltyTitle')}</h4>
-          <p className="text-sm text-orange-700 mb-3">
+        <div className="mt-4 p-4 bg-orange-900/20 border border-orange-500/40 rounded-lg shadow-sm">
+          <h4 className="text-sm font-semibold text-orange-300 mb-2">{t('penaltyTitle')}</h4>
+          <p className="text-sm text-orange-200/80 mb-3">
             {t('penaltyDesc')}
           </p>
-          <ul className="text-sm text-orange-800 space-y-1 mb-4">
+          <ul className="text-sm text-orange-200 space-y-1 mb-4">
             <li>{t('originalCommitment')} <strong>{existingCommitment?.cuCommitted} CU</strong></li>
             <li>{t('burnRate')} <strong>{penaltyInfo.burnRate}%</strong></li>
             <li>{t('amountBurned')} <strong>{penaltyInfo.cuBurned} CU</strong></li>
@@ -291,19 +291,26 @@ export default function CommitmentForm({
           </ul>
           <div className="flex gap-3">
             <button
-              onClick={() => submitOutcome(pendingOutcome)}
+              type="button"
+              onClick={() => {
+                const outcome = pendingOutcome
+                setPendingOutcome(null)
+                setPenaltyInfo(null)
+                submitOutcome(outcome)
+              }}
               disabled={isSubmitting}
               className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-medium py-2 rounded-lg transition-colors disabled:opacity-50"
             >
               {isSubmitting ? t('confirming') : t('acceptPenalty')}
             </button>
             <button
+              type="button"
               onClick={() => {
                 setPendingOutcome(null)
                 setPenaltyInfo(null)
               }}
               disabled={isSubmitting}
-              className="flex-1 bg-navy-700 border border-gray-300 text-text-secondary hover:bg-navy-800 font-medium py-2 rounded-lg transition-colors disabled:opacity-50"
+              className="flex-1 bg-navy-700 border border-navy-500 text-text-secondary hover:bg-navy-800 font-medium py-2 rounded-lg transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
