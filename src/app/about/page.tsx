@@ -5,7 +5,7 @@ import Link from 'next/link'
 
 export const metadata: Metadata = {
   title: 'About',
-  description: 'Learn how DAATAN works — a prediction market where you commit Confidence Units to prove your forecasts.',
+  description: 'Learn how DAATAN works — a forecast tracking platform where you commit Confidence Units to prove your forecasts.',
   alternates: { canonical: '/about' },
   openGraph: { url: '/about', type: 'website' },
 }
@@ -26,7 +26,7 @@ export default function AboutPage() {
           Prove you were right — without shouting into the void.
         </p>
         <p className="text-sm text-text-secondary">
-          DAATAN is a prediction market platform where you can make forecasts, track your accuracy, and build your credibility over time.
+          DAATAN is a forecast tracking platform where you can make forecasts, track your accuracy, and build your credibility over time.
         </p>
       </div>
 

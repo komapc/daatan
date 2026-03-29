@@ -2,10 +2,10 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Forecasts | Daatan',
-  description: 'Browse prediction markets and forecasts. Make your predictions and track outcomes.',
+  description: 'Browse forecast tracking and forecasts. Make your predictions and track outcomes.',
   openGraph: {
     title: 'Forecasts | Daatan',
-    description: 'Browse prediction markets and forecasts.',
+    description: 'Browse forecast tracking and forecasts.',
   },
 }
 

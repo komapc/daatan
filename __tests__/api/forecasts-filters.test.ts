@@ -124,7 +124,7 @@ describe('GET /api/forecasts - Status Filters', () => {
   })
 
   it('orders Closing Soon by resolveByDatetime ascending', async () => {
-    const request = new NextRequest('http://localhost/api/forecasts?status=ACTIVE&closingSoon=true')
+    const request = new NextRequest('http://localhost/api/forecasts?status=ACTIVE&closingSoon=true&sortOrder=asc')
     await GET(request)
 
     expect(mockFindMany).toHaveBeenCalledWith(

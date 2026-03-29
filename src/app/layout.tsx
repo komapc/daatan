@@ -24,7 +24,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     metadataBase: new URL(baseUrl),
     title: {
-      default: 'DAATAN - Prediction Market',
+      default: 'DAATAN - Forecast Tracking',
       template: '%s | DAATAN',
     },
     description: 'Prove you were right — without shouting into the void.',
@@ -45,14 +45,14 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: {
       type: 'website',
       siteName: 'DAATAN',
-      title: 'DAATAN - Prediction Market',
+      title: 'DAATAN - Forecast Tracking',
       description: 'Prove you were right — without shouting into the void.',
       url: 'https://daatan.com',
       images: [{ url: '/logo-icon.png', width: 512, height: 512, alt: 'DAATAN' }],
     },
     twitter: {
       card: 'summary',
-      title: 'DAATAN - Prediction Market',
+      title: 'DAATAN - Forecast Tracking',
       description: 'Prove you were right — without shouting into the void.',
     },
     alternates: {

@@ -37,6 +37,7 @@ export async function GET(request: NextRequest) {
       page: searchParams.get('page') || 1,
       limit: searchParams.get('limit') || 20,
       sortBy: searchParams.get('sortBy') || 'newest',
+      sortOrder: searchParams.get('sortOrder') || 'desc',
     }
     const result = listPredictionsQuerySchema.safeParse(queryData)
     if (!result.success) {
@@ -106,8 +107,8 @@ export async function GET(request: NextRequest) {
     // For CU sort: fetch a larger pool without skip/take, sort in memory after enrichment
     const isCuSort = query.sortBy === 'cu'
     const dbOrderBy = closingSoon || query.sortBy === 'deadline'
-      ? { resolveByDatetime: 'asc' as const }
-      : { createdAt: 'desc' as const }
+      ? { resolveByDatetime: query.sortOrder as 'asc' | 'desc' }
+      : { createdAt: query.sortOrder as 'asc' | 'desc' }
 
     const [predictions, total] = await Promise.all([
       prisma.prediction.findMany({
@@ -198,7 +199,9 @@ export async function GET(request: NextRequest) {
     // For CU sort: sort in memory then slice to the requested page window
     const finalPredictions = isCuSort
       ? enrichedPredictions
-          .sort((a, b) => b.totalCuCommitted - a.totalCuCommitted)
+          .sort((a, b) => query.sortOrder === 'asc' 
+            ? a.totalCuCommitted - b.totalCuCommitted 
+            : b.totalCuCommitted - a.totalCuCommitted)
           .slice((query.page - 1) * query.limit, query.page * query.limit)
       : enrichedPredictions
 
