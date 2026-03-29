@@ -30,6 +30,7 @@ export default function robots(): MetadataRoute.Robots {
         '/create/',
         '/forecasts/new/',
         '/forecasts/express/',
+        '/forecasts/*/edit/',
         '/retroanalysis/',
       ],
     },
