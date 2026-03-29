@@ -11,7 +11,7 @@
  * Required env vars:
  *   TELEGRAM_BOT_TOKEN          — Bot token from BotFather
  *   TELEGRAM_ROLLBACK_CHAT_IDS  — Comma-separated allowed chat IDs (e.g. "123456,789012")
- *   GITHUB_ROLLBACK_TOKEN       — PAT with actions:write on this repo
+ *   GH_ROLLBACK_TOKEN           — PAT with actions:write on this repo
  *   GITHUB_REPOSITORY           — e.g. "komapc/daatan"
  *   AWS_REGION                  — e.g. "eu-central-1"
  */
@@ -20,7 +20,7 @@ import { NextResponse } from 'next/server'
 
 const TELEGRAM_API = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`
 const GITHUB_REPO = process.env.GITHUB_REPOSITORY ?? 'komapc/daatan'
-const GITHUB_TOKEN = process.env.GITHUB_ROLLBACK_TOKEN ?? ''
+const GITHUB_TOKEN = process.env.GH_ROLLBACK_TOKEN ?? ''
 const ALLOWED_CHAT_IDS = (process.env.TELEGRAM_ROLLBACK_CHAT_IDS ?? '')
   .split(',')
   .map((id) => id.trim())
