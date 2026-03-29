@@ -29,7 +29,7 @@ interface GeneratedPrediction {
     title: string
     snippet: string
     source?: string
-  }
+  } | null
   additionalLinks: Array<{
     url: string
     title: string
@@ -58,6 +58,7 @@ export default function ExpressForecastClient({
   const [sourcesSummary, setSourcesSummary] = useState('')
   const [predictionPreview, setPredictionPreview] = useState<{ claim: string; resolveBy: string } | null>(null)
 
+  const [skipSources, setSkipSources] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [isPublishing, setIsPublishing] = useState(false)
   const [isGuessing, setIsGuessing] = useState(false)
@@ -82,8 +83,8 @@ export default function ExpressForecastClient({
     const isUrl = /^(https?:\/\/[^\s]+)$/i.test(userInput.trim())
 
     setError('')
-    setStep('searching')
-    setProgressMessage(isUrl ? 'Fetching article content...' : 'Searching for relevant articles...')
+    setStep(skipSources ? 'analyzing' : 'searching')
+    setProgressMessage(skipSources ? 'Analyzing your input...' : isUrl ? 'Fetching article content...' : 'Searching for relevant articles...')
     setArticlesFound(0)
     setSourcesSummary('')
     setPredictionPreview(null)
@@ -92,7 +93,7 @@ export default function ExpressForecastClient({
       const response = await fetch('/api/forecasts/express/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userInput }),
+        body: JSON.stringify({ userInput, skipSources }),
       })
 
       if (!response.ok) {
@@ -195,7 +196,7 @@ export default function ExpressForecastClient({
 
     try {
       const articles = [
-        { title: generated.newsAnchor.title, source: generated.newsAnchor.source || 'News', snippet: generated.newsAnchor.snippet },
+        ...(generated.newsAnchor ? [{ title: generated.newsAnchor.title, source: generated.newsAnchor.source || 'News', snippet: generated.newsAnchor.snippet }] : []),
         ...generated.additionalLinks.map(l => ({ title: l.title, source: 'Related', snippet: '' }))
       ]
 
@@ -250,8 +251,9 @@ export default function ExpressForecastClient({
           outcomeType: finalData.outcomeType,
           outcomePayload: finalData.outcomeType === 'MULTIPLE_CHOICE' ? { options: finalData.options } : undefined,
           tags: finalData.tags,
-          newsAnchorUrl: finalData.newsAnchor.url,
-          newsAnchorTitle: finalData.newsAnchor.title,
+          newsAnchorUrl: finalData.newsAnchor?.url || undefined,
+          newsAnchorTitle: finalData.newsAnchor?.title || undefined,
+          source: finalData.newsAnchor ? undefined : 'manual',
           isPublic,
         }),
       })
@@ -353,6 +355,19 @@ export default function ExpressForecastClient({
             )}
           </div>
 
+          <label className="flex items-center gap-3 mt-4 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={skipSources}
+              onChange={(e) => setSkipSources(e.target.checked)}
+              className="w-4 h-4 rounded border-navy-500 bg-navy-800 accent-cobalt"
+            />
+            <span className="text-sm text-text-secondary">
+              Create without a news source
+              <span className="block text-xs text-gray-500 font-normal">AI generates from your input only — no web search</span>
+            </span>
+          </label>
+
           {error && (
             <div className="mt-4 bg-red-900/20 border border-red-800/50 text-red-400 px-4 py-3 rounded-xl text-sm flex items-start gap-2">
               <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
@@ -397,6 +412,7 @@ export default function ExpressForecastClient({
             </div>
 
             <div className="space-y-4">
+              {!skipSources && (
               <div className={`flex items-center gap-3 ${step === 'searching' ? 'text-blue-600' : step === 'input' ? 'text-gray-400' : 'text-green-600'}`}>
                 <Search className="w-5 h-5" />
                 <div className="flex-1">
@@ -409,6 +425,7 @@ export default function ExpressForecastClient({
                 </div>
                 {step !== 'searching' && step !== 'input' && <span className="ml-auto text-green-600">✓</span>}
               </div>
+              )}
 
               <div className={`flex items-center gap-3 ${step === 'analyzing' ? 'text-blue-600' : ['input', 'searching'].includes(step) ? 'text-gray-400' : 'text-green-600'}`}>
                 <FileText className="w-5 h-5" />
@@ -717,20 +734,30 @@ export default function ExpressForecastClient({
             )}
 
             {/* News Anchor */}
-            <div>
-              <h3 className="text-sm font-bold text-text-secondary mb-2">News Anchor</h3>
-              <a
-                href={generated.newsAnchor.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block p-4 border border-navy-600 rounded-xl hover:border-blue-300 hover:bg-cobalt/10 transition-colors"
-              >
-                <p className="font-medium text-white mb-1">{generated.newsAnchor.title}</p>
-                {generated.newsAnchor.source && (
-                  <p className="text-sm text-gray-500">{generated.newsAnchor.source}</p>
-                )}
-              </a>
-            </div>
+            {generated.newsAnchor ? (
+              <div>
+                <h3 className="text-sm font-bold text-text-secondary mb-2">News Anchor</h3>
+                <a
+                  href={generated.newsAnchor.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block p-4 border border-navy-600 rounded-xl hover:border-blue-300 hover:bg-cobalt/10 transition-colors"
+                >
+                  <p className="font-medium text-white mb-1">{generated.newsAnchor.title}</p>
+                  {generated.newsAnchor.source && (
+                    <p className="text-sm text-gray-500">{generated.newsAnchor.source}</p>
+                  )}
+                </a>
+              </div>
+            ) : (
+              <div>
+                <h3 className="text-sm font-bold text-text-secondary mb-2">Source</h3>
+                <div className="p-4 border border-purple-500/30 bg-purple-500/10 rounded-xl">
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-purple-400 px-2 py-0.5 bg-purple-500/20 rounded-full mb-1">Personal</span>
+                  <p className="text-sm text-gray-400">Generated from your input — no news source attached.</p>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="pt-6 border-t border-navy-600 space-y-3">
