@@ -77,7 +77,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         { slug: idOrSlug }
       ]
     },
-    select: { id: true, claimText: true, detailsText: true, slug: true },
+    select: { id: true, claimText: true, detailsText: true, slug: true, isPublic: true, status: true },
   })
 
   if (!prediction) {
@@ -87,6 +87,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   const slug = prediction.slug || prediction.id
+  const noIndexStatuses = ['DRAFT', 'PENDING_APPROVAL', 'VOID', 'UNRESOLVABLE']
+  const shouldNoIndex = !prediction.isPublic || noIndexStatuses.includes(prediction.status)
+
+  if (shouldNoIndex) {
+    return {
+      title: prediction.claimText,
+      robots: { index: false, follow: false },
+    }
+  }
 
   return {
     title: prediction.claimText,
@@ -98,6 +107,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         'en': `https://daatan.com/forecasts/${slug}`,
         'he': `https://daatan.com/he/forecasts/${slug}`,
         'ru': `https://daatan.com/ru/forecasts/${slug}`,
+        'eo': `https://daatan.com/eo/forecasts/${slug}`,
       },
     },
     openGraph: {
