@@ -5,19 +5,20 @@ import { withAuth } from '@/lib/api-middleware'
 
 const generateSchema = z.object({
   userInput: z.string().min(5).max(1000),
+  skipSources: z.boolean().optional().default(false),
 })
 
 export const POST = withAuth(async (request) => {
   const body = await request.json()
-  const { userInput } = generateSchema.parse(body)
+  const { userInput, skipSources } = generateSchema.parse(body)
 
   // Check if GEMINI_API_KEY is configured
   if (!process.env.GEMINI_API_KEY) {
     return apiError('Service not configured. Please contact administrator.', 503)
   }
 
-  // Check if Serper API is configured
-  if (!process.env.SERPER_API_KEY) {
+  // Check if Serper API is configured (not needed when skipping sources)
+  if (!skipSources && !process.env.SERPER_API_KEY) {
     return apiError('Search service not configured. Please contact administrator.', 503)
   }
 
@@ -33,7 +34,7 @@ export const POST = withAuth(async (request) => {
         }
 
         // Generate prediction with progress updates
-        const result = await generateExpressPrediction(userInput, onProgress)
+        const result = await generateExpressPrediction(userInput, onProgress, skipSources)
 
         // Send final result
         const finalMessage = JSON.stringify({ stage: 'complete', data: result }) + '\n'

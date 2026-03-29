@@ -181,7 +181,7 @@ export const StepOutcome = ({ formData, updateFormData }: Props) => {
                 },
               })}
               placeholder="e.g., Bitcoin price in USD"
-              className="w-full px-4 py-3 rounded-lg border border-navy-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 bg-navy-800 text-white placeholder:text-text-subtle rounded-lg border border-navy-600 focus:outline-none focus:ring-2 focus:ring-cobalt focus:border-transparent"
             />
           </div>
 
@@ -226,7 +226,7 @@ export const StepOutcome = ({ formData, updateFormData }: Props) => {
                   },
                 })}
                 placeholder="100000"
-                className="w-full px-4 py-3 rounded-lg border border-navy-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 bg-navy-800 text-white placeholder:text-text-subtle rounded-lg border border-navy-600 focus:outline-none focus:ring-2 focus:ring-cobalt focus:border-transparent"
               />
             </div>
           </div>
@@ -246,9 +246,9 @@ export const StepOutcome = ({ formData, updateFormData }: Props) => {
             value={formData.resolveByDatetime}
             onChange={(e) => updateFormData({ resolveByDatetime: e.target.value })}
             min={minDate}
-            className={`w-full pl-12 pr-4 py-3 rounded-lg border ${
+            className={`w-full pl-12 pr-4 py-3 bg-navy-800 text-white rounded-lg border ${
               isDateInPast ? 'border-red-500' : 'border-navy-600'
-            } focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+            } focus:outline-none focus:ring-2 focus:ring-cobalt focus:border-transparent`}
           />
         </div>
         {isDateInPast && (

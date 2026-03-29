@@ -89,7 +89,7 @@ export interface ExpressPredictionResult {
     snippet: string
     source?: string
     publishedAt?: Date
-  }
+  } | null
   additionalLinks: Array<{
     url: string
     title: string
@@ -111,12 +111,68 @@ interface ParsedPrediction {
 
 export async function generateExpressPrediction(
   userInput: string,
-  onProgress?: (stage: string, data?: Record<string, unknown>) => void
+  onProgress?: (stage: string, data?: Record<string, unknown>) => void,
+  skipSources?: boolean
 ): Promise<ExpressPredictionResult> {
   // Proactive Content Moderation
   const moderation = await checkContent(userInput, 'forecast')
   if (moderation.isOffensive) {
     throw new Error(`OFFENSIVE_INPUT: ${moderation.reason}`)
+  }
+
+  // Source-free path: skip web search entirely
+  if (skipSources) {
+    onProgress?.('analyzing', { message: 'Analyzing your input...' })
+
+    const now = new Date()
+    const currentYear = now.getFullYear()
+    const endOfYear = `${currentYear}-12-31T23:59:59Z`
+    const endOfYearHuman = `December 31, ${currentYear}`
+
+    const articlesText = `[User Input]\n${userInput}`
+    const template = await getPromptTemplate('express-prediction')
+    const prompt = fillPrompt(template, {
+      userInput,
+      articlesText,
+      endOfYear,
+      endOfYearHuman,
+      currentYear,
+      currentDate: now.toISOString().split('T')[0],
+      STANDARD_TAGS: STANDARD_TAGS.join(', '),
+    })
+
+    let prediction: ParsedPrediction
+    try {
+      const result = await llmService.generateContent({
+        prompt,
+        schema: expressPredictionSchema,
+        temperature: 0.2,
+      })
+      prediction = JSON.parse(result.text)
+      prediction.claimText = humanizeISODates(prediction.claimText)
+    } catch (error) {
+      log.error({ err: error }, 'Failed to generate source-free express prediction')
+      throw error
+    }
+
+    const validOutcomeTypes = ['BINARY', 'MULTIPLE_CHOICE'] as const
+    if (!validOutcomeTypes.includes(prediction.outcomeType as typeof validOutcomeTypes[number])) {
+      prediction.outcomeType = 'BINARY'
+      prediction.options = []
+    }
+    if (prediction.outcomeType === 'MULTIPLE_CHOICE') {
+      prediction.options = (prediction.options || []).filter(o => o.trim())
+      if (prediction.options.length < 2) {
+        prediction.outcomeType = 'BINARY'
+        prediction.options = []
+      }
+    } else {
+      prediction.options = []
+    }
+
+    onProgress?.('finalizing', { message: 'Finalizing prediction...' })
+
+    return { ...prediction, newsAnchor: null, additionalLinks: [] }
   }
 
   const isUrl = /^https?:\/\/[^\s]+$/i.test(userInput.trim())

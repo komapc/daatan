@@ -113,7 +113,7 @@ describe('generateExpressPrediction', () => {
       expect(mockSearchArticles).toHaveBeenCalledWith('Bitcoin price prediction', 5)
       expect(mockFetchUrlContent).not.toHaveBeenCalled()
       expect(result.claimText).toBe(mockLlmPrediction.claimText)
-      expect(result.newsAnchor.url).toBe('https://cnn.com/btc')
+      expect(result.newsAnchor!.url).toBe('https://cnn.com/btc')
       expect(result.additionalLinks).toHaveLength(2)
     })
 
@@ -170,7 +170,7 @@ describe('generateExpressPrediction', () => {
       expect(mockSearchArticles).toHaveBeenCalledWith('Bitcoin price rally 2026', 5)
 
       // Primary article (the URL) should be the news anchor
-      expect(result.newsAnchor.url).toBe(testUrl)
+      expect(result.newsAnchor!.url).toBe(testUrl)
     })
 
     it('uses original URL as news anchor, not search results', async () => {
@@ -183,7 +183,7 @@ describe('generateExpressPrediction', () => {
 
       const result = await generateExpressPrediction(testUrl)
 
-      expect(result.newsAnchor.url).toBe(testUrl)
+      expect(result.newsAnchor!.url).toBe(testUrl)
     })
 
     it('deduplicates original URL from search results', async () => {
@@ -200,7 +200,7 @@ describe('generateExpressPrediction', () => {
 
       const result = await generateExpressPrediction(testUrl)
 
-      const allUrls = [result.newsAnchor.url, ...result.additionalLinks.map(l => l.url)]
+      const allUrls = [result.newsAnchor!.url, ...result.additionalLinks.map(l => l.url)]
       const uniqueUrls = new Set(allUrls)
       expect(uniqueUrls.size).toBe(allUrls.length)
     })
@@ -218,7 +218,7 @@ describe('generateExpressPrediction', () => {
       // Should fall back to using URL as search query
       expect(mockSearchArticles).toHaveBeenCalledWith(testUrl, 5)
       expect(mockGenerateContent).toHaveBeenCalledTimes(2) 
-      expect(result.newsAnchor.url).toBe('https://cnn.com/btc')
+      expect(result.newsAnchor!.url).toBe('https://cnn.com/btc')
     })
 
     it('falls back to URL as search topic when topic extraction fails', async () => {
@@ -233,7 +233,7 @@ describe('generateExpressPrediction', () => {
 
       // Should fall back to using the URL as search query
       expect(mockSearchArticles).toHaveBeenCalledWith(testUrl, 5)
-      expect(result.newsAnchor.url).toBe(testUrl)
+      expect(result.newsAnchor!.url).toBe(testUrl)
     })
 
     it('works when related article search returns empty', async () => {
@@ -246,7 +246,7 @@ describe('generateExpressPrediction', () => {
 
       const result = await generateExpressPrediction(testUrl)
 
-      expect(result.newsAnchor.url).toBe(testUrl)
+      expect(result.newsAnchor!.url).toBe(testUrl)
       expect(result.additionalLinks).toHaveLength(0)
     })
 
