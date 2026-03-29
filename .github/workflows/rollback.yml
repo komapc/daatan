@@ -1,10 +1,10 @@
-name: Rollback
+name: 🔄 Rollback — Revert to a previous version
 
 on:
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Environment to roll back'
+        description: '🌍 Which environment to roll back?'
         required: true
         default: production
         type: choice
@@ -12,11 +12,11 @@ on:
           - production
           - staging
       version:
-        description: 'Version to roll back to (e.g. 1.7.140). Check ECR for available tags.'
+        description: '🏷️ Version number to restore (e.g. 1.7.174). Available versions are listed below.'
         required: true
         type: string
       reason:
-        description: 'Reason for rollback (shown in Telegram notification)'
+        description: '📝 Why are you rolling back? (shown in Telegram notification)'
         required: false
         type: string
 
@@ -42,6 +42,34 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: eu-central-1
 
+      - name: List available versions
+        run: |
+          echo "=========================================="
+          echo "  Available version tags in ECR (newest first)"
+          echo "=========================================="
+          aws ecr describe-images \
+            --repository-name daatan-app \
+            --region eu-central-1 \
+            --query 'sort_by(imageDetails,&imagePushedAt)[-30:].imageTags' \
+            --output json 2>/dev/null \
+          | python3 -c "
+          import sys, json
+          tags_list = json.load(sys.stdin)
+          versions = set()
+          for tags in tags_list:
+            if tags:
+              for t in tags:
+                # Only show version-like tags (e.g. 1.7.174)
+                parts = t.split('.')
+                if len(parts) == 3 and all(p.isdigit() for p in parts):
+                  versions.add(t)
+          for v in sorted(versions, key=lambda x: [int(n) for n in x.split('.')], reverse=True):
+            print(f'  {v}')
+          " || echo "  (could not parse tags)"
+          echo ""
+          echo "  You entered version: ${{ inputs.version }}"
+          echo "=========================================="
+
       - name: Verify ECR image tag exists
         run: |
           echo "Checking ECR for image tag: ${{ inputs.version }}"
@@ -52,15 +80,10 @@ jobs:
               --output text > /dev/null 2>&1; then
             echo "ERROR: Image tag '${{ inputs.version }}' not found in ECR repository 'daatan-app'"
             echo ""
-            echo "Available tags (most recent 20):"
-            aws ecr describe-images \
-              --repository-name daatan-app \
-              --region eu-central-1 \
-              --query 'sort_by(imageDetails,&imagePushedAt)[-20:].imageTags' \
-              --output json 2>/dev/null || echo "(could not list tags)"
+            echo "Tip: Look at the 'List available versions' step above to see valid options."
             exit 1
           fi
-          echo "Image tag '${{ inputs.version }}' confirmed in ECR"
+          echo "Image tag '${{ inputs.version }}' confirmed in ECR ✅"
 
       - name: Find EC2 instance
         id: instance
@@ -210,6 +233,28 @@ jobs:
           echo "ssm_status=timeout" >> $GITHUB_OUTPUT
           exit 1
 
+      - name: Verify rollback health
+        if: success()
+        run: |
+          if [ "${{ inputs.environment }}" = "production" ]; then
+            HEALTH_URL="https://daatan.com/api/health"
+          else
+            HEALTH_URL="https://staging.daatan.com/api/health"
+          fi
+          echo "Checking health at $HEALTH_URL ..."
+          sleep 10
+          for i in 1 2 3 4 5; do
+            RUNNING_VER=$(curl -sf --connect-timeout 5 "$HEALTH_URL" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('version','unknown'))" 2>/dev/null || echo "unreachable")
+            echo "Attempt $i: running version = $RUNNING_VER"
+            if [ "$RUNNING_VER" = "${{ inputs.version }}" ]; then
+              echo "✅ Confirmed: ${{ inputs.environment }} is running v${{ inputs.version }}"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "⚠️ Warning: health endpoint reports version '$RUNNING_VER', expected '${{ inputs.version }}'"
+          echo "The deployment may still be stabilizing — check manually."
+
       - name: Notify Telegram - Rollback Success
         if: success()
         run: |
@@ -218,7 +263,7 @@ jobs:
           if [ -n "$REASON" ]; then
             REASON_TEXT="%0AReason: $REASON"
           fi
-          MSG="🔄 [${{ inputs.environment }}] Rollback to v${{ inputs.version }} complete.$REASON_TEXT%0A%0ATriggered by: ${{ github.actor }}"
+          MSG="🔄 [${{ inputs.environment }}] Rollback to v${{ inputs.version }} complete.$REASON_TEXT%0A%0ATriggered by: ${{ github.actor }}%0A<a href='https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'>View logs</a>"
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
             -d "text=$MSG" \

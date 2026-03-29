@@ -130,6 +130,7 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=sha
             type=raw,value=staging-latest,enable={{is_default_branch}}
+            type=raw,value=${{ steps.app_version.outputs.version }},enable={{is_default_branch}}
 
       - name: Build and push to ECR
         if: github.event_name != 'pull_request'
