@@ -21,10 +21,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma) as Adapter,
   debug: isStaging || env.NEXTAUTH_DEBUG === 'true',
   providers: [
-    ...authConfig.providers.filter(p => p.id !== 'credentials'),
-    // Override Playwright Credentials provider with DB logic
+    ...authConfig.providers.filter(p => !['credentials', 'playwright'].includes(p.id)),
+    // Re-add standard credentials provider (already has full logic in authConfig for this app)
+    ...authConfig.providers.filter(p => p.id === 'credentials'),
+    // Override Playwright Credentials provider with DB logic if in test mode
     ...(isTest ? [
       Credentials({
+        id: 'playwright',
         name: 'Playwright Test',
         credentials: {
           userId: { label: "User ID", type: "text" },
