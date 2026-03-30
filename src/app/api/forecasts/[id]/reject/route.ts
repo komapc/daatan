@@ -103,4 +103,4 @@ export const POST = withAuth(async (request, user, { params }) => {
   } catch (error) {
     return handleRouteError(error, 'Failed to reject prediction')
   }
-})
+}, { roles: ['ADMIN', 'APPROVER'] })
