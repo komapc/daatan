@@ -25,6 +25,7 @@ const ALLOWED_CHAT_IDS = (process.env.TELEGRAM_ROLLBACK_CHAT_IDS ?? '')
   .split(',')
   .map((id) => id.trim())
   .filter(Boolean)
+const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET ?? ''
 
 async function sendMessage(chatId: number | string, text: string): Promise<void> {
   await fetch(`${TELEGRAM_API}/sendMessage`, {
@@ -135,6 +136,14 @@ async function triggerRollback(
 
 export async function POST(request: Request) {
   try {
+    // Validate Telegram webhook secret header
+    if (WEBHOOK_SECRET) {
+      const secretHeader = request.headers.get('x-telegram-bot-api-secret-token') ?? ''
+      if (secretHeader !== WEBHOOK_SECRET) {
+        return NextResponse.json({ ok: true }) // Return 200 to avoid Telegram retries
+      }
+    }
+
     const body = await request.json()
     const message = body?.message
     if (!message) return NextResponse.json({ ok: true })
