@@ -30,6 +30,7 @@ model User {
   name          String?
   image         String? // Avatar URL from Google
   avatarUrl     String? // Custom uploaded avatar URL from S3
+  password      String? // bcrypt hash; null for Google-only accounts
 
   // Custom profile fields
   username             String? @unique
