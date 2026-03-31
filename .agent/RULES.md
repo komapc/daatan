@@ -3,6 +3,7 @@
 ## 🚨 CRITICAL GIT WORKFLOW RULES
 
 ### NEVER Push to the Remote Repository Without Permission
+- **NEVER EVER merge to main without explicit request from user. Always use PR.**
 - **NEVER** push a feature branch or PR branch to origin without explicit permission.
 - **NEVER** merge or push directly to `main` or `staging`.
 - **STOP** after local verification and wait for the user to say "push the PR" or "deploy to prod."
