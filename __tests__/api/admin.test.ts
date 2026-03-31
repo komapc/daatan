@@ -37,6 +37,11 @@ vi.mock('@/lib/logger', () => ({
   createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }))
 
+vi.mock('@/lib/services/telegram', () => ({
+  notifyServerError: vi.fn(),
+  notifySecurityError: vi.fn(),
+}))
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const CTX = { params: Promise.resolve({}) }

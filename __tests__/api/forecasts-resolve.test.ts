@@ -11,6 +11,7 @@ vi.mock('@/auth', () => ({ auth: mockAuth }))
 vi.mock('@/lib/services/telegram', () => ({
   notifyForecastResolved: vi.fn(),
   notifyServerError: vi.fn(),
+  notifySecurityError: vi.fn(),
 }))
 
 vi.mock('@/lib/services/notification', () => ({
