@@ -64,7 +64,7 @@ export async function GET(
     })
 
     if (!prediction) {
-      return apiError('Prediction not found', 404)
+      return apiError('Prediction not found', 404, undefined, { notify: true, pathname: request.nextUrl.pathname })
     }
 
     // Get current user ID for personal commitment context
@@ -81,7 +81,7 @@ export async function GET(
     // Security: check visibility
     if (!prediction.isPublic && prediction.authorId !== userId && !isAdmin) {
       // If it's a private forecast, only author and admin can see it
-      return apiError('Prediction not found', 404)
+      return apiError('Prediction not found', 404, undefined, { notify: true, pathname: request.nextUrl.pathname })
     }
 
     // Find user's specific commitment to this prediction if it exists

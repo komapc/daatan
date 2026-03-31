@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createLogger } from '@/lib/logger'
+import { notifyResourceNotFound, notifySecurityError } from '@/lib/services/telegram'
 
 const log = createLogger('api-error')
 
@@ -26,8 +27,16 @@ interface ApiErrorBody {
 export function apiError(
   message: string,
   status: number,
-  details?: ValidationDetail[]
+  details?: ValidationDetail[],
+  options?: { notify?: boolean; pathname?: string }
 ): NextResponse<ApiErrorBody> {
+  if (options?.notify && options.pathname) {
+    if (status === 404) {
+      notifyResourceNotFound(options.pathname, message)
+    } else if (status === 403 || status === 401) {
+      notifySecurityError(options.pathname, status, message)
+    }
+  }
   return NextResponse.json({ error: message, details }, { status })
 }
 

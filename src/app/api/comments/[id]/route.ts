@@ -13,7 +13,7 @@ export const PATCH = withAuth(async (request, user, { params }) => {
   })
 
   if (!comment || comment.deletedAt) {
-    return apiError('Comment not found', 404)
+    return apiError('Comment not found', 404, undefined, { notify: true, pathname: `/api/comments/${params.id}` })
   }
 
   // Only author can edit
@@ -60,7 +60,7 @@ export const DELETE = withAuth(async (_request, user, { params }) => {
   })
 
   if (!comment || comment.deletedAt) {
-    return apiError('Comment not found', 404)
+    return apiError('Comment not found', 404, undefined, { notify: true, pathname: `/api/comments/${params.id}` })
   }
 
   // Only author, admin, or resolver can delete

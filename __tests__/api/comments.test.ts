@@ -30,6 +30,7 @@ vi.mock('@/lib/logger', () => ({
 vi.mock('@/lib/services/telegram', () => ({
   notifyNewComment: vi.fn(),
   notifyServerError: vi.fn(),
+  notifySecurityError: vi.fn(),
 }))
 
 vi.mock('@/lib/services/notification', () => ({

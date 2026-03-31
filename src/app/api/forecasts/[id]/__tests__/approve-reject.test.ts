@@ -24,6 +24,7 @@ vi.mock('@/lib/services/telegram', () => ({
   notifyBotForecastApproved: vi.fn(),
   notifyBotForecastRejected: vi.fn(),
   notifyServerError: vi.fn(),
+  notifySecurityError: vi.fn(),
 }))
 
 vi.mock('@/lib/services/commitment', () => ({

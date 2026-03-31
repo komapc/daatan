@@ -219,3 +219,92 @@ export function notifyBotForecastRejected(
 
   sendChannelNotification(msg)
 }
+
+export function notifyNewUserRegistered(user: {
+  email: string
+  name?: string | null
+  provider?: string
+}): void {
+  const msg = [
+    `🆕 <b>New user registered</b>`,
+    `Email: <code>${user.email}</code>`,
+    user.name ? `Name: <b>${user.name}</b>` : '',
+    `Provider: <code>${user.provider || 'credentials'}</code>`,
+  ].filter(Boolean).join('\n')
+
+  sendChannelNotification(msg)
+}
+
+export function notifySecurityError(
+  pathname: string,
+  status: number,
+  message: string,
+  user?: { id: string; email?: string | null }
+): void {
+  if (isDevEnv()) return
+  // Avoid flooding the channel with common security probes
+  const key = `security-error:${pathname}:${status}`
+  if (!canNotify(key)) return
+
+  const msg = [
+    `🛡️ <b>Security Event</b>`,
+    `Status: <b>${status}</b>`,
+    `Route: <code>${pathname}</code>`,
+    `Message: <code>${message}</code>`,
+    user ? `User: <code>${user.email || user.id}</code>` : 'User: <i>Anonymous</i>',
+  ].join('\n')
+
+  sendChannelNotification(msg)
+}
+
+export function notifyResourceNotFound(pathname: string, details?: string): void {
+  if (isDevEnv()) return
+  const key = `404:${pathname}`
+  if (!canNotify(key)) return
+
+  const msg = [
+    `🔗 <b>Dead Link / Not Found</b>`,
+    `Route: <code>${pathname}</code>`,
+    details ? `Details: <code>${truncate(details, 100)}</code>` : '',
+  ].filter(Boolean).join('\n')
+
+  sendChannelNotification(msg)
+}
+
+export function notifyLlmError(
+  provider: string,
+  error: string,
+  model?: string
+): void {
+  if (isDevEnv()) return
+  const key = `llm-error:${provider}`
+  if (!canNotify(key)) return
+
+  const msg = [
+    `🤖 <b>LLM Provider Error</b>`,
+    `Provider: <b>${provider}</b>`,
+    model ? `Model: <code>${model}</code>` : '',
+    `Error: <code>${truncate(error, 200)}</code>`,
+  ].filter(Boolean).join('\n')
+
+  sendChannelNotification(msg)
+}
+
+export function notifyDiskSpaceLow(
+  instanceId: string,
+  usage: string,
+  threshold: string
+): void {
+  if (isDevEnv()) return
+  const key = `disk-low:${instanceId}`
+  if (!canNotify(key)) return
+
+  const msg = [
+    `💾 <b>Critical: Disk Space Low</b>`,
+    `Instance: <code>${instanceId}</code>`,
+    `Usage: <b style="color: red">${usage}</b> (Threshold: ${threshold})`,
+    `Immediate action required to avoid deployment failures.`,
+  ].join('\n')
+
+  sendChannelNotification(msg)
+}

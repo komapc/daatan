@@ -8,6 +8,7 @@ import { env } from "@/env"
 import authConfig from "./auth.config"
 import type { Adapter } from "next-auth/adapters"
 import Credentials from "next-auth/providers/credentials"
+import { notifyNewUserRegistered } from "@/lib/services/telegram"
 
 const log = createLogger('auth')
 
@@ -132,8 +133,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             note: 'Welcome bonus',
           },
         })
+
+        // Notify Telegram about new user registration
+        notifyNewUserRegistered({
+          email: user.email!,
+          name: user.name,
+          provider: 'google', // createUser event is usually for OAuth providers
+        })
       } catch (error) {
-        log.error({ err: error }, 'Failed to create initial grant transaction')
+        log.error({ err: error }, 'Failed to create initial grant or notify registration')
       }
     },
   },

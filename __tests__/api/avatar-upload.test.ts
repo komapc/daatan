@@ -23,6 +23,11 @@ vi.mock('@/lib/prisma', () => ({
   prisma: mockPrisma,
 }))
 
+vi.mock('@/lib/services/telegram', () => ({
+  notifyServerError: vi.fn(),
+  notifySecurityError: vi.fn(),
+}))
+
 vi.mock('@aws-sdk/client-s3', () => {
   return {
     S3Client: class {
