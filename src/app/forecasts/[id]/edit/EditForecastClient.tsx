@@ -12,6 +12,9 @@ import {
   Lock,
   Unlock,
   Info,
+  Plus,
+  Trash2,
+  LayoutList,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
@@ -20,6 +23,12 @@ import { PrimaryLink } from '@/components/ui/PrimaryLink'
 import { createClientLogger } from '@/lib/client-logger'
 
 const log = createClientLogger('EditForecast')
+
+interface PredictionOption {
+  id: string
+  text: string
+  displayOrder: number
+}
 
 interface Prediction {
   id: string
@@ -31,6 +40,8 @@ interface Prediction {
   status: string
   isPublic: boolean
   userId: string
+  outcomeType: 'BINARY' | 'MULTIPLE_CHOICE' | 'NUMERIC_THRESHOLD'
+  options: PredictionOption[]
 }
 
 interface EditForecastClientProps {
@@ -54,6 +65,7 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
     resolutionRules: '',
     resolveByDatetime: '',
     isPublic: true,
+    options: [] as string[],
   })
 
   useEffect(() => {
@@ -76,6 +88,7 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
           resolutionRules: data.resolutionRules || '',
           resolveByDatetime: resolveDate.toISOString().slice(0, 16),
           isPublic: data.isPublic !== false,
+          options: data.options?.map((o: PredictionOption) => o.text) || [],
         })
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -87,10 +100,29 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
     fetchPrediction()
   }, [id, t])
 
-  const handleChange = (field: string, value: string | number | boolean | Date | null | string[]) => {
+  const handleChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }))
     setSaveSuccess(false)
     setSaveError(null)
+  }
+
+  const handleOptionChange = (index: number, value: string) => {
+    const newOptions = [...formData.options]
+    newOptions[index] = value
+    handleChange('options', newOptions)
+  }
+
+  const addOption = () => {
+    if (formData.options.length < 10) {
+      handleChange('options', [...formData.options, ''])
+    }
+  }
+
+  const removeOption = (index: number) => {
+    if (formData.options.length > 2) {
+      const newOptions = formData.options.filter((_, i) => i !== index)
+      handleChange('options', newOptions)
+    }
   }
 
   const handleSave = async () => {
@@ -100,9 +132,14 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
     setSaveSuccess(false)
 
     try {
-      const payload = {
+      const payload: any = {
         ...formData,
         resolveByDatetime: new Date(formData.resolveByDatetime).toISOString()
+      }
+
+      // Only send options if MULTIPLE_CHOICE
+      if (prediction.outcomeType !== 'MULTIPLE_CHOICE') {
+        delete payload.options
       }
 
       const response = await fetch(`/api/forecasts/${prediction.id}`, {
@@ -128,6 +165,7 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
         resolutionRules: updated.resolutionRules || '',
         resolveByDatetime: resolveDate.toISOString().slice(0, 16),
         isPublic: updated.isPublic !== false,
+        options: updated.options?.map((o: PredictionOption) => o.text) || [],
       })
     } catch (err) {
       log.error({ err }, 'Error saving forecast')
@@ -160,6 +198,9 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
       </div>
     )
   }
+
+  const isDraft = prediction.status === 'DRAFT'
+  const isMultipleChoice = prediction.outcomeType === 'MULTIPLE_CHOICE'
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto">
@@ -200,6 +241,50 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
           />
           <p className="text-xs text-gray-400 mt-1 text-right">{formData.claimText.length}/500</p>
         </div>
+
+        {/* Options Editor for Multiple Choice */}
+        {isMultipleChoice && (
+          <div className="bg-navy-900/30 border border-navy-600 rounded-2xl p-4 sm:p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <LayoutList className="w-5 h-5 text-blue-500" />
+              <h3 className="font-bold text-white">Options</h3>
+            </div>
+            
+            <div className="space-y-3">
+              {formData.options.map((option, index) => (
+                <div key={index} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={option}
+                    onChange={(e) => handleOptionChange(index, e.target.value)}
+                    placeholder={`Option ${index + 1}`}
+                    className="flex-1 px-4 py-2 bg-navy-800 text-white border border-navy-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    maxLength={500}
+                  />
+                  {formData.options.length > 2 && (
+                    <button
+                      onClick={() => removeOption(index)}
+                      className="p-2 text-gray-500 hover:text-red-500 transition-colors"
+                      title="Remove option"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
+              ))}
+              
+              {formData.options.length < 10 && (
+                <button
+                  onClick={addOption}
+                  className="flex items-center gap-2 text-sm font-medium text-blue-500 hover:text-blue-400 transition-colors mt-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Option
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Details Text */}
         <div>
@@ -332,3 +417,4 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
     </div>
   )
 }
+

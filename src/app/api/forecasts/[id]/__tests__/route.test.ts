@@ -12,22 +12,28 @@ vi.mock('@/auth', () => ({
 
 vi.mock('@/lib/auth', () => ({ authOptions: {} }))
 
-vi.mock('@/lib/prisma', () => ({
-  prisma: {
+vi.mock('@/lib/prisma', () => {
+  const mockPrisma = {
     prediction: {
       findUnique: vi.fn(),
       findFirst: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
     },
+    predictionOption: {
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+      createMany: vi.fn().mockResolvedValue({ count: 0 }),
+    },
     predictionTranslation: {
       deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
     commitment: {
       findFirst: vi.fn(),
-    }
-  },
-}))
+    },
+    $transaction: vi.fn((callback) => callback(mockPrisma)),
+  }
+  return { prisma: mockPrisma }
+})
 
 vi.mock('@/lib/services/prediction-lifecycle', () => ({
   transitionIfExpired: vi.fn().mockResolvedValue(undefined),
@@ -259,6 +265,37 @@ describe('PATCH /api/forecasts/[id]', () => {
 
     const res = await PATCH(makeRequest('PATCH', { claimText: 'Admin edit' }), routeCtx())
     expect(res.status).toBe(200)
+  })
+
+  it('allows updating options on a DRAFT forecast', async () => {
+    const { prisma } = await import('@/lib/prisma')
+    vi.mocked(prisma.prediction.findUnique).mockResolvedValue({
+      authorId: 'user-1',
+      status: 'DRAFT',
+      lockedAt: null,
+    } as any)
+
+    const mockUpdate = vi.fn().mockResolvedValue({
+      ...BASE_PREDICTION,
+      options: [{ text: 'Option A' }, { text: 'Option B' }]
+    })
+    const mockDeleteOptions = vi.fn().mockResolvedValue({ count: 2 })
+    const mockCreateOptions = vi.fn().mockResolvedValue({ count: 2 })
+
+    vi.mocked(prisma.$transaction).mockImplementationOnce(async (callback: any) => {
+      return callback({
+        prediction: { update: mockUpdate },
+        predictionOption: { deleteMany: mockDeleteOptions, createMany: mockCreateOptions },
+      })
+    })
+
+    const res = await PATCH(
+      makeRequest('PATCH', { options: ['Option A', 'Option B'] }),
+      routeCtx()
+    )
+    expect(res.status).toBe(200)
+    expect(mockDeleteOptions).toHaveBeenCalledWith({ where: { predictionId: 'pred-1' } })
+    expect(mockCreateOptions).toHaveBeenCalled()
   })
 })
 

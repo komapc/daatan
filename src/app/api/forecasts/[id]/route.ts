@@ -13,6 +13,7 @@ const patchPredictionSchema = z.object({
   resolutionRules: z.string().max(1000).optional().nullable(),
   resolveByDatetime: z.string().datetime().optional(),
   isPublic: z.boolean().optional(),
+  options: z.array(z.string().min(1).max(500)).min(2).max(10).optional(),
 })
 
 // GET /api/forecasts/[id] - Get single forecast details
@@ -138,10 +139,10 @@ export const PATCH = withAuth(async (request, user, { params }) => {
   }
 
   // Rules:
-  // 1. Can only update claimText/details/resolutionRules/resolveBy if it's a DRAFT
+  // 1. Can only update claimText/details/resolutionRules/resolveBy/options if it's a DRAFT
   // 2. ACTIVE/PENDING forecasts can ONLY update isPublic
   const isPublished = ['ACTIVE', 'PENDING', 'PENDING_APPROVAL'].includes(prediction.status)
-  const hasRestrictedChanges = data.claimText || data.detailsText || data.resolutionRules || data.resolveByDatetime
+  const hasRestrictedChanges = data.claimText || data.detailsText || data.resolutionRules || data.resolveByDatetime || data.options
 
   if (isPublished && hasRestrictedChanges && !isAdmin) {
     return apiError(`Cannot edit core fields of a published forecast. Status: ${prediction.status}`, 400)
@@ -159,27 +160,48 @@ export const PATCH = withAuth(async (request, user, { params }) => {
   }
 
   // Perform update
-  const updated = await prisma.prediction.update({
-    where: { id },
-    data: {
-      claimText: data.claimText,
-      detailsText: data.detailsText,
-      resolutionRules: data.resolutionRules,
-      resolveByDatetime: data.resolveByDatetime ? new Date(data.resolveByDatetime) : undefined,
-      isPublic: data.isPublic,
-    },
-    include: {
-      author: {
-        select: {
-          id: true,
-          name: true,
-          username: true,
-          image: true,
+  const updated = await prisma.$transaction(async (tx) => {
+    // Update options if provided
+    if (data.options) {
+      // Delete old options
+      await tx.predictionOption.deleteMany({
+        where: { predictionId: id },
+      })
+
+      // Create new options
+      await tx.predictionOption.createMany({
+        data: data.options.map((text, index) => ({
+          predictionId: id,
+          text,
+          displayOrder: index,
+        })),
+      })
+    }
+
+    return await tx.prediction.update({
+      where: { id },
+      data: {
+        claimText: data.claimText,
+        detailsText: data.detailsText,
+        resolutionRules: data.resolutionRules,
+        resolveByDatetime: data.resolveByDatetime ? new Date(data.resolveByDatetime) : undefined,
+        isPublic: data.isPublic,
+      },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            username: true,
+            image: true,
+          },
+        },
+        newsAnchor: true,
+        options: {
+          orderBy: { displayOrder: 'asc' },
         },
       },
-      newsAnchor: true,
-      options: true,
-    },
+    })
   })
 
   return NextResponse.json(updated)
