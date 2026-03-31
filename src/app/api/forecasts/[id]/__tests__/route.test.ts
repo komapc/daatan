@@ -30,7 +30,7 @@ vi.mock('@/lib/prisma', () => {
     commitment: {
       findFirst: vi.fn(),
     },
-    transaction: vi.fn((callback) => callback(mockPrisma)),
+    $transaction: vi.fn((callback) => callback(mockPrisma)),
   }
   return { prisma: mockPrisma }
 })
@@ -282,7 +282,7 @@ describe('PATCH /api/forecasts/[id]', () => {
     const mockDeleteOptions = vi.fn().mockResolvedValue({ count: 2 })
     const mockCreateOptions = vi.fn().mockResolvedValue({ count: 2 })
 
-    vi.mocked(prisma.transaction).mockImplementationOnce(async (callback: any) => {
+    vi.mocked(prisma.$transaction).mockImplementationOnce(async (callback: any) => {
       return callback({
         prediction: { update: mockUpdate },
         predictionOption: { deleteMany: mockDeleteOptions, createMany: mockCreateOptions },

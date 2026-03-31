@@ -160,7 +160,7 @@ export const PATCH = withAuth(async (request, user, { params }) => {
   }
 
   // Perform update
-  const updated = await prisma.transaction(async (tx) => {
+  const updated = await prisma.$transaction(async (tx) => {
     // Update options if provided
     if (data.options) {
       // Delete old options
