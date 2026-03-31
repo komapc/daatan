@@ -5,6 +5,7 @@ import { registerSchema } from '@/lib/validations/auth'
 import { apiError, handleRouteError } from '@/lib/api-error'
 import { slugify } from '@/lib/utils/slugify'
 import { createLogger } from '@/lib/logger'
+import { notifyNewUserRegistered } from '@/lib/services/telegram'
 
 const log = createLogger('api-auth-signup')
 
@@ -87,6 +88,13 @@ export async function POST(req: NextRequest) {
     })
 
     log.info({ userId: newUser.id, email: newUser.email }, 'User registered successfully')
+
+    // Notify Telegram about new user registration
+    notifyNewUserRegistered({
+      email: newUser.email!,
+      name: newUser.name,
+      provider: 'credentials',
+    })
 
     return NextResponse.json({
       id: newUser.id,

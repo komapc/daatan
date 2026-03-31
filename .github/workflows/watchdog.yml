@@ -191,3 +191,61 @@ jobs:
         with:
           path: /tmp/drift-notified
           key: version-drift-notified-${{ hashFiles('/tmp/drift-key.txt') }}
+
+  disk-watchdog:
+    name: Disk Check ${{ matrix.env.name }}
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        env:
+          - name: production
+            tag: prod
+          - name: staging
+            tag: staging
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: eu-central-1
+
+      - name: Run Disk Check via SSM
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Get Instance ID
+          INSTANCE_ID=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=daatan-backend" "Name=tag:Environment,Values=${{ matrix.env.tag }}" \
+            --query "Reservations[0].Instances[0].InstanceId" \
+            --output text)
+          
+          if [[ -z "$INSTANCE_ID" || "$INSTANCE_ID" == "None" ]]; then
+            echo "⚠️ No instance found for ${{ matrix.env.name }}"
+            exit 0
+          fi
+
+          echo "Found Instance: $INSTANCE_ID"
+
+          # Upload latest script and run it
+          RAW_BASE="https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}"
+          
+          aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --targets "Key=instanceids,Values=$INSTANCE_ID" \
+            --comment "Disk Check ${{ matrix.env.name }}" \
+            --parameters commands='[
+              "set -e",
+              "mkdir -p ~/app/scripts",
+              "cd ~/app",
+              "curl -sfL -H \"Authorization: token '"$GH_TOKEN"'\" \"'"$RAW_BASE"'/scripts/check-disk-space.sh\" -o \"scripts/check-disk-space.sh\"",
+              "chmod +x scripts/check-disk-space.sh",
+              "./scripts/check-disk-space.sh '"${{ matrix.env.name }}"'"
+            ]' \
+            --output text

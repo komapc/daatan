@@ -1,5 +1,6 @@
 import { LLMProvider, LLMRequest, LLMResponse } from './types'
 import { createLogger } from '@/lib/logger'
+import { notifyLlmError } from '@/lib/services/telegram'
 
 const log = createLogger('llm-service')
 
@@ -21,6 +22,10 @@ export class ResilientLLMService {
       } catch (error) {
         log.error({ err: error, provider: provider.name }, 'Provider failed')
         lastError = error as Error
+        
+        // Notify Telegram about LLM provider error
+        notifyLlmError(provider.name, lastError.message, request.model)
+        
         continue // Try next provider
       }
     }

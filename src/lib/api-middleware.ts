@@ -3,7 +3,7 @@ import type { Session } from 'next-auth'
 import { auth } from '@/auth'
 import { apiError, handleRouteError } from '@/lib/api-error'
 import { createLogger } from '@/lib/logger'
-import { notifyServerError } from '@/lib/services/telegram'
+import { notifyServerError, notifySecurityError } from '@/lib/services/telegram'
 import { z } from 'zod'
 import type { UserRole } from '@prisma/client'
 import type { AuthUser } from '@/lib/types/user'
@@ -48,6 +48,7 @@ export function withAuth(
       if (!session?.user?.id) {
         const pathname = request.nextUrl.pathname
         log.warn({ pathname }, 'Missing session in withAuth')
+        notifySecurityError(pathname, 401, 'Unauthorized access attempt')
         return apiError('Unauthorized', 401)
       }
 
@@ -55,6 +56,11 @@ export function withAuth(
 
       if (options?.roles && options.roles.length > 0) {
         if (!options.roles.includes(user.role)) {
+          const pathname = request.nextUrl.pathname
+          notifySecurityError(pathname, 403, `Insufficient permissions (requires: ${options.roles.join(', ')})`, {
+            id: user.id,
+            email: user.email,
+          })
           return apiError('Forbidden: Insufficient permissions', 403)
         }
       }
