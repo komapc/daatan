@@ -27,6 +27,7 @@
 - If truly ambiguous, ask ONE focused question
 
 ## Deployment Tasks
+- **NEVER EVER merge to main without explicit request from user. Always use PR.**
 - **NEVER** push a PR branch to the remote repository without explicit permission from the user.
 - **NEVER** deploy to production (via tags, releases, or merges to main) without explicit permission from the user.
 - The task is considered complete when the changes are verified locally and the user has been notified.
