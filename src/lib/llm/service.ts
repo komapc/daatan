@@ -24,7 +24,7 @@ export class ResilientLLMService {
         lastError = error as Error
         
         // Notify Telegram about LLM provider error
-        notifyLlmError(provider.name, lastError.message, request.model)
+        notifyLlmError(provider.name, lastError.message)
         
         continue // Try next provider
       }
