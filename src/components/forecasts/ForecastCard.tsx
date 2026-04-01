@@ -360,7 +360,7 @@ export default function ForecastCard({
 
             {prediction.totalCuCommitted !== undefined && prediction.totalCuCommitted > 0 && (
               <span className="flex items-center gap-1 px-2.5 py-0.5 bg-amber-900/20 text-amber-400 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider border border-amber-100">
-                💰 {prediction.totalCuCommitted} CU
+                Confidence: {prediction.totalCuCommitted}
               </span>
             )}
             {prediction.tags && prediction.tags.length > 0 && (

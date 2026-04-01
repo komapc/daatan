@@ -63,14 +63,14 @@ export default function UsersTable() {
   }
 
   const grantCuToAll = async () => {
-    const input = window.prompt('Grant how many CU to all non-bot users?', '100')
+    const input = window.prompt('Grant how many Confidence points to all non-bot users?', '100')
     if (input === null) return
     const amount = parseInt(input, 10)
     if (isNaN(amount) || amount <= 0) {
       toast.error('Invalid amount')
       return
     }
-    if (!window.confirm(`Grant ${amount} CU to ALL non-bot users?`)) return
+    if (!window.confirm(`Grant ${amount} Confidence points to ALL non-bot users?`)) return
     setIsGranting(true)
     try {
       const res = await fetch('/api/admin/users/grant-cu', {
@@ -80,7 +80,7 @@ export default function UsersTable() {
       })
       if (res.ok) {
         const data = await res.json()
-        toast.success(`Granted ${amount} CU to ${data.granted} users`)
+        toast.success(`Granted ${amount} Confidence to ${data.granted} users`)
         fetchUsers()
       } else {
         const err = await res.json().catch(() => ({}))
@@ -115,7 +115,7 @@ export default function UsersTable() {
           className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center gap-2"
         >
           {isGranting && <Loader2 className="w-4 h-4 animate-spin" />}
-          Grant CU to all
+          Grant Confidence to all
         </button>
       </div>
 
@@ -133,7 +133,7 @@ export default function UsersTable() {
                   <th className="p-3 border-b text-left">Email</th>
                   <th className="p-3 border-b text-left">Role</th>
                   <th className="p-3 border-b text-right">Reputation</th>
-                  <th className="p-3 border-b text-right">CU</th>
+                  <th className="p-3 border-b text-right">Confidence</th>
                   <th className="p-3 border-b text-right">Created</th>
                 </tr>
               </thead>

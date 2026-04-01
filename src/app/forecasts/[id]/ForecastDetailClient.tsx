@@ -21,14 +21,14 @@ import {
   EyeOff,
   Languages,
   Info,
+  CheckCircle2,
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { useTranslations, useLocale } from 'next-intl'
 import { ModeratorResolutionSection } from './ModeratorResolutionSection'
 import CommentThread from '@/components/comments/CommentThread'
-import CommitmentForm from '@/components/forecasts/CommitmentForm'
+import ConfidenceSlider from '@/components/forecasts/ConfidenceSlider'
 import CommitmentDisplay from '@/components/forecasts/CommitmentDisplay'
-import CUBalanceIndicator from '@/components/forecasts/CUBalanceIndicator'
 import Speedometer from '@/components/forecasts/Speedometer'
 import ContextTimeline from '@/components/forecasts/ContextTimeline'
 import { RoleBadge } from '@/components/RoleBadge'
@@ -169,6 +169,10 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
   const [isMounted, setIsMounted] = useState(false)
   const [showRules, setShowRules] = useState(false)
 
+  // Confidence state (-100 to 100)
+  const [userConfidence, setUserConfidence] = useState<number>(0)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
   // Translation state
   const [translatedFields, setTranslatedFields] = useState<Record<string, string> | null>(null)
   const [isTranslating, setIsTranslating] = useState(false)
@@ -179,7 +183,11 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
 
   useEffect(() => {
     setIsMounted(true)
-  }, [])
+    if (prediction?.userCommitment) {
+      const prob = (prediction.userCommitment as any).probability ?? (prediction.userCommitment.binaryChoice ? 0.9 : 0.1)
+      setUserConfidence(Math.round(prob * 200 - 100))
+    }
+  }, [prediction?.userCommitment])
 
   useEffect(() => {
     async function fetchPrediction() {
@@ -226,6 +234,38 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
 
     triggerTranslation()
   }, [prediction, locale, translatedFields])
+
+  const handleCommitConfidence = async () => {
+    if (userConfidence === 0 || !prediction) return
+    
+    setIsSubmitting(true)
+    try {
+      const probability = (userConfidence + 100) / 200
+      const binaryChoice = userConfidence > 0
+
+      const response = await fetch(`/api/forecasts/${prediction.id}/commit`, {
+        method: prediction.userCommitment ? 'PATCH' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cuCommitted: 10,
+          probability,
+          binaryChoice,
+        }),
+      })
+
+      if (!response.ok) throw new Error('Failed to save forecast')
+      
+      toast.success('Forecast recorded!')
+      const updated = await fetch(`/api/forecasts/${id}`).then(r => r.json())
+      setPrediction(updated)
+      router.refresh()
+    } catch (err) {
+      toast.error('Failed to commit forecast')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   const formatDate = (date: string | Date) => {
     if (!isMounted) return ''
     return new Date(date).toLocaleDateString('en-US', {
@@ -431,31 +471,56 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
         )}
       </div>
 
-      {/* Probability Display (only for binary/MC) */}
-      <div className="mb-8">
+      {/* Probability Display (Interactive Gauge) */}
+      <div className="mb-12">
         {prediction.outcomeType === 'BINARY' && (() => {
           const yesTokens = prediction.commitments.filter(c => c.binaryChoice === true).reduce((sum, c) => sum + c.cuCommitted, 0)
           const totalTokens = prediction.commitments.reduce((sum, c) => sum + c.cuCommitted, 0)
-          const prob = totalTokens > 0 ? Math.round((yesTokens / totalTokens) * 100) : 50
+          const marketProb = totalTokens > 0 ? Math.round((yesTokens / totalTokens) * 100) : 50
+          
+          // Map user slider (-100 to 100) to 0-100 for gauge
+          const userProb = (userConfidence + 100) / 2
           
           return (
             <div className="flex flex-col items-center">
-              <div className="w-full max-w-sm relative rounded-xl border border-navy-600 bg-navy-700 p-6 flex flex-col items-center justify-center hover:border-blue-300 transition-colors shadow-sm">
+              <div className="w-full max-w-lg relative rounded-3xl border border-navy-600 bg-navy-700 p-8 sm:p-12 flex flex-col items-center justify-center shadow-2xl overflow-hidden">
+                {/* Background glow */}
+                <div className="absolute inset-0 bg-gradient-to-b from-blue-500/5 to-transparent pointer-events-none" />
+                
                 <Speedometer
-                  percentage={prob}
-                  label={prob > 50 ? 'Likely' : prob < 50 ? 'Unlikely' : 'Toss-up'}
-                  color={prob > 50 ? 'green' : 'red'}
-                  size="lg"
+                  percentage={marketProb}
+                  userPercentage={userProb}
+                  aiPercentage={prediction.confidence ?? undefined}
+                  size="xl"
                 />
-                <div className="w-full grid grid-cols-2 gap-4 mt-6">
-                  <div className="text-center p-3 rounded-lg bg-teal/10/50 border border-teal/20/50">
-                    <div className="text-xs font-bold text-green-600 uppercase tracking-wider mb-1">Yes</div>
-                    <div className="text-xl font-bold text-white">{prob}%</div>
+
+                {/* Legend */}
+                <div className="flex justify-center gap-6 mt-10 text-[10px] font-bold uppercase tracking-widest border-t border-navy-600 pt-8 w-full">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-1 bg-[#A0AEC0] rounded-full" />
+                    <span className="text-gray-400">Market</span>
                   </div>
-                  <div className="text-center p-3 rounded-lg bg-red-900/20/50 border border-red-800/40/50">
-                    <div className="text-xs font-bold text-red-600 uppercase tracking-wider mb-1">No</div>
-                    <div className="text-xl font-bold text-white">{100 - prob}%</div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-1.5 bg-[#3B82F6] rounded-full" />
+                    <span className="text-blue-400">You</span>
                   </div>
+                  {prediction.confidence != null && (
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-1 bg-[#FBBF24] rounded-full" />
+                      <span className="text-amber-400">AI</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* New Confidence Slider Integration (Mobile) */}
+                <div className="w-full mt-10 xl:hidden">
+                  <ConfidenceSlider
+                    value={userConfidence}
+                    onChange={setUserConfidence}
+                    onCommit={handleCommitConfidence}
+                    isSubmitting={isSubmitting}
+                    disabled={prediction.status !== 'ACTIVE'}
+                  />
                 </div>
               </div>
             </div>
@@ -475,22 +540,21 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
 
           return (
             <div className="flex flex-col items-center">
-              <div className="w-full max-w-sm relative rounded-xl border border-navy-600 bg-navy-700 p-6 flex flex-col items-center justify-center hover:border-blue-300 transition-colors shadow-sm mb-6">
+              <div className="w-full max-w-md relative rounded-2xl border border-navy-600 bg-navy-700 p-8 flex flex-col items-center justify-center shadow-xl mb-6">
                 <Speedometer
                   percentage={leadingOption.pct}
                   label={`Leading: ${leadingOption.text}`}
-                  color={leadingOption.isCorrect ? 'green' : 'green'} // Keep leading as green for "leading" context
                   size="lg"
                 />
                 <p className="mt-4 text-sm text-gray-500">
-                  <span className="font-semibold text-white">{leadingOption.commitCount}</span> commitment{leadingOption.commitCount !== 1 ? 's' : ''} ({leadingOption.pct}%)
+                  <span className="font-semibold text-white">{leadingOption.commitCount}</span> forecasters ({leadingOption.pct}%)
                 </p>
               </div>
 
               {otherOptions.length > 0 && (
-                <div className="w-full max-w-sm space-y-2">
+                <div className="w-full max-w-md space-y-2">
                   <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest text-center mb-3">Other Options</h4>
-                  <div className="bg-navy-800/50 rounded-xl border border-navy-600 p-3 divide-y divide-gray-100">
+                  <div className="bg-navy-800/50 rounded-xl border border-navy-600 p-3 divide-y divide-navy-600">
                     {otherOptions.map(option => (
                       <div key={option.id} className="flex items-center justify-between py-2 text-sm">
                         <span className="text-text-secondary font-medium truncate pr-4">{option.text}</span>
@@ -503,35 +567,6 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
             </div>
           )
         })()}
-      </div>
-
-      {/* Commit Form — mobile only (desktop renders in right column) */}
-      <div className="xl:hidden mb-8 p-5 border border-navy-600 rounded-xl bg-navy-700 shadow-sm space-y-6">
-        <CUBalanceIndicator
-          cuAvailable={session?.user?.cuAvailable ?? 0}
-          cuLocked={session?.user?.cuLocked ?? 0}
-        />
-        <CommitmentForm
-          prediction={prediction as any}
-          existingCommitment={prediction.userCommitment}
-          userCuAvailable={session?.user?.cuAvailable ?? 0}
-          onSuccess={async () => {
-            const updated = await fetch(`/api/forecasts/${id}`).then(r => r.json())
-            setPrediction(updated)
-            router.refresh()
-          }}
-        />
-        {prediction.userCommitment && (
-          <CommitmentDisplay
-            commitment={prediction.userCommitment as any}
-            prediction={prediction}
-            onRemove={async () => {
-              const updated = await fetch(`/api/forecasts/${id}`).then(r => r.json())
-              setPrediction(updated)
-              router.refresh()
-            }}
-          />
-        )}
       </div>
 
       {/* Resolution Info (if resolved) */}
@@ -637,12 +672,12 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
 
       {/* Commitments List */}
       {prediction.commitments.length > 0 && (
-        <div>
+        <div className="mt-12">
           <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <Users className="w-5 h-5" />
-            All Commitments
+            Forecasts History
           </h2>
-          <div className="border border-navy-600 rounded-lg divide-y divide-gray-100">
+          <div className="border border-navy-600 rounded-lg divide-y divide-navy-600">
             {prediction.commitments.map((commitment) => (
               <div key={commitment.id} className="p-4 flex items-center justify-between">
                 <UserLink
@@ -664,7 +699,9 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
                   </div>
                 </UserLink>
                 <div className="text-right">
-                  <div className="font-semibold text-blue-600">{commitment.cuCommitted} CU</div>
+                  <div className="font-semibold text-gray-400">
+                    {(commitment as any).probability ? `${Math.round((commitment as any).probability * 100)}%` : ''}
+                  </div>
                 </div>
               </div>
             ))}
@@ -713,33 +750,24 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
             isMounted={isMounted}
           />
           
-          <div className="p-5 border border-navy-600 rounded-xl bg-navy-700 shadow-sm space-y-6">
-            <CUBalanceIndicator 
-              cuAvailable={session?.user?.cuAvailable ?? 0} 
-              cuLocked={session?.user?.cuLocked ?? 0} 
-            />
-            <CommitmentForm 
-              prediction={prediction as any}
-              existingCommitment={prediction.userCommitment}
-              userCuAvailable={session?.user?.cuAvailable ?? 0}
-              onSuccess={async () => {
-                const updated = await fetch(`/api/forecasts/${id}`).then(r => r.json())
-                setPrediction(updated)
-                router.refresh()
-              }}
+          <div className="p-6 border border-navy-600 rounded-2xl bg-navy-700 shadow-xl">
+            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Your Forecast</h3>
+            <ConfidenceSlider
+              value={userConfidence}
+              onChange={setUserConfidence}
+              onCommit={handleCommitConfidence}
+              isSubmitting={isSubmitting}
+              disabled={prediction.status !== 'ACTIVE'}
             />
           </div>
           
           {prediction.userCommitment && (
-            <CommitmentDisplay 
-              commitment={prediction.userCommitment as any} 
-              prediction={prediction}
-              onRemove={async () => {
-                const updated = await fetch(`/api/forecasts/${id}`).then(r => r.json())
-                setPrediction(updated)
-                router.refresh()
-              }}
-            />
+            <div className="p-4 bg-teal/5 border border-teal/20 rounded-xl">
+              <p className="text-xs font-bold text-teal uppercase tracking-widest flex items-center gap-2">
+                <CheckCircle2 className="w-3 h-3" />
+                You have committed
+              </p>
+            </div>
           )}
         </div>
       </div>

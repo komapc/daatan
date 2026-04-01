@@ -710,9 +710,9 @@ function EditBotModal({ bot, allTags, onSave, onClose }: {
               onChange={(v) => setForm({ ...form, maxForecastsPerDay: v })} />
             <NumberField label="Max votes/day" value={form.maxVotesPerDay} min={0}
               onChange={(v) => setForm({ ...form, maxVotesPerDay: v })} />
-            <NumberField label="Stake min (CU)" value={form.stakeMin} min={1}
+            <NumberField label="Stake min (Confidence)" value={form.stakeMin} min={1}
               onChange={(v) => setForm({ ...form, stakeMin: v })} />
-            <NumberField label="Stake max (CU)" value={form.stakeMax} min={1}
+            <NumberField label="Stake max (Confidence)" value={form.stakeMax} min={1}
               onChange={(v) => setForm({ ...form, stakeMax: v })} />
             <NumberField label="Min sources (hotness)" value={form.hotnessMinSources} min={1}
               onChange={(v) => setForm({ ...form, hotnessMinSources: v })} />
@@ -854,11 +854,11 @@ function EditBotModal({ bot, allTags, onSave, onClose }: {
           </div>
 
           <div className="border rounded-lg p-3 space-y-3 bg-navy-800">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">CU Auto-Refill</p>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Confidence Auto-Refill</p>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <NumberField
-                  label="Refill threshold (CU)"
+                  label="Refill threshold"
                   value={form.cuRefillAt}
                   min={0}
                   onChange={(v) => setForm({ ...form, cuRefillAt: v })}
@@ -868,14 +868,14 @@ function EditBotModal({ bot, allTags, onSave, onClose }: {
                 )}
               </div>
               <NumberField
-                label="Refill amount (CU)"
+                label="Refill amount"
                 value={form.cuRefillAmount}
                 min={1}
                 onChange={(v) => setForm({ ...form, cuRefillAmount: v })}
               />
             </div>
             <p className="text-xs text-gray-400">
-              When bot&apos;s CU balance drops to or below the threshold, grant the refill amount automatically before the next stake.
+              When bot&apos;s Confidence points drop to or below the threshold, grant the refill amount automatically before the next stake.
             </p>
           </div>
 

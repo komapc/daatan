@@ -527,7 +527,7 @@ function UsersTab() {
                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">User</th>
                     <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Roles</th>
                     <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">RS</th>
-                    <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">CU</th>
+                    <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Confidence</th>
                     <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Activity</th>
                     <th className="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase">Joined</th>
                     <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Actions</th>
@@ -575,7 +575,7 @@ function UsersTab() {
                       </td>
                       <td className="px-4 py-3 text-center font-medium text-text-secondary">{u.rs.toFixed(1)}</td>
                       <td className="px-4 py-3 text-center text-gray-600">
-                        {u.cuAvailable} / {u.cuAvailable + u.cuLocked}
+                        {u.cuAvailable}
                       </td>
                       <td className="px-4 py-3 text-center">
                         <div className="text-xs text-gray-500">
