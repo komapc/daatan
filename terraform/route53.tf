@@ -59,6 +59,15 @@ resource "aws_route53_record" "staging" {
   records = [aws_eip.staging.public_ip]
 }
 
+# Next testbed subdomain A record pointing to staging instance
+resource "aws_route53_record" "next" {
+  zone_id = aws_route53_zone.main.zone_id
+  name    = "next.${var.domain_name}"
+  type    = "A"
+  ttl     = 60
+  records = [aws_eip.staging.public_ip]
+}
+
 # Google Site Verification and SPF TXT record
 resource "aws_route53_record" "google_verification" {
   zone_id = aws_route53_zone.main.zone_id
