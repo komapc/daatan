@@ -512,8 +512,8 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
                   )}
                 </div>
 
-                {/* New Confidence Slider Integration (Mobile) */}
-                <div className="w-full mt-10 xl:hidden">
+                {/* Confidence Slider Integration (Desktop & Mobile) */}
+                <div className="w-full mt-10">
                   <ConfidenceSlider
                     value={userConfidence}
                     onChange={setUserConfidence}
@@ -749,17 +749,6 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
             prediction={prediction}
             isMounted={isMounted}
           />
-          
-          <div className="p-6 border border-navy-600 rounded-2xl bg-navy-700 shadow-xl">
-            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Your Forecast</h3>
-            <ConfidenceSlider
-              value={userConfidence}
-              onChange={setUserConfidence}
-              onCommit={handleCommitConfidence}
-              isSubmitting={isSubmitting}
-              disabled={prediction.status !== 'ACTIVE'}
-            />
-          </div>
           
           {prediction.userCommitment && (
             <div className="p-4 bg-teal/5 border border-teal/20 rounded-xl">
