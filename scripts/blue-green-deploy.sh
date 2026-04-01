@@ -198,11 +198,15 @@ docker rm -f $CONTAINER_NEW 2>/dev/null || true
 if [ "${SKIP_BUILD}" == "true" ]; then
     if [ "$ENVIRONMENT" = "staging" ]; then
         IMAGE_NAME="daatan-app:staging-latest"
+    elif [ "$ENVIRONMENT" = "next" ]; then
+        IMAGE_NAME="daatan-app:next-latest"
     else
         IMAGE_NAME="daatan-app:latest"
     fi
 elif [ "$ENVIRONMENT" = "staging" ]; then
     IMAGE_NAME="daatan-app:staging-${DEPLOY_ID}"
+elif [ "$ENVIRONMENT" = "next" ]; then
+    IMAGE_NAME="daatan-app:next-${DEPLOY_ID}"
 else
     IMAGE_NAME="daatan-app:latest"
 fi
