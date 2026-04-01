@@ -1,0 +1,73 @@
+name: Deploy to Next (Testbed)
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to deploy'
+        required: true
+        default: 'main'
+
+jobs:
+  deploy:
+    name: Build & Deploy to Next
+    runs-on: ubuntu-latest
+    environment: staging # Uses staging secrets
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-central-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and Push Docker Image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: next-${{ github.run_id }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL_STAGING }}
+        run: |
+          docker build \
+            --build-arg DATABASE_URL=$DATABASE_URL \
+            --build-arg NEXTAUTH_URL=https://next.daatan.com \
+            --build-arg NEXT_PUBLIC_ENV=staging \
+            --build-arg GIT_COMMIT=${{ github.sha }} \
+            --build-arg BUILD_TIMESTAMP=$(date +%s) \
+            -t $ECR_REGISTRY/daatan-app:$IMAGE_TAG \
+            -t $ECR_REGISTRY/daatan-app:next-latest .
+          docker push $ECR_REGISTRY/daatan-app:$IMAGE_TAG
+          docker push $ECR_REGISTRY/daatan-app:next-latest
+
+      - name: Deploy to EC2 (Next Slot)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.STAGING_SSH_HOST }}
+          username: ubuntu
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          envs: ECR_REGISTRY,IMAGE_TAG
+          script: |
+            export ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
+            export IMAGE_TAG=next-${{ github.run_id }}
+            export SKIP_BUILD=true
+            cd ~/app
+            git pull origin main # Ensure scripts are up to date
+            ./scripts/blue-green-deploy.sh next

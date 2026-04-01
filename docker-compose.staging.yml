@@ -72,6 +72,48 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  app-next:
+    image: ${ECR_REGISTRY:-272007598366.dkr.ecr.eu-central-1.amazonaws.com}/daatan-app:next-latest
+    container_name: daatan-app-next
+    restart: unless-stopped
+    expose:
+      - "3000"
+    environment:
+      - NODE_ENV=production
+      - APP_ENV=next
+      - DATABASE_URL=postgresql://daatan:${POSTGRES_PASSWORD}@postgres-staging:5432/daatan_staging
+      - NEXT_PUBLIC_ENV=staging
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NEXTAUTH_URL=https://next.daatan.com
+      - AUTH_TRUST_HOST=true
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - SERPER_API_KEY=${SERPER_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GA_MEASUREMENT_ID=${GA_MEASUREMENT_ID_STAGING}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+      - BOT_RUNNER_SECRET=${BOT_RUNNER_SECRET}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - MAX_BOTS=${MAX_BOTS:-50}
+      - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY}
+      - NEXT_PUBLIC_VAPID_PUBLIC_KEY=${NEXT_PUBLIC_VAPID_PUBLIC_KEY}
+      - APP_VERSION=${APP_VERSION:-0.1.19}
+    depends_on:
+      postgres-staging:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   postgres-staging:
     image: postgres:16-alpine
     container_name: daatan-postgres-staging
