@@ -111,33 +111,44 @@ export default function Speedometer({
         <path d={greenArc} fill="none" stroke={`url(#${theme.greenGradientId})`} strokeWidth={strokeWidth} strokeLinecap="round" />
         <path d={redArc} fill="none" stroke={`url(#${theme.redGradientId})`} strokeWidth={strokeWidth} strokeLinecap="round" />
 
-        {/* AI Prediction Mark */}
+        {/* AI Prediction Mark (Circle) */}
         {aiPercentage !== undefined && (() => {
           const angleDeg = 180 + (aiPercentage / 100) * 180
           const angleRad = (angleDeg * Math.PI) / 180
-          const x1 = center.x + (radius - strokeWidth/2 - 2) * Math.cos(angleRad)
-          const y1 = center.y + (radius - strokeWidth/2 - 2) * Math.sin(angleRad)
-          const x2 = center.x + (radius + strokeWidth/2 + 2) * Math.cos(angleRad)
-          const y2 = center.y + (radius + strokeWidth/2 + 2) * Math.sin(angleRad)
+          const cx = center.x + radius * Math.cos(angleRad)
+          const cy = center.y + radius * Math.sin(angleRad)
           return (
-            <line 
-              x1={x1} y1={y1} x2={x2} y2={y2} 
-              stroke={theme.needleAI} 
-              strokeWidth="3" 
-              strokeLinecap="round"
+            <circle
+              cx={cx}
+              cy={cy}
+              r={strokeWidth / 2 + 1}
+              fill={theme.needleAI}
+              stroke={theme.grayBackground}
+              strokeWidth="2"
               filter={`url(#${theme.shadowId})`}
             />
           )
         })()}
 
-        {/* Market Needle (Thin) */}
-        <path
-          d={getNeedlePath(safeMarketPct, needleBase)}
-          fill={theme.needleMarket}
-          filter={`url(#${theme.shadowId})`}
-          className="transition-all duration-700 ease-in-out"
-          opacity="0.8"
-        />
+        {/* Market Mark (Circle instead of Needle) */}
+        {(() => {
+          const angleDeg = 180 + (safeMarketPct / 100) * 180
+          const angleRad = (angleDeg * Math.PI) / 180
+          const cx = center.x + radius * Math.cos(angleRad)
+          const cy = center.y + radius * Math.sin(angleRad)
+          return (
+            <circle
+              cx={cx}
+              cy={cy}
+              r={strokeWidth / 2 - 1}
+              fill={theme.needleMarket}
+              stroke={theme.grayBackground}
+              strokeWidth="1.5"
+              filter={`url(#${theme.shadowId})`}
+              className="transition-all duration-700 ease-in-out"
+            />
+          )
+        })()}
 
         {/* User Needle (Thick) */}
         {userPercentage !== undefined && (

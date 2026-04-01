@@ -170,6 +170,32 @@ git push origin main
 - [ ] Deployment step started
 - [ ] Bedrock prompts promoted to correct environment via `promote-prompt.sh`
 
+### 1b. NEXT Testbed Deployment (Manual)
+
+**Trigger:** Manual via GitHub Actions (`Deploy to Next (Testbed)`)
+
+```bash
+# Deploy any branch to NEXT for preview
+gh workflow run "Deploy to Next (Testbed)" -f branch=feat/my-feature
+```
+
+**What happens:**
+- Builds and pushes a branch-specific image to ECR
+- Deploys to the `daatan-app-next` container via SSM
+- Uses the staging database for real-world testing
+
+**Characteristics:**
+- Preview experimental branches before merging to main
+- Accessible via https://next.daatan.com
+- Does not affect the standard staging environment
+
+**Checklist:**
+- [ ] Workflow triggered manually
+- [ ] Correct branch selected
+- [ ] Build and Push step successful
+- [ ] Deployment to Next slot complete
+- [ ] Health check at next.daatan.com passed
+
 ### 2. Blue-Green Deployment (Zero Downtime)
 
 **Use when:** You need zero-downtime deployment with instant rollback
