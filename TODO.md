@@ -20,6 +20,8 @@
     - [ ] Verify full CI/CD pipeline (Build, Test, Deploy) on Node.js 24 environment.
 
 ### Features & UX
+- [ ] **Rename user** — allow users to change their display name / username.
+- [ ] **Delete account (right to be forgotten)** — allow users to permanently delete their account and all associated personal data (GDPR compliance).
 - [ ] **Unlimited CU mode** — allow users (or specific roles) to commit without CU balance constraints; useful for power users, admins, or a premium tier.
 - [ ] **Fix "Won't Happen" button visual bug** — visual issue with the "Won't Happen" commitment button; investigate and fix display.
 
