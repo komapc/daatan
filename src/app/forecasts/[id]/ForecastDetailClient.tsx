@@ -476,6 +476,14 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
         )}
       </div>
 
+      {/* Situation Context / Timeline */}
+      <ContextTimeline
+        predictionId={prediction.id}
+        initialContext={prediction.detailsText}
+        initialContextUpdatedAt={prediction.contextUpdatedAt}
+        canAnalyze={session?.user?.role === 'ADMIN' || session?.user?.role === 'RESOLVER'}
+      />
+
       {/* Probability Display (Interactive Gauge) */}
       <div className="mb-12">
         {prediction.outcomeType === 'BINARY' && (() => {
