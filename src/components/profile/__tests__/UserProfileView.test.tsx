@@ -75,7 +75,6 @@ describe('UserProfileView Component', () => {
     expect(screen.getByText('Test User')).toBeInTheDocument()
     expect(screen.getByText('@testuser')).toBeInTheDocument()
     expect(screen.getByText('150.5')).toBeInTheDocument() // RS
-    expect(screen.getByText('500')).toBeInTheDocument() // CU
     expect(screen.getByText('0.123')).toBeInTheDocument() // Brier
   })
 
@@ -122,6 +121,6 @@ describe('UserProfileView Component', () => {
 
     expect(screen.getByText('Forecast 1')).toBeInTheDocument()
     expect(screen.getByText('Forecast 2')).toBeInTheDocument()
-    expect(screen.getByText('staked 100 CU')).toBeInTheDocument()
+    expect(screen.getByText('staked')).toBeInTheDocument()
   })
 })

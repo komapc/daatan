@@ -30,7 +30,7 @@
   },
   "feed": {
     "title": "Forecasts",
-    "discover": "Discover active predictions and commit your CU",
+    "discover": "Discover active predictions and share your confidence",
     "newForecast": "New Forecast",
     "filters": {
       "open": "Open",
@@ -84,7 +84,7 @@
     "unresolvable": "Unresolvable",
     "willHappen": "Will happen",
     "wontHappen": "Won't happen",
-    "commitCU": "Commit CU",
+    "commitCU": "Commit Forecast",
     "resolveBy": "Resolve by",
     "deadline": "Deadline",
     "locked": "Locked",
@@ -157,7 +157,7 @@
     "accuracy": "Accuracy",
     "total": "Total",
     "pending": "pending",
-    "netCu": "Net CU",
+    "netCu": "Accuracy Result",
     "rsChange": "RS Change",
     "correct": "Correct",
     "wrong": "Wrong",
@@ -183,24 +183,22 @@
       "reputation": "Reputation",
       "accuracy": "Accuracy",
       "mostCorrect": "Most Correct",
-      "cuCommitted": "Most CU Committed",
+      "cuCommitted": "Most Confident",
       "brierScore": "Brier Score"
     },
     "legend": {
       "rsTitle": "Reputation Score (RS)",
       "rsDesc": "Reputation is earned by making correct predictions weighted by your confidence. Higher RS means more consistent accuracy.",
-      "cuTitle": "Confidence Units (CU)",
-      "cuDesc": "CU represent how much you stake on each prediction. Correct calls return CU + bonus; wrong calls lose CU.",
-      "brierTitle": "Brier Score",
+      "cuTitle": "Confidence",
+      "cuDesc": "Confidence represents your intensity/conviction on each prediction. Correct calls increase your reputation; wrong calls decrease it.",      "brierTitle": "Brier Score",
       "brierDesc": "Lower is better. Measures calibration: (your probability − actual outcome)². Perfect score = 0."
     }
   },
   "activity": {
     "title": "Activity Feed",
-    "subtitle": "Recent commitments across all forecasts",
-    "committed": "committed",
-    "cuOn": "CU on",
-    "noActivity": "No activity yet",
+    "subtitle": "Recent forecasts across all predictions",
+    "committed": "forecasted",
+    "cuOn": "Confidence on",    "noActivity": "No activity yet",
     "willHappen": "Will happen",
     "wontHappen": "Won't happen"
   },

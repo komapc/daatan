@@ -1,23 +1,24 @@
 import { useMemo } from 'react'
 
 interface SpeedometerProps {
-  percentage: number
-  label: string
-  color: 'green' | 'red'
+  percentage?: number // Market average (default needle)
+  userPercentage?: number // Thick interactive needle
+  aiPercentage?: number // AI mark
+  label?: string
+  color?: 'green' | 'red'
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 }
 
 export default function Speedometer({
-  percentage,
+  percentage = 50,
+  userPercentage,
+  aiPercentage,
   label,
-  color,
+  color = 'green',
   size = 'md',
 }: SpeedometerProps) {
-  // Clamp percentage between 0 and 100. Handle NaN as 50 (or 0) to avoid SVG errors.
-  const safePercentage = isNaN(percentage) ? 50 : percentage
-  const clampedPercentage = Math.min(100, Math.max(0, safePercentage))
-
-  // ∩-shape speedometer: height is roughly radius + top/bottom padding
+  const safeMarketPct = isNaN(percentage) ? 50 : Math.min(100, Math.max(0, percentage))
+  
   const sizes = {
     xs: { width: 64, height: 40, strokeWidth: 4, fontSize: '10px', needleBase: 3.5, pivotRadius: 2.5 },
     sm: { width: 120, height: 72, strokeWidth: 5, fontSize: '12px', needleBase: 5, pivotRadius: 3.5 },
@@ -28,35 +29,34 @@ export default function Speedometer({
 
   const { width, height, strokeWidth, fontSize, needleBase, pivotRadius } = sizes[size]
 
-  // Center at bottom: arc arches upward (∩ shape)
   const bottomPad = strokeWidth + pivotRadius + 4
   const topPad = strokeWidth + 4
   const radius = Math.min(width / 2 - strokeWidth - 4, height - topPad - bottomPad)
   const center = { x: width / 2, y: height - bottomPad }
 
-  // ∩-shape needle: 0% → 180° (9 o'clock), 50% → 270° (12 o'clock), 100% → 360° (3 o'clock)
-  const needleAngleDeg = 180 + (clampedPercentage / 100) * 180
-  const needleAngleRad = (needleAngleDeg * Math.PI) / 180
-  const needleLength = radius - 2
+  const getNeedlePath = (pct: number, baseWidth: number, isThick: boolean = false) => {
+    const angleDeg = 180 + (pct / 100) * 180
+    const angleRad = (angleDeg * Math.PI) / 180
+    const length = isThick ? radius - 4 : radius - 2
+    
+    const perpAngleLeft = ((angleDeg + 90) * Math.PI) / 180
+    const perpAngleRight = ((angleDeg - 90) * Math.PI) / 180
 
-  // Tapered needle: perpendicular offsets from the needle direction
-  const perpAngleLeft = ((needleAngleDeg + 90) * Math.PI) / 180
-  const perpAngleRight = ((needleAngleDeg - 90) * Math.PI) / 180
+    const bLeft = {
+      x: center.x + (baseWidth / 2) * Math.cos(perpAngleLeft),
+      y: center.y + (baseWidth / 2) * Math.sin(perpAngleLeft),
+    }
+    const bRight = {
+      x: center.x + (baseWidth / 2) * Math.cos(perpAngleRight),
+      y: center.y + (baseWidth / 2) * Math.sin(perpAngleRight),
+    }
+    const tip = {
+      x: center.x + length * Math.cos(angleRad),
+      y: center.y + length * Math.sin(angleRad),
+    }
 
-  const baseLeft = {
-    x: center.x + (needleBase / 2) * Math.cos(perpAngleLeft),
-    y: center.y + (needleBase / 2) * Math.sin(perpAngleLeft),
+    return `M ${bLeft.x} ${bLeft.y} L ${tip.x} ${tip.y} L ${bRight.x} ${bRight.y} Z`
   }
-  const baseRight = {
-    x: center.x + (needleBase / 2) * Math.cos(perpAngleRight),
-    y: center.y + (needleBase / 2) * Math.sin(perpAngleRight),
-  }
-  const tip = {
-    x: center.x + needleLength * Math.cos(needleAngleRad),
-    y: center.y + needleLength * Math.sin(needleAngleRad),
-  }
-
-  const needlePath = `M ${baseLeft.x} ${baseLeft.y} L ${tip.x} ${tip.y} L ${baseRight.x} ${baseRight.y} Z`
 
   const theme = useMemo(() => {
     return {
@@ -71,16 +71,16 @@ export default function Speedometer({
       redMiddle: 'hsl(0, 72%, 55%)',
       redEnd: 'hsl(0, 84%, 44%)',
       grayBackground: '#1C3A5A',
-      needle: '#A0AEC0',
+      needleMarket: '#A0AEC0',
+      needleUser: '#3B82F6', // Blue-500
+      needleAI: '#FBBF24', // Amber-400
       text: '#E6E9EF',
     }
   }, [size])
 
-  // ∩-shape arcs: all use angles in [180°, 360°] going counter-clockwise (through 12 o'clock)
-  // Using 360 instead of 0 ensures angleDiff > 0 → sweepFlag=0 (counter-clockwise = ∩)
   const backgroundArc = createArcPath(center, radius, 180, 360)
-  const greenArc = createArcPath(center, radius, 180, needleAngleDeg)
-  const redArc = createArcPath(center, radius, needleAngleDeg, 360)
+  const greenArc = createArcPath(center, radius, 180, 270) // Left half
+  const redArc = createArcPath(center, radius, 270, 360) // Right half
 
   return (
     <div className="flex flex-col items-center">
@@ -88,146 +88,101 @@ export default function Speedometer({
         width={width}
         height={height}
         viewBox={`0 0 ${width} ${height}`}
-        aria-label={`${label}: ${clampedPercentage}%`}
+        className="overflow-visible"
       >
         <defs>
           <linearGradient id={theme.greenGradientId} x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor={theme.greenStart} />
-            <stop offset="50%" stopColor={theme.greenMiddle} />
-            <stop offset="100%" stopColor={theme.greenEnd} />
+            <stop offset="100%" stopColor={theme.greenMiddle} />
           </linearGradient>
-
           <linearGradient id={theme.redGradientId} x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor={theme.redStart} />
-            <stop offset="50%" stopColor={theme.redMiddle} />
+            <stop offset="0%" stopColor={theme.redMiddle} />
             <stop offset="100%" stopColor={theme.redEnd} />
           </linearGradient>
-
-          <radialGradient id={theme.pivotGradientId} cx="35%" cy="35%" r="65%">
-            <stop offset="0%" stopColor="#A0AEC088" />
-            <stop offset="70%" stopColor="#A0AEC033" />
-            <stop offset="100%" stopColor={theme.needle} />
-          </radialGradient>
-
           <filter id={theme.shadowId} x="-30%" y="-30%" width="160%" height="160%">
             <feDropShadow dx="0" dy="1" stdDeviation="0.5" floodOpacity="0.25" />
           </filter>
         </defs>
 
-        {/* Gray background track */}
-        <path
-          d={backgroundArc}
-          fill="none"
-          stroke={theme.grayBackground}
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-        />
+        {/* Background track */}
+        <path d={backgroundArc} fill="none" stroke={theme.grayBackground} strokeWidth={strokeWidth} strokeLinecap="round" />
 
-        {/* Green arc — Yes/Will Happen region (left side, 9→12 o'clock) */}
+        {/* Arcs */}
+        <path d={greenArc} fill="none" stroke={`url(#${theme.greenGradientId})`} strokeWidth={strokeWidth} strokeLinecap="round" />
+        <path d={redArc} fill="none" stroke={`url(#${theme.redGradientId})`} strokeWidth={strokeWidth} strokeLinecap="round" />
+
+        {/* AI Prediction Mark */}
+        {aiPercentage !== undefined && (() => {
+          const angleDeg = 180 + (aiPercentage / 100) * 180
+          const angleRad = (angleDeg * Math.PI) / 180
+          const x1 = center.x + (radius - strokeWidth/2 - 2) * Math.cos(angleRad)
+          const y1 = center.y + (radius - strokeWidth/2 - 2) * Math.sin(angleRad)
+          const x2 = center.x + (radius + strokeWidth/2 + 2) * Math.cos(angleRad)
+          const y2 = center.y + (radius + strokeWidth/2 + 2) * Math.sin(angleRad)
+          return (
+            <line 
+              x1={x1} y1={y1} x2={x2} y2={y2} 
+              stroke={theme.needleAI} 
+              strokeWidth="3" 
+              strokeLinecap="round"
+              filter={`url(#${theme.shadowId})`}
+            />
+          )
+        })()}
+
+        {/* Market Needle (Thin) */}
         <path
-          d={greenArc}
-          fill="none"
-          stroke={`url(#${theme.greenGradientId})`}
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
+          d={getNeedlePath(safeMarketPct, needleBase)}
+          fill={theme.needleMarket}
           filter={`url(#${theme.shadowId})`}
           className="transition-all duration-700 ease-in-out"
+          opacity="0.8"
         />
 
-        {/* Red arc — No/Won't Happen region (right side, 12→3 o'clock) */}
-        <path
-          d={redArc}
-          fill="none"
-          stroke={`url(#${theme.redGradientId})`}
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-          filter={`url(#${theme.shadowId})`}
-          className="transition-all duration-700 ease-in-out"
-        />
+        {/* User Needle (Thick) */}
+        {userPercentage !== undefined && (
+          <path
+            d={getNeedlePath(userPercentage, needleBase * 2, true)}
+            fill={theme.needleUser}
+            filter={`url(#${theme.shadowId})`}
+            className="transition-all duration-150 ease-out"
+          />
+        )}
 
-        {/* Tapered needle */}
-        <path
-          d={needlePath}
-          fill={theme.needle}
-          filter={`url(#${theme.shadowId})`}
-          className="transition-all duration-700 ease-in-out"
-        />
+        {/* Pivot */}
+        <circle cx={center.x} cy={center.y} r={pivotRadius} fill={theme.grayBackground} stroke={theme.needleMarket} strokeWidth="1" />
 
-        {/* Pivot point */}
-        <circle
-          cx={center.x}
-          cy={center.y}
-          r={pivotRadius}
-          fill={`url(#${theme.pivotGradientId})`}
-          stroke={theme.needle}
-          strokeWidth="0.5"
-        />
-
-        {/* Percentage value — centered inside the arch */}
+        {/* Display Text */}
         <text
           x={center.x}
           y={center.y - radius * 0.42}
           textAnchor="middle"
           dominantBaseline="middle"
-          className="font-black transition-all duration-500"
-          style={{
-            fontSize,
-            fill: theme.text,
-            fontVariantNumeric: 'tabular-nums',
-            letterSpacing: '-0.03em',
-          }}
+          className="font-black"
+          style={{ fontSize, fill: theme.text }}
         >
-          {Math.round(clampedPercentage)}%
+          {userPercentage !== undefined ? Math.round(userPercentage) : Math.round(safeMarketPct)}%
         </text>
       </svg>
 
-      <span className="mt-1 text-[10px] sm:text-[11px] md:text-xs font-bold uppercase tracking-[0.15em] text-text-secondary text-center px-4 leading-tight">
-        {label}
-      </span>
+      {label && (
+        <span className="mt-1 text-[10px] font-bold uppercase tracking-widest text-text-secondary text-center px-4">
+          {label}
+        </span>
+      )}
     </div>
   )
 }
 
-/**
- * Create an SVG arc path from startAngle to endAngle.
- * Angles in degrees: 0°/360° = right (3 o'clock), 90° = down, 180° = left (9 o'clock), 270° = up (12 o'clock)
- *
- * For the ∩-shape speedometer all angles are in [180°, 360°]:
- *   angleDiff > 0 → sweepFlag=0 (counter-clockwise in SVG = arches upward through 270°)
- */
-function createArcPath(
-  center: { x: number; y: number },
-  radius: number,
-  startAngle: number,
-  endAngle: number
-): string {
+function createArcPath(center: { x: number; y: number }, radius: number, startAngle: number, endAngle: number): string {
   if (Math.abs(startAngle - endAngle) < 0.5) return ''
-
   const start = polarToCartesian(center.x, center.y, radius, startAngle)
   const end = polarToCartesian(center.x, center.y, radius, endAngle)
-
-  const angleDiff = endAngle - startAngle
-  // sweepFlag=1 = positive-angle / clockwise on screen (SVG Y-down flips CCW↔CW).
-  // For [180°,360°]: increasing θ goes 180°→270°(UP)→360° = ∩ shape.
-  const largeArcFlag = Math.abs(angleDiff) > 180 ? 1 : 0
-  const sweepFlag = angleDiff > 0 ? 1 : 0
-
-  return ['M', start.x, start.y, 'A', radius, radius, 0, largeArcFlag, sweepFlag, end.x, end.y].join(' ')
+  const sweepFlag = endAngle > startAngle ? 1 : 0
+  return ['M', start.x, start.y, 'A', radius, radius, 0, 0, sweepFlag, end.x, end.y].join(' ')
 }
 
-/**
- * Convert polar coordinates (angle in degrees) to Cartesian (x, y).
- * Standard SVG: 0° = right, 90° = down, 180° = left, 270° = up
- */
-function polarToCartesian(
-  centerX: number,
-  centerY: number,
-  radius: number,
-  angleInDegrees: number
-): { x: number; y: number } {
+function polarToCartesian(centerX: number, centerY: number, radius: number, angleInDegrees: number): { x: number; y: number } {
   const angleInRadians = (angleInDegrees * Math.PI) / 180
-  return {
-    x: centerX + radius * Math.cos(angleInRadians),
-    y: centerY + radius * Math.sin(angleInRadians),
-  }
+  return { x: centerX + radius * Math.cos(angleInRadians), y: centerY + radius * Math.sin(angleInRadians) }
 }

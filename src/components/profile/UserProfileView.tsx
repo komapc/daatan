@@ -127,15 +127,6 @@ export async function UserProfileView({
           </div>
 
           <div className="flex flex-row md:flex-col gap-4 w-full md:w-auto">
-            {isOwnProfile && (
-              <div className="flex-1 bg-blue-600 text-white p-6 rounded-3xl shadow-lg shadow-blue-100 text-center">
-                <div className="flex items-center justify-center gap-2 mb-1">
-                  <Wallet className="w-4 h-4 text-blue-200" />
-                  <span className="text-xs font-bold uppercase tracking-widest text-blue-100">{t('balance')}</span>
-                </div>
-                <p className="text-3xl font-black">{user.cuAvailable} <span className="text-xl font-medium">CU</span></p>
-              </div>
-            )}
             <div className="flex-1 bg-gray-900 text-white p-6 rounded-3xl shadow-lg shadow-gray-200 text-center">
               <div className="flex items-center justify-center gap-2 mb-1">
                 <TrendingUp className="w-4 h-4 text-green-400" />
@@ -170,8 +161,8 @@ export async function UserProfileView({
                 <div key={commitment.id} className="relative group">
                   <ForecastCard prediction={commitment.prediction as Prediction} />
                   <div className="absolute top-4 right-12 flex items-center gap-2 px-3 py-1 bg-blue-600 text-white text-[10px] font-black uppercase tracking-wider rounded-full shadow-md transform translate-x-4 -translate-y-2">
-                    <Wallet className="w-3 h-3" />
-                    {t('staked')} {commitment.cuCommitted} CU
+                    <TrendingUp className="w-3 h-3" />
+                    {t('staked')}
                   </div>
                 </div>
               ))
