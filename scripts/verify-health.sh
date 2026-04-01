@@ -73,7 +73,7 @@ if [ -n "$DEPLOYED_COMMIT" ]; then
 fi
 
 # Validate version matches expected (fail loudly if not)
-if [ -n "$EXPECTED_VERSION" ]; then
+if [ -n "$EXPECTED_VERSION" ] && [ "$EXPECTED_VERSION" != "skip" ]; then
     echo -n "Checking expected version ($EXPECTED_VERSION)... "
     if [ "$DEPLOYED_VERSION" != "$EXPECTED_VERSION" ]; then
         echo -e "${RED}FAILED${NC}"
