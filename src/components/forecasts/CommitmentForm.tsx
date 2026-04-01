@@ -234,9 +234,9 @@ export default function CommitmentForm({
                 type="button"
                 onClick={() => handleActionClick(true)}
                 disabled={isSubmitting || pendingOutcome !== null}
-                className={`flex-1 min-w-0 rounded-lg border px-3 py-2.5 text-sm font-semibold transition-all shadow-sm text-center whitespace-normal leading-tight ${isCurrentOutcome(true)
-                  ? 'bg-green-600 text-white border-green-700 hover:bg-green-700'
-                  : 'bg-navy-700 text-text-secondary border-gray-300 hover:bg-teal/10 hover:border-green-400 hover:text-teal'
+                className={`flex-1 min-w-0 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all shadow-sm text-center whitespace-normal leading-tight ${isCurrentOutcome(true)
+                  ? 'bg-green-600 text-white hover:bg-green-700'
+                  : 'bg-navy-700 text-text-secondary hover:bg-teal/10 hover:text-teal'
                   } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 {isSubmitting ? '...' : isUpdate ? (isCurrentOutcome(true) ? t('update') : t('willHappen')) : t('willHappen')}
@@ -245,9 +245,9 @@ export default function CommitmentForm({
                 type="button"
                 onClick={() => handleActionClick(false)}
                 disabled={isSubmitting || pendingOutcome !== null}
-                className={`flex-1 min-w-0 rounded-lg border px-3 py-2.5 text-sm font-semibold transition-all shadow-sm text-center whitespace-normal leading-tight ${isCurrentOutcome(false)
-                  ? 'bg-red-500 text-white border-red-600 hover:bg-red-600'
-                  : 'bg-navy-700 text-text-secondary border-gray-300 hover:bg-red-900/20 hover:border-red-400 hover:text-red-400'
+                className={`flex-1 min-w-0 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all shadow-sm text-center whitespace-normal leading-tight ${isCurrentOutcome(false)
+                  ? 'bg-red-500 text-white hover:bg-red-600'
+                  : 'bg-navy-700 text-text-secondary hover:bg-red-900/20 hover:text-red-400'
                   } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 {isSubmitting ? '...' : isUpdate ? (isCurrentOutcome(false) ? t('update') : t('wontHappen')) : t('wontHappen')}
@@ -261,9 +261,9 @@ export default function CommitmentForm({
                   type="button"
                   onClick={() => handleActionClick(option.id)}
                   disabled={isSubmitting || pendingOutcome !== null}
-                  className={`w-full text-left rounded-lg border px-4 py-3 text-sm font-medium transition-all shadow-sm flex items-center justify-between ${isCurrentOutcome(option.id)
-                    ? 'bg-blue-600 text-white border-blue-700 hover:bg-blue-700'
-                    : 'bg-navy-700 text-white border-gray-300 hover:bg-cobalt/10 hover:border-blue-400 hover:text-cobalt-light'
+                  className={`w-full text-left rounded-lg px-4 py-3 text-sm font-medium transition-all shadow-sm flex items-center justify-between ${isCurrentOutcome(option.id)
+                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                    : 'bg-navy-700 text-white hover:bg-cobalt/10 hover:text-cobalt-light'
                     } disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   <span>{option.text}</span>

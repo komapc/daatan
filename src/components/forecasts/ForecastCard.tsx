@@ -314,12 +314,50 @@ export default function ForecastCard({
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
-          {/* Header: Status & Category */}
-          <div className="flex items-center flex-wrap gap-2 mb-3">
+          {/* Header: Status, Confidence, Deadline */}
+          <div className="flex items-center flex-wrap gap-2 mb-4">
             <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider ${badge.className}`}>
               {badge.icon}
               {badge.label}
             </span>
+
+            {/* Resolve By Date (Deadline) - Moved to top */}
+            {(() => {
+              const daysUntil = Math.ceil((new Date(prediction.resolveByDatetime).getTime() - Date.now()) / 86400000)
+              const dateClass = prediction.status === 'ACTIVE'
+                ? daysUntil <= 3 ? 'text-red-500' : daysUntil <= 7 ? 'text-amber-500' : 'text-gray-400'
+                : 'text-gray-400'
+              return (
+                <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider border border-navy-600 bg-navy-800 ${dateClass}`}>
+                  <Calendar className="w-3 h-3" />
+                  <span suppressHydrationWarning>{formatDate(prediction.resolveByDatetime)}</span>
+                </div>
+              )
+            })()}
+
+            {/* Confidence Level (Speedometer) - Moved to top */}
+            {prediction.status === 'ACTIVE' && (
+              <div className="flex items-center">
+                {prediction._count.commitments > 0 && prediction.outcomeType === 'BINARY' && (
+                  <div className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider border border-navy-600 bg-navy-800 text-teal">
+                    <TrendingUp className="w-3 h-3" />
+                    <span>{Math.round(((prediction.yesCount || 0) / ((prediction.yesCount || 0) + (prediction.noCount || 0))) * 100)}%</span>
+                  </div>
+                )}
+                {prediction.outcomeType === 'MULTIPLE_CHOICE' && prediction.options && prediction.options.length > 0 && prediction._count.commitments > 0 && (() => {
+                  const sortedOptions = [...prediction.options].sort((a, b) => (b.commitmentsCount || 0) - (a.commitmentsCount || 0))
+                  const topOption = sortedOptions[0]
+                  const pct = Math.round(((topOption.commitmentsCount || 0) / prediction._count.commitments) * 100)
+                  return (
+                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider border border-navy-600 bg-navy-800 text-teal">
+                      <TrendingUp className="w-3 h-3" />
+                      <span>{pct}%</span>
+                    </div>
+                  )
+                })()}
+              </div>
+            )}
+
             {prediction.totalCuCommitted !== undefined && prediction.totalCuCommitted > 0 && (
               <span className="flex items-center gap-1 px-2.5 py-0.5 bg-amber-900/20 text-amber-400 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider border border-amber-100">
                 💰 {prediction.totalCuCommitted} CU
@@ -335,11 +373,6 @@ export default function ForecastCard({
                     {tag.name}
                   </span>
                 ))}
-                {prediction.tags.length > 2 && (
-                  <span className="px-2 py-0.5 bg-navy-800 text-gray-400 text-[10px] sm:text-xs font-medium rounded-full border border-navy-600">
-                    +{prediction.tags.length - 2}
-                  </span>
-                )}
               </>
             )}
             {prediction.isPublic === false && (
@@ -360,44 +393,13 @@ export default function ForecastCard({
                 {showTranslated ? 'Original' : 'Hebrew'}
               </button>
             )}
-            {isTranslating && (
-              <Loader2 className="w-3 h-3 animate-spin text-gray-400" />
-            )}
           </div>
 
-          {/* Claim Text + Mini Gauge */}
-          <div className="flex items-start gap-3 mb-3">
-            <h3 className="flex-1 text-base sm:text-lg font-semibold text-white group-hover:text-cobalt-light transition-colors line-clamp-2 leading-snug">
+          {/* Claim Text */}
+          <div className="flex items-start gap-3 mb-4">
+            <h3 className="flex-1 text-base sm:text-lg font-semibold text-white group-hover:text-cobalt-light transition-colors line-clamp-3 leading-snug">
               {showTranslated && translatedClaim ? translatedClaim : prediction.claimText}
             </h3>
-            {prediction.status === 'ACTIVE' && (
-              <div className="hidden sm:block flex-shrink-0">
-                {prediction._count.commitments === 0 ? (
-                  <div className="w-[120px] h-[72px] flex items-center justify-center rounded-lg bg-navy-800 border border-navy-600">
-                    <span className="text-xs text-gray-300 font-medium">—</span>
-                  </div>
-                ) : prediction.outcomeType === 'BINARY' ? (
-                  <Speedometer
-                    percentage={Math.round(((prediction.yesCount || 0) / ((prediction.yesCount || 0) + (prediction.noCount || 0))) * 100)}
-                    label=""
-                    color="green"
-                    size="sm"
-                  />
-                ) : prediction.outcomeType === 'MULTIPLE_CHOICE' && prediction.options && prediction.options.length > 0 && prediction._count.commitments > 0 ? (() => {
-                  const sortedOptions = [...prediction.options].sort((a, b) => (b.commitmentsCount || 0) - (a.commitmentsCount || 0))
-                  const topOption = sortedOptions[0]
-                  const pct = Math.round(((topOption.commitmentsCount || 0) / prediction._count.commitments) * 100)
-                  return (
-                    <Speedometer
-                      percentage={pct}
-                      label=""
-                      color="green"
-                      size="sm"
-                    />
-                  )
-                })() : null}
-              </div>
-            )}
           </div>
 
           {/* Personal badge (no news anchor, manually created) */}
@@ -409,84 +411,47 @@ export default function ForecastCard({
             </div>
           )}
 
-          {/* News Context (Optional) */}
-          {prediction.newsAnchor && (
-            <div className="flex items-center gap-2 mb-4 p-2 bg-navy-800 rounded-lg border border-navy-600">
-              {prediction.newsAnchor.imageUrl && (
-                <Image
-                  src={prediction.newsAnchor.imageUrl}
-                  alt=""
-                  width={32}
-                  height={32}
-                  className="rounded object-cover flex-shrink-0"
-                />
-              )}
-              <div className="min-w-0">
-                <p className="text-xs text-gray-400 font-medium truncate uppercase tracking-tight">
-                  {t('source')}: {prediction.newsAnchor.source || 'News'}
-                </p>
-                <p className="text-xs text-gray-600 font-medium truncate">
-                  {prediction.newsAnchor.title}
-                </p>
-              </div>
-            </div>
-          )}
-
           {/* Footer Metadata */}
-          <div className="flex items-center flex-wrap gap-y-2 gap-x-4 text-xs sm:text-sm text-gray-500">
-            {/* Author */}
+          <div className="flex items-center justify-between mt-auto pt-4 border-t border-navy-600/50">
+            <div className="flex items-center gap-x-4 text-xs text-gray-500">
+              {/* Commitment Count */}
+              {prediction._count.commitments > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5 text-gray-400" />
+                  <span className="font-medium text-text-secondary">{prediction._count.commitments}</span>
+                  <span className="hidden sm:inline">{t('commitmentsLabel')}</span>
+                </div>
+              )}
+
+              {/* User Committed Indicator */}
+              {prediction.userHasCommitted && (
+                <div className="flex items-center gap-1 px-2 py-0.5 bg-cobalt/10 text-blue-600 rounded-full text-[10px] font-medium">
+                  <CheckCircle2 className="w-3 h-3" />
+                  <span>{t('committedLabel')}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Author - Moved to bottom right */}
             <UserLink
               userId={prediction.author.id}
               username={prediction.author.username}
               name={prediction.author.name}
               image={prediction.author.image}
               showAvatar={true}
-              avatarSize={24}
-              className="pr-4 border-r border-navy-600 last:border-0"
+              avatarSize={20}
+              className="last:border-0"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex flex-col">
-                <span className="font-medium text-text-secondary truncate max-w-[120px]">
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-gray-400 hover:text-text-secondary truncate max-w-[100px]">
                   {prediction.author.name || t('anonymous')}
                 </span>
-                {prediction.author.role && (
-                  <span className="mt-0.5">
-                    <RoleBadge role={prediction.author.role} size="sm" />
-                  </span>
+                {prediction.author.role && prediction.author.role !== 'USER' && (
+                  <RoleBadge role={prediction.author.role} size="sm" />
                 )}
               </div>
             </UserLink>
-
-            {/* Resolve By Date */}
-            {(() => {
-              const daysUntil = Math.ceil((new Date(prediction.resolveByDatetime).getTime() - Date.now()) / 86400000)
-              const dateClass = prediction.status === 'ACTIVE'
-                ? daysUntil <= 3 ? 'text-red-500' : daysUntil <= 7 ? 'text-amber-500' : 'text-gray-400'
-                : 'text-gray-400'
-              return (
-                <div className={`flex items-center gap-1.5 ${dateClass}`}>
-                  <Calendar className="w-3.5 h-3.5" />
-                  <span suppressHydrationWarning>{formatDate(prediction.resolveByDatetime)}</span>
-                </div>
-              )
-            })()}
-
-            {/* Commitment Count */}
-            {prediction._count.commitments > 0 && (
-              <div className="flex items-center gap-1.5">
-                <Users className="w-3.5 h-3.5 text-gray-400" />
-                <span className="font-medium text-text-secondary">{prediction._count.commitments}</span>
-                <span className="hidden sm:inline">{t('commitmentsLabel')}</span>
-              </div>
-            )}
-
-            {/* User Committed Indicator */}
-            {prediction.userHasCommitted && (
-              <div className="flex items-center gap-1 px-2 py-0.5 bg-cobalt/10 text-blue-600 rounded-full text-xs font-medium">
-                <CheckCircle2 className="w-3 h-3" />
-                <span>{t('committedLabel')}</span>
-              </div>
-            )}
           </div>
         </div>
 

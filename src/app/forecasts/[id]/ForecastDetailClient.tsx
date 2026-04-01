@@ -13,6 +13,7 @@ import {
   ExternalLink,
   Loader2,
   AlertCircle,
+  TrendingUp,
   ChevronLeft,
   ChevronDown,
   ChevronUp,
@@ -117,33 +118,7 @@ function ForecastInfoPanel({ prediction, variant = 'desktop', isMounted }: Forec
   const t = useTranslations('forecast')
   return (
     <>
-      <div className={variant === 'mobile' ? 'grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8' : 'grid grid-cols-1 gap-3'}>
-        {/* Author */}
-        <div className="p-4 border border-navy-600 rounded-xl bg-navy-700 shadow-sm">
-          <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-gray-400 mb-2">
-            <User className="w-3.5 h-3.5" />
-            {t('author')}
-          </div>
-          <UserLink
-            userId={prediction.author.id}
-            username={prediction.author.username}
-            name={prediction.author.name}
-            image={prediction.author.image}
-            showAvatar={true}
-            avatarSize={32}
-          >
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-white">{prediction.author.name}</span>
-                {prediction.author.role && (
-                  <RoleBadge role={prediction.author.role} size="sm" />
-                )}
-              </div>
-              <div className="text-xs text-gray-500">RS: {prediction.author.rs.toFixed(0)}</div>
-            </div>
-          </UserLink>
-        </div>
-
+      <div className={variant === 'mobile' ? 'grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8' : 'grid grid-cols-1 gap-3'}>
         {/* Deadline */}
         <div className="p-4 border border-navy-600 rounded-xl bg-navy-700 shadow-sm">
           <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-gray-400 mb-2">
@@ -348,6 +323,32 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
             <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusBadge(prediction.status)}`}>
               {prediction.status.replace('_', ' ')}
             </span>
+
+            {/* Deadline - Moved to top */}
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-navy-700 text-gray-400 text-sm font-medium">
+              <Calendar className="w-4 h-4" />
+              <span suppressHydrationWarning>
+                {isMounted && new Date(prediction.resolveByDatetime).toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric'
+                })}
+              </span>
+            </div>
+
+            {/* Confidence/Probability - Moved to top */}
+            {prediction.status === 'ACTIVE' && prediction.outcomeType === 'BINARY' && (() => {
+              const yesTokens = prediction.commitments.filter(c => c.binaryChoice === true).reduce((sum, c) => sum + c.cuCommitted, 0)
+              const totalTokens = prediction.commitments.reduce((sum, c) => sum + c.cuCommitted, 0)
+              const prob = totalTokens > 0 ? Math.round((yesTokens / totalTokens) * 100) : 50
+              return (
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-navy-700 text-teal text-sm font-medium border border-teal/20">
+                  <TrendingUp className="w-4 h-4" />
+                  <span>{prob}%</span>
+                </div>
+              )
+            })()}
+
             {prediction.isPublic === false && (
               <span className="flex items-center gap-1 px-3 py-1 bg-navy-700 text-gray-600 text-sm font-medium rounded-full">
                 <EyeOff className="w-4 h-4" />
@@ -414,7 +415,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
       </div>
 
       {/* Resolution Rules */}
-      <div className="mb-6">
+      <div className="mb-8">
         <button
           type="button"
           onClick={() => setShowRules(v => !v)}
@@ -429,12 +430,6 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
           </div>
         )}
       </div>
-
-      {/* Context/Timeline */}
-      <ContextTimeline
-        predictionId={prediction.id} 
-        canAnalyze={session?.user?.role === 'ADMIN' || session?.user?.role === 'RESOLVER'} 
-      />
 
       {/* Probability Display (only for binary/MC) */}
       <div className="mb-8">
@@ -677,8 +672,35 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
         </div>
       )}
 
+      {/* Author Section - Moved to bottom */}
+      <div className="mt-12 p-6 border border-navy-600 rounded-xl bg-navy-700 shadow-sm flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <UserLink
+            userId={prediction.author.id}
+            username={prediction.author.username}
+            name={prediction.author.name}
+            image={prediction.author.image}
+            showAvatar={true}
+            avatarSize={48}
+          >
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-semibold text-white">{prediction.author.name}</span>
+                {prediction.author.role && (
+                  <RoleBadge role={prediction.author.role} size="sm" />
+                )}
+              </div>
+              <div className="text-sm text-gray-500">Forecaster · Reputation: {prediction.author.rs.toFixed(0)}</div>
+            </div>
+          </UserLink>
+        </div>
+        <div className="text-right text-xs text-gray-500 font-medium uppercase tracking-wide">
+          {t('author')}
+        </div>
+      </div>
+
       {/* Comments Section */}
-      <div className="border-t border-navy-600 pt-8">
+      <div className="border-t border-navy-600 mt-12 pt-8">
         <CommentThread predictionId={prediction.id} />
       </div>
 
