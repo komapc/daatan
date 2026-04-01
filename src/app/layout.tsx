@@ -3,6 +3,7 @@ import { NextIntlClientProvider } from 'next-intl'
 import { getLocale, getMessages } from 'next-intl/server'
 import './globals.css'
 import { StagingBanner } from '@/components/StagingBanner'
+import { NextBanner } from '@/components/NextBanner'
 import Sidebar from '@/components/Sidebar'
 import SessionWrapper from '@/components/SessionWrapper'
 import PwaInstaller from '@/components/PwaInstaller'
@@ -97,6 +98,7 @@ export default async function RootLayout({
           <SessionWrapper>
             <AnalyticsUserSync />
             <StagingBanner />
+            <NextBanner />
             <div className="flex min-h-screen overflow-x-hidden">
               <Sidebar />
               {/* Main content with responsive margin */}

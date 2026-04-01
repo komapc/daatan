@@ -32,7 +32,7 @@ if [ "$2" = "--no-cache" ]; then
 fi
 
 # Select compose file for this environment
-if [ "$ENVIRONMENT" = "staging" ]; then
+if [ "$ENVIRONMENT" = "staging" ] || [ "$ENVIRONMENT" = "next" ]; then
     COMPOSE_FILE="docker-compose.staging.yml"
 else
     COMPOSE_FILE="docker-compose.prod.yml"
@@ -47,6 +47,13 @@ if [ "$ENVIRONMENT" = "staging" ]; then
     CONTAINER_NEW="daatan-app-staging-new"
     DB_SERVICE="postgres-staging"
     HEALTH_URL="https://staging.daatan.com"
+elif [ "$ENVIRONMENT" = "next" ]; then
+    SERVICE="app-next"
+    SERVICE_ALIAS="app-next"
+    CONTAINER="daatan-app-next"
+    CONTAINER_NEW="daatan-app-next-new"
+    DB_SERVICE="postgres-staging"
+    HEALTH_URL="https://next.daatan.com"
 elif [ "$ENVIRONMENT" = "production" ]; then
     SERVICE="app"
     SERVICE_ALIAS="app"
@@ -55,7 +62,7 @@ elif [ "$ENVIRONMENT" = "production" ]; then
     DB_SERVICE="postgres"
     HEALTH_URL="https://daatan.com"
 else
-    echo "❌ Unknown environment: $ENVIRONMENT (use 'staging' or 'production')"
+    echo "❌ Unknown environment: $ENVIRONMENT (use 'staging', 'production', or 'next')"
     exit 1
 fi
 
@@ -223,6 +230,11 @@ ENV_ARGS="$ENV_ARGS -e APP_VERSION=${APP_VERSION:-0.1.19}"
 if [ "$ENVIRONMENT" = "staging" ]; then
     ENV_ARGS="$ENV_ARGS -e DATABASE_URL=postgresql://daatan:${POSTGRES_PASSWORD}@postgres-staging:5432/daatan_staging"
     ENV_ARGS="$ENV_ARGS -e NEXTAUTH_URL=https://staging.daatan.com"
+    ENV_ARGS="$ENV_ARGS -e AUTH_TRUST_HOST=true"
+    ENV_ARGS="$ENV_ARGS -e GA_MEASUREMENT_ID=${GA_MEASUREMENT_ID_STAGING}"
+elif [ "$ENVIRONMENT" = "next" ]; then
+    ENV_ARGS="$ENV_ARGS -e DATABASE_URL=postgresql://daatan:${POSTGRES_PASSWORD}@postgres-staging:5432/daatan_staging"
+    ENV_ARGS="$ENV_ARGS -e NEXTAUTH_URL=https://next.daatan.com"
     ENV_ARGS="$ENV_ARGS -e AUTH_TRUST_HOST=true"
     ENV_ARGS="$ENV_ARGS -e GA_MEASUREMENT_ID=${GA_MEASUREMENT_ID_STAGING}"
 else
