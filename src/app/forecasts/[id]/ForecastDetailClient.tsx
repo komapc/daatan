@@ -171,6 +171,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
 
   // Confidence state (-100 to 100)
   const [userConfidence, setUserConfidence] = useState<number>(0)
+  const [initialUserConfidence, setInitialUserConfidence] = useState<number | null>(null)
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -186,7 +187,9 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
     setIsMounted(true)
     if (prediction?.userCommitment) {
       const prob = (prediction.userCommitment as any).probability ?? (prediction.userCommitment.binaryChoice ? 0.9 : 0.1)
-      setUserConfidence(Math.round(prob * 200 - 100))
+      const val = Math.round(prob * 200 - 100)
+      setUserConfidence(val)
+      setInitialUserConfidence(val)
       setSelectedOptionId(prediction.userCommitment.optionId || null)
     }
   }, [prediction?.userCommitment])
@@ -522,6 +525,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
                     onCommit={handleCommitConfidence}
                     isSubmitting={isSubmitting}
                     disabled={prediction.status !== 'ACTIVE'}
+                    canCommit={userConfidence !== initialUserConfidence}
                   />
                 </div>
               </div>

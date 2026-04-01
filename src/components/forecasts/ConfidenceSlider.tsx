@@ -6,6 +6,7 @@ interface ConfidenceSliderProps {
   onCommit: () => void
   isSubmitting?: boolean
   disabled?: boolean
+  canCommit?: boolean
 }
 
 export default function ConfidenceSlider({
@@ -14,6 +15,7 @@ export default function ConfidenceSlider({
   onCommit,
   isSubmitting = false,
   disabled = false,
+  canCommit = true,
 }: ConfidenceSliderProps) {
   // Derive label based on value
   const getLabel = (val: number) => {
@@ -66,9 +68,9 @@ export default function ConfidenceSlider({
 
       <button
         onClick={onCommit}
-        disabled={isNeutral || disabled || isSubmitting}
+        disabled={isNeutral || disabled || isSubmitting || !canCommit}
         className={`w-full py-4 rounded-xl font-bold text-sm uppercase tracking-widest transition-all duration-200 ${
-          isNeutral || disabled || isSubmitting
+          isNeutral || disabled || isSubmitting || !canCommit
             ? 'bg-navy-800 text-gray-600 cursor-not-allowed border border-navy-600'
             : 'bg-blue-600 text-white hover:bg-blue-500 shadow-lg shadow-blue-900/20 active:scale-[0.98] border border-blue-400/30'
         }`}
