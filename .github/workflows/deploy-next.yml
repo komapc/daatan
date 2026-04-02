@@ -48,10 +48,12 @@ jobs:
           IMAGE_TAG: next-${{ github.run_id }}
           DATABASE_URL: ${{ secrets.DATABASE_URL_STAGING }}
         run: |
+          APP_VERSION=$(node -p "require('./package.json').version")
           docker build \
             --build-arg DATABASE_URL=$DATABASE_URL \
             --build-arg NEXTAUTH_URL=https://next.daatan.com \
             --build-arg NEXT_PUBLIC_ENV=staging \
+            --build-arg NEXT_PUBLIC_APP_VERSION=$APP_VERSION \
             --build-arg GIT_COMMIT=${{ github.sha }} \
             --build-arg BUILD_TIMESTAMP=$(date +%s) \
             -t $ECR_REGISTRY/daatan-app:$IMAGE_TAG \
