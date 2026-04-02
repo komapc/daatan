@@ -481,7 +481,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
         predictionId={prediction.id}
         initialContext={prediction.detailsText}
         initialContextUpdatedAt={prediction.contextUpdatedAt}
-        canAnalyze={session?.user?.role === 'ADMIN' || session?.user?.role === 'RESOLVER'}
+        canAnalyze={!!session?.user}
       />
 
       {/* Probability Display (Interactive Gauge) */}
@@ -524,6 +524,14 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
                     </div>
                   )}
                 </div>
+
+                {/* Your Forecast badge */}
+                {prediction.userCommitment && (
+                  <div className="flex items-center gap-2 mt-6 px-4 py-2 bg-teal/10 border border-teal/30 rounded-full">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-teal" />
+                    <span className="text-xs font-bold text-teal uppercase tracking-widest">Your forecast is committed</span>
+                  </div>
+                )}
 
                 {/* Confidence Slider Integration (Desktop & Mobile) */}
                 <div className="w-full mt-10">
@@ -830,14 +838,6 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
             isMounted={isMounted}
           />
           
-          {prediction.userCommitment && (
-            <div className="p-4 bg-teal/5 border border-teal/20 rounded-xl">
-              <p className="text-xs font-bold text-teal uppercase tracking-widest flex items-center gap-2">
-                <CheckCircle2 className="w-3 h-3" />
-                You have committed
-              </p>
-            </div>
-          )}
         </div>
       </div>
     </div>
