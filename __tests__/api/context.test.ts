@@ -13,7 +13,7 @@ const { mockSearchArticles, mockGenerateContent, mockPrisma } = vi.hoisted(() =>
   mockGenerateContent: vi.fn(),
   mockPrisma: {
     prediction: {
-      findUnique: vi.fn(),
+      findFirst: vi.fn(),
       update: vi.fn(),
       count: vi.fn().mockResolvedValue(0),
     },
@@ -55,7 +55,7 @@ describe('GET /api/forecasts/[id]/context', () => {
   })
 
   it('returns 404 when prediction not found', async () => {
-    mockPrisma.prediction.findUnique.mockResolvedValue(null)
+    mockPrisma.prediction.findFirst.mockResolvedValue(null)
 
     const res = await GET(makeRequest('missing'), routeParams('missing'))
     expect(res.status).toBe(404)
@@ -67,7 +67,7 @@ describe('GET /api/forecasts/[id]/context', () => {
       { id: 's2', summary: 'Older update', sources: [], createdAt: new Date(Date.now() - 86400000) },
     ]
 
-    mockPrisma.prediction.findUnique.mockResolvedValue({
+    mockPrisma.prediction.findFirst.mockResolvedValue({
       id: 'pred1',
       detailsText: 'Latest update',
       contextUpdatedAt: new Date(),
@@ -108,7 +108,7 @@ describe('POST /api/forecasts/[id]/context', () => {
 
   it('returns 404 when prediction not found', async () => {
     mockAuth.mockResolvedValue({ user: authenticatedUser })
-    mockPrisma.prediction.findUnique.mockResolvedValue(null)
+    mockPrisma.prediction.findFirst.mockResolvedValue(null)
 
     const res = await POST(makeRequest('missing', 'POST'), routeParams('missing'))
     expect(res.status).toBe(404)
@@ -116,7 +116,7 @@ describe('POST /api/forecasts/[id]/context', () => {
 
 it('returns 400 when prediction is not ACTIVE', async () => {
     mockAuth.mockResolvedValue({ user: authenticatedUser })
-    mockPrisma.prediction.findUnique.mockResolvedValue({
+    mockPrisma.prediction.findFirst.mockResolvedValue({
       id: 'pred1',
       authorId: 'user1',
       status: 'RESOLVED_CORRECT',
@@ -129,7 +129,7 @@ it('returns 400 when prediction is not ACTIVE', async () => {
 
   it('returns 429 when rate limited (updated within 24h)', async () => {
     mockAuth.mockResolvedValue({ user: authenticatedUser })
-    mockPrisma.prediction.findUnique.mockResolvedValue({
+    mockPrisma.prediction.findFirst.mockResolvedValue({
       id: 'pred1',
       authorId: 'user1',
       status: 'ACTIVE',
@@ -142,7 +142,7 @@ it('returns 400 when prediction is not ACTIVE', async () => {
 
   it('returns 429 when user daily limit reached (10 updates/day)', async () => {
     mockAuth.mockResolvedValue({ user: authenticatedUser })
-    mockPrisma.prediction.findUnique.mockResolvedValue({
+    mockPrisma.prediction.findFirst.mockResolvedValue({
       id: 'pred1',
       authorId: 'user1',
       status: 'ACTIVE',
@@ -160,7 +160,7 @@ it('returns 400 when prediction is not ACTIVE', async () => {
 
   it('returns 404 when no articles found', async () => {
     mockAuth.mockResolvedValue({ user: authenticatedUser })
-    mockPrisma.prediction.findUnique.mockResolvedValue({
+    mockPrisma.prediction.findFirst.mockResolvedValue({
       id: 'pred1',
       authorId: 'user1',
       status: 'ACTIVE',
@@ -176,7 +176,7 @@ it('returns 400 when prediction is not ACTIVE', async () => {
 
   it('creates snapshot and updates prediction on success', async () => {
     mockAuth.mockResolvedValue({ user: authenticatedUser })
-    mockPrisma.prediction.findUnique.mockResolvedValue({
+    mockPrisma.prediction.findFirst.mockResolvedValue({
       id: 'pred1',
       authorId: 'user1',
       status: 'ACTIVE',
@@ -213,7 +213,7 @@ it('returns 400 when prediction is not ACTIVE', async () => {
 
   it('passes previousContext to LLM prompt when detailsText exists', async () => {
     mockAuth.mockResolvedValue({ user: authenticatedUser })
-    mockPrisma.prediction.findUnique.mockResolvedValue({
+    mockPrisma.prediction.findFirst.mockResolvedValue({
       id: 'pred1',
       authorId: 'user1',
       status: 'ACTIVE',
@@ -242,7 +242,7 @@ it('returns 400 when prediction is not ACTIVE', async () => {
   it('allows ADMIN to update context for other user predictions', async () => {
     const adminUser = { ...authenticatedUser, id: 'admin1', role: 'ADMIN' }
     mockAuth.mockResolvedValue({ user: adminUser })
-    mockPrisma.prediction.findUnique.mockResolvedValue({
+    mockPrisma.prediction.findFirst.mockResolvedValue({
       id: 'pred1',
       authorId: 'other-user',
       status: 'ACTIVE',

@@ -18,8 +18,8 @@ type RawRouteContext = {
 export async function GET(request: NextRequest, { params }: RawRouteContext) {
     try {
         const { id } = await params
-        const prediction = await prisma.prediction.findUnique({
-            where: { id },
+        const prediction = await prisma.prediction.findFirst({
+            where: { OR: [{ id }, { slug: id }] },
             select: {
                 id: true,
                 detailsText: true,
@@ -48,8 +48,8 @@ export async function GET(request: NextRequest, { params }: RawRouteContext) {
 export const POST = withAuth(async (request: NextRequest, user, { params }: RouteContext) => {
     try {
         const { id } = params
-        const prediction = await prisma.prediction.findUnique({
-            where: { id },
+        const prediction = await prisma.prediction.findFirst({
+            where: { OR: [{ id }, { slug: id }] },
             include: { newsAnchor: true }
         })
 
