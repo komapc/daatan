@@ -49,6 +49,7 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL_STAGING }}
         run: |
           APP_VERSION=$(node -p "require('./package.json').version")
+          echo "APP_VERSION=$APP_VERSION" >> $GITHUB_ENV
           docker build \
             --build-arg DATABASE_URL=$DATABASE_URL \
             --build-arg NEXTAUTH_URL=https://next.daatan.com \
@@ -120,4 +121,4 @@ jobs:
         with:
           command-id: ${{ env.COMMAND_ID }}
           health-url: https://next.daatan.com
-          app-version: "skip" # Next might have experimental versions
+          app-version: ${{ env.APP_VERSION }}
