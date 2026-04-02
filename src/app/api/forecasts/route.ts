@@ -314,6 +314,7 @@ export const POST = withAuth(async (request, user) => {
           status: 'DRAFT',
           isPublic: data.isPublic ?? true,
           source: data.source ?? null,
+          confidence: data.confidence ?? null,
           shareToken,
           // Connect or create tags
           tags: data.tags?.length

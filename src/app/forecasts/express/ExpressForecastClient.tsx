@@ -255,6 +255,7 @@ export default function ExpressForecastClient({
           newsAnchorTitle: finalData.newsAnchor?.title || undefined,
           source: finalData.newsAnchor ? undefined : 'manual',
           isPublic,
+          confidence: finalData.probabilitySuggestion || undefined,
         }),
       })
 

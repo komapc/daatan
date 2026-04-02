@@ -166,6 +166,7 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
                 data: {
                     detailsText: newContextSummary,
                     contextUpdatedAt: now,
+                    ...(externalProbability !== null && { confidence: externalProbability }),
                 },
             }),
         ])
