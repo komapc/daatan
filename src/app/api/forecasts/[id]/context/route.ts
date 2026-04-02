@@ -85,7 +85,9 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
         }
 
         // 1. Search for recent articles
-        const searchQuery = prediction.newsAnchor?.title || prediction.claimText
+        // Clean up news anchor title: strip subtitle after " | " or " – " (common in Wikipedia-style titles)
+        const rawQuery = prediction.newsAnchor?.title || prediction.claimText
+        const searchQuery = rawQuery.split(/\s+[|—–]\s+/)[0].trim()
         const searchResults = await searchArticles(searchQuery, 4)
 
         if (searchResults.length === 0) {
