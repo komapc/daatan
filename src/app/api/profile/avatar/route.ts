@@ -19,10 +19,11 @@ function getUploadsBucket(): string | null {
   
   // Try to construct it based on Terraform conventions
   const env = process.env.APP_ENV || process.env.NEXT_PUBLIC_APP_ENV || 'staging'
+  const mappedEnv = env === 'next' ? 'staging' : env
   const accountId = process.env.AWS_ACCOUNT_ID
   
   if (accountId) {
-    return `daatan-uploads-${env}-${accountId}`
+    return `daatan-uploads-${mappedEnv}-${accountId}`
   }
   
   return null
