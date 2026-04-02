@@ -57,10 +57,7 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
             return apiError('Prediction not found', 404)
         }
 
-        // Only Author or ADMIN can update context
-        if (prediction.authorId !== user.id && user.role !== 'ADMIN') {
-            return apiError('Forbidden. Only author or admin can update context.', 403)
-        }
+        // Any logged-in user can trigger a context analysis
 
         if (prediction.status !== 'ACTIVE') {
             return apiError('Context can only be updated for active predictions', 400)

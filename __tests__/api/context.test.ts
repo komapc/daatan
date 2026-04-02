@@ -114,20 +114,7 @@ describe('POST /api/forecasts/[id]/context', () => {
     expect(res.status).toBe(404)
   })
 
-  it('returns 403 when user is not author or admin', async () => {
-    mockAuth.mockResolvedValue({ user: authenticatedUser })
-    mockPrisma.prediction.findUnique.mockResolvedValue({
-      id: 'pred1',
-      authorId: 'other-user',
-      status: 'ACTIVE',
-      contextUpdatedAt: null,
-    })
-
-    const res = await POST(makeRequest('pred1', 'POST'), routeParams('pred1'))
-    expect(res.status).toBe(403)
-  })
-
-  it('returns 400 when prediction is not ACTIVE', async () => {
+it('returns 400 when prediction is not ACTIVE', async () => {
     mockAuth.mockResolvedValue({ user: authenticatedUser })
     mockPrisma.prediction.findUnique.mockResolvedValue({
       id: 'pred1',

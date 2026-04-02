@@ -233,8 +233,11 @@ export async function searchArticles(
   if (process.env.SERPER_API_KEY) {
     try {
       const results = await searchWithSerper(query, limit, options)
-      log.debug({ provider: 'serper', count: results.length }, 'Search succeeded')
-      return results
+      if (results.length > 0) {
+        log.debug({ provider: 'serper', count: results.length }, 'Search succeeded')
+        return results
+      }
+      log.warn('Serper returned 0 results, trying SerpAPI fallback')
     } catch (error) {
       log.warn({ err: error }, 'Serper failed, trying SerpAPI fallback')
     }
@@ -244,10 +247,13 @@ export async function searchArticles(
   if (process.env.SERPAPI_API_KEY) {
     try {
       const results = await searchWithSerpApi(query, limit)
-      log.info({ provider: 'serpapi', count: results.length }, 'Search succeeded via SerpAPI fallback')
-      return results
+      if (results.length > 0) {
+        log.info({ provider: 'serpapi', count: results.length }, 'Search succeeded via SerpAPI fallback')
+        return results
+      }
+      log.warn('SerpAPI returned 0 results, trying ScrapingBee fallback')
     } catch (error) {
-      log.warn({ err: error }, 'SerpAPI failed, trying DDG fallback')
+      log.warn({ err: error }, 'SerpAPI failed, trying ScrapingBee fallback')
     }
   }
 
@@ -255,8 +261,11 @@ export async function searchArticles(
   if (process.env.SCRAPINGBEE_API_KEY) {
     try {
       const results = await searchWithScrapingBee(query, limit)
-      log.info({ provider: 'scrapingbee', count: results.length }, 'Search succeeded via ScrapingBee fallback')
-      return results
+      if (results.length > 0) {
+        log.info({ provider: 'scrapingbee', count: results.length }, 'Search succeeded via ScrapingBee fallback')
+        return results
+      }
+      log.warn('ScrapingBee returned 0 results, trying DDG fallback')
     } catch (error) {
       log.warn({ err: error }, 'ScrapingBee failed, trying DDG fallback')
     }
