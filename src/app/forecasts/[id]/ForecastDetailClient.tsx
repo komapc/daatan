@@ -172,6 +172,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
   // Confidence state (-100 to 100)
   const [userConfidence, setUserConfidence] = useState<number>(0)
   const [initialUserConfidence, setInitialUserConfidence] = useState<number | null>(null)
+  const [aiEstimate, setAiEstimate] = useState<number | null>(null)
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -482,6 +483,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
         initialContext={prediction.detailsText}
         initialContextUpdatedAt={prediction.contextUpdatedAt}
         canAnalyze={!!session?.user}
+        onAiEstimate={setAiEstimate}
       />
 
       {/* Probability Display (Interactive Gauge) */}
@@ -503,7 +505,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
                 <Speedometer
                   percentage={marketProb}
                   userPercentage={userProb}
-                  aiPercentage={prediction.confidence ?? undefined}
+                  aiPercentage={aiEstimate ?? prediction.confidence ?? undefined}
                   size="xl"
                 />
 
@@ -517,7 +519,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
                     <div className="w-3 h-1.5 bg-[#3B82F6] rounded-full" />
                     <span className="text-blue-400">You</span>
                   </div>
-                  {prediction.confidence != null && (
+                  {(aiEstimate ?? prediction.confidence) != null && (
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-1 bg-[#FBBF24] rounded-full" />
                       <span className="text-amber-400">AI</span>
