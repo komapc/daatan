@@ -29,6 +29,7 @@ type Props = {
   initialContext?: string | null
   initialContextUpdatedAt?: string | null
   canAnalyze: boolean
+  onAiEstimate?: (value: number | null) => void
 }
 
 export default function ContextTimeline({
@@ -36,6 +37,7 @@ export default function ContextTimeline({
   initialContext,
   initialContextUpdatedAt,
   canAnalyze,
+  onAiEstimate,
 }: Props) {
   const [currentContext, setCurrentContext] = useState(initialContext || null)
   const [contextUpdatedAt, setContextUpdatedAt] = useState(initialContextUpdatedAt || null)
@@ -56,7 +58,9 @@ export default function ContextTimeline({
           const data = await res.json()
           setCurrentContext(data.currentContext)
           setContextUpdatedAt(data.contextUpdatedAt)
-          setSnapshots(data.snapshots || [])
+          const snaps: Snapshot[] = data.snapshots || []
+          setSnapshots(snaps)
+          onAiEstimate?.(snaps[0]?.externalProbability ?? null)
         }
       } catch (err) {
         log.error({ err }, 'Failed to fetch context timeline')
@@ -81,7 +85,9 @@ export default function ContextTimeline({
       const data = await res.json()
       setCurrentContext(data.newContext)
       setContextUpdatedAt(data.contextUpdatedAt)
-      setSnapshots(data.timeline || [])
+      const timeline: Snapshot[] = data.timeline || []
+      setSnapshots(timeline)
+      onAiEstimate?.(timeline[0]?.externalProbability ?? null)
       toast.success(t('updated'), { id: 'analyze', duration: 3000 })
     } catch (e: any) {
       log.error({ err: e }, 'Failed to analyze context')
