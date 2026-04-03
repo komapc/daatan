@@ -117,6 +117,64 @@ async function searchWithSerpApi(query: string, limit: number): Promise<SearchRe
 }
 
 // ──────────────────────────────────────────────
+// Provider: Nimbleway SERP API
+// ──────────────────────────────────────────────
+
+interface NimblewayOrganicResult {
+  title: string
+  url: string
+  snippet: string
+  cleaned_domain?: string
+}
+
+interface NimblewayResponse {
+  status: string
+  parsing?: {
+    entities?: {
+      OrganicResult?: NimblewayOrganicResult[]
+    }
+  }
+}
+
+async function searchWithNimbleway(query: string, limit: number): Promise<SearchResult[]> {
+  const apiKey = process.env.NIMBLEWAY_API_KEY
+  if (!apiKey) throw new Error('Nimbleway not configured')
+
+  const response = await fetch('https://api.webit.live/api/v1/realtime/serp', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      search_engine: 'google_search',
+      country: 'US',
+      query,
+      parse: true,
+    }),
+  })
+
+  if (!response.ok) {
+    const errorBody = await response.text().catch(() => '(no body)')
+    log.error({ status: response.status, body: errorBody }, 'Nimbleway API error')
+    throw new Error(`Nimbleway error: ${response.status}`)
+  }
+
+  const data: NimblewayResponse = await response.json()
+  if (data.status !== 'success') {
+    throw new Error(`Nimbleway error: ${data.status}`)
+  }
+
+  const results = data.parsing?.entities?.OrganicResult ?? []
+  return results.slice(0, limit).map(item => ({
+    title: item.title,
+    url: item.url,
+    snippet: item.snippet,
+    source: item.cleaned_domain || extractDomain(item.url),
+  }))
+}
+
+// ──────────────────────────────────────────────
 // Provider: ScrapingBee Google Search
 // ──────────────────────────────────────────────
 
@@ -187,18 +245,19 @@ async function searchWithDDG(query: string, limit: number): Promise<SearchResult
   const html = await response.text()
   const results: SearchResult[] = []
 
-  // Extract title + redirect URL from result-link cells
-  const linkRegex = /class="result-link"[^>]*>\s*<a[^>]+href="[^"]*uddg=([^"&]+)[^"]*"[^>]*>([^<]+)<\/a>/g
-  // Extract snippets from result-snippet cells
-  const snippetRegex = /class="result-snippet"[^>]*>([\s\S]*?)<\/td>/g
+  // DDG Lite: <a href="URL" class='result-link'>Title</a> (class on the <a> itself)
+  // Match the whole <a> tag first, then extract href and inner text
+  const linkTagRegex = /<a\b[^>]*\bclass=['"]result-link['"][^>]*>([^<]+)<\/a>/g
+  const hrefRegex = /\bhref=['"]([^'"]+)['"]/
+  // Snippets: <td class='result-snippet'>...</td>
+  const snippetRegex = /class=['"]result-snippet['"][^>]*>([\s\S]*?)<\/td>/g
 
   const links: { url: string; title: string }[] = []
   let m: RegExpExecArray | null
-  while ((m = linkRegex.exec(html)) !== null) {
-    try {
-      links.push({ url: decodeURIComponent(m[1]), title: m[2].trim() })
-    } catch {
-      // skip malformed URL
+  while ((m = linkTagRegex.exec(html)) !== null) {
+    const hrefMatch = hrefRegex.exec(m[0])
+    if (hrefMatch) {
+      links.push({ url: hrefMatch[1], title: m[1].trim() })
     }
   }
 
@@ -243,7 +302,21 @@ export async function searchArticles(
     }
   }
 
-  // 2. SerpAPI
+  // 2. Nimbleway
+  if (process.env.NIMBLEWAY_API_KEY) {
+    try {
+      const results = await searchWithNimbleway(query, limit)
+      if (results.length > 0) {
+        log.info({ provider: 'nimbleway', count: results.length }, 'Search succeeded via Nimbleway fallback')
+        return results
+      }
+      log.warn('Nimbleway returned 0 results, trying SerpAPI fallback')
+    } catch (error) {
+      log.warn({ err: error }, 'Nimbleway failed, trying SerpAPI fallback')
+    }
+  }
+
+  // 3. SerpAPI
   if (process.env.SERPAPI_API_KEY) {
     try {
       const results = await searchWithSerpApi(query, limit)
@@ -254,6 +327,7 @@ export async function searchArticles(
       log.warn('SerpAPI returned 0 results, trying ScrapingBee fallback')
     } catch (error) {
       log.warn({ err: error }, 'SerpAPI failed, trying ScrapingBee fallback')
+
     }
   }
 

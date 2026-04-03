@@ -29,6 +29,17 @@ const ddgEmptyResponse = () => ({
   text: async () => '<html><body><p>No results</p></body></html>',
 })
 
+// DDG Lite actual HTML structure (single-quoted attributes, direct URLs)
+const ddgResultsResponse = (items: { url: string; title: string; snippet: string }[]) => ({
+  ok: true,
+  text: async () => `<html><body>${items.map(item => `
+    <tr><td valign="top">
+      <a rel="nofollow" href="${item.url}" class='result-link'>${item.title}</a>
+    </td></tr>
+    <tr><td class='result-snippet'>${item.snippet}</td></tr>
+  `).join('')}</body></html>`,
+})
+
 describe('searchArticles', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -120,6 +131,25 @@ describe('searchArticles', () => {
 
     const results = await searchArticles('test')
     expect(results).toHaveLength(0)
+  })
+
+  it('parses DDG Lite results with single-quoted attributes and direct URLs', async () => {
+    fetchMock
+      .mockResolvedValueOnce(okResponse({}))  // Serper: no results
+      .mockResolvedValueOnce(ddgResultsResponse([
+        { url: 'https://apnews.com/article/1', title: 'AP News Article', snippet: 'Some news snippet.' },
+        { url: 'https://reuters.com/article/2', title: 'Reuters Article', snippet: 'Another snippet.' },
+      ]))
+
+    const results = await searchArticles('test', 5)
+    expect(results).toHaveLength(2)
+    expect(results[0]).toMatchObject({
+      title: 'AP News Article',
+      url: 'https://apnews.com/article/1',
+      snippet: 'Some news snippet.',
+      source: 'apnews.com',
+    })
+    expect(results[1].title).toBe('Reuters Article')
   })
 
   it('respects the limit parameter', async () => {
