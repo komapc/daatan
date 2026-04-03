@@ -213,9 +213,10 @@ src/
 ├── components/                 # React components
 │   ├── comments/               # Comment thread components
 │   ├── forecasts/              # Forecast-related components
-│   │   └── Speedometer.tsx     # SVG probability gauge (∩-shape, green/red arcs)
+│   │   └── Speedometer.tsx     # SVG probability gauge (∩-shape, green/red arcs, 3 marks: market/user/AI)
 │   ├── profile/                # Profile edit form
-│   ├── Sidebar.tsx             # Navigation sidebar
+│   ├── MainContent.tsx         # Client wrapper for <main>; removes sidebar offset on /auth/* routes
+│   ├── Sidebar.tsx             # Navigation sidebar (hidden on /auth/* routes)
 │   └── SessionWrapper.tsx      # Auth session provider
 ├── lib/                        # Shared utilities
 │   ├── llm/                    # LLM integration
@@ -623,6 +624,8 @@ src/app/auth/
 - `export const dynamic = 'force-dynamic'` only works in Server Components
 - `useSearchParams()` requires `'use client'` directive
 - Combining both in one file causes the dynamic export to be ignored
+
+Auth pages are rendered without the sidebar: `Sidebar` returns `null` on `/auth/*` routes, and `MainContent` removes the `lg:ml-64 mt-16` offset so auth pages fill the full viewport.
 
 ### OAuth Flow
 
