@@ -5,6 +5,7 @@ import './globals.css'
 import { StagingBanner } from '@/components/StagingBanner'
 import { NextBanner } from '@/components/NextBanner'
 import Sidebar from '@/components/Sidebar'
+import { MainContent } from '@/components/MainContent'
 import SessionWrapper from '@/components/SessionWrapper'
 import PwaInstaller from '@/components/PwaInstaller'
 import PushPermissionPrompt from '@/components/PushPermissionPrompt'
@@ -101,10 +102,7 @@ export default async function RootLayout({
             <NextBanner />
             <div className="flex min-h-screen overflow-x-hidden">
               <Sidebar />
-              {/* Main content with responsive margin */}
-              <main className="flex-1 min-w-0 lg:ml-64 mt-16 lg:mt-0 overflow-x-hidden">
-                {children}
-              </main>
+              <MainContent>{children}</MainContent>
             </div>
             <PwaInstaller />
             <PushPermissionPrompt />

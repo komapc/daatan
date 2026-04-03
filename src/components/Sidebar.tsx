@@ -126,6 +126,8 @@ const Sidebar = () => {
     navLinks.push({ href: '#', labelKey: 'signIn', label: c('signIn'), icon: LogIn })
   }
 
+  if (pathname.startsWith('/auth/')) return null
+
   return (
     <>
       {/* Mobile Header */}
