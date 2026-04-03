@@ -187,18 +187,19 @@ async function searchWithDDG(query: string, limit: number): Promise<SearchResult
   const html = await response.text()
   const results: SearchResult[] = []
 
-  // Extract title + redirect URL from result-link cells
-  const linkRegex = /class="result-link"[^>]*>\s*<a[^>]+href="[^"]*uddg=([^"&]+)[^"]*"[^>]*>([^<]+)<\/a>/g
-  // Extract snippets from result-snippet cells
-  const snippetRegex = /class="result-snippet"[^>]*>([\s\S]*?)<\/td>/g
+  // DDG Lite: <a href="URL" class='result-link'>Title</a> (class on the <a> itself)
+  // Match the whole <a> tag first, then extract href and inner text
+  const linkTagRegex = /<a\b[^>]*\bclass=['"]result-link['"][^>]*>([^<]+)<\/a>/g
+  const hrefRegex = /\bhref=['"]([^'"]+)['"]/
+  // Snippets: <td class='result-snippet'>...</td>
+  const snippetRegex = /class=['"]result-snippet['"][^>]*>([\s\S]*?)<\/td>/g
 
   const links: { url: string; title: string }[] = []
   let m: RegExpExecArray | null
-  while ((m = linkRegex.exec(html)) !== null) {
-    try {
-      links.push({ url: decodeURIComponent(m[1]), title: m[2].trim() })
-    } catch {
-      // skip malformed URL
+  while ((m = linkTagRegex.exec(html)) !== null) {
+    const hrefMatch = hrefRegex.exec(m[0])
+    if (hrefMatch) {
+      links.push({ url: hrefMatch[1], title: m[1].trim() })
     }
   }
 
