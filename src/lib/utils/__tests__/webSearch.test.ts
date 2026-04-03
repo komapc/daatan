@@ -82,7 +82,7 @@ describe('searchArticles', () => {
   })
 
   it('applies tbs date filter when both dateFrom and dateTo are provided', async () => {
-    fetchMock.mockResolvedValue(okResponse({ news: [] }))
+    fetchMock.mockResolvedValue(okResponse({ news: [makeNewsItem()] }))
 
     await searchArticles('test', 5, {
       dateFrom: new Date('2026-01-01'),
@@ -94,7 +94,7 @@ describe('searchArticles', () => {
   })
 
   it('does NOT include tbs when no date options are provided', async () => {
-    fetchMock.mockResolvedValue(okResponse({ news: [] }))
+    fetchMock.mockResolvedValue(okResponse({ news: [makeNewsItem()] }))
 
     await searchArticles('test')
 
@@ -113,8 +113,10 @@ describe('searchArticles', () => {
     expect(results[0].title).toBe('Organic result')
   })
 
-  it('returns empty array when both news and organic are absent', async () => {
-    fetchMock.mockResolvedValue(okResponse({}))
+  it('falls through to DDG when serper returns no results', async () => {
+    fetchMock
+      .mockResolvedValueOnce(okResponse({}))      // Serper: no results
+      .mockResolvedValueOnce(ddgEmptyResponse())  // DDG: no results
 
     const results = await searchArticles('test')
     expect(results).toHaveLength(0)

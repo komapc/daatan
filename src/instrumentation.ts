@@ -51,7 +51,8 @@ export async function register() {
   ] as const
 
   const rawEnv = process.env.APP_ENV || process.env.NEXT_PUBLIC_APP_ENV || 'staging'
-  const ssmEnv = rawEnv === 'production' ? 'prod' : rawEnv
+  let ssmEnv = rawEnv === 'production' ? 'prod' : rawEnv
+  if (ssmEnv === 'next') ssmEnv = 'staging' // NEXT environment uses staging prompts
 
   try {
     const { SSMClient, GetParametersCommand } = await import('@aws-sdk/client-ssm')

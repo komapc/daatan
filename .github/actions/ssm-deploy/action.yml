@@ -47,4 +47,9 @@ runs:
     - name: Verify health endpoint
       shell: bash
       run: |
-        ./scripts/verify-health.sh "${{ inputs.health-url }}" "${{ inputs.app-version }}"
+        VERSION="${{ inputs.app-version }}"
+        if [ "$VERSION" = "skip" ]; then
+          ./scripts/verify-health.sh "${{ inputs.health-url }}"
+        else
+          ./scripts/verify-health.sh "${{ inputs.health-url }}" "$VERSION"
+        fi

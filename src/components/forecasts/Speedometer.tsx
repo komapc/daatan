@@ -34,6 +34,18 @@ export default function Speedometer({
   const radius = Math.min(width / 2 - strokeWidth - 4, height - topPad - bottomPad)
   const center = { x: width / 2, y: height - bottomPad }
 
+  const getTickEnds = (pct: number) => {
+    const angleDeg = 180 + (pct / 100) * 180
+    const angleRad = (angleDeg * Math.PI) / 180
+    const half = strokeWidth / 2 + 2
+    return {
+      x1: center.x + (radius - half) * Math.cos(angleRad),
+      y1: center.y + (radius - half) * Math.sin(angleRad),
+      x2: center.x + (radius + half) * Math.cos(angleRad),
+      y2: center.y + (radius + half) * Math.sin(angleRad),
+    }
+  }
+
   const getNeedlePath = (pct: number, baseWidth: number, isThick: boolean = false) => {
     const angleDeg = 180 + (pct / 100) * 180
     const angleRad = (angleDeg * Math.PI) / 180
@@ -111,33 +123,33 @@ export default function Speedometer({
         <path d={greenArc} fill="none" stroke={`url(#${theme.greenGradientId})`} strokeWidth={strokeWidth} strokeLinecap="round" />
         <path d={redArc} fill="none" stroke={`url(#${theme.redGradientId})`} strokeWidth={strokeWidth} strokeLinecap="round" />
 
-        {/* AI Prediction Mark */}
-        {aiPercentage !== undefined && (() => {
-          const angleDeg = 180 + (aiPercentage / 100) * 180
-          const angleRad = (angleDeg * Math.PI) / 180
-          const x1 = center.x + (radius - strokeWidth/2 - 2) * Math.cos(angleRad)
-          const y1 = center.y + (radius - strokeWidth/2 - 2) * Math.sin(angleRad)
-          const x2 = center.x + (radius + strokeWidth/2 + 2) * Math.cos(angleRad)
-          const y2 = center.y + (radius + strokeWidth/2 + 2) * Math.sin(angleRad)
+        {/* Market Mark (tick) */}
+        {(() => {
+          const { x1, y1, x2, y2 } = getTickEnds(safeMarketPct)
           return (
-            <line 
-              x1={x1} y1={y1} x2={x2} y2={y2} 
-              stroke={theme.needleAI} 
-              strokeWidth="3" 
+            <line
+              x1={x1} y1={y1} x2={x2} y2={y2}
+              stroke={theme.needleMarket}
+              strokeWidth={2}
+              strokeLinecap="round"
+              className="transition-all duration-700 ease-in-out"
+            />
+          )
+        })()}
+
+        {/* AI Mark (tick) */}
+        {aiPercentage !== undefined && (() => {
+          const { x1, y1, x2, y2 } = getTickEnds(aiPercentage)
+          return (
+            <line
+              x1={x1} y1={y1} x2={x2} y2={y2}
+              stroke={theme.needleAI}
+              strokeWidth={2.5}
               strokeLinecap="round"
               filter={`url(#${theme.shadowId})`}
             />
           )
         })()}
-
-        {/* Market Needle (Thin) */}
-        <path
-          d={getNeedlePath(safeMarketPct, needleBase)}
-          fill={theme.needleMarket}
-          filter={`url(#${theme.shadowId})`}
-          className="transition-all duration-700 ease-in-out"
-          opacity="0.8"
-        />
 
         {/* User Needle (Thick) */}
         {userPercentage !== undefined && (

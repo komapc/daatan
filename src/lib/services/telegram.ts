@@ -18,7 +18,7 @@ async function sendChannelNotification(message: string): Promise<void> {
   }
 
   const env = process.env.APP_ENV || process.env.NEXT_PUBLIC_APP_ENV || 'staging'
-  const prefix = env === 'production' ? 'prod' : 'staging'
+  const prefix = env === 'production' ? 'prod' : (env === 'next' ? 'next' : 'staging')
   const prefixed = `[${prefix}] ${message}`
 
   log.debug({ chatId, prefix }, 'Sending Telegram notification')

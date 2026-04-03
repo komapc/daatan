@@ -60,6 +60,9 @@ export const createPredictionSchema = z.object({
 
   // Source tracking
   source: z.literal('manual').optional(),
+
+  // AI confidence estimate (0–100), set at creation by express flow or bots
+  confidence: z.number().int().min(0).max(100).optional(),
 }).superRefine((data, ctx) => {
   const payload = data.outcomePayload as Record<string, unknown> | undefined
 

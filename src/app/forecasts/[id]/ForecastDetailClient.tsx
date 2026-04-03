@@ -171,6 +171,8 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
 
   // Confidence state (-100 to 100)
   const [userConfidence, setUserConfidence] = useState<number>(0)
+  const [initialUserConfidence, setInitialUserConfidence] = useState<number | null>(null)
+  const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Translation state
@@ -185,7 +187,10 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
     setIsMounted(true)
     if (prediction?.userCommitment) {
       const prob = (prediction.userCommitment as any).probability ?? (prediction.userCommitment.binaryChoice ? 0.9 : 0.1)
-      setUserConfidence(Math.round(prob * 200 - 100))
+      const val = Math.round(prob * 200 - 100)
+      setUserConfidence(val)
+      setInitialUserConfidence(val)
+      setSelectedOptionId(prediction.userCommitment.optionId || null)
     }
   }, [prediction?.userCommitment])
 
@@ -471,6 +476,14 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
         )}
       </div>
 
+      {/* Situation Context / Timeline */}
+      <ContextTimeline
+        predictionId={prediction.id}
+        initialContext={prediction.detailsText}
+        initialContextUpdatedAt={prediction.contextUpdatedAt}
+        canAnalyze={!!session?.user}
+      />
+
       {/* Probability Display (Interactive Gauge) */}
       <div className="mb-12">
         {prediction.outcomeType === 'BINARY' && (() => {
@@ -512,14 +525,23 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
                   )}
                 </div>
 
-                {/* New Confidence Slider Integration (Mobile) */}
-                <div className="w-full mt-10 xl:hidden">
+                {/* Your Forecast badge */}
+                {prediction.userCommitment && (
+                  <div className="flex items-center gap-2 mt-6 px-4 py-2 bg-teal/10 border border-teal/30 rounded-full">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-teal" />
+                    <span className="text-xs font-bold text-teal uppercase tracking-widest">Your forecast is committed</span>
+                  </div>
+                )}
+
+                {/* Confidence Slider Integration (Desktop & Mobile) */}
+                <div className="w-full mt-10">
                   <ConfidenceSlider
                     value={userConfidence}
                     onChange={setUserConfidence}
                     onCommit={handleCommitConfidence}
                     isSubmitting={isSubmitting}
                     disabled={prediction.status !== 'ACTIVE'}
+                    canCommit={userConfidence !== initialUserConfidence}
                   />
                 </div>
               </div>
@@ -535,35 +557,101 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
             pct: totalCommits > 0 ? Math.round((prediction.commitments.filter(c => c.option?.id === opt.id).length / totalCommits) * 100) : 0
           })).sort((a, b) => b.commitCount - a.commitCount)
 
-          const leadingOption = optionsWithStats[0]
-          const otherOptions = optionsWithStats.slice(1)
+          const userOptionId = prediction.userCommitment?.optionId
+
+          const handleCommitMultipleChoice = async () => {
+            if (!selectedOptionId || !prediction) return
+            
+            setIsSubmitting(true)
+            try {
+              const response = await fetch(`/api/forecasts/${prediction.id}/commit`, {
+                method: prediction.userCommitment ? 'PATCH' : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  cuCommitted: 10,
+                  optionId: selectedOptionId,
+                }),
+              })
+
+              if (!response.ok) throw new Error('Failed to save forecast')
+              
+              toast.success('Forecast recorded!')
+              const updated = await fetch(`/api/forecasts/${id}`).then(r => r.json())
+              setPrediction(updated)
+              router.refresh()
+            } catch (err) {
+              toast.error('Failed to commit forecast')
+            } finally {
+              setIsSubmitting(false)
+            }
+          }
 
           return (
-            <div className="flex flex-col items-center">
-              <div className="w-full max-w-md relative rounded-2xl border border-navy-600 bg-navy-700 p-8 flex flex-col items-center justify-center shadow-xl mb-6">
-                <Speedometer
-                  percentage={leadingOption.pct}
-                  label={`Leading: ${leadingOption.text}`}
-                  size="lg"
-                />
-                <p className="mt-4 text-sm text-gray-500">
-                  <span className="font-semibold text-white">{leadingOption.commitCount}</span> forecasters ({leadingOption.pct}%)
-                </p>
-              </div>
-
-              {otherOptions.length > 0 && (
-                <div className="w-full max-w-md space-y-2">
-                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest text-center mb-3">Other Options</h4>
-                  <div className="bg-navy-800/50 rounded-xl border border-navy-600 p-3 divide-y divide-navy-600">
-                    {otherOptions.map(option => (
-                      <div key={option.id} className="flex items-center justify-between py-2 text-sm">
-                        <span className="text-text-secondary font-medium truncate pr-4">{option.text}</span>
-                        <span className="text-gray-500 shrink-0 font-mono">{option.pct}%</span>
+            <div className="w-full max-w-2xl mx-auto">
+              <div className="bg-navy-700 border border-navy-600 rounded-3xl p-6 sm:p-10 shadow-2xl relative overflow-hidden">
+                {/* Background glow */}
+                <div className="absolute inset-0 bg-gradient-to-b from-blue-500/5 to-transparent pointer-events-none" />
+                
+                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-8 text-center">Market Distribution</h3>
+                
+                <div className="space-y-4 mb-10">
+                  {optionsWithStats.map((option) => (
+                    <button
+                      key={option.id}
+                      onClick={() => prediction.status === 'ACTIVE' && setSelectedOptionId(option.id)}
+                      disabled={prediction.status !== 'ACTIVE' || isSubmitting}
+                      className={`w-full group relative flex flex-col p-4 rounded-2xl border transition-all duration-200 ${
+                        selectedOptionId === option.id 
+                          ? 'bg-blue-600/10 border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.15)]' 
+                          : 'bg-navy-800/50 border-navy-600 hover:border-navy-500'
+                      }`}
+                    >
+                      <div className="flex justify-between items-center mb-2 relative z-10">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                            selectedOptionId === option.id ? 'border-blue-400 bg-blue-500' : 'border-navy-500'
+                          }`}>
+                            {selectedOptionId === option.id && <div className="w-2 h-2 rounded-full bg-white" />}
+                          </div>
+                          <span className={`font-semibold transition-colors ${selectedOptionId === option.id ? 'text-blue-400' : 'text-white group-hover:text-blue-300'}`}>
+                            {option.text}
+                          </span>
+                        </div>
+                        <span className="font-mono text-sm font-bold text-gray-400">{option.pct}%</span>
                       </div>
-                    ))}
-                  </div>
+                      
+                      {/* Progress Bar */}
+                      <div className="w-full h-2 bg-navy-900 rounded-full overflow-hidden relative z-10">
+                        <div 
+                          className={`h-full transition-all duration-1000 ease-out rounded-full ${
+                            selectedOptionId === option.id ? 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]' : 'bg-navy-600'
+                          }`}
+                          style={{ width: `${option.pct}%` }}
+                        />
+                      </div>
+
+                      {/* Your indicator */}
+                      {userOptionId === option.id && (
+                        <div className="absolute -right-2 -top-2 bg-blue-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg transform rotate-12 uppercase tracking-tighter z-20">
+                          Your Choice
+                        </div>
+                      )}
+                    </button>
+                  ))}
                 </div>
-              )}
+
+                <button
+                  onClick={handleCommitMultipleChoice}
+                  disabled={!selectedOptionId || selectedOptionId === userOptionId || prediction.status !== 'ACTIVE' || isSubmitting}
+                  className={`w-full py-4 rounded-xl font-bold text-sm uppercase tracking-widest transition-all duration-200 ${
+                    !selectedOptionId || selectedOptionId === userOptionId || prediction.status !== 'ACTIVE' || isSubmitting
+                      ? 'bg-navy-800 text-gray-600 cursor-not-allowed border border-navy-600'
+                      : 'bg-blue-600 text-white hover:bg-blue-500 shadow-lg shadow-blue-900/20 active:scale-[0.98] border border-blue-400/30'
+                  }`}
+                >
+                  {isSubmitting ? 'Submitting...' : 'Commit Forecast'}
+                </button>
+              </div>
             </div>
           )
         })()}
@@ -750,25 +838,6 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
             isMounted={isMounted}
           />
           
-          <div className="p-6 border border-navy-600 rounded-2xl bg-navy-700 shadow-xl">
-            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Your Forecast</h3>
-            <ConfidenceSlider
-              value={userConfidence}
-              onChange={setUserConfidence}
-              onCommit={handleCommitConfidence}
-              isSubmitting={isSubmitting}
-              disabled={prediction.status !== 'ACTIVE'}
-            />
-          </div>
-          
-          {prediction.userCommitment && (
-            <div className="p-4 bg-teal/5 border border-teal/20 rounded-xl">
-              <p className="text-xs font-bold text-teal uppercase tracking-widest flex items-center gap-2">
-                <CheckCircle2 className="w-3 h-3" />
-                You have committed
-              </p>
-            </div>
-          )}
         </div>
       </div>
     </div>

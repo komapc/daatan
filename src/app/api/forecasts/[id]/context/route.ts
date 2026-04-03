@@ -18,8 +18,8 @@ type RawRouteContext = {
 export async function GET(request: NextRequest, { params }: RawRouteContext) {
     try {
         const { id } = await params
-        const prediction = await prisma.prediction.findUnique({
-            where: { id },
+        const prediction = await prisma.prediction.findFirst({
+            where: { OR: [{ id }, { slug: id }] },
             select: {
                 id: true,
                 detailsText: true,
@@ -48,8 +48,8 @@ export async function GET(request: NextRequest, { params }: RawRouteContext) {
 export const POST = withAuth(async (request: NextRequest, user, { params }: RouteContext) => {
     try {
         const { id } = params
-        const prediction = await prisma.prediction.findUnique({
-            where: { id },
+        const prediction = await prisma.prediction.findFirst({
+            where: { OR: [{ id }, { slug: id }] },
             include: { newsAnchor: true }
         })
 
@@ -57,10 +57,7 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
             return apiError('Prediction not found', 404)
         }
 
-        // Only Author or ADMIN can update context
-        if (prediction.authorId !== user.id && user.role !== 'ADMIN') {
-            return apiError('Forbidden. Only author or admin can update context.', 403)
-        }
+        // Any logged-in user can trigger a context analysis
 
         if (prediction.status !== 'ACTIVE') {
             return apiError('Context can only be updated for active predictions', 400)
@@ -88,7 +85,9 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
         }
 
         // 1. Search for recent articles
-        const searchQuery = prediction.newsAnchor?.title || prediction.claimText
+        // Clean up news anchor title: strip subtitle after " | " or " – " (common in Wikipedia-style titles)
+        const rawQuery = prediction.newsAnchor?.title || prediction.claimText
+        const searchQuery = rawQuery.split(/\s+[|—–]\s+/)[0].trim()
         const searchResults = await searchArticles(searchQuery, 4)
 
         if (searchResults.length === 0) {
@@ -166,6 +165,7 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
                 data: {
                     detailsText: newContextSummary,
                     contextUpdatedAt: now,
+                    ...(externalProbability !== null && { confidence: externalProbability }),
                 },
             }),
         ])

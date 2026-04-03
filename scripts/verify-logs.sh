@@ -22,8 +22,10 @@ if [ "$ENVIRONMENT" = "production" ]; then
     CONTAINER_NAME="daatan-app"
 elif [ "$ENVIRONMENT" = "staging" ]; then
     CONTAINER_NAME="daatan-app-staging"
+elif [ "$ENVIRONMENT" = "next" ]; then
+    CONTAINER_NAME="daatan-app-next"
 else
-    echo -e "${RED}Usage: $0 <staging|production>${NC}"
+    echo -e "${RED}Usage: $0 <staging|production|next>${NC}"
     exit 1
 fi
 

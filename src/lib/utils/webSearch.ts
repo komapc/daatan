@@ -117,6 +117,57 @@ async function searchWithSerpApi(query: string, limit: number): Promise<SearchRe
 }
 
 // ──────────────────────────────────────────────
+// Provider: ScrapingBee Google Search
+// ──────────────────────────────────────────────
+
+interface ScrapingBeeResult {
+  url: string
+  title: string
+  description: string
+  domain?: string
+  date?: string | null
+  date_utc?: string | null
+}
+
+interface ScrapingBeeResponse {
+  organic_results?: ScrapingBeeResult[]
+  news_results?: ScrapingBeeResult[]
+  top_stories?: ScrapingBeeResult[]
+}
+
+async function searchWithScrapingBee(query: string, limit: number): Promise<SearchResult[]> {
+  const apiKey = process.env.SCRAPINGBEE_API_KEY
+  if (!apiKey) throw new Error('ScrapingBee not configured')
+
+  const url = new URL('https://app.scrapingbee.com/api/v1/store/google')
+  url.searchParams.set('api_key', apiKey)
+  url.searchParams.set('search', query)
+  url.searchParams.set('nb_results', String(limit))
+
+  const response = await fetch(url.toString())
+
+  if (!response.ok) {
+    const errorBody = await response.text().catch(() => '(no body)')
+    log.error({ status: response.status, body: errorBody }, 'ScrapingBee API error')
+    throw new Error(`ScrapingBee error: ${response.status}`)
+  }
+
+  const data: ScrapingBeeResponse = await response.json()
+  const results = (data.news_results?.length ? data.news_results : null)
+    ?? (data.top_stories?.length ? data.top_stories : null)
+    ?? data.organic_results
+    ?? []
+
+  return results.slice(0, limit).map(item => ({
+    title: item.title,
+    url: item.url,
+    snippet: item.description,
+    source: item.domain || extractDomain(item.url),
+    publishedDate: item.date_utc || item.date || undefined,
+  }))
+}
+
+// ──────────────────────────────────────────────
 // Provider: DuckDuckGo (no API key, last resort)
 // ──────────────────────────────────────────────
 
@@ -182,8 +233,11 @@ export async function searchArticles(
   if (process.env.SERPER_API_KEY) {
     try {
       const results = await searchWithSerper(query, limit, options)
-      log.debug({ provider: 'serper', count: results.length }, 'Search succeeded')
-      return results
+      if (results.length > 0) {
+        log.debug({ provider: 'serper', count: results.length }, 'Search succeeded')
+        return results
+      }
+      log.warn('Serper returned 0 results, trying SerpAPI fallback')
     } catch (error) {
       log.warn({ err: error }, 'Serper failed, trying SerpAPI fallback')
     }
@@ -193,14 +247,31 @@ export async function searchArticles(
   if (process.env.SERPAPI_API_KEY) {
     try {
       const results = await searchWithSerpApi(query, limit)
-      log.info({ provider: 'serpapi', count: results.length }, 'Search succeeded via SerpAPI fallback')
-      return results
+      if (results.length > 0) {
+        log.info({ provider: 'serpapi', count: results.length }, 'Search succeeded via SerpAPI fallback')
+        return results
+      }
+      log.warn('SerpAPI returned 0 results, trying ScrapingBee fallback')
     } catch (error) {
-      log.warn({ err: error }, 'SerpAPI failed, trying DDG fallback')
+      log.warn({ err: error }, 'SerpAPI failed, trying ScrapingBee fallback')
     }
   }
 
-  // 3. DuckDuckGo (free, no key)
+  // 3. ScrapingBee
+  if (process.env.SCRAPINGBEE_API_KEY) {
+    try {
+      const results = await searchWithScrapingBee(query, limit)
+      if (results.length > 0) {
+        log.info({ provider: 'scrapingbee', count: results.length }, 'Search succeeded via ScrapingBee fallback')
+        return results
+      }
+      log.warn('ScrapingBee returned 0 results, trying DDG fallback')
+    } catch (error) {
+      log.warn({ err: error }, 'ScrapingBee failed, trying DDG fallback')
+    }
+  }
+
+  // 4. DuckDuckGo (free, no key)
   try {
     const results = await searchWithDDG(query, limit)
     log.info({ provider: 'ddg', count: results.length }, 'Search succeeded via DDG fallback')
