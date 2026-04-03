@@ -63,6 +63,7 @@ export async function generateMetadata(): Promise<Metadata> {
         'en': 'https://daatan.com',
         'he': 'https://daatan.com/he',
         'ru': 'https://daatan.com/ru',
+        'eo': 'https://daatan.com/eo',
       },
     },
     robots: {
