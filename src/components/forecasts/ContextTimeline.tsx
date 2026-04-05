@@ -24,11 +24,18 @@ type Snapshot = {
   externalReasoning?: string | null
 }
 
+type NewsAnchor = {
+  title: string
+  url: string
+  source?: string | null
+}
+
 type Props = {
   predictionId: string
   initialContext?: string | null
   initialContextUpdatedAt?: string | null
   canAnalyze: boolean
+  newsAnchor?: NewsAnchor | null
   onAiEstimate?: (value: number | null) => void
 }
 
@@ -37,6 +44,7 @@ export default function ContextTimeline({
   initialContext,
   initialContextUpdatedAt,
   canAnalyze,
+  newsAnchor,
   onAiEstimate,
 }: Props) {
   const [currentContext, setCurrentContext] = useState(initialContext || null)
@@ -147,6 +155,21 @@ export default function ContextTimeline({
             <p className="text-xs text-gray-400 mt-2" suppressHydrationWarning>
               {t('lastUpdated')}: {formatDate(contextUpdatedAt)}
             </p>
+          )}
+          {/* News anchor */}
+          {newsAnchor && (
+            <div className="mt-3 pt-3 border-t border-navy-600">
+              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Based on</p>
+              <a
+                href={newsAnchor.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-cobalt-light hover:underline"
+              >
+                {newsAnchor.source || newsAnchor.title}
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
           )}
           {/* Sources from latest snapshot */}
           {snapshots[0]?.sources && (snapshots[0].sources as Source[]).length > 0 && (
