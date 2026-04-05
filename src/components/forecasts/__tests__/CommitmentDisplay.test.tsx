@@ -8,34 +8,25 @@ const baseCommitment = {
   binaryChoice: false,
   rsSnapshot: 50,
   createdAt: '2026-02-15T09:33:00Z',
-  cuReturned: null,
   rsChange: null,
+  brierScore: null,
   option: null,
 }
 
 const activePrediction = { id: 'p1', status: 'ACTIVE', outcomeType: 'BINARY' }
 const resolvedPrediction = { id: 'p2', status: 'RESOLVED_CORRECT', outcomeType: 'BINARY' }
 
-const mockPreview = {
-  cuCommitted: 25,
-  cuBurned: 13,
-  cuRefunded: 12,
-  burnRate: 52,
-  totalPoolCU: 50,
-  yourSideCU: 26,
-}
-
 describe('CommitmentDisplay Component', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
   })
 
-  it('displays the committed CU amount', () => {
+  it('displays confidence value and implied probability', () => {
     render(
       <CommitmentDisplay commitment={baseCommitment} prediction={activePrediction} />
     )
-    expect(screen.getByText('25')).toBeInTheDocument()
-    expect(screen.getByText('CU')).toBeInTheDocument()
+    expect(screen.getByText('+25')).toBeInTheDocument()
+    expect(screen.getByText(/implied/)).toBeInTheDocument()
   })
 
   it('shows "Won\'t Happen" badge for binaryChoice=false', () => {
@@ -114,12 +105,7 @@ describe('CommitmentDisplay Component', () => {
     expect(onEdit).toHaveBeenCalledTimes(1)
   })
 
-  it('shows penalty preview after clicking Remove', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => mockPreview,
-    })
-
+  it('shows confirm dialog after clicking Remove (no fetch)', () => {
     render(
       <CommitmentDisplay
         commitment={baseCommitment}
@@ -130,20 +116,11 @@ describe('CommitmentDisplay Component', () => {
 
     fireEvent.click(screen.getByText('Remove'))
 
-    await waitFor(() => {
-      expect(screen.getByText('Exit penalty applies')).toBeInTheDocument()
-      expect(screen.getByText('Confirm exit')).toBeInTheDocument()
-      expect(screen.getByText('Cancel')).toBeInTheDocument()
-    })
-    expect(global.fetch).toHaveBeenCalledWith('/api/forecasts/p1/commit/preview')
+    expect(screen.getByText('Confirm remove')).toBeInTheDocument()
+    expect(screen.getByText('Cancel')).toBeInTheDocument()
   })
 
-  it('cancels removal when Cancel is clicked after preview', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => mockPreview,
-    })
-
+  it('cancels removal when Cancel is clicked', () => {
     render(
       <CommitmentDisplay
         commitment={baseCommitment}
@@ -153,16 +130,14 @@ describe('CommitmentDisplay Component', () => {
     )
 
     fireEvent.click(screen.getByText('Remove'))
-    await waitFor(() => expect(screen.getByText('Cancel')).toBeInTheDocument())
+    expect(screen.getByText('Cancel')).toBeInTheDocument()
     fireEvent.click(screen.getByText('Cancel'))
-    await waitFor(() => expect(screen.getByText('Remove')).toBeInTheDocument())
+    expect(screen.getByText('Remove')).toBeInTheDocument()
   })
 
-  it('calls DELETE API and onRemove after confirming exit', async () => {
+  it('calls DELETE API and onRemove after confirming remove', async () => {
     const onRemove = vi.fn()
-    global.fetch = vi.fn()
-      .mockResolvedValueOnce({ ok: true, json: async () => mockPreview }) // preview
-      .mockResolvedValueOnce({ ok: true }) // DELETE
+    global.fetch = vi.fn().mockResolvedValue({ ok: true })
 
     render(
       <CommitmentDisplay
@@ -173,8 +148,7 @@ describe('CommitmentDisplay Component', () => {
     )
 
     fireEvent.click(screen.getByText('Remove'))
-    await waitFor(() => expect(screen.getByText('Confirm exit')).toBeInTheDocument())
-    fireEvent.click(screen.getByText('Confirm exit'))
+    fireEvent.click(screen.getByText('Confirm remove'))
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith('/api/forecasts/p1/commit', { method: 'DELETE' })
@@ -182,7 +156,7 @@ describe('CommitmentDisplay Component', () => {
     })
   })
 
-  it('shows error message when preview fetch fails', async () => {
+  it('shows error message when DELETE fails', async () => {
     global.fetch = vi.fn().mockResolvedValue({ ok: false })
 
     render(
@@ -194,28 +168,7 @@ describe('CommitmentDisplay Component', () => {
     )
 
     fireEvent.click(screen.getByText('Remove'))
-
-    await waitFor(() => {
-      expect(screen.getByText(/Failed to load penalty info/)).toBeInTheDocument()
-    })
-  })
-
-  it('shows error message when DELETE fails', async () => {
-    global.fetch = vi.fn()
-      .mockResolvedValueOnce({ ok: true, json: async () => mockPreview })
-      .mockResolvedValueOnce({ ok: false })
-
-    render(
-      <CommitmentDisplay
-        commitment={baseCommitment}
-        prediction={activePrediction}
-        onRemove={vi.fn()}
-      />
-    )
-
-    fireEvent.click(screen.getByText('Remove'))
-    await waitFor(() => expect(screen.getByText('Confirm exit')).toBeInTheDocument())
-    fireEvent.click(screen.getByText('Confirm exit'))
+    fireEvent.click(screen.getByText('Confirm remove'))
 
     await waitFor(() => {
       expect(screen.getByText(/Failed to remove commitment/)).toBeInTheDocument()
@@ -225,8 +178,9 @@ describe('CommitmentDisplay Component', () => {
   it('displays resolution results when resolved', () => {
     const resolvedCommitment = {
       ...baseCommitment,
-      cuReturned: 50,
-      rsChange: 2.5,
+      cuCommitted: 80,
+      rsChange: 25,
+      brierScore: 0.0,
     }
     render(
       <CommitmentDisplay
@@ -235,15 +189,15 @@ describe('CommitmentDisplay Component', () => {
       />
     )
     expect(screen.getByText('Resolution Results')).toBeInTheDocument()
-    expect(screen.getByText('50')).toBeInTheDocument()
-    expect(screen.getByText('+2.5')).toBeInTheDocument()
+    expect(screen.getByText('+25')).toBeInTheDocument()
+    expect(screen.getByText('0.000')).toBeInTheDocument()
   })
 
   it('displays negative RS change with correct styling', () => {
     const resolvedCommitment = {
       ...baseCommitment,
-      cuReturned: 10,
-      rsChange: -3.2,
+      rsChange: -3,
+      brierScore: 0.28,
     }
     render(
       <CommitmentDisplay
@@ -251,6 +205,7 @@ describe('CommitmentDisplay Component', () => {
         prediction={resolvedPrediction}
       />
     )
-    expect(screen.getByText('-3.2')).toBeInTheDocument()
+    expect(screen.getByText('-3')).toBeInTheDocument()
+    expect(screen.getByText('0.280')).toBeInTheDocument()
   })
 })
