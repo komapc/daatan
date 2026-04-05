@@ -8,7 +8,7 @@
 ## Overview
 
 ```
-[News Anchor] → [Forecast Draft] → [Define Outcome] → [Commit CU] → [Active] → [Resolution]
+[News Anchor] → [Forecast Draft] → [Define Outcome] → [Set Confidence] → [Active] → [Resolution]
 ```
 
 ---
@@ -83,27 +83,26 @@ Prediction {
 
 ---
 
-## Step 4: Commit CU + Publish (Lock)
+## Step 4: Set Confidence + Publish (Lock)
 
 ### User Action
-1. Choose how many Confidence Units (CU) to commit
-2. Press **Publish**
+1. Set a confidence value:
+   - **Binary**: drag the gauge needle or use the slider (-100 = certain NO → +100 = certain YES)
+   - **Multiple Choice**: select an option and set a confidence level (1–100)
+2. Press **Commit Forecast**
 
 ### System Requirements (Atomic Transaction)
-1. Check user has enough `CU_available`
-2. Create `Commitment`:
+1. Create `Commitment`:
    ```
    Commitment {
      prediction_id: string
      user_id: string
-     cu_committed: number
-     rs_snapshot: number  // RS at publish time
+     cu_committed: number  // stores confidence value (-100..100 for BINARY, 1..100 for MC)
+     rs_snapshot: number   // RS at commit time
+     binary_choice: boolean | null  // derived server-side from sign of confidence
    }
    ```
-3. Lock CU in user's ledger:
-   - Reduce `CU_available`
-   - Increase `CU_locked`
-4. Update Prediction:
+2. Update Prediction:
    ```
    Prediction {
      status: "active"
@@ -113,7 +112,7 @@ Prediction {
    ```
 
 ### Rule
-**After publish, prediction is immutable** — no edits to claim/outcome/deadline/CU.
+**After publish, prediction is immutable** — no edits to claim/outcome/deadline.
 
 ---
 
@@ -205,14 +204,24 @@ Prediction {
 
 ---
 
-## CU + RS Effects
+## Brier Score + RS Effects
 
-| Outcome | CU Effect | RS Effect |
-| ------- | --------- | --------- |
-| `correct` | Unlock | Changes (calculated) |
-| `wrong` | Unlock | Changes (calculated) |
-| `void` | Refund | No change |
-| `unresolvable` | Unlock | No change |
+Resolution computes a Brier score for each commitment and awards or deducts RS accordingly.
+
+**Probability mapping:**
+- Binary: `p = (confidence + 100) / 200`  (so -100 → 0.0, 0 → 0.5, +100 → 1.0)
+- Multiple Choice: `p = confidence / 100`
+
+**ΔRS formula:** `rsChange = round((0.25 − brierScore) × 100)`
+where `brierScore = (p − outcome)²` and outcome is 1 if the committed direction was correct, 0 otherwise.
+
+| Outcome | RS Effect |
+| ------- | --------- |
+| `correct` (confident) | Up to +25 RS (perfect score) |
+| `wrong` (confident) | Down to -75 RS |
+| `neutral (50%)` | ±0 RS regardless of outcome |
+| `void` | No RS change (brierScore not stored) |
+| `unresolvable` | No RS change |
 
 ---
 
@@ -220,10 +229,9 @@ Prediction {
 
 See `prisma/schema.prisma` for full schema. Key models:
 
-- `User` — with RS, CU balance
+- `User` — with RS (Reputation Score)
 - `NewsAnchor` — news story snapshot
 - `Prediction` — forecast statement
-- `Commitment` — CU allocation
-- `CuTransaction` — CU ledger
+- `Commitment` — confidence value + Brier score result
 
 

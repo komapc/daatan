@@ -1,7 +1,7 @@
 # DAATAN Technical Documentation
 
 > Technical architecture, infrastructure, project structure, and development guide.
-> Last updated: March 2026
+> Last updated: April 2026
 
 ---
 
@@ -487,39 +487,37 @@ See [docs/bots.md](./docs/bots.md) for full bot system documentation.
 ┌─────────────────────────────────────────────────────────────────┐
 │                         User                                    │
 │  - id, email, name, image, isBot                                │
-│  - rs (Reputation Score), cuAvailable, cuLocked                 │
+│  - rs (Reputation Score)                                        │
 └─────────────────────────────────────────────────────────────────┘
-         │                    │                    │           │
-         │ creates            │ commits            │ resolves  │ 1:1
-         ▼                    ▼                    ▼           ▼
-┌─────────────────┐  ┌─────────────────┐  ┌──────────────┐  ┌──────────────────┐
-│   Prediction    │  │   Commitment    │  │ CuTransaction│  │   BotConfig      │
-│  - claimText    │  │  - cuCommitted  │  │ - type,amount│  │  - personaPrompt │
-│  - outcomeType  │  │  - rsSnapshot   │  │ - balanceAfter│  │  - intervalMins  │
-│  - status       │  │  - binaryChoice │  │              │  │  - autoApprove   │
-└─────────────────┘  └─────────────────┘  └──────────────┘  └────────┬─────────┘
-         │                                                            │ 1:many
-         │ linked to                                                  ▼
-         ▼                                                  ┌──────────────────┐
-┌─────────────────┐                                         │   BotRunLog      │
-│   NewsAnchor    │                                         │  - action (enum) │
-│  - url, title   │                                         │  - isDryRun      │
-│  - source       │                                         │  - generatedText │
-│  - publishedAt  │                                         │  - error         │
-└─────────────────┘                                         └──────────────────┘
+         │                    │                    │
+         │ creates            │ commits            │ 1:1
+         ▼                    ▼                    ▼
+┌─────────────────┐  ┌─────────────────┐  ┌──────────────────┐
+│   Prediction    │  │   Commitment    │  │   BotConfig      │
+│  - claimText    │  │  - cuCommitted  │  │  - personaPrompt │
+│  - outcomeType  │  │    (confidence) │  │  - intervalMins  │
+│  - status       │  │  - rsSnapshot   │  │  - autoApprove   │
+└─────────────────┘  │  - binaryChoice │  └────────┬─────────┘
+         │           │  - brierScore   │           │ 1:many
+         │ linked to │  - rsChange     │           ▼
+         ▼           └─────────────────┘  ┌──────────────────┐
+┌─────────────────┐                       │   BotRunLog      │
+│   NewsAnchor    │                       │  - action (enum) │
+│  - url, title   │                       │  - isDryRun      │
+│  - source       │                       │  - generatedText │
+│  - publishedAt  │                       │  - error         │
+└─────────────────┘                       └──────────────────┘
 ```
 
 ### Key Models
 
 | Model | Purpose | Key Fields |
 |-------|---------|------------|
-| User | User accounts | rs, cuAvailable, cuLocked, isBot, avatarUrl, slug, username |
+| User | User accounts | rs, isBot, avatarUrl, slug, username |
 | Prediction | Forecast statements | claimText, outcomeType, status, source |
 | PredictionOption | Options for multiple choice | text, predictionId |
-| Commitment | CU stakes | cuCommitted, rsSnapshot |
-| CommitmentWithdrawal | Early exit record | commitmentId, cuRefunded, penaltyBurned |
+| Commitment | Confidence + resolution record | cuCommitted (confidence), rsSnapshot, brierScore, rsChange |
 | NewsAnchor | News context | url, title, source |
-| CuTransaction | CU ledger | type, amount, balanceAfter |
 | Comment | Prediction comments | content, userId, predictionId |
 | CommentReaction | Emoji reactions on comments | type, userId, commentId |
 | Notification | User notifications | type, message, read, userId |

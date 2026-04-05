@@ -1,6 +1,6 @@
 # DAATAN Glossary
 
-> Last updated: March 2026
+> Last updated: April 2026
 
 ## Core Concepts
 
@@ -21,7 +21,7 @@ A specific news story/event that a forecast is attached to. Provides context and
 The forecast statement itself: a clear, testable claim about what will (or won't) happen, by a defined deadline and with defined resolution rules.
 
 ### Commitment
-The act of allocating Confidence Units (CU) to a specific Prediction. Represents "how strongly I stand behind this forecast." CU are locked until resolution.
+The act of expressing a confidence level on a specific Prediction. Represents "how strongly I stand behind this forecast." Stored as a value from -100 to +100 (BINARY) or 1–100 (Multiple Choice). Resolution computes a Brier score and awards or deducts RS accordingly.
 
 ---
 
@@ -30,12 +30,12 @@ The act of allocating Confidence Units (CU) to a specific Prediction. Represents
 ### Resolution
 The final verdict of a Prediction once it's decidable.
 
-| Outcome | Description | CU Effect | RS Effect |
-| ------- | ----------- | --------- | --------- |
-| **Correct** | The prediction happened | Unlock | Changes (calculated) |
-| **Wrong** | The prediction did not happen | Unlock | Changes (calculated) |
-| **Void** | Canceled/invalidated | Refund | No change |
-| **Unresolvable** | Cannot be reliably determined | Unlock | No change |
+| Outcome | Description | RS Effect |
+| ------- | ----------- | --------- |
+| **Correct** | The prediction happened | ΔRS via Brier score (up to +25) |
+| **Wrong** | The prediction did not happen | ΔRS via Brier score (down to -75) |
+| **Void** | Canceled/invalidated | No change |
+| **Unresolvable** | Cannot be reliably determined | No change |
 
 ### Void
 A prediction that was canceled or invalidated, so it's not counted as correct or wrong. Happens when:
@@ -43,7 +43,7 @@ A prediction that was canceled or invalidated, so it's not counted as correct or
 - Resolution rules were flawed
 - User canceled within the allowed window
 
-CU are refunded and RS does not change.
+RS does not change for void outcomes.
 
 ### Unresolvable
 Used when a prediction cannot end with a clean "true/false" even with good intent:
@@ -58,23 +58,19 @@ Protects fairness and system credibility by allowing "we can't reliably determin
 ## Scoring System
 
 ### Reputation Score (RS)
-A user's long-term credibility/accuracy score based on past resolved predictions. Updates over time in an ELO-like way (expected outcome vs. actual outcome). Can increase or decrease (including becoming negative).
-
-RS powers titles/ranks (overall and/or by domain like politics/economy), earned and maintained only through sustained accuracy.
-
-### Confidence Units (CU)
-A limited per-period budget of "confidence" a user can allocate across predictions. CU represent intensity/conviction but:
-- Have no monetary value
-- Cannot be transferred
-- Cannot be bought
-
-### Prediction Weight
-The influence/strength of a specific prediction in scoring/visibility calculations.
-
-**Formula:** `Weight = RS × CU`
+A user's long-term credibility/accuracy score based on past resolved predictions. Can increase or decrease (including going negative). RS is the only score that matters — earned through calibrated, accurate forecasting.
 
 ### Brier Score
-Probability calibration metric measuring forecast accuracy. Formula: `(probability − outcome)²`. Lower is better; 0 = perfect, 1 = worst.
+Probability calibration metric measuring forecast accuracy. Formula: `(probability − outcome)²`. Lower is better; 0 = perfect, 0.25 = break-even.
+
+Used to compute RS change on resolution: `ΔRS = round((0.25 − brierScore) × 100)`.
+
+### Confidence (value stored on Commitment)
+An integer representing how strongly the user believes in their forecast direction:
+- **Binary:** -100 (certain NO) → 0 (neutral) → +100 (certain YES). Sign determines YES/NO; magnitude determines Brier score impact.
+- **Multiple Choice:** 1–100, where higher = more certain about the chosen option.
+
+A neutral (0) confidence always gives ΔRS = 0 regardless of outcome. Max confidence (±100) yields up to +25 RS if right or -75 RS if wrong.
 
 ---
 
@@ -97,7 +93,7 @@ A metric crosses a defined value (e.g., "Bitcoin will exceed $100k").
 | ------ | ----------- |
 | `draft` | Created but not published |
 | `pending_approval` | Created by bot, awaiting human review before going active |
-| `active` / `locked` | Published, CU committed, awaiting resolution |
+| `active` / `locked` | Published, confidence committed, awaiting resolution |
 | `resolved_correct` | Resolved as correct |
 | `resolved_wrong` | Resolved as wrong |
 | `void` | Invalidated |
@@ -108,8 +104,8 @@ A metric crosses a defined value (e.g., "Bitcoin will exceed $100k").
 
 ## Commitment Lifecycle
 
-### Commitment Withdrawal (Exit Penalty)
-Early exit from an active commitment before resolution. The user receives a partial CU refund calculated via a burn rate formula — the longer the commitment has been active, the lower the refund. Withdrawn commitments do not affect RS.
+### Commitment Removal
+A user can remove their commitment from an active prediction before resolution. Removing a commitment does not affect RS — Brier scoring only applies at resolution.
 
 ---
 

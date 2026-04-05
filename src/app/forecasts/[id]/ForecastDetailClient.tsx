@@ -597,73 +597,75 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
                 <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-8 text-center">Market Distribution</h3>
                 
                 <div className="space-y-4 mb-10">
-                  {optionsWithStats.map((option) => (
-                    <button
-                      key={option.id}
-                      onClick={() => prediction.status === 'ACTIVE' && setSelectedOptionId(option.id)}
-                      disabled={prediction.status !== 'ACTIVE' || isSubmitting}
-                      className={`w-full group relative flex flex-col p-4 rounded-2xl border transition-all duration-200 ${
-                        selectedOptionId === option.id 
-                          ? 'bg-blue-600/10 border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.15)]' 
-                          : 'bg-navy-800/50 border-navy-600 hover:border-navy-500'
-                      }`}
-                    >
-                      <div className="flex justify-between items-center mb-2 relative z-10">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-                            selectedOptionId === option.id ? 'border-blue-400 bg-blue-500' : 'border-navy-500'
-                          }`}>
-                            {selectedOptionId === option.id && <div className="w-2 h-2 rounded-full bg-white" />}
+                  {optionsWithStats.map((option) => {
+                    const isSelected = selectedOptionId === option.id
+                    return (
+                      <div key={option.id} className={`relative rounded-2xl border transition-all duration-200 ${
+                        isSelected
+                          ? 'bg-blue-600/10 border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.15)]'
+                          : 'bg-navy-800/50 border-navy-600'
+                      }`}>
+                        <button
+                          onClick={() => prediction.status === 'ACTIVE' && setSelectedOptionId(option.id)}
+                          disabled={prediction.status !== 'ACTIVE' || isSubmitting}
+                          className="w-full group flex flex-col p-4"
+                        >
+                          <div className="flex justify-between items-center mb-2 relative z-10">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                                isSelected ? 'border-blue-400 bg-blue-500' : 'border-navy-500'
+                              }`}>
+                                {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
+                              </div>
+                              <span className={`font-semibold transition-colors ${isSelected ? 'text-blue-400' : 'text-white group-hover:text-blue-300'}`}>
+                                {option.text}
+                              </span>
+                            </div>
+                            <span className="font-mono text-sm font-bold text-gray-400">{option.pct}%</span>
                           </div>
-                          <span className={`font-semibold transition-colors ${selectedOptionId === option.id ? 'text-blue-400' : 'text-white group-hover:text-blue-300'}`}>
-                            {option.text}
-                          </span>
-                        </div>
-                        <span className="font-mono text-sm font-bold text-gray-400">{option.pct}%</span>
-                      </div>
-                      
-                      {/* Progress Bar */}
-                      <div className="w-full h-2 bg-navy-900 rounded-full overflow-hidden relative z-10">
-                        <div 
-                          className={`h-full transition-all duration-1000 ease-out rounded-full ${
-                            selectedOptionId === option.id ? 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]' : 'bg-navy-600'
-                          }`}
-                          style={{ width: `${option.pct}%` }}
-                        />
-                      </div>
 
-                      {/* Your indicator */}
-                      {userOptionId === option.id && (
-                        <div className="absolute -right-2 -top-2 bg-blue-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg transform rotate-12 uppercase tracking-tighter z-20">
-                          Your Choice
-                        </div>
-                      )}
-                    </button>
-                  ))}
+                          {/* Progress Bar */}
+                          <div className="w-full h-2 bg-navy-900 rounded-full overflow-hidden relative z-10">
+                            <div
+                              className={`h-full transition-all duration-1000 ease-out rounded-full ${
+                                isSelected ? 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]' : 'bg-navy-600'
+                              }`}
+                              style={{ width: `${option.pct}%` }}
+                            />
+                          </div>
+                        </button>
+
+                        {/* Inline confidence slider — only on selected option */}
+                        {isSelected && prediction.status === 'ACTIVE' && (
+                          <div className="px-4 pb-4 space-y-2" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex justify-between text-[10px] uppercase tracking-widest font-bold text-gray-500">
+                              <span>Low</span>
+                              <span className="text-blue-400 font-bold">Confidence: {mcConfidence}%</span>
+                              <span className="text-teal">High</span>
+                            </div>
+                            <input
+                              type="range"
+                              min="1"
+                              max="100"
+                              step="1"
+                              value={mcConfidence}
+                              onChange={(e) => setMcConfidence(parseInt(e.target.value))}
+                              disabled={isSubmitting}
+                              className="w-full h-3 bg-navy-900 rounded-lg appearance-none cursor-pointer accent-blue-500 border border-blue-500/30"
+                            />
+                          </div>
+                        )}
+
+                        {/* Your indicator */}
+                        {userOptionId === option.id && (
+                          <div className="absolute -right-2 -top-2 bg-blue-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg transform rotate-12 uppercase tracking-tighter z-20">
+                            Your Choice
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
-
-                {/* Confidence slider for MC */}
-                {prediction.status === 'ACTIVE' && (
-                  <div className="mb-6 space-y-3">
-                    <div className="flex justify-between text-[10px] uppercase tracking-widest font-bold text-gray-500">
-                      <span>Low</span>
-                      <span className="text-teal">High confidence</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="1"
-                      max="100"
-                      step="1"
-                      value={mcConfidence}
-                      onChange={(e) => setMcConfidence(parseInt(e.target.value))}
-                      disabled={isSubmitting}
-                      className="w-full h-3 bg-navy-800 rounded-lg appearance-none cursor-pointer accent-blue-500 border border-navy-600"
-                    />
-                    <div className="text-center text-sm font-bold text-teal">
-                      Confidence: {mcConfidence}%
-                    </div>
-                  </div>
-                )}
 
                 {prediction.status === 'ACTIVE' && prediction.userCommitment && selectedOptionId === userOptionId && mcConfidence === Math.max(1, Math.abs(prediction.userCommitment.cuCommitted ?? 70)) ? (
                   <div className="flex items-center justify-center gap-2 py-4 px-4 bg-teal/10 border border-teal/30 rounded-xl">

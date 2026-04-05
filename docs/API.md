@@ -106,12 +106,24 @@ Reject a bot `PENDING_APPROVAL` forecast → VOID. Creates `BotRejectedTopic`.
 ### `POST /api/forecasts/[id]/commit` — Auth
 Create or update a commitment on a forecast.
 
-**Body** — `createCommitmentSchema` (cuCommitted, binaryChoice or optionId, probability?)
+**Body**
+
+```json
+{
+  "confidence": -100,      // BINARY: -100 (certain NO) to +100 (certain YES); sign determines direction
+  "confidence": 75,        // MULTIPLE_CHOICE: 1–100 certainty level
+  "optionId": "cuid"       // required for MULTIPLE_CHOICE
+}
+```
+
+`binaryChoice` is derived server-side from the sign of `confidence` (positive = YES).
 
 ---
 
 ### `GET /api/forecasts/[id]/commit/preview` — Auth
-Preview commitment penalty / outcome before committing.
+Preview expected RS outcomes before committing.
+
+**Response** `{ confidence, probability, rsIfRight, rsIfWrong }`
 
 ---
 

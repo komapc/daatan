@@ -1,6 +1,6 @@
 # Bot Approval Workflow
 
-**Status:** ✅ Complete (v1.7.30, March 10–11, 2026)
+**Status:** ✅ Complete (v1.7.30, March 10–11, 2026; updated for confidence system v1.8.x, April 2026)
 
 ## Overview
 
@@ -303,18 +303,18 @@ CREATE INDEX "bot_rejected_topics_rejectedAt_idx" ON "bot_rejected_topics"("reje
 ```typescript
 // Immediately stake if approval NOT required
 if (!bot.requireApprovalForForecasts) {
-  await ensureBotCU(bot, dryRun)
-  // Randomize stake within configured range (stakeMin–stakeMax)
+  // Randomize confidence within configured range (stakeMin–stakeMax)
   const stakeAmount = randomInt(bot.stakeMin, bot.stakeMax)
   await createCommitment(bot.userId, prediction.id, {
-    cuCommitted: stakeAmount,
-    binaryChoice: true,
+    confidence: stakeAmount,  // positive = YES (binaryChoice derived server-side)
   })
 } else {
   // Defer staking until user approves via /api/forecasts/[id]/approve
   log.info({ botId: bot.id }, 'Forecast created, awaiting approval')
 }
 ```
+
+> **Note:** `ensureBotCU()` was removed in v1.8.x. Bots no longer need a CU balance — commitments use the Brier confidence system directly.
 
 ### Hourly Rate Limiting
 
@@ -406,8 +406,7 @@ Current coverage:
    - status → ACTIVE
    - publishedAt → now()
    - createCommitment(botUserId, predictionId, {
-       cuCommitted: random(stakeMin, stakeMax),
-       binaryChoice: true
+       confidence: random(stakeMin, stakeMax)  // binaryChoice derived from sign
      })
    - notifyBotForecastApproved(prediction, botAuthor, approver)
 
@@ -554,13 +553,13 @@ BotRejectedTopic
 
 **Symptom:** Forecast approved (ACTIVE) but bot didn't stake.
 
-**Cause:** createCommitment() failed (insufficient CU, validation error).
+**Cause:** createCommitment() failed (validation error or server issue).
 
 **Expected:** Approval still succeeds; warning logged.
 
 **Why:** Approval is more critical than staking. Forecast should go live even if bot can't stake.
 
 **Solution:**
-1. Check bot.cuAvailable in User table
-2. Ensure stakeMin ≤ bot CU balance
-3. Configure CU auto-refill or manually top up
+1. Check bot-runner logs for createCommitment error
+2. Verify stakeMin/stakeMax are configured sensibly on BotConfig
+3. Re-run the bot or manually create a commitment via admin
