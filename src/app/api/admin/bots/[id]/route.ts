@@ -69,7 +69,7 @@ export const PATCH = withAuth(
       const updated = await prisma.botConfig.update({
         where: { id: params.id },
         data,
-        include: { user: { select: { id: true, name: true, username: true, cuAvailable: true } } },
+        include: { user: { select: { id: true, name: true, username: true } } },
       })
 
       return NextResponse.json({ bot: updated })

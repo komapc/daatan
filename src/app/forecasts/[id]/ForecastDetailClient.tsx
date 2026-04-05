@@ -187,8 +187,8 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
   useEffect(() => {
     setIsMounted(true)
     if (prediction?.userCommitment) {
-      const prob = (prediction.userCommitment as any).probability ?? (prediction.userCommitment.binaryChoice ? 0.9 : 0.1)
-      const val = Math.round(prob * 200 - 100)
+      // cuCommitted now stores confidence directly (-100..100)
+      const val = prediction.userCommitment.cuCommitted ?? (prediction.userCommitment.binaryChoice ? 70 : -70)
       setUserConfidence(val)
       setInitialUserConfidence(val)
       setSelectedOptionId(prediction.userCommitment.optionId || null)
@@ -243,20 +243,19 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
 
   const handleCommitConfidence = async () => {
     if (userConfidence === 0 || !prediction) return
-    
+
     setIsSubmitting(true)
     try {
-      const probability = (userConfidence + 100) / 200
-      const binaryChoice = userConfidence > 0
+      const body: Record<string, unknown> = { confidence: userConfidence }
+      if (prediction.outcomeType === 'MULTIPLE_CHOICE' && selectedOptionId) {
+        body.optionId = selectedOptionId
+        body.confidence = Math.abs(userConfidence)
+      }
 
       const response = await fetch(`/api/forecasts/${prediction.id}/commit`, {
         method: prediction.userCommitment ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          cuCommitted: 10,
-          probability,
-          binaryChoice,
-        }),
+        body: JSON.stringify(body),
       })
 
       if (!response.ok) throw new Error('Failed to save forecast')

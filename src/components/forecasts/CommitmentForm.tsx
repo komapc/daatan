@@ -14,12 +14,11 @@ interface Prediction {
   outcomeType: string
   options?: PredictionOption[]
   lockedAt?: string | null
-  commitments?: { binaryChoice?: boolean | null, optionId?: string | null, cuCommitted: number }[]
 }
 
 interface ExistingCommitment {
   id: string
-  cuCommitted: number
+  cuCommitted: number   // stores confidence value (-100..100)
   binaryChoice?: boolean
   optionId?: string
 }
@@ -36,116 +35,118 @@ interface Commitment {
 interface CommitmentFormProps {
   prediction: Prediction
   existingCommitment?: ExistingCommitment
-  userCuAvailable: number
   onSuccess: (commitment: Commitment) => void
   onCancel?: () => void
+}
+
+function ConfidenceInput({
+  value,
+  onChange,
+  min = -100,
+  max = 100,
+  disabled,
+}: {
+  value: number
+  onChange: (v: number) => void
+  min?: number
+  max?: number
+  disabled?: boolean
+}) {
+  const getLabel = (val: number) => {
+    if (min === 0) {
+      if (val >= 90) return 'Very confident'
+      if (val >= 60) return 'Confident'
+      if (val >= 30) return 'Somewhat confident'
+      return 'Low confidence'
+    }
+    if (val === 0) return 'Neutral'
+    if (val <= -70) return 'Probably NO'
+    if (val < 0) return 'Leaning NO'
+    if (val >= 70) return 'Probably YES'
+    return 'Leaning YES'
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex justify-between text-[10px] uppercase tracking-widest font-bold text-gray-500">
+        {min === 0 ? (
+          <><span>Low</span><span className="text-teal">High</span></>
+        ) : (
+          <><span className="text-red-400">NO</span><span>Neutral</span><span className="text-teal">YES</span></>
+        )}
+      </div>
+      <div className="relative">
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step="1"
+          value={value}
+          onChange={(e) => onChange(parseInt(e.target.value))}
+          disabled={disabled}
+          className="w-full h-3 bg-navy-800 rounded-lg appearance-none cursor-pointer accent-blue-500 border border-navy-600"
+        />
+        {min === -100 && (
+          <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-navy-600 -translate-x-1/2 pointer-events-none" />
+        )}
+      </div>
+      <div className="text-center">
+        <span className={`text-sm font-bold ${value > 0 ? 'text-teal' : value < 0 ? 'text-red-400' : 'text-gray-500'}`}>
+          {getLabel(value)}
+        </span>
+        <span className="text-xs text-gray-500 ml-2">
+          ({value > 0 ? '+' : ''}{value})
+        </span>
+      </div>
+    </div>
+  )
 }
 
 export default function CommitmentForm({
   prediction,
   existingCommitment,
-  userCuAvailable,
   onSuccess,
   onCancel,
 }: CommitmentFormProps) {
   const t = useTranslations('commitment')
   const isUpdate = !!existingCommitment
-  const isLocked = !!prediction.lockedAt
 
-  // State
-  const [cuAmount, setCuAmount] = useState<number | ''>(existingCommitment?.cuCommitted || 10)
-  const [probability, setProbability] = useState<number | ''>('')
+  const initialConfidence = existingCommitment?.cuCommitted ?? 70
+  const [confidence, setConfidence] = useState<number>(initialConfidence)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Pending confirmation state for penalty
-  const [pendingOutcome, setPendingOutcome] = useState<string | boolean | null>(null)
-  const [penaltyInfo, setPenaltyInfo] = useState<{ cuBurned: number, cuRefunded: number, burnRate: number } | null>(null)
-
-  // After lock: can change side or increase CU, but penalty applies.
-  // Always allow the full available balance (existing commitment is returned minus penalty).
-  const maxCu = isUpdate
-    ? userCuAvailable + existingCommitment.cuCommitted // conservative: as if all refunded
-    : userCuAvailable
-
-  const handleActionClick = (outcomeValue: string | boolean) => {
+  const handleSubmit = async (optionOrBool?: string | boolean) => {
     setError(null)
-    const numericCu = Number(cuAmount)
-
-    if (!numericCu || numericCu < 1 || numericCu > maxCu) {
-      setError(`Please enter a valid amount (1 - ${maxCu} CU)`)
-      return
-    }
-
-    const isSideChanged = isUpdate && !isCurrentOutcome(outcomeValue)
-    const isCuIncreased = isUpdate && isCurrentOutcome(outcomeValue) && numericCu > existingCommitment.cuCommitted
-
-    if (isUpdate && isLocked && (isSideChanged || isCuIncreased)) {
-      // Calculate penalty preview
-      const oldCu = existingCommitment.cuCommitted
-
-      let yourSideCU = 0
-      let totalPoolCU = 0
-
-      if (prediction.commitments) {
-        for (const c of prediction.commitments) {
-          if (c.binaryChoice !== null && c.binaryChoice !== undefined) {
-            if (c.binaryChoice === existingCommitment.binaryChoice) yourSideCU += c.cuCommitted
-            totalPoolCU += c.cuCommitted
-          } else if (c.optionId) {
-            if (c.optionId === existingCommitment.optionId) yourSideCU += c.cuCommitted
-            totalPoolCU += c.cuCommitted
-          }
-        }
-      } else {
-        // Fallback if not loaded
-        yourSideCU = oldCu
-        totalPoolCU = oldCu * 2
-      }
-
-      const poolShare = totalPoolCU > 0 ? yourSideCU / totalPoolCU : 0
-      const burnRate = Math.max(0.10, poolShare)
-      const cuBurned = Math.floor(oldCu * burnRate)
-      const cuRefunded = oldCu - cuBurned
-
-      setPenaltyInfo({ cuBurned, cuRefunded, burnRate: Math.round(burnRate * 100) })
-      setPendingOutcome(outcomeValue)
-      return
-    }
-
-    // Otherwise submit immediately
-    submitOutcome(outcomeValue)
-  }
-
-  const submitOutcome = async (outcomeValue: string | boolean) => {
-    setError(null)
-    const numericCu = Number(cuAmount)
-
     setIsSubmitting(true)
 
     try {
       const endpoint = `/api/forecasts/${prediction.id}/commit`
       const method = isUpdate ? 'PATCH' : 'POST'
-
-      const body: Record<string, unknown> = {
-        cuCommitted: numericCu,
-      }
+      const body: Record<string, unknown> = {}
 
       if (prediction.outcomeType === 'BINARY') {
-        body.binaryChoice = outcomeValue as boolean
+        // Ensure sign matches the chosen direction
+        let finalConfidence = confidence
+        if (typeof optionOrBool === 'boolean') {
+          finalConfidence = optionOrBool ? Math.abs(confidence) : -Math.abs(confidence)
+          if (finalConfidence === 0) finalConfidence = optionOrBool ? 1 : -1
+        }
+        body.confidence = finalConfidence
       } else {
-        body.optionId = outcomeValue as string
-      }
-
-      if (probability !== '') {
-        body.probability = Number(probability) / 100
+        const optId = typeof optionOrBool === 'string' ? optionOrBool : null
+        if (!optId) {
+          setError('Please select an option')
+          setIsSubmitting(false)
+          return
+        }
+        body.confidence = Math.max(1, Math.abs(confidence))
+        body.optionId = optId
       }
 
       const response = await fetch(endpoint, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       })
 
@@ -156,7 +157,7 @@ export default function CommitmentForm({
 
       const result = await response.json()
       window.dispatchEvent(new CustomEvent('daatan:first-action'))
-      analytics.commitmentMade({ forecast_id: prediction.id, cu_committed: Number(cuAmount) })
+      analytics.commitmentMade({ forecast_id: prediction.id, cu_committed: Math.abs(body.confidence as number) })
       onSuccess(result)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
@@ -164,8 +165,7 @@ export default function CommitmentForm({
     }
   }
 
-  // Helper to determine if a specific outcome outcome is the currently committed one
-  const isCurrentOutcome = (val: string | boolean) => {
+  const isCurrentOption = (val: string | boolean) => {
     if (!existingCommitment) return false
     if (prediction.outcomeType === 'BINARY') return existingCommitment.binaryChoice === val
     return existingCommitment.optionId === val
@@ -181,154 +181,54 @@ export default function CommitmentForm({
           )}
         </h3>
         {onCancel && (
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={isSubmitting}
-            className="text-sm font-medium text-gray-500 hover:text-text-secondary disabled:opacity-50"
-          >
+          <button type="button" onClick={onCancel} disabled={isSubmitting}
+            className="text-sm font-medium text-gray-500 hover:text-text-secondary disabled:opacity-50">
             Cancel
           </button>
         )}
       </div>
 
       {error && (
-        <div className="rounded-md bg-red-900/20 p-3 text-sm text-red-400">
-          {error}
-        </div>
+        <div className="rounded-md bg-red-900/20 p-3 text-sm text-red-400">{error}</div>
       )}
 
-      <div className="flex flex-col sm:flex-row gap-4 sm:items-stretch">
-        {/* CU + Probability inputs */}
-        <div className="flex flex-col gap-2 self-start sm:self-auto">
-          <div className="flex items-center gap-2 bg-navy-700 px-3 py-2 rounded-lg border border-gray-300 shadow-sm w-fit">
-            <input
-              type="number"
-              min="1"
-              max={maxCu}
-              value={cuAmount}
-              onChange={(e) => setCuAmount(e.target.value === '' ? '' : Number(e.target.value))}
-              className="w-16 sm:w-20 text-lg font-bold text-white outline-none bg-transparent"
-            />
-            <span className="text-gray-500 font-medium">CU</span>
-          </div>
-          <div className="flex items-center gap-2 bg-navy-700 px-3 py-1.5 rounded-lg border border-navy-600 w-fit" title="Your probability estimate that this forecast will happen (1–99%). Used to compute your Brier score.">
-            <input
-              type="number"
-              min="1"
-              max="99"
-              placeholder="—"
-              value={probability}
-              onChange={(e) => setProbability(e.target.value === '' ? '' : Number(e.target.value))}
-              className="w-10 text-sm font-medium text-text-secondary outline-none bg-transparent"
-            />
-            <span className="text-gray-400 text-xs">{t('percentYes')}</span>
-          </div>
-        </div>
+      <ConfidenceInput
+        value={confidence}
+        onChange={setConfidence}
+        min={prediction.outcomeType === 'MULTIPLE_CHOICE' ? 0 : -100}
+        disabled={isSubmitting}
+      />
 
-        {/* Action Buttons */}
-        <div className="flex-1 space-y-2">
-          {prediction.outcomeType === 'BINARY' ? (
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => handleActionClick(true)}
-                disabled={isSubmitting || pendingOutcome !== null}
-                className={`flex-1 min-w-0 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all shadow-sm text-center whitespace-normal leading-tight ${isCurrentOutcome(true)
-                  ? 'bg-green-600 text-white hover:bg-green-700'
-                  : 'bg-navy-700 text-text-secondary hover:bg-teal/10 hover:text-teal'
-                  } disabled:opacity-50 disabled:cursor-not-allowed`}
-              >
-                {isSubmitting ? '...' : isUpdate ? (isCurrentOutcome(true) ? t('update') : t('willHappen')) : t('willHappen')}
-              </button>
-              <button
-                type="button"
-                onClick={() => handleActionClick(false)}
-                disabled={isSubmitting || pendingOutcome !== null}
-                className={`flex-1 min-w-0 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all shadow-sm text-center whitespace-normal leading-tight ${isCurrentOutcome(false)
-                  ? 'bg-red-500 text-white hover:bg-red-600'
-                  : 'bg-navy-700 text-text-secondary hover:bg-red-900/20 hover:text-red-400'
-                  } disabled:opacity-50 disabled:cursor-not-allowed`}
-              >
-                {isSubmitting ? '...' : isUpdate ? (isCurrentOutcome(false) ? t('update') : t('wontHappen')) : t('wontHappen')}
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {prediction.options?.map((option) => (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => handleActionClick(option.id)}
-                  disabled={isSubmitting || pendingOutcome !== null}
-                  className={`w-full text-left rounded-lg px-4 py-3 text-sm font-medium transition-all shadow-sm flex items-center justify-between ${isCurrentOutcome(option.id)
-                    ? 'bg-blue-600 text-white hover:bg-blue-700'
-                    : 'bg-navy-700 text-white hover:bg-cobalt/10 hover:text-cobalt-light'
-                    } disabled:opacity-50 disabled:cursor-not-allowed`}
-                >
-                  <span>{option.text}</span>
-                  <span className={`text-xs ${isCurrentOutcome(option.id) ? 'text-blue-100' : 'text-gray-400'}`}>
-                    {isSubmitting ? '...' : isCurrentOutcome(option.id) ? t('update') : t('select')}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
+      {prediction.outcomeType === 'BINARY' ? (
+        <div className="flex gap-2">
+          <button type="button" onClick={() => handleSubmit(true)} disabled={isSubmitting}
+            className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all shadow-sm ${
+              isCurrentOption(true) ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-navy-700 text-text-secondary hover:bg-teal/10 hover:text-teal'
+            } disabled:opacity-50 disabled:cursor-not-allowed`}>
+            {isSubmitting ? '...' : isUpdate && isCurrentOption(true) ? t('update') : t('willHappen')}
+          </button>
+          <button type="button" onClick={() => handleSubmit(false)} disabled={isSubmitting}
+            className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all shadow-sm ${
+              isCurrentOption(false) ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-navy-700 text-text-secondary hover:bg-red-900/20 hover:text-red-400'
+            } disabled:opacity-50 disabled:cursor-not-allowed`}>
+            {isSubmitting ? '...' : isUpdate && isCurrentOption(false) ? t('update') : t('wontHappen')}
+          </button>
         </div>
-      </div>
-
-      {pendingOutcome !== null && penaltyInfo && (
-        <div className="mt-4 p-4 bg-orange-900/20 border border-orange-500/40 rounded-lg shadow-sm">
-          <h4 className="text-sm font-semibold text-orange-300 mb-2">{t('penaltyTitle')}</h4>
-          <p className="text-sm text-orange-200/80 mb-3">
-            {t('penaltyDesc')}
-          </p>
-          <ul className="text-sm text-orange-200 space-y-1 mb-4">
-            <li>{t('originalCommitment')} <strong>{existingCommitment?.cuCommitted} CU</strong></li>
-            <li>{t('burnRate')} <strong>{penaltyInfo.burnRate}%</strong></li>
-            <li>{t('amountBurned')} <strong>{penaltyInfo.cuBurned} CU</strong></li>
-            <li>{t('amountRefunded')} <strong>{penaltyInfo.cuRefunded} CU</strong></li>
-          </ul>
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => {
-                const outcome = pendingOutcome
-                setPendingOutcome(null)
-                setPenaltyInfo(null)
-                submitOutcome(outcome)
-              }}
-              disabled={isSubmitting}
-              className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-medium py-2 rounded-lg transition-colors disabled:opacity-50"
-            >
-              {isSubmitting ? t('confirming') : t('acceptPenalty')}
+      ) : (
+        <div className="space-y-2">
+          {prediction.options?.map((option) => (
+            <button key={option.id} type="button" onClick={() => handleSubmit(option.id)} disabled={isSubmitting}
+              className={`w-full text-left rounded-lg px-4 py-3 text-sm font-medium transition-all shadow-sm flex items-center justify-between ${
+                isCurrentOption(option.id) ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-navy-700 text-white hover:bg-cobalt/10 hover:text-cobalt-light'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}>
+              <span>{option.text}</span>
+              <span className={`text-xs ${isCurrentOption(option.id) ? 'text-blue-100' : 'text-gray-400'}`}>
+                {isSubmitting ? '...' : isCurrentOption(option.id) ? t('update') : t('select')}
+              </span>
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                setPendingOutcome(null)
-                setPenaltyInfo(null)
-              }}
-              disabled={isSubmitting}
-              className="flex-1 bg-navy-700 border border-navy-500 text-text-secondary hover:bg-navy-800 font-medium py-2 rounded-lg transition-colors disabled:opacity-50"
-            >
-              Cancel
-            </button>
-          </div>
+          ))}
         </div>
-      )}
-
-      {!isUpdate && !isLocked && Number(cuAmount || 0) > maxCu && (
-        <p className="mt-2 text-xs text-red-600">
-          You only have {maxCu} CU available.
-        </p>
-      )}
-      {isUpdate && !isLocked && Number(cuAmount || 0) > maxCu && (
-        <p className="mt-2 text-xs text-red-600">
-          You only have {maxCu} max CU available (including your previous commitment).
-        </p>
       )}
     </div>
   )
 }
-
