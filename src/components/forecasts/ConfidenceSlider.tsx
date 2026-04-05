@@ -1,5 +1,7 @@
 'use client'
 
+import { CheckCircle2 } from 'lucide-react'
+
 interface ConfidenceSliderProps {
   value: number
   onChange: (value: number) => void
@@ -7,6 +9,7 @@ interface ConfidenceSliderProps {
   isSubmitting?: boolean
   disabled?: boolean
   canCommit?: boolean
+  isCommitted?: boolean
 }
 
 export default function ConfidenceSlider({
@@ -16,6 +19,7 @@ export default function ConfidenceSlider({
   isSubmitting = false,
   disabled = false,
   canCommit = true,
+  isCommitted = false,
 }: ConfidenceSliderProps) {
   // Derive label based on value
   const getLabel = (val: number) => {
@@ -66,17 +70,24 @@ export default function ConfidenceSlider({
         </div>
       </div>
 
-      <button
-        onClick={onCommit}
-        disabled={isNeutral || disabled || isSubmitting || !canCommit}
-        className={`w-full py-4 rounded-xl font-bold text-sm uppercase tracking-widest transition-all duration-200 ${
-          isNeutral || disabled || isSubmitting || !canCommit
-            ? 'bg-navy-800 text-gray-600 cursor-not-allowed border border-navy-600'
-            : 'bg-blue-600 text-white hover:bg-blue-500 shadow-lg shadow-blue-900/20 active:scale-[0.98] border border-blue-400/30'
-        }`}
-      >
-        {isSubmitting ? 'Submitting...' : 'Commit Forecast'}
-      </button>
+      {isCommitted && !canCommit && !isSubmitting ? (
+        <div className="flex items-center justify-center gap-2 py-4 px-4 bg-teal/10 border border-teal/30 rounded-xl">
+          <CheckCircle2 className="w-4 h-4 text-teal" />
+          <span className="text-sm font-bold text-teal uppercase tracking-widest">Your forecast is committed</span>
+        </div>
+      ) : (
+        <button
+          onClick={onCommit}
+          disabled={isNeutral || disabled || isSubmitting || !canCommit}
+          className={`w-full py-4 rounded-xl font-bold text-sm uppercase tracking-widest transition-all duration-200 ${
+            isNeutral || disabled || isSubmitting || !canCommit
+              ? 'bg-navy-800 text-gray-600 cursor-not-allowed border border-navy-600'
+              : 'bg-blue-600 text-white hover:bg-blue-500 shadow-lg shadow-blue-900/20 active:scale-[0.98] border border-blue-400/30'
+          }`}
+        >
+          {isSubmitting ? 'Submitting...' : 'Commit Forecast'}
+        </button>
+      )}
     </div>
   )
 }
