@@ -599,6 +599,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
                 <div className="space-y-4 mb-10">
                   {optionsWithStats.map((option) => {
                     const isSelected = selectedOptionId === option.id
+                    const isActive = prediction.status === 'ACTIVE'
                     return (
                       <div key={option.id} className={`relative rounded-2xl border transition-all duration-200 ${
                         isSelected
@@ -606,8 +607,8 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
                           : 'bg-navy-800/50 border-navy-600'
                       }`}>
                         <button
-                          onClick={() => prediction.status === 'ACTIVE' && setSelectedOptionId(option.id)}
-                          disabled={prediction.status !== 'ACTIVE' || isSubmitting}
+                          onClick={() => isActive && setSelectedOptionId(option.id)}
+                          disabled={!isActive || isSubmitting}
                           className="w-full group flex flex-col p-4"
                         >
                           <div className="flex justify-between items-center mb-2 relative z-10">
@@ -636,8 +637,8 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
                         </button>
 
                         {/* Inline confidence slider — only on selected option */}
-                        {isSelected && prediction.status === 'ACTIVE' && (
-                          <div className="px-4 pb-4 space-y-2" onClick={(e) => e.stopPropagation()}>
+                        {isSelected && isActive && (
+                          <div className="px-4 pb-4 space-y-2">
                             <div className="flex justify-between text-[10px] uppercase tracking-widest font-bold text-gray-500">
                               <span>Low</span>
                               <span className="text-blue-400 font-bold">Confidence: {mcConfidence}%</span>
