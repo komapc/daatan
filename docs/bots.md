@@ -117,19 +117,14 @@ Each bot is a `BotConfig` record linked 1:1 to a bot `User` account (`isBot=true
 | `tagFilter` | string[] | `[]` | When set, voting candidates are filtered to forecasts that have at least one matching tag. |
 | `voteBias` | int (0–100) | `50` | Soft hint to the LLM: `0` = lean strongly NO, `50` = neutral, `100` = lean strongly YES. Included in the vote prompt when not 50. |
 
-### Staking
+### Staking (Confidence Range)
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `stakeMin` | int ≥ 1 | `10` | Minimum CU stake per action (forecast or vote). Actual amount is randomised between min and max. |
-| `stakeMax` | int ≥ 1 | `100` | Maximum CU stake per action. Must be ≥ `stakeMin`. |
+| `stakeMin` | int ≥ 1 | `10` | Minimum confidence value per action. Actual value is randomised between min and max. |
+| `stakeMax` | int ≥ 1 | `100` | Maximum confidence value per action. Must be ≥ `stakeMin`. |
 
-### CU Auto-Refill
-
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `cuRefillAt` | int ≥ 0 | `0` | If > 0, triggers an `ADMIN_ADJUSTMENT` grant when the bot's CU balance falls to or below this threshold. Set to `0` to disable. |
-| `cuRefillAmount` | int ≥ 1 | `50` | CU added per refill event. |
+The bot always commits YES (`binaryChoice = true`, positive confidence). Confidence determines Brier score impact at resolution.
 
 ### LLM Model
 
