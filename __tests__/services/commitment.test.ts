@@ -132,7 +132,7 @@ describe('updateCommitment', () => {
     const { updateCommitment } = await import('@/lib/services/commitment')
 
     vi.mocked(prisma.commitment.findUnique).mockResolvedValue(
-      makeCommitment({ prediction: { status: 'ACTIVE', lockedAt: null, claimText: 'X', slug: null, options: [] } }) as any,
+      makeCommitment({ prediction: { status: 'ACTIVE', outcomeType: 'BINARY', lockedAt: null, claimText: 'X', slug: null, options: [] } }) as any,
     )
     vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'user-1', rs: 1 } as any)
     const updated = makeCommitment({ cuCommitted: -50, binaryChoice: false })

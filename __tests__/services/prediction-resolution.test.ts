@@ -6,7 +6,6 @@ const mockTx = {
   predictionOption: { update: vi.fn() },
   commitment: { update: vi.fn() },
   user: { update: vi.fn() },
-  cuTransaction: { create: vi.fn() },
 }
 
 vi.mock('@/lib/prisma', () => ({
@@ -23,7 +22,7 @@ vi.mock('@/lib/logger', () => ({
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function makeUser(overrides = {}) {
-  return { id: 'user-1', cuAvailable: 200, cuLocked: 100, rs: 50, ...overrides }
+  return { id: 'user-1', rs: 50, ...overrides }
 }
 
 function makeCommitment(overrides = {}) {
@@ -31,10 +30,9 @@ function makeCommitment(overrides = {}) {
     id: 'c1',
     userId: 'user-1',
     predictionId: 'pred-1',
-    cuCommitted: 100,
+    cuCommitted: 100,   // confidence = +100 → p = 1.0 for BINARY
     binaryChoice: true,
     optionId: null,
-    probability: null,
     user: makeUser(),
     ...overrides,
   }
@@ -47,10 +45,8 @@ function makePrediction(overrides = {}) {
     outcomeType: 'BINARY',
     claimText: 'Will X happen?',
     slug: 'will-x-happen',
-    winnersPoolBonus: 0,
     options: [],
     commitments: [makeCommitment()],
-    withdrawals: [],
     ...overrides,
   }
 }
@@ -63,11 +59,9 @@ describe('resolvePrediction', () => {
   beforeEach(async () => {
     vi.clearAllMocks()
     prisma = (await import('@/lib/prisma')).prisma
-    // Reset tx mock return values
     mockTx.prediction.update.mockResolvedValue({ id: 'pred-1', status: 'RESOLVED_CORRECT' })
     mockTx.commitment.update.mockResolvedValue({})
-    mockTx.user.update.mockResolvedValue({ cuAvailable: 250 })
-    mockTx.cuTransaction.create.mockResolvedValue({})
+    mockTx.user.update.mockResolvedValue({})
     mockTx.predictionOption.update.mockResolvedValue({})
   })
 
@@ -117,7 +111,10 @@ describe('resolvePrediction', () => {
     ).rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('does not match') })
   })
 
-  it('resolves correctly — winner gets 1.5x CU and positive RS change', async () => {
+  it('correct BINARY — high confidence YES voter gets positive ΔRS', async () => {
+    // commitment: cuCommitted=100 → p = (100+100)/200 = 1.0
+    // outcome=correct → outcomeNumeric=1
+    // brierScore = (1.0 - 1)² = 0, rsChange = round((0.25 - 0) * 100) = 25
     prisma.prediction.findUnique.mockResolvedValue(makePrediction())
     const { resolvePrediction } = await import('@/lib/services/prediction-resolution')
 
@@ -125,31 +122,34 @@ describe('resolvePrediction', () => {
 
     expect(mockTx.commitment.update).toHaveBeenCalledWith({
       where: { id: 'c1' },
-      data: expect.objectContaining({
-        cuReturned: 150, // 100 * 1.5
-        rsChange: 10,    // 100 * 0.1
-      }),
+      data: { brierScore: 0, rsChange: 25 },
+    })
+    expect(mockTx.user.update).toHaveBeenCalledWith({
+      where: { id: 'user-1' },
+      data: { rs: 75 },  // max(0, 50 + 25)
     })
   })
 
-  it('resolves wrongly — loser gets 0 CU and negative RS change', async () => {
-    prisma.prediction.findUnique.mockResolvedValue(
-      makePrediction({ commitments: [makeCommitment({ binaryChoice: false })] })
-    )
+  it('wrong BINARY — high confidence YES voter penalised on NO outcome', async () => {
+    // commitment: cuCommitted=100 → p = 1.0
+    // outcome=wrong → outcomeNumeric=0
+    // brierScore = (1.0 - 0)² = 1.0, rsChange = round((0.25 - 1.0) * 100) = -75
+    prisma.prediction.findUnique.mockResolvedValue(makePrediction())
     const { resolvePrediction } = await import('@/lib/services/prediction-resolution')
 
-    await resolvePrediction('pred-1', { outcome: 'correct', resolvedById: 'admin-1' })
+    await resolvePrediction('pred-1', { outcome: 'wrong', resolvedById: 'admin-1' })
 
     expect(mockTx.commitment.update).toHaveBeenCalledWith({
       where: { id: 'c1' },
-      data: expect.objectContaining({
-        cuReturned: 0,
-        rsChange: -5, // 100 * -0.05
-      }),
+      data: { brierScore: 1, rsChange: -75 },
+    })
+    expect(mockTx.user.update).toHaveBeenCalledWith({
+      where: { id: 'user-1' },
+      data: { rs: 0 },  // max(0, 50 - 75)
     })
   })
 
-  it('void outcome refunds all CU with no RS change', async () => {
+  it('void outcome — no RS change, no brierScore', async () => {
     prisma.prediction.findUnique.mockResolvedValue(makePrediction())
     const { resolvePrediction } = await import('@/lib/services/prediction-resolution')
 
@@ -157,16 +157,35 @@ describe('resolvePrediction', () => {
 
     expect(mockTx.commitment.update).toHaveBeenCalledWith({
       where: { id: 'c1' },
-      data: expect.objectContaining({
-        cuReturned: 100, // full refund
-        rsChange: 0,
-      }),
+      data: { rsChange: 0 },
+    })
+    expect(mockTx.user.update).toHaveBeenCalledWith({
+      where: { id: 'user-1' },
+      data: { rs: 50 },  // unchanged
     })
   })
 
-  it('calculates Brier score when probability is set', async () => {
+  it('floors RS at 0 when loss exceeds current RS', async () => {
+    // user.rs = 2, cuCommitted = 100 → p = 1.0, outcome=wrong → rsChange = -75
+    // newRs = max(0, 2 - 75) = 0
     prisma.prediction.findUnique.mockResolvedValue(
-      makePrediction({ commitments: [makeCommitment({ probability: 0.8 })] })
+      makePrediction({ commitments: [makeCommitment({ user: makeUser({ rs: 2 }) })] })
+    )
+    const { resolvePrediction } = await import('@/lib/services/prediction-resolution')
+
+    await resolvePrediction('pred-1', { outcome: 'wrong', resolvedById: 'admin-1' })
+
+    expect(mockTx.user.update).toHaveBeenCalledWith({
+      where: { id: 'user-1' },
+      data: { rs: 0 },
+    })
+  })
+
+  it('computes brierScore from cuCommitted for moderate confidence', async () => {
+    // cuCommitted = 60 → p = (60+100)/200 = 0.8, outcome=correct → outcomeNumeric=1
+    // brierScore = (0.8 - 1)² = 0.04, rsChange = round((0.25 - 0.04) * 100) = 21
+    prisma.prediction.findUnique.mockResolvedValue(
+      makePrediction({ commitments: [makeCommitment({ cuCommitted: 60 })] })
     )
     const { resolvePrediction } = await import('@/lib/services/prediction-resolution')
 
@@ -174,22 +193,11 @@ describe('resolvePrediction', () => {
 
     expect(mockTx.commitment.update).toHaveBeenCalledWith({
       where: { id: 'c1' },
-      data: expect.objectContaining({
-        brierScore: expect.closeTo(0.04, 5), // (0.8 - 1)² = 0.04
-      }),
+      data: {
+        brierScore: expect.closeTo(0.04, 5),
+        rsChange: 21,
+      },
     })
-  })
-
-  it('does not set Brier score on void outcome', async () => {
-    prisma.prediction.findUnique.mockResolvedValue(
-      makePrediction({ commitments: [makeCommitment({ probability: 0.8 })] })
-    )
-    const { resolvePrediction } = await import('@/lib/services/prediction-resolution')
-
-    await resolvePrediction('pred-1', { outcome: 'void', resolvedById: 'admin-1' })
-
-    const call = mockTx.commitment.update.mock.calls[0][0]
-    expect(call.data).not.toHaveProperty('brierScore')
   })
 
   it('updates prediction status to RESOLVED_CORRECT', async () => {
