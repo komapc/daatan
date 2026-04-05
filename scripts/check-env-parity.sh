@@ -18,19 +18,19 @@ COMPOSE_STAGING="$ROOT/docker-compose.staging.yml"
 blue_green_keys_common() {
   # Keys set unconditionally (before the if/else branch)
   awk '/ENV_ARGS=.*-e /,/if \[ "\$ENVIRONMENT"/' "$BLUE_GREEN" \
-    | grep -oP '(?<=-e )[A-Z_]+(?==)' | sort -u
+    | grep -oP '(?<=-e )[A-Z_]+(?==|[ "\\])' | sort -u
 }
 
 blue_green_keys_prod() {
   # Keys set in the production (else) branch
   awk '/else$/,/^fi$/' "$BLUE_GREEN" \
-    | grep -oP '(?<=-e )[A-Z_]+(?==)' | sort -u
+    | grep -oP '(?<=-e )[A-Z_]+(?==|[ "\\])' | sort -u
 }
 
 blue_green_keys_staging() {
   # Keys set in the staging branch
   awk '/if \[ "\$ENVIRONMENT" = "staging" \]/,/else$/' "$BLUE_GREEN" \
-    | grep -oP '(?<=-e )[A-Z_]+(?==)' | sort -u
+    | grep -oP '(?<=-e )[A-Z_]+(?==|[ "\\])' | sort -u
 }
 
 # Extract env keys from a compose file's named service block.
