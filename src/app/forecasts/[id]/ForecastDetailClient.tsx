@@ -168,9 +168,10 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
   const [isMounted, setIsMounted] = useState(false)
   const [showRules, setShowRules] = useState(false)
 
-  // Confidence state (-100 to 100)
+  // Confidence state (-100 to 100 for BINARY, 0 to 100 for MC)
   const [userConfidence, setUserConfidence] = useState<number>(0)
   const [initialUserConfidence, setInitialUserConfidence] = useState<number | null>(null)
+  const [mcConfidence, setMcConfidence] = useState<number>(70)
   const [aiEstimate, setAiEstimate] = useState<number | null>(null)
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -186,10 +187,14 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
   useEffect(() => {
     setIsMounted(true)
     if (prediction?.userCommitment) {
-      // cuCommitted now stores confidence directly (-100..100)
+      // cuCommitted now stores confidence directly (-100..100 for BINARY, 0..100 for MC)
       const val = prediction.userCommitment.cuCommitted ?? (prediction.userCommitment.binaryChoice ? 70 : -70)
-      setUserConfidence(val)
-      setInitialUserConfidence(val)
+      if (prediction.userCommitment.optionId) {
+        setMcConfidence(Math.max(1, Math.abs(val)))
+      } else {
+        setUserConfidence(val)
+        setInitialUserConfidence(val)
+      }
       setSelectedOptionId(prediction.userCommitment.optionId || null)
     }
   }, [prediction?.userCommitment])
@@ -558,14 +563,14 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
 
           const handleCommitMultipleChoice = async () => {
             if (!selectedOptionId || !prediction) return
-            
+
             setIsSubmitting(true)
             try {
               const response = await fetch(`/api/forecasts/${prediction.id}/commit`, {
                 method: prediction.userCommitment ? 'PATCH' : 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                  cuCommitted: 10,
+                  confidence: Math.max(1, mcConfidence),
                   optionId: selectedOptionId,
                 }),
               })
@@ -637,17 +642,46 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
                   ))}
                 </div>
 
-                <button
-                  onClick={handleCommitMultipleChoice}
-                  disabled={!selectedOptionId || selectedOptionId === userOptionId || prediction.status !== 'ACTIVE' || isSubmitting}
-                  className={`w-full py-4 rounded-xl font-bold text-sm uppercase tracking-widest transition-all duration-200 ${
-                    !selectedOptionId || selectedOptionId === userOptionId || prediction.status !== 'ACTIVE' || isSubmitting
-                      ? 'bg-navy-800 text-gray-600 cursor-not-allowed border border-navy-600'
-                      : 'bg-blue-600 text-white hover:bg-blue-500 shadow-lg shadow-blue-900/20 active:scale-[0.98] border border-blue-400/30'
-                  }`}
-                >
-                  {isSubmitting ? 'Submitting...' : 'Commit Forecast'}
-                </button>
+                {/* Confidence slider for MC */}
+                {prediction.status === 'ACTIVE' && (
+                  <div className="mb-6 space-y-3">
+                    <div className="flex justify-between text-[10px] uppercase tracking-widest font-bold text-gray-500">
+                      <span>Low</span>
+                      <span className="text-teal">High confidence</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="1"
+                      max="100"
+                      step="1"
+                      value={mcConfidence}
+                      onChange={(e) => setMcConfidence(parseInt(e.target.value))}
+                      disabled={isSubmitting}
+                      className="w-full h-3 bg-navy-800 rounded-lg appearance-none cursor-pointer accent-blue-500 border border-navy-600"
+                    />
+                    <div className="text-center text-sm font-bold text-teal">
+                      Confidence: {mcConfidence}%
+                    </div>
+                  </div>
+                )}
+
+                {prediction.status === 'ACTIVE' && prediction.userCommitment && selectedOptionId === userOptionId && mcConfidence === Math.max(1, Math.abs(prediction.userCommitment.cuCommitted ?? 70)) ? (
+                  <div className="flex items-center justify-center gap-2 py-4 px-4 bg-teal/10 border border-teal/30 rounded-xl">
+                    <span className="text-sm font-bold text-teal uppercase tracking-widest">Your forecast is committed</span>
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleCommitMultipleChoice}
+                    disabled={!selectedOptionId || prediction.status !== 'ACTIVE' || isSubmitting}
+                    className={`w-full py-4 rounded-xl font-bold text-sm uppercase tracking-widest transition-all duration-200 ${
+                      !selectedOptionId || prediction.status !== 'ACTIVE' || isSubmitting
+                        ? 'bg-navy-800 text-gray-600 cursor-not-allowed border border-navy-600'
+                        : 'bg-blue-600 text-white hover:bg-blue-500 shadow-lg shadow-blue-900/20 active:scale-[0.98] border border-blue-400/30'
+                    }`}
+                  >
+                    {isSubmitting ? 'Submitting...' : 'Commit Forecast'}
+                  </button>
+                )}
               </div>
             </div>
           )
