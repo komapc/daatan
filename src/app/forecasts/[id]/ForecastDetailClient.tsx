@@ -483,6 +483,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
         initialContext={prediction.detailsText}
         initialContextUpdatedAt={prediction.contextUpdatedAt}
         canAnalyze={!!session?.user && prediction.status === 'ACTIVE'}
+        newsAnchor={prediction.newsAnchor}
         onAiEstimate={setAiEstimate}
       />
 
