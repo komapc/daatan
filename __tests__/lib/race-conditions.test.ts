@@ -68,7 +68,7 @@ describe('Race Conditions', () => {
       } as any)
 
       // Act: Call createCommitment
-      await createCommitment('user-1', 'pred-1', { cuCommitted: 10, binaryChoice: true })
+      await createCommitment('user-1', 'pred-1', { confidence: 10 })
 
       // Verify: lockedAt update was called because count was 0
       expect(prisma.prediction.update).toHaveBeenCalledWith(expect.objectContaining({

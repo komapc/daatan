@@ -10,8 +10,6 @@ declare module 'next-auth' {
       username?: string | null
       role: 'USER' | 'RESOLVER' | 'APPROVER' | 'ADMIN'
       rs?: number
-      cuAvailable?: number
-      cuLocked?: number
     }
   }
 
@@ -20,8 +18,6 @@ declare module 'next-auth' {
     username?: string | null
     role: 'USER' | 'RESOLVER' | 'APPROVER' | 'ADMIN'
     rs?: number
-    cuAvailable?: number
-    cuLocked?: number
   }
 }
 
@@ -31,8 +27,6 @@ declare module 'next-auth/jwt' {
     role?: 'USER' | 'RESOLVER' | 'APPROVER' | 'ADMIN'
     username?: string | null
     rs?: number
-    cuAvailable?: number
-    cuLocked?: number
     /** Date.now() ms when the DB data was last fetched */
     cachedAt?: number
     /** Set to true when the user was not found in DB */

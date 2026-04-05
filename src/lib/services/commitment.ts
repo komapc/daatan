@@ -7,14 +7,6 @@ import type { ServiceResult } from '@/lib/types/service'
 
 const log = createLogger('commitment-service')
 
-/** Minimal user fields needed for commitment operations. */
-interface CommitmentUser {
-  id: string
-  cuAvailable: number
-  cuLocked: number
-  rs: number
-}
-
 /** Prediction with options, as needed for commitment validation. */
 interface CommitmentPrediction {
   id: string
@@ -29,78 +21,14 @@ interface CommitmentPrediction {
 
 /** Data validated by createCommitmentSchema. */
 interface CreateCommitmentData {
-  cuCommitted: number
-  binaryChoice?: boolean
+  confidence: number   // -100..100 for BINARY, 0..100 for MULTIPLE_CHOICE
   optionId?: string
-  probability?: number
 }
 
 /** Data validated by updateCommitmentSchema. */
 interface UpdateCommitmentData {
-  cuCommitted?: number
-  binaryChoice?: boolean
+  confidence?: number
   optionId?: string
-  probability?: number
-}
-
-// ============================================
-// Penalty helpers
-// ============================================
-
-interface PoolState {
-  totalPoolCU: number
-  yourSideCU: number
-}
-
-/**
- * Compute pool state for penalty calculation.
- * yourSideCU includes the user's own commitment.
- */
-async function computePoolState(
-  predictionId: string,
-  userId: string,
-  binaryChoice: boolean | null | undefined,
-  optionId: string | null | undefined,
-): Promise<PoolState> {
-  const commitments = await prisma.commitment.findMany({
-    where: { predictionId },
-    select: { userId: true, cuCommitted: true, binaryChoice: true, optionId: true },
-  })
-
-  let totalPoolCU = 0
-  let yourSideCU = 0
-
-  for (const c of commitments) {
-    totalPoolCU += c.cuCommitted
-    // Determine if on same side as the exiting user
-    if (optionId !== undefined && optionId !== null) {
-      if (c.optionId === optionId) yourSideCU += c.cuCommitted
-    } else {
-      if (c.binaryChoice === binaryChoice) yourSideCU += c.cuCommitted
-    }
-  }
-
-  return { totalPoolCU, yourSideCU }
-}
-
-/** Pure penalty calculation — no side effects. */
-export function calculatePenalty(
-  cuCommitted: number,
-  yourSideCU: number,
-  totalPoolCU: number,
-): { cuBurned: number; cuRefunded: number; burnRate: number } {
-  if (totalPoolCU === 0) {
-    return { cuBurned: 0, cuRefunded: cuCommitted, burnRate: 0 }
-  }
-  // yourSideShare includes own commitment
-  const yourSideShare = yourSideCU / totalPoolCU
-  const burnRateFraction = Math.max(0.10, yourSideShare)
-  const cuBurned = Math.floor(cuCommitted * burnRateFraction)
-  return {
-    cuBurned,
-    cuRefunded: cuCommitted - cuBurned,
-    burnRate: Math.round(burnRateFraction * 100),
-  }
 }
 
 // ============================================
@@ -128,15 +56,20 @@ function validateOutcomeChoice(
     if (!data.optionId) {
       return { ok: false, error: 'Must select an option for multiple choice predictions', status: 400 }
     }
-    const optionExists = prediction.options.some((o) => o.id === data.optionId)
-    if (!optionExists) {
+    if (!prediction.options.some((o) => o.id === data.optionId)) {
       return { ok: false, error: 'Invalid option', status: 400 }
     }
-  }
-  if (prediction.outcomeType === 'BINARY' && data.binaryChoice === undefined) {
-    return { ok: false, error: 'Must specify binaryChoice for binary predictions', status: 400 }
+    if (data.confidence < 0 || data.confidence > 100) {
+      return { ok: false, error: 'Confidence must be 0–100 for multiple choice predictions', status: 400 }
+    }
   }
   return null
+}
+
+/** Derive binaryChoice from confidence sign for BINARY predictions. */
+function deriveBinaryChoice(outcomeType: string, confidence: number): boolean | null {
+  if (outcomeType !== 'BINARY') return null
+  return confidence >= 0
 }
 
 // ============================================
@@ -155,14 +88,13 @@ const commitmentInclude = {
 
 /**
  * Create a new commitment on a prediction.
- * Handles validation, CU locking, ledger entry, and first-commit lock.
+ * Stores confidence (-100..100) in cuCommitted; derives binaryChoice from sign.
  */
 export async function createCommitment(
   userId: string,
   predictionId: string,
   data: CreateCommitmentData,
 ): Promise<ServiceResult<Prisma.CommitmentGetPayload<{ include: typeof commitmentInclude }>>> {
-  // Fetch prediction and user in parallel
   const [prediction, user] = await Promise.all([
     prisma.prediction.findUnique({
       where: { id: predictionId },
@@ -170,66 +102,37 @@ export async function createCommitment(
     }),
     prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, cuAvailable: true, cuLocked: true, rs: true },
+      select: { id: true, rs: true },
     }),
   ])
 
   if (!prediction) return { ok: false, error: 'Prediction not found', status: 404 }
   if (!user) return { ok: false, error: 'User not found', status: 404 }
 
-  // Eligibility checks
   const eligibilityError = validateCommitEligibility(prediction, userId)
   if (eligibilityError) return eligibilityError
 
-  // Check for duplicate
   const existing = await prisma.commitment.findUnique({
     where: { userId_predictionId: { userId, predictionId } },
   })
   if (existing) return { ok: false, error: 'Already committed to this prediction', status: 400 }
 
-  // CU balance check
-  if (user.cuAvailable < data.cuCommitted) {
-    return { ok: false, error: `Insufficient CU. Available: ${user.cuAvailable}, requested: ${data.cuCommitted}`, status: 400 }
-  }
-
-  // Outcome validation
   const outcomeError = validateOutcomeChoice(prediction, data)
   if (outcomeError) return outcomeError
 
-  // Execute atomic transaction
   const commitment = await prisma.$transaction(async (tx) => {
-    const isFirstCommitment = await tx.commitment.count({ where: { predictionId } }) === 0
+    const isFirstCommitment = (await tx.commitment.count({ where: { predictionId } })) === 0
 
     const created = await tx.commitment.create({
       data: {
         userId,
         predictionId,
         optionId: data.optionId,
-        binaryChoice: data.binaryChoice,
-        cuCommitted: data.cuCommitted,
+        binaryChoice: deriveBinaryChoice(prediction.outcomeType, data.confidence),
+        cuCommitted: data.confidence,
         rsSnapshot: user.rs,
-        probability: data.probability,
       },
       include: commitmentInclude,
-    })
-
-    await tx.user.update({
-      where: { id: userId },
-      data: {
-        cuAvailable: { decrement: data.cuCommitted },
-        cuLocked: { increment: data.cuCommitted },
-      },
-    })
-
-    await tx.cuTransaction.create({
-      data: {
-        userId,
-        type: 'COMMITMENT_LOCK',
-        amount: -data.cuCommitted,
-        referenceId: created.id,
-        note: `Committed to prediction: ${prediction.claimText.substring(0, 50)}...`,
-        balanceAfter: user.cuAvailable - data.cuCommitted,
-      },
     })
 
     if (isFirstCommitment) {
@@ -242,18 +145,17 @@ export async function createCommitment(
     return created
   })
 
-  // Determine choice label for notification
   const choiceLabel = prediction.outcomeType === 'MULTIPLE_CHOICE'
     ? commitment.option?.text ?? 'option'
-    : data.binaryChoice ? 'Yes' : 'No'
-  notifyNewCommitment(prediction, commitment.user, data.cuCommitted, choiceLabel)
+    : data.confidence >= 0 ? 'Yes' : 'No'
 
-  // Notify forecast author about new commitment
+  notifyNewCommitment(prediction, commitment.user, data.confidence, choiceLabel)
+
   createNotification({
     userId: prediction.authorId,
     type: 'NEW_COMMITMENT',
     title: 'New commitment on your forecast',
-    message: `${commitment.user.name || commitment.user.username || 'Someone'} committed ${data.cuCommitted} CU (${choiceLabel}) on "${prediction.claimText.substring(0, 80)}"`,
+    message: `${commitment.user.name || commitment.user.username || 'Someone'} committed with ${data.confidence > 0 ? '+' : ''}${data.confidence} confidence (${choiceLabel}) on "${prediction.claimText.substring(0, 80)}"`,
     link: `/forecasts/${prediction.slug || prediction.id}`,
     predictionId: prediction.id,
     actorId: userId,
@@ -263,17 +165,15 @@ export async function createCommitment(
 }
 
 /**
- * Remove a commitment and refund CU minus exit penalty.
- * Penalty formula (C3): burnRate = max(10%, yourSideShare).
- * Burns cuBurned into prediction.winnersPoolBonus.
+ * Remove a commitment. No penalty — confidence-based system has no CU to burn.
  */
 export async function removeCommitment(
   userId: string,
   predictionId: string,
-): Promise<ServiceResult<{ success: true; cuBurned: number; cuRefunded: number; burnRate: number }>> {
+): Promise<ServiceResult<{ success: true }>> {
   const commitment = await prisma.commitment.findUnique({
     where: { userId_predictionId: { userId, predictionId } },
-    include: { prediction: { select: { status: true, lockedAt: true, claimText: true } } },
+    include: { prediction: { select: { status: true } } },
   })
 
   if (!commitment) return { ok: false, error: 'Commitment not found', status: 404 }
@@ -281,83 +181,16 @@ export async function removeCommitment(
     return { ok: false, error: 'Cannot remove commitment from non-active predictions', status: 400 }
   }
 
-  // Compute pool state and penalty
-  const poolState = await computePoolState(predictionId, userId, commitment.binaryChoice, commitment.optionId)
-  const { cuBurned, cuRefunded, burnRate } = calculatePenalty(
-    commitment.cuCommitted,
-    poolState.yourSideCU,
-    poolState.totalPoolCU,
-  )
+  await prisma.commitment.delete({ where: { id: commitment.id } })
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { cuAvailable: true },
-  })
-  if (!user) return { ok: false, error: 'User not found', status: 404 }
+  log.info({ userId, predictionId }, 'Commitment removed')
 
-  await prisma.$transaction(async (tx) => {
-    await tx.commitment.delete({ where: { id: commitment.id } })
-
-    await tx.commitmentWithdrawal.create({
-      data: {
-        userId,
-        predictionId,
-        cuCommitted: commitment.cuCommitted,
-        cuBurned,
-        cuRefunded,
-        burnRate,
-      },
-    })
-
-    const updatedUser = await tx.user.update({
-      where: { id: userId },
-      data: {
-        cuAvailable: { increment: cuRefunded },
-        cuLocked: { decrement: commitment.cuCommitted },
-      },
-    })
-
-    if (cuBurned > 0) {
-      await tx.prediction.update({
-        where: { id: predictionId },
-        data: { winnersPoolBonus: { increment: cuBurned } },
-      })
-
-      await tx.cuTransaction.create({
-        data: {
-          userId,
-          type: 'WITHDRAWAL_PENALTY',
-          amount: -cuBurned,
-          referenceId: commitment.id,
-          note: `Exit penalty (${burnRate}%) on: ${commitment.prediction.claimText.substring(0, 50)}...`,
-          balanceAfter: updatedUser.cuAvailable,
-        },
-      })
-    }
-
-    await tx.cuTransaction.create({
-      data: {
-        userId,
-        type: 'WITHDRAWAL_REFUND',
-        amount: cuRefunded,
-        referenceId: commitment.id,
-        note: `Commitment withdrawn (${cuBurned > 0 ? `${burnRate}% penalty applied` : 'no penalty'})`,
-        balanceAfter: updatedUser.cuAvailable,
-      },
-    })
-  })
-
-  log.info({ userId, predictionId, cuBurned, cuRefunded, burnRate }, 'Commitment removed with penalty')
-
-  return { ok: true, data: { success: true, cuBurned, cuRefunded, burnRate }, status: 200 }
+  return { ok: true, data: { success: true }, status: 200 }
 }
 
 /**
- * Update an existing commitment.
- * - Before lock: change side or CU freely (no penalty).
- * - After lock: changing side OR increasing CU applies an exit penalty on the old committed
- *   amount (burns into winnersPoolBonus); the new amount is then locked fresh.
- *   Decreasing CU after lock without a side change: simple refund, no penalty.
+ * Update an existing commitment's confidence or option.
+ * No penalty — can change freely while prediction is active.
  */
 export async function updateCommitment(
   userId: string,
@@ -371,7 +204,7 @@ export async function updateCommitment(
     }),
     prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, cuAvailable: true, cuLocked: true, rs: true },
+      select: { id: true, rs: true },
     }),
   ])
 
@@ -382,150 +215,25 @@ export async function updateCommitment(
     return { ok: false, error: 'Can only update commitments on active predictions', status: 400 }
   }
 
-  // Validate option if changing
   if (data.optionId !== undefined) {
     const optionExists = commitment.prediction.options.some((o) => o.id === data.optionId)
     if (!optionExists) return { ok: false, error: 'Invalid option', status: 400 }
   }
 
-  const isLocked = commitment.prediction.lockedAt !== null
-  const newCuAmount = data.cuCommitted ?? commitment.cuCommitted
+  const newConfidence = data.confidence ?? commitment.cuCommitted
 
-  // Detect a side change
-  const sideChanged =
-    (data.binaryChoice !== undefined && data.binaryChoice !== commitment.binaryChoice) ||
-    (data.optionId !== undefined && data.optionId !== commitment.optionId)
-
-  // After lock: side change OR CU increase triggers full penalty on old amount
-  const needsPenalty = isLocked && (sideChanged || newCuAmount > commitment.cuCommitted)
-
-  if (needsPenalty) {
-    // Compute exit penalty on old committed amount
-    const poolState = await computePoolState(predictionId, userId, commitment.binaryChoice, commitment.optionId)
-    const { cuBurned, cuRefunded, burnRate } = calculatePenalty(
-      commitment.cuCommitted,
-      poolState.yourSideCU,
-      poolState.totalPoolCU,
-    )
-
-    // After refund, user effectively has: cuAvailable + cuRefunded to lock into newCuAmount
-    const cuAvailableAfterRefund = user.cuAvailable + cuRefunded
-    if (cuAvailableAfterRefund < newCuAmount) {
-      return {
-        ok: false,
-        error: `Insufficient CU after ${burnRate}% switch penalty. You'd have ${cuAvailableAfterRefund} CU available, but requested ${newCuAmount} CU.`,
-        status: 400,
-      }
-    }
-
-    const result = await prisma.$transaction(async (tx) => {
-      // 1. Update commitment to new side + new amount
-      const updated = await tx.commitment.update({
-        where: { id: commitment.id },
-        data: {
-          cuCommitted: newCuAmount,
-          binaryChoice: data.binaryChoice !== undefined ? data.binaryChoice : commitment.binaryChoice,
-          optionId: data.optionId !== undefined ? data.optionId : commitment.optionId,
-          rsSnapshot: user.rs,
-          probability: data.probability !== undefined ? data.probability : commitment.probability,
-        },
-        include: commitmentInclude,
-      })
-
-      // 2. Net CU change: unlock old, burn penalty, lock new
-      //    old locked freed: commitment.cuCommitted
-      //    new locked:       newCuAmount
-      //    available delta:  cuRefunded - newCuAmount  (can be negative)
-      const availableDelta = cuRefunded - newCuAmount
-
-      await tx.user.update({
-        where: { id: userId },
-        data: {
-          cuAvailable: { increment: availableDelta },
-          cuLocked: { decrement: commitment.cuCommitted - newCuAmount },
-        },
-      })
-
-      // 3. Burn penalty into winners pool
-      if (cuBurned > 0) {
-        await tx.prediction.update({
-          where: { id: predictionId },
-          data: { winnersPoolBonus: { increment: cuBurned } },
-        })
-        await tx.cuTransaction.create({
-          data: {
-            userId,
-            type: 'WITHDRAWAL_PENALTY',
-            amount: -cuBurned,
-            referenceId: commitment.id,
-            note: `Switch penalty (${burnRate}%) on: ${commitment.prediction.claimText.substring(0, 50)}...`,
-            balanceAfter: user.cuAvailable + availableDelta,
-          },
-        })
-      }
-
-      // 4. Ledger: side switch event
-      await tx.cuTransaction.create({
-        data: {
-          userId,
-          type: 'COMMITMENT_LOCK',
-          amount: -newCuAmount,
-          referenceId: commitment.id,
-          note: `Commitment switched${sideChanged ? ' side' : ''} (${burnRate}% penalty, ${cuBurned} CU burned): ${commitment.prediction.claimText.substring(0, 50)}...`,
-          balanceAfter: user.cuAvailable + availableDelta,
-        },
-      })
-
-      return updated
-    })
-
-    log.info({ userId, predictionId, cuBurned, cuRefunded, burnRate, sideChanged }, 'Commitment updated with switch penalty')
-    return { ok: true, data: result, status: 200 }
-  }
-
-  // No penalty path: simple amount change (decrease or no-lock same-side update)
-  const cuDelta = newCuAmount - commitment.cuCommitted
-
-  if (cuDelta > 0 && user.cuAvailable < cuDelta) {
-    return { ok: false, error: `Insufficient CU. Available: ${user.cuAvailable}, additional needed: ${cuDelta}`, status: 400 }
-  }
-
-  const result = await prisma.$transaction(async (tx) => {
-    const updated = await tx.commitment.update({
-      where: { id: commitment.id },
-      data: {
-        cuCommitted: newCuAmount,
-        binaryChoice: data.binaryChoice !== undefined ? data.binaryChoice : commitment.binaryChoice,
-        optionId: data.optionId !== undefined ? data.optionId : commitment.optionId,
-        rsSnapshot: user.rs,
-        probability: data.probability !== undefined ? data.probability : commitment.probability,
-      },
-      include: commitmentInclude,
-    })
-
-    if (cuDelta !== 0) {
-      await tx.user.update({
-        where: { id: userId },
-        data: {
-          cuAvailable: { decrement: cuDelta },
-          cuLocked: { increment: cuDelta },
-        },
-      })
-
-      await tx.cuTransaction.create({
-        data: {
-          userId,
-          type: cuDelta > 0 ? 'COMMITMENT_LOCK' : 'REFUND',
-          amount: cuDelta > 0 ? -cuDelta : Math.abs(cuDelta),
-          referenceId: commitment.id,
-          note: `${cuDelta > 0 ? 'Increased' : 'Decreased'} commitment on: ${commitment.prediction.claimText.substring(0, 50)}...`,
-          balanceAfter: user.cuAvailable - cuDelta,
-        },
-      })
-    }
-
-    return updated
+  const updated = await prisma.commitment.update({
+    where: { id: commitment.id },
+    data: {
+      cuCommitted: newConfidence,
+      binaryChoice: data.confidence !== undefined
+        ? deriveBinaryChoice(commitment.prediction.outcomeType, newConfidence)
+        : commitment.binaryChoice,
+      optionId: data.optionId ?? commitment.optionId,
+      rsSnapshot: user.rs,
+    },
+    include: commitmentInclude,
   })
 
-  return { ok: true, data: result, status: 200 }
+  return { ok: true, data: updated, status: 200 }
 }

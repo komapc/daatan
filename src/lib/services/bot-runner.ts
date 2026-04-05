@@ -657,8 +657,7 @@ async function processTopic(
       await ensureBotCU(bot, dryRun)
       stakeAmount = randomInt(bot.stakeMin, bot.stakeMax)
       const result = await createCommitment(bot.userId, prediction.id, {
-        cuCommitted: stakeAmount,
-        binaryChoice: true, // Bot always votes "yes" on its own forecast
+        confidence: stakeAmount, // Positive = YES; bot always votes yes on its own forecast
       })
 
       if (!result.ok) {
@@ -779,8 +778,7 @@ async function runVoting(
       }
 
       const result = await createCommitment(bot.userId, forecast.id, {
-        cuCommitted: stakeAmount,
-        binaryChoice: decision.binaryChoice,
+        confidence: decision.binaryChoice ? stakeAmount : -stakeAmount,
       })
 
       if (result.ok) {

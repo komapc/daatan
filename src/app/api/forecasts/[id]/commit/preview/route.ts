@@ -2,11 +2,12 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { apiError } from '@/lib/api-error'
 import { withAuth } from '@/lib/api-middleware'
-import { calculatePenalty } from '@/lib/services/commitment'
 
 /**
  * GET /api/forecasts/[id]/commit/preview
- * Returns penalty preview for removing an existing commitment.
+ * Returns Brier ΔRS preview for the user's current commitment.
+ *
+ * Shows rsIfRight (if the user's prediction is correct) and rsIfWrong.
  * Read-only — no side effects.
  */
 export const GET = withAuth(async (_request, user, { params }) => {
@@ -16,8 +17,8 @@ export const GET = withAuth(async (_request, user, { params }) => {
     where: { userId_predictionId: { userId: user.id, predictionId } },
     select: {
       cuCommitted: true,
-      binaryChoice: true,
       optionId: true,
+      prediction: { select: { outcomeType: true } },
     },
   })
 
@@ -25,35 +26,28 @@ export const GET = withAuth(async (_request, user, { params }) => {
     return apiError('No commitment found', 404)
   }
 
-  // Compute pool state
-  const commitments = await prisma.commitment.findMany({
-    where: { predictionId },
-    select: { cuCommitted: true, binaryChoice: true, optionId: true },
-  })
+  const confidence = commitment.cuCommitted  // -100..100 for BINARY, 0..100 for MULTIPLE_CHOICE
+  const isMultipleChoice = commitment.prediction.outcomeType === 'MULTIPLE_CHOICE'
 
-  let totalPoolCU = 0
-  let yourSideCU = 0
-  for (const c of commitments) {
-    totalPoolCU += c.cuCommitted
-    if (commitment.optionId !== null && commitment.optionId !== undefined) {
-      if (c.optionId === commitment.optionId) yourSideCU += c.cuCommitted
-    } else {
-      if (c.binaryChoice === commitment.binaryChoice) yourSideCU += c.cuCommitted
-    }
+  let p: number
+  if (isMultipleChoice) {
+    p = confidence / 100
+  } else {
+    p = (confidence + 100) / 200
   }
 
-  const { cuBurned, cuRefunded, burnRate } = calculatePenalty(
-    commitment.cuCommitted,
-    yourSideCU,
-    totalPoolCU,
-  )
+  // ΔRS if the user is right (their chosen outcome occurs)
+  const bsRight = Math.pow(p - 1, 2)
+  const rsIfRight = Math.round((0.25 - bsRight) * 100)
+
+  // ΔRS if the user is wrong (the opposite outcome occurs)
+  const bsWrong = Math.pow(p - 0, 2)
+  const rsIfWrong = Math.round((0.25 - bsWrong) * 100)
 
   return NextResponse.json({
-    cuCommitted: commitment.cuCommitted,
-    cuBurned,
-    cuRefunded,
-    burnRate,
-    totalPoolCU,
-    yourSideCU,
+    confidence,
+    probability: Math.round(p * 100),
+    rsIfRight,
+    rsIfWrong,
   })
 })

@@ -49,8 +49,6 @@ export default {
           role: user.role as any,
           username: user.username,
           rs: user.rs,
-          cuAvailable: user.cuAvailable,
-          cuLocked: user.cuLocked,
         }
       }
     }),
@@ -80,8 +78,6 @@ export default {
         session.user.role = (token.role as any) ?? 'USER'
         session.user.username = token.username as string | undefined
         session.user.rs = token.rs as number | undefined
-        session.user.cuAvailable = token.cuAvailable as number | undefined
-        session.user.cuLocked = token.cuLocked as number | undefined
         if (token.name) session.user.name = token.name
         if (token.picture) session.user.image = token.picture as string
       }
@@ -92,8 +88,6 @@ export default {
         token.role = (user as any).role
         token.username = (user as any).username
         token.rs = (user as any).rs
-        token.cuAvailable = (user as any).cuAvailable
-        token.cuLocked = (user as any).cuLocked
       }
       return token
     },
