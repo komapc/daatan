@@ -21,7 +21,6 @@ import {
   EyeOff,
   Languages,
   Info,
-  CheckCircle2,
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { useTranslations, useLocale } from 'next-intl'
@@ -507,6 +506,9 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
                   userPercentage={userProb}
                   aiPercentage={aiEstimate ?? prediction.confidence ?? undefined}
                   size="xl"
+                  onUserPercentageChange={prediction.status === 'ACTIVE'
+                    ? (pct) => setUserConfidence(Math.round(pct * 2 - 100))
+                    : undefined}
                 />
 
                 {/* Legend */}
@@ -527,14 +529,6 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
                   )}
                 </div>
 
-                {/* Your Forecast badge */}
-                {prediction.userCommitment && (
-                  <div className="flex items-center gap-2 mt-6 px-4 py-2 bg-teal/10 border border-teal/30 rounded-full">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-teal" />
-                    <span className="text-xs font-bold text-teal uppercase tracking-widest">Your forecast is committed</span>
-                  </div>
-                )}
-
                 {/* Confidence Slider Integration (Desktop & Mobile) */}
                 <div className="w-full mt-10">
                   <ConfidenceSlider
@@ -544,6 +538,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
                     isSubmitting={isSubmitting}
                     disabled={prediction.status !== 'ACTIVE'}
                     canCommit={userConfidence !== initialUserConfidence}
+                    isCommitted={!!prediction.userCommitment}
                   />
                 </div>
               </div>

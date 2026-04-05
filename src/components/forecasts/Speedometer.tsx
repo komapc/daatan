@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useCallback } from 'react'
 
 interface SpeedometerProps {
   percentage?: number // Market average (default needle)
@@ -7,6 +7,7 @@ interface SpeedometerProps {
   label?: string
   color?: 'green' | 'red'
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
+  onUserPercentageChange?: (pct: number) => void
 }
 
 export default function Speedometer({
@@ -16,6 +17,7 @@ export default function Speedometer({
   label,
   color = 'green',
   size = 'md',
+  onUserPercentageChange,
 }: SpeedometerProps) {
   const safeMarketPct = isNaN(percentage) ? 50 : Math.min(100, Math.max(0, percentage))
   
@@ -28,6 +30,8 @@ export default function Speedometer({
   }
 
   const { width, height, strokeWidth, fontSize, needleBase, pivotRadius } = sizes[size]
+
+  const [isDragging, setIsDragging] = useState(false)
 
   const bottomPad = strokeWidth + pivotRadius + 4
   const topPad = strokeWidth + 4
@@ -90,9 +94,47 @@ export default function Speedometer({
     }
   }, [size])
 
+  const getPctFromPointer = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const scaleX = width / rect.width
+    const scaleY = height / rect.height
+    const mx = (e.clientX - rect.left) * scaleX
+    const my = (e.clientY - rect.top) * scaleY
+    const dx = mx - center.x
+    const dy = my - center.y
+    let deg = Math.atan2(dy, dx) * 180 / Math.PI
+    if (deg < 0) deg += 360
+    // Arc: 180° (left, 0%) → 270° (top, 50%) → 360° (right, 100%)
+    // Angles 0..90 are upper-right → clamp to 100; 90..180 are upper-left → clamp to 0
+    if (deg < 90) return 100
+    if (deg < 180) return 0
+    return (deg - 180) / 180 * 100
+  }, [center.x, center.y, width, height])
+
+  const handlePointerDown = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
+    if (!onUserPercentageChange || userPercentage === undefined) return
+    e.preventDefault()
+    ;(e.currentTarget as SVGSVGElement).setPointerCapture(e.pointerId)
+    setIsDragging(true)
+    onUserPercentageChange(getPctFromPointer(e))
+  }, [onUserPercentageChange, userPercentage, getPctFromPointer])
+
+  const handlePointerMove = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
+    if (!isDragging || !onUserPercentageChange) return
+    onUserPercentageChange(getPctFromPointer(e))
+  }, [isDragging, onUserPercentageChange, getPctFromPointer])
+
+  const handlePointerUp = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
+    if (!isDragging) return
+    ;(e.currentTarget as SVGSVGElement).releasePointerCapture(e.pointerId)
+    setIsDragging(false)
+  }, [isDragging])
+
   const backgroundArc = createArcPath(center, radius, 180, 360)
   const greenArc = createArcPath(center, radius, 180, 270) // Left half
   const redArc = createArcPath(center, radius, 270, 360) // Right half
+
+  const isDraggable = !!onUserPercentageChange && userPercentage !== undefined
 
   return (
     <div className="flex flex-col items-center">
@@ -100,7 +142,12 @@ export default function Speedometer({
         width={width}
         height={height}
         viewBox={`0 0 ${width} ${height}`}
-        className="overflow-visible"
+        className={`overflow-visible${isDraggable ? ' select-none' : ''}`}
+        style={isDraggable ? { cursor: isDragging ? 'grabbing' : 'grab' } : undefined}
+        onPointerDown={isDraggable ? handlePointerDown : undefined}
+        onPointerMove={isDraggable ? handlePointerMove : undefined}
+        onPointerUp={isDraggable ? handlePointerUp : undefined}
+        onPointerCancel={isDraggable ? handlePointerUp : undefined}
       >
         <defs>
           <linearGradient id={theme.greenGradientId} x1="0%" y1="0%" x2="100%" y2="0%">
