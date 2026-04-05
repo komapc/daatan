@@ -205,7 +205,7 @@ export async function runBotById(botId: string, dryRun = false): Promise<BotRunS
 // ─── Internal ────────────────────────────────────────────────────────────────
 
 type BotWithUser = Awaited<ReturnType<typeof prisma.botConfig.findMany>>[number] & {
-  user: { id: string; name: string | null; cuAvailable: number }
+  user: { id: string; name: string | null }
 }
 
 async function runBot(bot: BotWithUser, dryRun: boolean, isManual: boolean = false): Promise<BotRunSummary> {
@@ -654,7 +654,6 @@ async function processTopic(
     //
     let stakeAmount: number | null = null
     if (!bot.requireApprovalForForecasts) {
-      await ensureBotCU(bot, dryRun)
       stakeAmount = randomInt(bot.stakeMin, bot.stakeMax)
       const result = await createCommitment(bot.userId, prediction.id, {
         confidence: stakeAmount, // Positive = YES; bot always votes yes on its own forecast
@@ -767,8 +766,6 @@ async function runVoting(
 
       const generatedText = JSON.stringify(decision, null, 2)
 
-      // Auto-refill CU if balance is low, then vote
-      await ensureBotCU(bot, dryRun)
       const stakeAmount = randomInt(bot.stakeMin, bot.stakeMax)
 
       if (dryRun) {
@@ -797,41 +794,6 @@ async function runVoting(
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-/**
- * Ensure the bot has enough CU to stake. If `cuRefillAt > 0` and the bot's
- * current balance is at or below the threshold, create an ADMIN_GRANT
- * CuTransaction and increment cuAvailable by cuRefillAmount.
- * No-ops in dry-run mode or when cuRefillAt === 0 (feature disabled).
- */
-async function ensureBotCU(bot: BotWithUser, dryRun: boolean): Promise<void> {
-  if (dryRun) return
-  const cuRefillAt = bot.cuRefillAt ?? 0
-  if (cuRefillAt === 0) return
-
-  const freshUser = await prisma.user.findUnique({
-    where: { id: bot.userId },
-    select: { cuAvailable: true },
-  })
-  if (!freshUser || freshUser.cuAvailable > cuRefillAt) return
-
-  const amount = bot.cuRefillAmount ?? 50
-  await prisma.$transaction([
-    prisma.cuTransaction.create({
-      data: {
-        userId: bot.userId,
-        type: 'ADMIN_ADJUSTMENT',
-        amount,
-        balanceAfter: freshUser.cuAvailable + amount,
-        note: 'bot auto-refill',
-      },
-    }),
-    prisma.user.update({
-      where: { id: bot.userId },
-      data: { cuAvailable: { increment: amount } },
-    }),
-  ])
-  log.info({ botId: bot.id, amount, balanceBefore: freshUser.cuAvailable }, 'Bot CU auto-refilled')
-}
 
 async function countTodayActions(botId: string, action: BotAction): Promise<number> {
   const startOfDay = new Date()

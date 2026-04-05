@@ -89,7 +89,7 @@ export const GET = withAuth(
           isActive: true,
           lastRunAt: true,
           createdAt: true,
-          user: { select: { id: true, name: true, username: true, image: true, cuAvailable: true, cuLocked: true } },
+          user: { select: { id: true, name: true, username: true, image: true } },
           runLogs: { orderBy: { runAt: 'desc' }, take: 1, select: { runAt: true, action: true, error: true } },
         },
         orderBy: { createdAt: 'asc' },

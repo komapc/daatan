@@ -77,7 +77,7 @@ interface Bot {
   forecastsToday: number
   votesToday: number
   lastLog: { runAt: string; action: string; error: string | null } | null
-  user: { id: string; name: string | null; username: string | null; cuAvailable: number }
+  user: { id: string; name: string | null; username: string | null }
 }
 
 export default function BotsTable() {
@@ -363,7 +363,7 @@ export default function BotsTable() {
                     </div>
 
                     <div className="mt-1 text-xs text-gray-500">
-                      CU: {bot.user.cuAvailable} available · Sources: {bot.newsSources.length} · Model: {bot.modelPreference}
+                      Sources: {bot.newsSources.length} · Model: {bot.modelPreference}
                     </div>
 
                     {bot.lastLog?.error && (
