@@ -482,7 +482,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
         predictionId={prediction.id}
         initialContext={prediction.detailsText}
         initialContextUpdatedAt={prediction.contextUpdatedAt}
-        canAnalyze={!!session?.user}
+        canAnalyze={!!session?.user && prediction.status === 'ACTIVE'}
         onAiEstimate={setAiEstimate}
       />
 
