@@ -14,8 +14,13 @@ interface ResolutionOptions {
 }
 
 /**
- * Resolve a prediction: update its status, process all commitments, distribute
- * winners pool bonus, and refund burned CU on void outcomes.
+ * Resolve a prediction: update its status and compute Brier-based ΔRS for each commitment.
+ *
+ * Brier ΔRS: brierScore = (p − outcome)², rsChange = round((0.25 − BS) × 100)
+ * BINARY:          p = (confidence + 100) / 200
+ * MULTIPLE_CHOICE: p = confidence / 100
+ *
+ * Void/unresolvable outcomes produce no RS change.
  *
  * Returns the updated prediction record.
  * Throws if the prediction is not found, not in a resolvable state, or if
@@ -29,11 +34,7 @@ export async function resolvePrediction(predictionId: string, options: Resolutio
     include: {
       options: true,
       commitments: {
-        include: { user: true },
-      },
-      withdrawals: {
-        where: { cuBurned: { gt: 0 } },
-        select: { userId: true, cuBurned: true },
+        include: { user: { select: { id: true, rs: true } } },
       },
     },
   })
@@ -63,7 +64,6 @@ export async function resolvePrediction(predictionId: string, options: Resolutio
   else newStatus = 'UNRESOLVABLE'
 
   const isVoidOutcome = outcome === 'void' || outcome === 'unresolvable'
-  const outcomeNumeric = outcome === 'correct' ? 1 : 0
 
   const result = await prisma.$transaction(async (tx) => {
     const updatedPrediction = await tx.prediction.update({
@@ -87,115 +87,40 @@ export async function resolvePrediction(predictionId: string, options: Resolutio
       }
     }
 
-    const winnerCommitments: typeof prediction.commitments = []
-
     for (const commitment of prediction.commitments) {
-      let cuReturned = 0
       let rsChange = 0
+      let brierScore: number | null = null
 
-      if (isVoidOutcome) {
-        cuReturned = commitment.cuCommitted
-      } else {
-        let wasCorrect = false
+      if (!isVoidOutcome) {
+        // cuCommitted stores the confidence value: -100..100 for BINARY, 0..100 for MULTIPLE_CHOICE
+        const confidence = commitment.cuCommitted
+        let p: number
+        let outcomeNumeric: number
+
         if (isMultipleChoice) {
-          wasCorrect = commitment.optionId === correctOptionId
+          p = confidence / 100
+          outcomeNumeric = commitment.optionId === correctOptionId ? 1 : 0
         } else {
-          wasCorrect =
-            (outcome === 'correct' && commitment.binaryChoice === true) ||
-            (outcome === 'wrong' && commitment.binaryChoice === false)
+          p = (confidence + 100) / 200
+          outcomeNumeric = outcome === 'correct' ? 1 : 0
         }
 
-        if (wasCorrect) {
-          cuReturned = Math.floor(commitment.cuCommitted * 1.5)
-          rsChange = commitment.cuCommitted * 0.1
-          winnerCommitments.push(commitment)
-        } else {
-          cuReturned = 0
-          rsChange = -commitment.cuCommitted * 0.05
-        }
+        brierScore = Math.pow(p - outcomeNumeric, 2)
+        rsChange = Math.round((0.25 - brierScore) * 100)
       }
-
-      const brierScore =
-        !isVoidOutcome && commitment.probability != null
-          ? Math.pow(commitment.probability - outcomeNumeric, 2)
-          : null
 
       await tx.commitment.update({
         where: { id: commitment.id },
         data: {
-          cuReturned,
           rsChange,
           ...(brierScore !== null && { brierScore }),
         },
       })
 
-      const newCuAvailable = commitment.user.cuAvailable + cuReturned
-      const newCuLocked = Math.max(0, commitment.user.cuLocked - commitment.cuCommitted)
       const newRs = Math.max(0, commitment.user.rs + rsChange)
-
       await tx.user.update({
         where: { id: commitment.userId },
-        data: { cuAvailable: newCuAvailable, cuLocked: newCuLocked, rs: newRs },
-      })
-
-      await tx.cuTransaction.create({
-        data: {
-          userId: commitment.userId,
-          type: isVoidOutcome ? 'REFUND' : 'COMMITMENT_UNLOCK',
-          amount: cuReturned,
-          referenceId: commitment.id,
-          note: `Prediction resolved: ${outcome}`,
-          balanceAfter: newCuAvailable,
-        },
-      })
-    }
-
-    if (!isVoidOutcome && winnerCommitments.length > 0 && prediction.winnersPoolBonus > 0) {
-      const totalWinnerCU = winnerCommitments.reduce((sum, c) => sum + c.cuCommitted, 0)
-      for (const winner of winnerCommitments) {
-        const bonusShare = winner.cuCommitted / totalWinnerCU
-        const bonusCU = Math.floor(prediction.winnersPoolBonus * bonusShare)
-        if (bonusCU > 0) {
-          const updatedWinner = await tx.user.update({
-            where: { id: winner.userId },
-            data: { cuAvailable: { increment: bonusCU } },
-            select: { cuAvailable: true },
-          })
-          await tx.cuTransaction.create({
-            data: {
-              userId: winner.userId,
-              type: 'BONUS',
-              amount: bonusCU,
-              referenceId: prediction.id,
-              note: `Exit penalty pool bonus (${Math.round(bonusShare * 100)}% of winners pool)`,
-              balanceAfter: updatedWinner.cuAvailable,
-            },
-          })
-        }
-      }
-    }
-
-    if (isVoidOutcome && prediction.withdrawals.length > 0) {
-      for (const withdrawal of prediction.withdrawals) {
-        const updatedExiter = await tx.user.update({
-          where: { id: withdrawal.userId },
-          data: { cuAvailable: { increment: withdrawal.cuBurned } },
-          select: { cuAvailable: true },
-        })
-        await tx.cuTransaction.create({
-          data: {
-            userId: withdrawal.userId,
-            type: 'VOID_BURN_REFUND',
-            amount: withdrawal.cuBurned,
-            referenceId: prediction.id,
-            note: `Burn penalty refunded — prediction resolved as ${outcome}`,
-            balanceAfter: updatedExiter.cuAvailable,
-          },
-        })
-      }
-      await tx.prediction.update({
-        where: { id: predictionId },
-        data: { winnersPoolBonus: 0 },
+        data: { rs: newRs },
       })
     }
 

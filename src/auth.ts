@@ -46,7 +46,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               name: `Test User ${credentials.userId}`,
               username: `testuser_${credentials.userId}`,
               role: (credentials.role as any) || 'USER',
-              cuAvailable: 1000,
             }
           })
 
@@ -58,8 +57,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             role: user.role as any,
             username: user.username,
             rs: user.rs,
-            cuAvailable: user.cuAvailable,
-            cuLocked: user.cuLocked,
           }
         }
       })
@@ -97,7 +94,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         try {
           const dbUser = await prisma.user.findUnique({
             where: { id: token.sub },
-            select: { role: true, username: true, name: true, image: true, avatarUrl: true, rs: true, cuAvailable: true, cuLocked: true },
+            select: { role: true, username: true, name: true, image: true, avatarUrl: true, rs: true },
           })
 
           if (!dbUser) {
@@ -110,8 +107,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.name = dbUser.name ?? token.name
           token.picture = dbUser.avatarUrl || dbUser.image || token.picture
           token.rs = dbUser.rs
-          token.cuAvailable = dbUser.cuAvailable
-          token.cuLocked = dbUser.cuLocked
           token.cachedAt = Date.now()
           token.userDeleted = undefined
         } catch (error) {

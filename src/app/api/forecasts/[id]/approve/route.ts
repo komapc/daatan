@@ -77,8 +77,7 @@ export const POST = withAuth(async (_request, user, { params }) => {
     if (botConfig) {
       const stakeAmount = Math.floor(Math.random() * (botConfig.stakeMax - botConfig.stakeMin + 1)) + botConfig.stakeMin
       const stakeResult = await createCommitment(prediction.author.id, prediction.id, {
-        cuCommitted: stakeAmount,
-        binaryChoice: true, // Bot always votes YES on its own forecast
+        confidence: stakeAmount, // Bot always votes YES on its own forecast (positive = YES)
       })
 
       if (!stakeResult.ok) {

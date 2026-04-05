@@ -13,13 +13,12 @@ vi.mock('@/lib/services/notification', () => ({
 }))
 
 describe('Commitment Service Integration', () => {
-  it('should create a commitment and update user balance correctly', async () => {
+  it('should create a commitment and store confidence correctly', async () => {
     // 1. Setup data in real Postgres
     const user = await prisma.user.create({
       data: {
         email: 'test@example.com',
         name: 'Test User',
-        cuAvailable: 1000,
         rs: 100,
       }
     })
@@ -35,67 +34,56 @@ describe('Commitment Service Integration', () => {
       }
     })
 
-    // 2. Execute service call
+    // 2. Execute service call with new confidence-based API
     const result = await createCommitment(user.id, prediction.id, {
-      cuCommitted: 100,
-      binaryChoice: true,
+      confidence: 70,
     })
 
     // 3. Verify result
     expect(result.ok).toBe(true)
-    
-    // 4. Verify DB state - User
-    const updatedUser = await prisma.user.findUnique({ where: { id: user.id } })
-    expect(updatedUser?.cuAvailable).toBe(900)
-    expect(updatedUser?.cuLocked).toBe(100)
 
-    // 5. Verify DB state - Commitment
+    // 4. Verify DB state - Commitment stores confidence in cuCommitted
     const commitment = await prisma.commitment.findFirst({
       where: { userId: user.id, predictionId: prediction.id }
     })
     expect(commitment).toBeDefined()
-    expect(commitment?.cuCommitted).toBe(100)
-    expect(commitment?.binaryChoice).toBe(true)
+    expect(commitment?.cuCommitted).toBe(70)
+    expect(commitment?.binaryChoice).toBe(true)  // derived from positive confidence
 
-    // 6. Verify DB state - Transaction log
-    const transaction = await prisma.cuTransaction.findFirst({
-      where: { userId: user.id, type: 'COMMITMENT_LOCK' }
-    })
-    expect(transaction).toBeDefined()
-    expect(transaction?.amount).toBe(-100)
-    expect(transaction?.balanceAfter).toBe(900)
+    // 5. RS is unchanged (RS only changes on resolution)
+    const unchangedUser = await prisma.user.findUnique({ where: { id: user.id } })
+    expect(unchangedUser?.rs).toBe(100)
   })
 
-  it('should fail if user has insufficient balance', async () => {
+  it('should derive binaryChoice false from negative confidence', async () => {
     const user = await prisma.user.create({
       data: {
-        email: 'poor@example.com',
-        cuAvailable: 10,
+        email: 'bear@example.com',
+        rs: 50,
       }
     })
 
     const prediction = await prisma.prediction.create({
       data: {
-        claimText: 'Expensive Prediction',
+        claimText: 'Bearish Prediction',
         authorId: user.id,
         status: 'ACTIVE',
+        outcomeType: 'BINARY',
         resolveByDatetime: new Date('2030-01-01'),
-        shareToken: 'test-token-poor-' + Date.now(),
+        shareToken: 'test-token-bear-' + Date.now(),
       }
     })
 
     const result = await createCommitment(user.id, prediction.id, {
-      cuCommitted: 100,
-      binaryChoice: true,
+      confidence: -40,
     })
 
-    expect(result.ok).toBe(false)
-    if (!result.ok) {
-      expect(result.error).toMatch(/insufficient/i)
-    }
+    expect(result.ok).toBe(true)
 
-    // Verify balance was NOT changed
-    const unchangedUser = await prisma.user.findUnique({ where: { id: user.id } })
-    expect(unchangedUser?.cuAvailable).toBe(10)
+    const commitment = await prisma.commitment.findFirst({
+      where: { userId: user.id, predictionId: prediction.id }
+    })
+    expect(commitment?.cuCommitted).toBe(-40)
+    expect(commitment?.binaryChoice).toBe(false)  // derived from negative confidence
   })
 })

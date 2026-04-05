@@ -221,15 +221,14 @@ describe('POST /api/predictions/[id]/resolve', () => {
     )
   })
 
-  describe('commitment balance calculations', () => {
+  describe('commitment RS calculations (Brier score)', () => {
     const setupResolveWithCommitments = async (commitments: Array<{
       id: string
       userId: string
       cuCommitted: number
       binaryChoice: boolean | null
       optionId?: string | null
-      rsSnapshot: number
-      user: { id: string; cuAvailable: number; cuLocked: number; rs: number }
+      user: { id: string; rs: number }
     }>) => {
       const { prisma } = await import('@/lib/prisma')
 
@@ -249,7 +248,6 @@ describe('POST /api/predictions/[id]/resolve', () => {
 
       const mockUserUpdate = vi.fn()
       const mockCommitmentUpdate = vi.fn()
-      const mockCuTransactionCreate = vi.fn()
 
       vi.mocked(prisma.$transaction).mockImplementation(async (fn) => {
         const tx = {
@@ -257,51 +255,23 @@ describe('POST /api/predictions/[id]/resolve', () => {
           predictionOption: { update: vi.fn() },
           commitment: { update: mockCommitmentUpdate },
           user: { update: mockUserUpdate },
-          cuTransaction: { create: mockCuTransactionCreate },
         }
         return fn(tx as never) as never
       })
 
-      return { mockUserUpdate, mockCommitmentUpdate, mockCuTransactionCreate }
+      return { mockUserUpdate, mockCommitmentUpdate }
     }
 
-    it('floors cuLocked at 0 when cuLocked < cuCommitted (out-of-sync guard)', async () => {
-      // Scenario: user.cuLocked is 5, but cuCommitted is 10 (data drift)
-      const { mockUserUpdate } = await setupResolveWithCommitments([{
-        id: 'commit-1',
-        userId: 'user1',
-        cuCommitted: 10,
-        binaryChoice: true,
-        optionId: null,
-        rsSnapshot: 100,
-        user: { id: 'user1', cuAvailable: 50, cuLocked: 5, rs: 100 },
-      }])
-
-      const request = new NextRequest('http://localhost/api/forecasts/pred-1/resolve', {
-        method: 'POST',
-        body: JSON.stringify({ outcome: 'correct', resolutionNote: 'Test' }),
-      })
-
-      await resolvePrediction(request, { params: Promise.resolve({ id: 'pred-1' }) })
-
-      expect(mockUserUpdate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            cuLocked: 0, // Math.max(0, 5 - 10) = 0, not -5
-          }),
-        })
-      )
-    })
-
-    it('calculates correct CU and RS for correct binary prediction', async () => {
-      const { mockUserUpdate, mockCommitmentUpdate } = await setupResolveWithCommitments([{
+    it('correct BINARY — confidence 20 → p=0.6, Brier ΔRS = +9', async () => {
+      // cuCommitted=20 → p = (20+100)/200 = 0.6, outcome=correct → outcomeNumeric=1
+      // brierScore = (0.6-1)² = 0.16, rsChange = round((0.25-0.16)*100) = 9
+      const { mockCommitmentUpdate, mockUserUpdate } = await setupResolveWithCommitments([{
         id: 'commit-1',
         userId: 'user1',
         cuCommitted: 20,
         binaryChoice: true,
         optionId: null,
-        rsSnapshot: 100,
-        user: { id: 'user1', cuAvailable: 80, cuLocked: 20, rs: 100 },
+        user: { id: 'user1', rs: 100 },
       }])
 
       const request = new NextRequest('http://localhost/api/forecasts/pred-1/resolve', {
@@ -311,32 +281,27 @@ describe('POST /api/predictions/[id]/resolve', () => {
 
       await resolvePrediction(request, { params: Promise.resolve({ id: 'pred-1' }) })
 
-      // cuReturned = floor(20 * 1.5) = 30, rsChange = 20 * 0.1 = 2
       expect(mockCommitmentUpdate).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: { cuReturned: 30, rsChange: 2 },
+          data: expect.objectContaining({ rsChange: 9 }),
         })
       )
       expect(mockUserUpdate).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: {
-            cuAvailable: 110, // 80 + 30
-            cuLocked: 0,      // max(0, 20 - 20)
-            rs: 102,          // max(0, 100 + 2)
-          },
+          data: { rs: 109 },  // max(0, 100 + 9)
         })
       )
     })
 
-    it('calculates correct CU and RS for wrong binary prediction', async () => {
-      const { mockUserUpdate, mockCommitmentUpdate } = await setupResolveWithCommitments([{
+    it('wrong BINARY — confidence 20 → p=0.6, Brier ΔRS = -11', async () => {
+      // brierScore = (0.6-0)² = 0.36, rsChange = round((0.25-0.36)*100) = -11
+      const { mockCommitmentUpdate, mockUserUpdate } = await setupResolveWithCommitments([{
         id: 'commit-1',
         userId: 'user1',
         cuCommitted: 20,
         binaryChoice: true,
         optionId: null,
-        rsSnapshot: 100,
-        user: { id: 'user1', cuAvailable: 80, cuLocked: 20, rs: 100 },
+        user: { id: 'user1', rs: 100 },
       }])
 
       const request = new NextRequest('http://localhost/api/forecasts/pred-1/resolve', {
@@ -346,32 +311,26 @@ describe('POST /api/predictions/[id]/resolve', () => {
 
       await resolvePrediction(request, { params: Promise.resolve({ id: 'pred-1' }) })
 
-      // cuReturned = 0, rsChange = -(20 * 0.05) = -1
       expect(mockCommitmentUpdate).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: { cuReturned: 0, rsChange: -1 },
+          data: expect.objectContaining({ rsChange: -11 }),
         })
       )
       expect(mockUserUpdate).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: {
-            cuAvailable: 80, // 80 + 0
-            cuLocked: 0,     // max(0, 20 - 20)
-            rs: 99,          // max(0, 100 - 1)
-          },
+          data: { rs: 89 },  // max(0, 100 - 11)
         })
       )
     })
 
-    it('refunds CU fully on void resolution', async () => {
-      const { mockUserUpdate, mockCommitmentUpdate } = await setupResolveWithCommitments([{
+    it('void resolution — no RS change', async () => {
+      const { mockCommitmentUpdate, mockUserUpdate } = await setupResolveWithCommitments([{
         id: 'commit-1',
         userId: 'user1',
         cuCommitted: 20,
         binaryChoice: true,
         optionId: null,
-        rsSnapshot: 100,
-        user: { id: 'user1', cuAvailable: 80, cuLocked: 20, rs: 100 },
+        user: { id: 'user1', rs: 100 },
       }])
 
       const request = new NextRequest('http://localhost/api/forecasts/pred-1/resolve', {
@@ -383,29 +342,25 @@ describe('POST /api/predictions/[id]/resolve', () => {
 
       expect(mockCommitmentUpdate).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: { cuReturned: 20, rsChange: 0 },
+          data: { rsChange: 0 },
         })
       )
       expect(mockUserUpdate).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: {
-            cuAvailable: 100, // 80 + 20
-            cuLocked: 0,
-            rs: 100, // no change
-          },
+          data: { rs: 100 },  // unchanged
         })
       )
     })
 
     it('floors RS at 0 when loss exceeds current RS', async () => {
+      // cuCommitted=100 → p=1.0, outcome=wrong → rsChange=-75, rs=2 → max(0, 2-75)=0
       const { mockUserUpdate } = await setupResolveWithCommitments([{
         id: 'commit-1',
         userId: 'user1',
-        cuCommitted: 50,
+        cuCommitted: 100,
         binaryChoice: true,
         optionId: null,
-        rsSnapshot: 2,
-        user: { id: 'user1', cuAvailable: 50, cuLocked: 50, rs: 2 },
+        user: { id: 'user1', rs: 2 },
       }])
 
       const request = new NextRequest('http://localhost/api/forecasts/pred-1/resolve', {
@@ -415,12 +370,9 @@ describe('POST /api/predictions/[id]/resolve', () => {
 
       await resolvePrediction(request, { params: Promise.resolve({ id: 'pred-1' }) })
 
-      // rsChange = -(50 * 0.05) = -2.5, but rs = max(0, 2 + (-2.5)) = 0
       expect(mockUserUpdate).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({
-            rs: 0,
-          }),
+          data: { rs: 0 },
         })
       )
     })
