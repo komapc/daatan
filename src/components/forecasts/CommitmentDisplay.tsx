@@ -114,7 +114,7 @@ export default function CommitmentDisplay({
             <div className="flex items-center gap-1">
               {onEdit && !isConfirming && (
                 <button onClick={onEdit}
-                  className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-navy-700 transition-colors"
+                  className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-gray-400 hover:bg-navy-700 transition-colors"
                   aria-label="Edit commitment">
                   <Pencil className="w-3.5 h-3.5" /> Edit
                 </button>

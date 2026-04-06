@@ -86,7 +86,7 @@
     "wontHappen": "Ne okazos",
     "commitCU": "Engaĝi KU",
     "resolveBy": "Solvi ĝis",
-    "deadline": "Limdato",
+    "deadline": "Rezolucio-dato",
     "locked": "Ŝlosita",
     "source": "Fonto",
     "anonymous": "Anonima",
@@ -106,7 +106,7 @@
     "rejectSuccess": "Prognozo malakceptita",
     "rejectError": "Malsukcesis malakcepti prognozon",
     "author": "Aŭtoro",
-    "resolutionDeadline": "Rezolucio-Limdato",
+    "resolutionDeadline": "Rezolucio-dato",
     "usersLabel": "uzantoj",
     "commitToPrompt": "Ĉu vi volas engaĝiĝi al ĉi tiu antaŭdiro?",
     "signInToCommit": "Ensaluti por Engaĝiĝi",
@@ -254,7 +254,7 @@
   },
   "context": {
     "title": "Situacio",
-    "analyze": "Analizi Situacion",
+    "analyze": "Analizi Kuntekston",
     "analyzing": "Analizante lastatempajn novaĵojn...",
     "updated": "Kunteksto ĝisdatigita!",
     "failed": "Malsukcesis analizi kuntekston",
@@ -266,5 +266,6 @@
   "footer": {
     "privacy": "Privateca Politiko",
     "terms": "Uzkondiĉoj"
-  }
+  },
+  "backToFeed": "Reen al prognozoj"
 }

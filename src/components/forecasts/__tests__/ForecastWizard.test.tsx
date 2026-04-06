@@ -296,7 +296,7 @@ describe('ForecastWizard', () => {
     })
 
     await waitFor(() => {
-      const dateInput = screen.getByLabelText(/Resolution Deadline/i) as HTMLInputElement
+      const dateInput = screen.getByLabelText(/Resolution Date/i) as HTMLInputElement
       // Should be YYYY-MM-DD, not the full ISO string
       expect(dateInput.value).toBe('2026-12-31')
     })

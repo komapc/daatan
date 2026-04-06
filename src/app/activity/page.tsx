@@ -135,7 +135,7 @@ export default function ActivityFeedPage() {
 
                   <Link
                     href={`/forecasts/${item.prediction.slug || item.prediction.id}`}
-                    className="block text-sm text-gray-600 hover:text-blue-600 line-clamp-2 transition-colors"
+                    className="block text-sm text-gray-400 hover:text-blue-600 line-clamp-2 transition-colors"
                   >
                     {item.prediction.claimText}
                   </Link>

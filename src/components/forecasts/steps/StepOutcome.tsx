@@ -74,7 +74,7 @@ export const StepOutcome = ({ formData, updateFormData }: Props) => {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold text-white mb-2">
-          Define Outcome & Deadline
+          Define Outcome & Resolution Date
         </h2>
         <p className="text-gray-500">
           How will this prediction be resolved?
@@ -236,7 +236,7 @@ export const StepOutcome = ({ formData, updateFormData }: Props) => {
       {/* Resolution Date */}
       <div>
         <label htmlFor="resolveByDatetime" className="block text-sm font-medium text-text-secondary mb-2">
-          Resolution Deadline *
+          Resolution Date *
         </label>
         <div className="relative">
           <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />

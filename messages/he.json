@@ -86,7 +86,7 @@
     "wontHappen": "לא יקרה",
     "commitCU": "התחייב CU",
     "resolveBy": "הכרעה עד",
-    "deadline": "דדליין",
+    "deadline": "תאריך הכרעה",
     "locked": "נעול",
     "source": "מקור",
     "anonymous": "אנונימי",
@@ -106,7 +106,7 @@
     "rejectSuccess": "התחזית נדחתה",
     "rejectError": "דחיית התחזית נכשלה",
     "author": "מחבר",
-    "resolutionDeadline": "מועד הכרעה",
+    "resolutionDeadline": "תאריך הכרעה",
     "usersLabel": "משתמשים",
     "commitToPrompt": "רוצה להתחייב לתחזית זו?",
     "signInToCommit": "התחבר להתחייב",
@@ -254,7 +254,7 @@
   },
   "context": {
     "title": "מצב",
-    "analyze": "נתח מצב",
+    "analyze": "נתח הקשר",
     "analyzing": "מנתח חדשות אחרונות...",
     "updated": "ההקשר עודכן!",
     "failed": "ניתוח ההקשר נכשל",
@@ -266,5 +266,6 @@
   "footer": {
     "privacy": "מדיניות פרטיות",
     "terms": "תנאי שימוש"
-  }
+  },
+  "backToFeed": "חזרה לתחזיות"
 }

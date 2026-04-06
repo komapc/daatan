@@ -86,7 +86,7 @@ export const StepPublish = ({ formData, updateFormData }: Props) => {
           </div>
           <p className="font-medium text-white text-lg">{formData.claimText || 'No claim set'}</p>
           {formData.detailsText && (
-            <p className="text-gray-600 mt-2">{formData.detailsText}</p>
+            <p className="text-gray-300 mt-2">{formData.detailsText}</p>
           )}
           {formData.tags && formData.tags.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
@@ -110,7 +110,7 @@ export const StepPublish = ({ formData, updateFormData }: Props) => {
           {formData.outcomeType === 'MULTIPLE_CHOICE' && formData.outcomeOptions && (
             <ul className="mt-2 space-y-1">
               {formData.outcomeOptions.map((option, index) => (
-                <li key={index} className="flex items-center gap-2 text-sm text-gray-600">
+                <li key={index} className="flex items-center gap-2 text-sm text-gray-300">
                   <span className="w-5 h-5 rounded-full bg-navy-600 flex items-center justify-center text-xs">
                     {index + 1}
                   </span>
@@ -125,11 +125,11 @@ export const StepPublish = ({ formData, updateFormData }: Props) => {
         <div className="p-4">
           <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
             <Calendar className="w-4 h-4" />
-            Resolution Deadline
+            Resolution Date
           </div>
           <p className="font-medium text-white">{formatDate(formData.resolveByDatetime)}</p>
           {formData.resolutionRules && (
-            <p className="text-sm text-gray-600 mt-2">{formData.resolutionRules}</p>
+            <p className="text-sm text-gray-300 mt-2">{formData.resolutionRules}</p>
           )}
         </div>
       </div>

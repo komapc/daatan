@@ -144,7 +144,7 @@ function ForecastInfoPanel({ prediction, variant = 'desktop', isMounted }: Forec
           </div>
           <div className="flex flex-wrap gap-1">
             {prediction.extractedEntities?.slice(0, 3).map((tag, i) => (
-              <span key={i} className="px-2 py-0.5 bg-navy-800 text-gray-600 text-[10px] font-bold uppercase tracking-wider rounded border border-navy-600">
+              <span key={i} className="px-2 py-0.5 bg-navy-800 text-gray-400 text-[10px] font-bold uppercase tracking-wider rounded border border-navy-600">
                 {tag}
               </span>
             )) || <span className="text-gray-400 italic text-xs">None</span>}
@@ -400,7 +400,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
             })()}
 
             {prediction.isPublic === false && (
-              <span className="flex items-center gap-1 px-3 py-1 bg-navy-700 text-gray-600 text-sm font-medium rounded-full">
+              <span className="flex items-center gap-1 px-3 py-1 bg-navy-700 text-gray-400 text-sm font-medium rounded-full">
                 <EyeOff className="w-4 h-4" />
                 Unlisted
               </span>
@@ -417,7 +417,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium transition-colors ${
                   showTranslated 
                     ? 'bg-blue-100 text-cobalt-light hover:bg-blue-200' 
-                    : 'bg-navy-700 text-gray-600 hover:bg-navy-600'
+                    : 'bg-navy-700 text-gray-400 hover:bg-navy-600'
                 }`}
               >
                 {isTranslating ? (
@@ -679,7 +679,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
                     disabled={!selectedOptionId || prediction.status !== 'ACTIVE' || isSubmitting}
                     className={`w-full py-4 rounded-xl font-bold text-sm uppercase tracking-widest transition-all duration-200 ${
                       !selectedOptionId || prediction.status !== 'ACTIVE' || isSubmitting
-                        ? 'bg-navy-800 text-gray-600 cursor-not-allowed border border-navy-600'
+                        ? 'bg-navy-800 text-gray-400 cursor-not-allowed border border-navy-600'
                         : 'bg-blue-600 text-white hover:bg-blue-500 shadow-lg shadow-blue-900/20 active:scale-[0.98] border border-blue-400/30'
                     }`}
                   >
@@ -769,7 +769,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
                 <div className="text-indigo-900">Confidence: <span className="font-medium">{prediction.confidence}%</span></div>
               )}
               {prediction.consensusLine && (
-                <p className="italic text-gray-600">&quot;{prediction.consensusLine}&quot;</p>
+                <p className="italic text-gray-300">&quot;{prediction.consensusLine}&quot;</p>
               )}
               {prediction.extractedEntities && prediction.extractedEntities.length > 0 && (
                 <div className="flex flex-wrap gap-1">

@@ -44,10 +44,10 @@ describe('ForecastDetailClient — Deadline panel', () => {
     vi.mocked(useSession).mockReturnValue({ data: null, status: 'unauthenticated' } as any)
   })
 
-  it('renders the Deadline label', async () => {
+  it('renders the Resolution date label', async () => {
     render(wrap(<ForecastDetailClient initialData={makePrediction() as any} />))
-    // The translation key is 'deadline'
-    const labels = await screen.findAllByText(/deadline/i)
+    // The translation key is 'deadline' but its value is 'Resolution date'
+    const labels = await screen.findAllByText(/resolution date/i)
     expect(labels.length).toBeGreaterThan(0)
   })
 

@@ -265,8 +265,8 @@ function ForecastsTab() {
                           {p.status.replace(/_/g, ' ')}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-center text-gray-600">{p._count.commitments}</td>
-                      <td className="px-4 py-3 text-center text-gray-600">{p._count.comments}</td>
+                      <td className="px-4 py-3 text-center text-gray-400">{p._count.commitments}</td>
+                      <td className="px-4 py-3 text-center text-gray-400">{p._count.comments}</td>
                       <td className="px-4 py-3 text-right text-xs text-gray-500">
                         {new Date(p.resolveByDatetime).toLocaleDateString()}
                       </td>

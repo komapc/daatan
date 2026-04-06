@@ -259,7 +259,7 @@ export default function BotsTable() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
               <Stat label="Created" value={runResult.forecastsCreated} color="text-teal" />
               <Stat label="Votes" value={runResult.votes} color="text-cobalt-light" />
-              <Stat label="Skipped" value={runResult.skipped} color="text-gray-600" />
+              <Stat label="Skipped" value={runResult.skipped} color="text-gray-400" />
               <Stat label="Errors" value={runResult.errors} color="text-red-400" />
             </div>
 
@@ -296,7 +296,7 @@ export default function BotsTable() {
                     <p className="text-xs font-bold text-gray-500 uppercase">
                       Debug: Fetched headlines ({runResult.fetchedCount} total)
                     </p>
-                    <div className="bg-navy-700 border rounded-lg p-3 text-xs text-gray-600 space-y-1 overflow-y-auto max-h-40">
+                    <div className="bg-navy-700 border rounded-lg p-3 text-xs text-gray-300 space-y-1 overflow-y-auto max-h-40">
                       {(runResult.sampleItems ?? []).map((title, i) => (
                         <div key={i} className="truncate">• {title}</div>
                       ))}
@@ -341,7 +341,7 @@ export default function BotsTable() {
                       )}
                     </div>
 
-                    <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-gray-600">
+                    <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-gray-300">
                       <div>
                         <span className="text-gray-400">Interval</span>
                         <div className="font-medium">{formatInterval(bot.intervalMinutes)}</div>
@@ -439,7 +439,7 @@ export default function BotsTable() {
                             <span className="text-gray-400">{relativeTime(log.runAt)}</span>
                           </div>
                           {log.triggerNews?.title && (
-                            <div className="mt-1 text-xs text-gray-600">
+                            <div className="mt-1 text-xs text-gray-300">
                               News: {log.triggerNews.title}
                             </div>
                           )}
@@ -507,7 +507,7 @@ function CreateBotForm({ onCreated, onCancel }: { onCreated: () => void; onCance
       <h3 className="font-semibold text-mist mb-3">New bot</h3>
       <form onSubmit={submit} className="flex gap-2 items-end flex-wrap">
         <div>
-          <label className="block text-xs text-gray-600 mb-1">Display name</label>
+          <label className="block text-xs text-gray-400 mb-1">Display name</label>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -793,7 +793,7 @@ function EditBotModal({ bot, allTags, onSave, onClose }: {
               </label>
             </div>
             <div className="max-w-xs">
-              <label className="block text-xs font-medium text-gray-600 mb-1">
+              <label className="block text-xs font-medium text-gray-400 mb-1">
                 Vote bias: {form.voteBias} / 100
                 <span className="ml-2 text-gray-400 font-normal">
                   ({form.voteBias < 40 ? 'leans NO' : form.voteBias > 60 ? 'leans YES' : 'neutral'})
@@ -979,7 +979,7 @@ function NumberField({ label, value, min, max, onChange }: {
 }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
+      <label className="block text-xs font-medium text-gray-400 mb-1">{label}</label>
       <input
         type="number"
         value={value}
@@ -1015,8 +1015,8 @@ function actionBadge(action: string): string {
   switch (action) {
     case 'CREATED_FORECAST': return 'bg-green-100 text-teal'
     case 'VOTED': return 'bg-blue-100 text-cobalt-light'
-    case 'SKIPPED': return 'bg-navy-700 text-gray-600'
+    case 'SKIPPED': return 'bg-navy-700 text-gray-400'
     case 'ERROR': return 'bg-red-100 text-red-400'
-    default: return 'bg-navy-700 text-gray-600'
+    default: return 'bg-navy-700 text-gray-400'
   }
 }

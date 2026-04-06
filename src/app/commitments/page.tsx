@@ -116,7 +116,7 @@ export default function CommitmentsPage() {
                           ? 'bg-cobalt/10 text-cobalt-light border border-cobalt/20' 
                           : commitment.status === 'RESOLVED'
                             ? 'bg-teal/10 text-teal border border-teal/20'
-                            : 'bg-navy-800 text-gray-600 border border-navy-600'
+                            : 'bg-navy-800 text-gray-400 border border-navy-600'
                       }`}>
                         {t(`status.${commitment.status}`)}
                       </span>
