@@ -109,6 +109,14 @@ interface ParsedPrediction {
   probabilityReasoning: string
 }
 
+function getFiveYearsFromNow(now: Date) {
+  const d = new Date(now.getFullYear() + 5, now.getMonth(), now.getDate())
+  return {
+    iso: d.toISOString().split('T')[0] + 'T23:59:59Z',
+    human: d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+  }
+}
+
 export async function generateExpressPrediction(
   userInput: string,
   onProgress?: (stage: string, data?: Record<string, unknown>) => void,
@@ -128,6 +136,7 @@ export async function generateExpressPrediction(
     const currentYear = now.getFullYear()
     const endOfYear = `${currentYear}-12-31T23:59:59Z`
     const endOfYearHuman = `December 31, ${currentYear}`
+    const { iso: fiveYearsFromNow, human: fiveYearsFromNowHuman } = getFiveYearsFromNow(now)
 
     const articlesText = `[User Input]\n${userInput}`
     const template = await getPromptTemplate('express-prediction')
@@ -136,6 +145,8 @@ export async function generateExpressPrediction(
       articlesText,
       endOfYear,
       endOfYearHuman,
+      fiveYearsFromNow,
+      fiveYearsFromNowHuman,
       currentYear,
       currentDate: now.toISOString().split('T')[0],
       STANDARD_TAGS: STANDARD_TAGS.join(', '),
@@ -295,6 +306,7 @@ URL: ${article.url}
   const currentYear = now.getFullYear()
   const endOfYear = `${currentYear}-12-31T23:59:59Z`
   const endOfYearHuman = `December 31, ${currentYear}`
+  const { iso: fiveYearsFromNow, human: fiveYearsFromNowHuman } = getFiveYearsFromNow(now)
 
   const template = await getPromptTemplate('express-prediction')
   const prompt = fillPrompt(template, {
@@ -302,6 +314,8 @@ URL: ${article.url}
     articlesText,
     endOfYear,
     endOfYearHuman,
+    fiveYearsFromNow,
+    fiveYearsFromNowHuman,
     currentYear,
     currentDate: now.toISOString().split('T')[0],
     STANDARD_TAGS: STANDARD_TAGS.join(', '),

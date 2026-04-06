@@ -45,6 +45,7 @@ Rules:
 1. Create clear, unambiguous claims that can be objectively verified
 2. Infer resolution dates from context (e.g., "this year" = end of current year)
 3. If no timeframe mentioned, default to end of current year ({{endOfYearHuman}})
+3a. For relative-timing predictions ("will A happen before B", "will X do Y before Z does W"), default to 5 years from today ({{fiveYearsFromNowHuman}}) — use {{fiveYearsFromNow}} as the resolveByDatetime
 4. Summarize current situation based on provided articles (2-3 sentences, factual)
 5. Focus on factual, verifiable outcomes
 6. Avoid subjective or opinion-based predictions
