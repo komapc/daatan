@@ -109,7 +109,7 @@ interface ParsedPrediction {
   probabilityReasoning: string
 }
 
-function getFiveYearsFromNow(now: Date) {
+export function getFiveYearsFromNow(now: Date) {
   const d = new Date(now.getFullYear() + 5, now.getMonth(), now.getDate())
   return {
     iso: d.toISOString().split('T')[0] + 'T23:59:59Z',

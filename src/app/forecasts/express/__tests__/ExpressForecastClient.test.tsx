@@ -270,6 +270,40 @@ describe('ExpressForecastClient', () => {
       expect(screen.queryByText(/Unlisted — only people with the link/)).not.toBeInTheDocument()
     })
 
+    it('entering a valid datetime in edit mode updates the input value', async () => {
+      await renderInReviewState()
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /^edit$/i }))
+      })
+
+      // The input value is sliced to 16 chars (datetime-local format: YYYY-MM-DDTHH:MM)
+      const dateInput = screen.getByDisplayValue(/2026-12-31T23:59/) as HTMLInputElement
+
+      await act(async () => {
+        fireEvent.change(dateInput, { target: { value: '2027-06-15T12:00' } })
+      })
+
+      // Input should reflect the new value
+      expect(dateInput.value).toBe('2027-06-15T12:00')
+    })
+
+    it('entering a partial/invalid datetime does not throw', async () => {
+      await renderInReviewState()
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /^edit$/i }))
+      })
+
+      const dateInput = screen.getByDisplayValue(/2026-12-31T23:59/) as HTMLInputElement
+
+      // Simulates the browser firing onChange mid-edit with an incomplete year like "6"
+      // Before the fix this would throw: RangeError: Invalid time value
+      expect(() => {
+        fireEvent.change(dateInput, { target: { value: '6' } })
+      }).not.toThrow()
+    })
+
     it('reverts button when publish API fails', async () => {
       await renderInReviewState()
 
