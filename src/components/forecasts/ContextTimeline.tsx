@@ -150,7 +150,7 @@ export default function ContextTimeline({
       {/* Current context card */}
       {currentContext && (
         <div className="p-4 border border-navy-600 rounded-xl bg-navy-700 shadow-sm">
-          <p className="text-gray-600 whitespace-pre-wrap leading-relaxed">{currentContext}</p>
+          <p className="text-gray-300 whitespace-pre-wrap leading-relaxed">{currentContext}</p>
           {contextUpdatedAt && (
             <p className="text-xs text-gray-400 mt-2" suppressHydrationWarning>
               {t('lastUpdated')}: {formatDate(contextUpdatedAt)}
@@ -233,7 +233,7 @@ export default function ContextTimeline({
                   <div className="text-xs text-gray-400 mb-1" suppressHydrationWarning>
                     {formatDate(snap.createdAt)}
                   </div>
-                  <p className="text-sm text-gray-600 leading-relaxed">{snap.summary}</p>
+                  <p className="text-sm text-gray-300 leading-relaxed">{snap.summary}</p>
                   {/* Sources */}
                   {(snap.sources as Source[])?.length > 0 && (
                     <div className="mt-1 flex flex-wrap gap-2">

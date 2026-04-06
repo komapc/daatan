@@ -278,7 +278,7 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
                     onClick={() => handleSetSort(value)}
                     className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${sortBy === value
                       ? 'bg-gray-800 text-white shadow-sm'
-                      : 'bg-navy-700 text-gray-600 hover:bg-navy-600'
+                      : 'bg-navy-700 text-gray-400 hover:bg-navy-600'
                     }`}
                   >
                     {label}
@@ -294,7 +294,7 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                 tagsVisible
                   ? 'bg-blue-600 text-white shadow-sm'
-                  : 'bg-navy-700 text-gray-600 hover:bg-navy-600'
+                  : 'bg-navy-700 text-gray-400 hover:bg-navy-600'
               }`}
             >
               <Tag className="w-3.5 h-3.5" />
@@ -333,7 +333,7 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
                     aria-pressed={isSelected}
                     className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-150 flex items-center gap-1.5 ${isSelected
                       ? 'bg-blue-600 text-white shadow-sm ring-1 ring-blue-600'
-                      : 'bg-navy-700 text-gray-600 hover:bg-navy-600 hover:text-mist'
+                      : 'bg-navy-700 text-gray-400 hover:bg-navy-600 hover:text-mist'
                       }`}
                   >
                     {tag}

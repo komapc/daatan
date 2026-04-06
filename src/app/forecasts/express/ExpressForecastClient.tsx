@@ -394,7 +394,7 @@ export default function ExpressForecastClient({
                 <button
                   key={i}
                   onClick={() => setUserInput(example)}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-600 hover:bg-navy-800 rounded-lg transition-colors truncate"
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-400 hover:bg-navy-800 rounded-lg transition-colors truncate"
                 >
                   • {example}
                 </button>
@@ -419,7 +419,7 @@ export default function ExpressForecastClient({
                 <div className="flex-1">
                   <span className="font-medium">Searching / Fetching...</span>
                   {articlesFound > 0 && (
-                    <span className="ml-2 text-sm text-gray-600">
+                    <span className="ml-2 text-sm text-gray-400">
                       ({sourcesSummary || `${articlesFound} found`})
                     </span>
                   )}
@@ -441,7 +441,7 @@ export default function ExpressForecastClient({
             </div>
 
             {progressMessage && (
-              <p className="text-center text-sm text-gray-600 mt-4 font-medium">
+              <p className="text-center text-sm text-gray-300 mt-4 font-medium">
                 {progressMessage}
               </p>
             )}
@@ -469,7 +469,7 @@ export default function ExpressForecastClient({
               </div>
             </div>
             <h3 className="text-lg font-bold text-white mb-2">Couldn&apos;t Generate Forecast</h3>
-            <p className="text-gray-600 mb-6">{error}</p>
+            <p className="text-gray-300 mb-6">{error}</p>
             <button
               onClick={handleTryAgain}
               className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors"
@@ -486,7 +486,7 @@ export default function ExpressForecastClient({
           <div className="flex justify-between items-start border-b border-navy-600 pb-4">
             <div>
               <h2 className="text-xl font-bold text-white mb-1">Review Forecast</h2>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-300">
                 Review and refine the generated forecast before publishing.
               </p>
             </div>
@@ -607,7 +607,7 @@ export default function ExpressForecastClient({
               </div>
               {((isEditing ? editForm?.outcomeType : generated.outcomeType) === 'MULTIPLE_CHOICE') && (
                 <div>
-                  <h4 className="text-sm font-medium text-gray-600 mb-2">Options</h4>
+                  <h4 className="text-sm font-medium text-gray-300 mb-2">Options</h4>
                   {isEditing ? (
                     <div className="space-y-2">
                       {(editForm?.options || []).map((option: string, index: number) => (
@@ -773,7 +773,7 @@ export default function ExpressForecastClient({
                 className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-sm font-medium transition-colors ${
                   isPublic
                     ? 'bg-teal/10 text-teal border-green-200 hover:bg-green-100'
-                    : 'bg-navy-800 text-gray-600 border-navy-600 hover:bg-navy-700'
+                    : 'bg-navy-800 text-gray-400 border-navy-600 hover:bg-navy-700'
                 }`}
               >
                 <span>{isPublic ? 'Public — visible in the feed' : 'Unlisted — only people with the link'}</span>
