@@ -1,4 +1,4 @@
-// Web search utility with fallback chain: Serper → SerpAPI → DuckDuckGo
+// Web search utility with fallback chain: Serper → BrightData → Nimbleway → SerpAPI → ScrapingBee → DuckDuckGo
 
 import { createLogger } from '@/lib/logger'
 
@@ -113,6 +113,61 @@ async function searchWithSerpApi(query: string, limit: number): Promise<SearchRe
     snippet: item.snippet,
     source: item.source?.name || extractDomain(item.link),
     publishedDate: item.date || undefined,
+  }))
+}
+
+// ──────────────────────────────────────────────
+// Provider: BrightData Web Access SERP API
+// ──────────────────────────────────────────────
+
+async function searchWithBrightData(query: string, limit: number): Promise<SearchResult[]> {
+  const apiKey = process.env.BRIGHTDATA_API_KEY
+  if (!apiKey) throw new Error('BrightData not configured')
+
+  const url = new URL('https://www.google.com/search')
+  url.searchParams.set('q', query)
+  url.searchParams.set('gl', 'us')
+  url.searchParams.set('hl', 'en')
+
+  const response = await fetch('https://api.brightdata.com/request', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({ zone: 'serp_api1', url: url.toString(), format: 'raw' }),
+  })
+
+  if (!response.ok) {
+    const errorBody = await response.text().catch(() => '(no body)')
+    log.error({ status: response.status, body: errorBody }, 'BrightData API error')
+    throw new Error(`BrightData error: ${response.status}`)
+  }
+
+  const html = await response.text()
+
+  // Extract title+URL pairs: <a href="URL"><h3 class="LC20lb ...">Title</h3>
+  const resultPattern = /href="(https:\/\/[^"#]+)"[^>]*>[^<]*<h3[^>]*class="LC20lb[^>]*>([^<]+)<\/h3>/g
+  // Extract snippets: <div class="VwiC3b ...">snippet</div>
+  const snippetPattern = /class="VwiC3b[^"]*"[^>]*>(.*?)<\/div>/g
+
+  const pairs: { url: string; title: string }[] = []
+  let m: RegExpExecArray | null
+  while ((m = resultPattern.exec(html)) !== null) {
+    pairs.push({ url: m[1], title: m[2] })
+  }
+
+  const snippets: string[] = []
+  while ((m = snippetPattern.exec(html)) !== null) {
+    const clean = m[1].replace(/<[^>]+>/g, '').trim()
+    if (clean) snippets.push(clean)
+  }
+
+  return pairs.slice(0, limit).map((pair, i) => ({
+    title: pair.title,
+    url: pair.url,
+    snippet: snippets[i] || '',
+    source: extractDomain(pair.url),
   }))
 }
 
@@ -302,7 +357,21 @@ export async function searchArticles(
     }
   }
 
-  // 2. Nimbleway
+  // 2. BrightData
+  if (process.env.BRIGHTDATA_API_KEY) {
+    try {
+      const results = await searchWithBrightData(query, limit)
+      if (results.length > 0) {
+        log.debug({ provider: 'brightdata', count: results.length }, 'Search succeeded')
+        return results
+      }
+      log.warn('BrightData returned 0 results, trying Nimbleway fallback')
+    } catch (error) {
+      log.warn({ err: error }, 'BrightData failed, trying Nimbleway fallback')
+    }
+  }
+
+  // 3. Nimbleway
   if (process.env.NIMBLEWAY_API_KEY) {
     try {
       const results = await searchWithNimbleway(query, limit)
@@ -316,7 +385,7 @@ export async function searchArticles(
     }
   }
 
-  // 3. SerpAPI
+  // 4. SerpAPI
   if (process.env.SERPAPI_API_KEY) {
     try {
       const results = await searchWithSerpApi(query, limit)
@@ -331,7 +400,7 @@ export async function searchArticles(
     }
   }
 
-  // 3. ScrapingBee
+  // 5. ScrapingBee
   if (process.env.SCRAPINGBEE_API_KEY) {
     try {
       const results = await searchWithScrapingBee(query, limit)
@@ -345,7 +414,7 @@ export async function searchArticles(
     }
   }
 
-  // 4. DuckDuckGo (free, no key)
+  // 6. DuckDuckGo (free, no key)
   try {
     const results = await searchWithDDG(query, limit)
     log.info({ provider: 'ddg', count: results.length }, 'Search succeeded via DDG fallback')
