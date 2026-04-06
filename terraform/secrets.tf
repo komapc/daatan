@@ -40,3 +40,25 @@ resource "aws_secretsmanager_secret_version" "deploy_key" {
     ignore_changes = [secret_string] # Prevent Terraform from overwriting manual updates
   }
 }
+
+# GitHub Token for HTTPS clone (replaces SSH deploy key approach)
+# Store a GitHub PAT with repo read access in AWS Console after applying
+resource "aws_secretsmanager_secret" "github_token" {
+  name        = "daatan-github-token"
+  description = "GitHub Personal Access Token for cloning the daatan repo via HTTPS"
+
+  recovery_window_in_days = 0
+
+  tags = {
+    Name = "daatan-github-token"
+  }
+}
+
+resource "aws_secretsmanager_secret_version" "github_token" {
+  secret_id     = aws_secretsmanager_secret.github_token.id
+  secret_string = "Please update this manually with a GitHub PAT (repo read scope)"
+
+  lifecycle {
+    ignore_changes = [secret_string]
+  }
+}
