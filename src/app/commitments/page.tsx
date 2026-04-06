@@ -138,7 +138,7 @@ export default function CommitmentsPage() {
 
                   <div className="flex items-center gap-3 bg-navy-800 p-3 rounded-lg border border-navy-600">
                     <div className="flex flex-col items-center min-w-[60px]">
-                      <span className="text-[10px] uppercase font-bold text-gray-400 leading-none mb-1">CU</span>
+                      <span className="text-[10px] uppercase font-bold text-gray-400 leading-none mb-1">Confidence</span>
                       <div className="flex items-center gap-1">
                         <ArrowUpCircle className="w-4 h-4 text-blue-500" />
                         <span className="text-lg font-bold text-white">{commitment.cuCommitted}</span>
