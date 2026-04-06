@@ -125,12 +125,13 @@ function ForecastInfoPanel({ prediction, variant = 'desktop', isMounted }: Forec
             {t('deadline')}
           </div>
           <div className="text-white font-semibold truncate" suppressHydrationWarning>
-            {isMounted && new Date(prediction.resolveByDatetime).toLocaleDateString('en-US', {
+            {isMounted && new Date(prediction.resolveByDatetime).toLocaleString('en-US', {
               month: 'short',
               day: 'numeric',
               year: 'numeric',
               hour: '2-digit',
-              minute: '2-digit'
+              minute: '2-digit',
+              timeZoneName: 'short',
             })}
           </div>
         </div>

@@ -545,12 +545,15 @@ export default function ExpressForecastClient({
                   type="datetime-local"
                   value={editForm?.resolveByDatetime?.slice(0, 16)} // Format for input
                   min={new Date(Date.now() + 60000).toISOString().slice(0, 16)}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditForm(prev => prev ? ({ ...prev, resolveByDatetime: new Date(e.target.value).toISOString() }) : null)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    const d = new Date(e.target.value)
+                    setEditForm(prev => prev ? ({ ...prev, resolveByDatetime: isNaN(d.getTime()) ? e.target.value : d.toISOString() }) : null)
+                  }}
                   className={`w-full p-3 rounded-lg input-dark ${editForm?.resolveByDatetime && new Date(editForm.resolveByDatetime) <= new Date() ? 'border-red-500' : ''}`}
                 />
               ) : (
                 <p className="text-white">
-                  {new Date(generated.resolveByDatetime).toLocaleString(undefined, { dateStyle: 'long', timeStyle: 'short' })}
+                  {new Date(generated.resolveByDatetime).toLocaleString(undefined, { month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short' })}
                 </p>
               )}
             </div>
