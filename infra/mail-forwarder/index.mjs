@@ -73,6 +73,9 @@ export const handler = async (event) => {
     rawEmail = rawEmail.replace(/^From: (.*)/mi, `From: $1\r\nReply-To: ${originalFrom}`);
   }
   
+  // Rewrite To: so Gmail shows the actual recipient, not mark@daatan.com
+  rawEmail = rawEmail.replace(/^To: .*/mi, `To: ${destinations.join(", ")}`);
+
   // Remove Return-Path (SES will add its own)
   rawEmail = rawEmail.replace(/^Return-Path: .*/mi, "");
 
