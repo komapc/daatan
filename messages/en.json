@@ -86,7 +86,7 @@
     "wontHappen": "Won't happen",
     "commitCU": "Commit Forecast",
     "resolveBy": "Resolve by",
-    "deadline": "Deadline",
+    "deadline": "Resolution date",
     "locked": "Locked",
     "source": "Source",
     "anonymous": "Anonymous",
@@ -106,7 +106,7 @@
     "rejectSuccess": "Forecast rejected",
     "rejectError": "Failed to reject forecast",
     "author": "Author",
-    "resolutionDeadline": "Resolution Deadline",
+    "resolutionDeadline": "Resolution date",
     "usersLabel": "users",
     "commitToPrompt": "Want to commit to this prediction?",
     "signInToCommit": "Sign In to Commit",
@@ -190,7 +190,8 @@
       "rsTitle": "Reputation Score (RS)",
       "rsDesc": "Reputation is earned by making correct predictions weighted by your confidence. Higher RS means more consistent accuracy.",
       "cuTitle": "Confidence",
-      "cuDesc": "Confidence represents your intensity/conviction on each prediction. Correct calls increase your reputation; wrong calls decrease it.",      "brierTitle": "Brier Score",
+      "cuDesc": "Confidence represents your intensity/conviction on each prediction. Correct calls increase your reputation; wrong calls decrease it.",
+      "brierTitle": "Brier Score",
       "brierDesc": "Lower is better. Measures calibration: (your probability − actual outcome)². Perfect score = 0."
     }
   },
@@ -200,7 +201,8 @@
     "committed": "forecasted",
     "participated": "participated",
     "on": "on",
-    "cuOn": "Confidence on",    "noActivity": "No activity yet",
+    "cuOn": "Confidence on",
+    "noActivity": "No activity yet",
     "willHappen": "Will happen",
     "wontHappen": "Won't happen"
   },
@@ -252,7 +254,7 @@
   },
   "context": {
     "title": "Situation",
-    "analyze": "Analyze Situation",
+    "analyze": "Analyze Context",
     "analyzing": "Analyzing latest news...",
     "updated": "Context updated!",
     "failed": "Failed to analyze context",
@@ -264,5 +266,6 @@
   "footer": {
     "privacy": "Privacy Policy",
     "terms": "Terms of Service"
-  }
+  },
+  "backToFeed": "Back to forecasts"
 }
