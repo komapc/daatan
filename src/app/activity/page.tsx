@@ -122,9 +122,7 @@ export default function ActivityFeedPage() {
                         name={item.user.name}
                         className="font-semibold text-white"
                       />
-                      {' '}{t('committed')}{' '}
-                      <span className="font-semibold text-amber-600">{item.cuCommitted} CU</span>
-                      {' '}{t('cuOn')}{' '}
+                      {' '}{t('participated')}{' '}{t('on')}{' '}
                       <span className="font-medium text-blue-600">
                         &quot;{getChoiceLabel(item)}&quot;
                       </span>

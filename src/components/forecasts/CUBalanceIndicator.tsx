@@ -64,14 +64,14 @@ export default function CUBalanceIndicator({
         {/* Labels */}
         <div className="flex-1 min-w-0 space-y-2">
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-gray-400">Available CU</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-400">Available</p>
             <p className={`text-2xl font-extrabold leading-tight ${accent.text}`}>{cuAvailable}</p>
           </div>
 
           <div className="flex items-center gap-3 text-sm text-gray-500">
             <div className="flex items-center gap-1.5">
               <span className="inline-block w-2 h-2 rounded-full bg-gray-300" />
-              <span>Locked <span className="font-semibold text-text-secondary">{cuLocked}</span></span>
+              <span>In play <span className="font-semibold text-text-secondary">{cuLocked}</span></span>
             </div>
             {showDetails && (
               <div className="flex items-center gap-1.5">

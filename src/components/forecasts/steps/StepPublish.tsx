@@ -177,7 +177,7 @@ export const StepPublish = ({ formData, updateFormData }: Props) => {
           </li>
           <li className="flex items-center gap-2 text-sm text-teal">
             <Check className="w-4 h-4" />
-            Others can commit CU to agree or disagree
+            Others can weigh in to agree or disagree
           </li>
           <li className="flex items-center gap-2 text-sm text-teal">
             <Check className="w-4 h-4" />

@@ -5,7 +5,7 @@ import Link from 'next/link'
 
 export const metadata: Metadata = {
   title: 'About',
-  description: 'Learn how DAATAN works — a forecast tracking platform where you commit Confidence Units to prove your forecasts.',
+  description: 'Learn how DAATAN works — a forecast tracking platform where you make predictions, track your accuracy, and build your credibility over time.',
   alternates: { canonical: '/about' },
   openGraph: { url: '/about', type: 'website' },
 }
@@ -107,7 +107,7 @@ export default function AboutPage() {
             <div>
               <p className="font-medium text-white">Track Your Accuracy</p>
               <p className="text-sm text-text-secondary">
-                Build your track record. Earn Confidence Units (CU) for accurate predictions and climb the leaderboard.
+                Build your track record with a verifiable history of predictions. Your Reputation Score and Brier Skill Score update automatically after each resolution.
               </p>
             </div>
           </div>
@@ -125,56 +125,32 @@ export default function AboutPage() {
         </div>
       </div>
 
-      {/* Community Units & Scoring System */}
+      {/* Scoring System */}
       <div className="bg-navy-700 border border-navy-600 rounded-xl shadow-sm overflow-hidden mb-6">
         <div className="p-6 border-b border-navy-600">
-          <h2 className="text-lg font-semibold text-white">Confidence Units & Scoring</h2>
+          <h2 className="text-lg font-semibold text-white">How Scoring Works</h2>
         </div>
         <div className="p-6 space-y-5">
           <div>
-            <h3 className="font-medium text-white mb-2 flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-blue-500" />
-              Confidence Units (CU)
-            </h3>
-            <p className="text-sm text-text-secondary mb-3">
-              Confidence Units are a limited per-period budget of &quot;conviction&quot; you can allocate across your predictions. They represent how strongly you stand behind a forecast.
-            </p>
-            <ul className="text-sm text-text-secondary space-y-1 ml-4">
-              <li className="flex items-start gap-2">
-                <span className="text-blue-500 mt-1">•</span>
-                <span><strong>No monetary value:</strong> CU cannot be bought, sold, or transferred</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-blue-500 mt-1">•</span>
-                <span><strong>Limited budget:</strong> You receive a fresh allocation each period</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-blue-500 mt-1">•</span>
-                <span><strong>Locked until resolution:</strong> Committed CU are held until your prediction is resolved</span>
-              </li>
-            </ul>
-          </div>
-
-          <div className="pt-4 border-t border-navy-600">
             <h3 className="font-medium text-white mb-2 flex items-center gap-2">
               <Shield className="w-4 h-4 text-green-500" />
               Reputation Score (RS)
             </h3>
             <p className="text-sm text-text-secondary mb-3">
-              Your Reputation Score is your long-term credibility metric based on past resolved predictions. It updates over time using an ELO-like system that weighs expected vs. actual outcomes.
+              Your Reputation Score is your long-term credibility metric. It updates after each resolved prediction using an ELO-like system that weighs expected vs. actual outcomes.
             </p>
             <ul className="text-sm text-text-secondary space-y-1 ml-4">
               <li className="flex items-start gap-2">
                 <span className="text-green-500 mt-1">•</span>
-                <span><strong>Earned through accuracy:</strong> RS increases with correct predictions, decreases with wrong ones</span>
+                <span><strong>Earned through accuracy:</strong> RS rises with correct calls, falls with wrong ones</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-green-500 mt-1">•</span>
-                <span><strong>Can be negative:</strong> Poor track records result in negative RS</span>
+                <span><strong>Can be negative:</strong> A poor track record results in negative RS</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-green-500 mt-1">•</span>
-                <span><strong>Domain-specific ranks:</strong> Build reputation in specific areas like politics, economy, or tech</span>
+                <span><strong>Domain-specific:</strong> Build reputation separately in politics, economy, tech, and more</span>
               </li>
             </ul>
           </div>
@@ -182,17 +158,41 @@ export default function AboutPage() {
           <div className="pt-4 border-t border-navy-600">
             <h3 className="font-medium text-white mb-2 flex items-center gap-2">
               <Target className="w-4 h-4 text-amber-500" />
-              Prediction Weight
+              Brier Skill Score (BSS)
             </h3>
-            <p className="text-sm text-text-secondary">
-              The influence of your prediction is calculated as:
+            <p className="text-sm text-text-secondary mb-3">
+              The BSS measures calibration — how well your stated confidence matches reality across all your forecasts. A perfectly calibrated forecaster scores 1.0; random guessing scores 0.
             </p>
-            <div className="mt-2 p-3 bg-navy-800 rounded-lg border border-navy-600">
-              <code className="text-sm font-mono text-mist">Weight = RS × CU</code>
-            </div>
-            <p className="text-sm text-text-secondary mt-2">
-              Higher reputation and more confidence both increase the impact of your forecast on the leaderboard.
+            <ul className="text-sm text-text-secondary space-y-1 ml-4">
+              <li className="flex items-start gap-2">
+                <span className="text-amber-500 mt-1">•</span>
+                <span><strong>Calibration over accuracy:</strong> Saying &quot;70% likely&quot; and being right 70% of the time is better than always saying 100%</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-amber-500 mt-1">•</span>
+                <span><strong>Only on resolved forecasts:</strong> BSS updates automatically when a prediction is resolved</span>
+              </li>
+            </ul>
+          </div>
+
+          <div className="pt-4 border-t border-navy-600">
+            <h3 className="font-medium text-white mb-2 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-blue-500" />
+              Participation
+            </h3>
+            <p className="text-sm text-text-secondary mb-3">
+              Every forecast you join — whether active or already resolved — counts towards your participation history. The leaderboard ranks forecasters by reputation, calibration, and depth of engagement.
             </p>
+            <ul className="text-sm text-text-secondary space-y-1 ml-4">
+              <li className="flex items-start gap-2">
+                <span className="text-blue-500 mt-1">•</span>
+                <span><strong>Active forecasts:</strong> predictions you have joined that are still open</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-blue-500 mt-1">•</span>
+                <span><strong>Resolved forecasts:</strong> predictions that have been settled and contributed to your score</span>
+              </li>
+            </ul>
           </div>
         </div>
       </div>

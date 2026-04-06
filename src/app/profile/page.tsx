@@ -241,7 +241,7 @@ export default async function ProfilePage() {
                     <ForecastCard prediction={commitment.prediction as Prediction} />
                     <div className="absolute top-4 right-12 flex items-center gap-2 px-3 py-1 bg-blue-600 text-white text-[10px] font-black uppercase tracking-wider rounded-full shadow-md transform translate-x-4 -translate-y-2">
                       <Wallet className="w-3 h-3" />
-                      {t('staked')} {commitment.cuCommitted} CU
+                      {commitment.prediction._count.commitments} {t('participants')}
                     </div>
                   </div>
                 ))

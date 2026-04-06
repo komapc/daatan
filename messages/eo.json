@@ -189,8 +189,8 @@
     "legend": {
       "rsTitle": "Reputaci-Poentaro (RS)",
       "rsDesc": "Reputacio estas gajnata per ĝustaj prognozoj pezigitaj laŭ via konfido. Pli alta RS signifas pli konsekventan precizecon.",
-      "cuTitle": "Konfid-Unuoj (KU)",
-      "cuDesc": "KU reprezentas kiom vi stakas sur ĉiu prognozo. Ĝustaj vokoj redonas KU + bonuson; malĝustaj perdas KU.",
+      "cuTitle": "Konfido",
+      "cuDesc": "Konfido reprezentas la profundon de via engaĝiĝo en ĉiu prognozo. Ĝustaj vokoj pliigas vian reputacion; malĝustaj malpliigas ĝin.",
       "brierTitle": "Brier-Poentaro",
       "brierDesc": "Malpli estas pli bone. Mezuras kalibron: (via probablo − reala rezulto)². Perfekta poentaro = 0."
     }
@@ -202,7 +202,9 @@
     "cuOn": "KU sur",
     "noActivity": "Ankoraŭ neniu agado",
     "willHappen": "Okazos",
-    "wontHappen": "Ne okazos"
+    "wontHappen": "Ne okazos",
+    "participated": "partoprenis",
+    "on": "en"
   },
   "notifications": {
     "title": "Sciigoj",
@@ -230,9 +232,9 @@
     "scored": "poentita",
     "balance": "Saldo",
     "reputation": "Reputacio",
-    "recentStakes": "Lastatempaj Stakoj",
+    "recentStakes": "Lastatempaj Partoprenojn",
     "myForecasts": "Miaj Prognozoj",
-    "noStakes": "Ankoraŭ neniu stako",
+    "noStakes": "Ankoraŭ neniu partopreno",
     "staked": "Stakita",
     "noForecasts": "Ankoraŭ neniu prognozo kreita",
     "browseForecasts": "Trafoliumu Prognozojn",
@@ -240,7 +242,8 @@
     "errorTitle": "Ne Povas Ŝarĝi Profilon",
     "errorDesc": "Ni ne povis ŝarĝi la profilon de ĉi tiu uzanto. Ĝi eble ne ekzistas aŭ okazis servila eraro.",
     "goToFeed": "Iri al Fluo",
-    "signOutAndBack": "Elsaluti kaj Reen"
+    "signOutAndBack": "Elsaluti kaj Reen",
+    "participants": "partoprenantoj"
   },
   "translate": {
     "translate": "Traduki",
