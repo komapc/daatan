@@ -10,7 +10,7 @@ ssh_key_name     = "daatan-key"
 allowed_ssh_cidr = "46.210.199.87/32"
 
 # Instance Type
-ec2_instance_type = "t3.nano"  # 0.5GB RAM, ~$4/month
+ec2_instance_type = "t3.small"  # 2GB RAM, ~$15/month — minimum for Docker + Next.js
 
 # NOTE: PostgreSQL password is set in .env file on EC2, not in Terraform
 # After deployment, SSH into EC2 and create ~/app/.env with:

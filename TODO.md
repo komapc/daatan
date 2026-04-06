@@ -7,10 +7,11 @@
 ## Open Tasks
 
 ### SEO & Localization
-- [ ] **Add Arabic (AR) and Turkish (TR) as source languages** — configure RSS/news sources in Arabic and Turkish so bots can ingest and create predictions from those feeds. Separate from UI translation: this is about the *input* side (what the bot reads), not the display language.
 - [ ] **DeepL Integration** — evaluate switching from LLM-based translation to DeepL API for lower cost and faster background pre-translation at scale.
 
 ### Reliability & Infrastructure
+- [ ] **Fix next.daatan.com** — DNS A record still points to released EIP `18.197.41.255` (broken since 2026-04-06 outage). Should point to new staging IP once staging is provisioned via `terraform apply`.
+- [ ] **Migrate secrets to AWS Secrets Manager** — all API keys currently live in `.env` on EC2. Fetch them at container startup and inject as env vars so no app code changes are needed. Gives centralized management, rotation, and audit trail.
 - [ ] **Fix auto resolution** — investigate and fix the issue where the system cannot search the internet during the resolution stage.
 - [ ] **Use proper timezones** — ensure all timestamps are handled correctly across different timezones (UTC vs local).
 - [ ] **Pluggable Push Notification Architecture** — refactor current Web Push logic into an adapter-based system to prepare for future Firebase Cloud Messaging (FCM) / Mobile integration. [View Implementation Plan](/home/mark/.gemini/tmp/daatan/c10b5df1-1d26-4013-83e2-89e4cd440f9f/plans/pluggable-push-notifications.md)

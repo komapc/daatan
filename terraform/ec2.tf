@@ -78,32 +78,16 @@ resource "aws_instance" "production" {
     mkdir -p /home/ubuntu/app
     chown ubuntu:ubuntu /home/ubuntu/app
     
-    # 2. Retrieve Secrets (SSH Key first for cloning)
+    # 2. Retrieve Secrets
     REGION="${var.aws_region}"
     SECRET_ENV_Name="${aws_secretsmanager_secret.env_vars.name}"
-    SECRET_KEY_NAME="${aws_secretsmanager_secret.deploy_key.name}"
 
-    # Get SSH Key
-    mkdir -p /home/ubuntu/.ssh
-    if aws secretsmanager get-secret-value --region "$REGION" --secret-id "$SECRET_KEY_NAME" --query SecretString --output text > /home/ubuntu/.ssh/id_rsa; then
-        chown ubuntu:ubuntu /home/ubuntu/.ssh/id_rsa
-        chmod 600 /home/ubuntu/.ssh/id_rsa
-    else
-        echo "Failed to retrieve SSH Key"
-        exit 1
-    fi
-
-    # Add GitHub to known hosts
-    ssh-keyscan github.com >> /home/ubuntu/.ssh/known_hosts
-    chown ubuntu:ubuntu /home/ubuntu/.ssh/known_hosts
+    # Get GitHub Token for HTTPS clone
+    GITHUB_TOKEN=$(aws secretsmanager get-secret-value --region "$REGION" --secret-id "${aws_secretsmanager_secret.github_token.name}" --query SecretString --output text) || { echo "Failed to retrieve GitHub token"; exit 1; }
 
     # 3. Clone Repository
-    # Remove directory if it exists and is empty, or if it only contains .env from a failed previous run (though we moved .env retrieval to later/temp)
-    # Actually, to be safe, we will write .env AFTER cloning.
-    
-    # Use || true to prevent failure if repo is already there
     if [ ! -d "/home/ubuntu/app/.git" ]; then
-        sudo -u ubuntu git clone git@github.com:komapc/daatan.git /home/ubuntu/app || echo "Repo clone failed"
+        sudo -u ubuntu git clone "https://x-access-token:$GITHUB_TOKEN@github.com/komapc/daatan.git" /home/ubuntu/app || echo "Repo clone failed"
     else
         echo "Repo already exists"
     fi
@@ -270,28 +254,16 @@ resource "aws_instance" "staging" {
     mkdir -p /home/ubuntu/app
     chown ubuntu:ubuntu /home/ubuntu/app
 
-    # 2. Retrieve Secrets (SSH Key first for cloning)
+    # 2. Retrieve Secrets
     REGION="${var.aws_region}"
     SECRET_ENV_Name="${aws_secretsmanager_secret.env_vars.name}"
-    SECRET_KEY_NAME="${aws_secretsmanager_secret.deploy_key.name}"
 
-    # Get SSH Key
-    mkdir -p /home/ubuntu/.ssh
-    if aws secretsmanager get-secret-value --region "$REGION" --secret-id "$SECRET_KEY_NAME" --query SecretString --output text > /home/ubuntu/.ssh/id_rsa; then
-        chown ubuntu:ubuntu /home/ubuntu/.ssh/id_rsa
-        chmod 600 /home/ubuntu/.ssh/id_rsa
-    else
-        echo "Failed to retrieve SSH Key"
-        exit 1
-    fi
-
-    # Add GitHub to known hosts
-    ssh-keyscan github.com >> /home/ubuntu/.ssh/known_hosts
-    chown ubuntu:ubuntu /home/ubuntu/.ssh/known_hosts
+    # Get GitHub Token for HTTPS clone
+    GITHUB_TOKEN=$(aws secretsmanager get-secret-value --region "$REGION" --secret-id "${aws_secretsmanager_secret.github_token.name}" --query SecretString --output text) || { echo "Failed to retrieve GitHub token"; exit 1; }
 
     # 3. Clone Repository
     if [ ! -d "/home/ubuntu/app/.git" ]; then
-        sudo -u ubuntu git clone git@github.com:komapc/daatan.git /home/ubuntu/app || echo "Repo clone failed"
+        sudo -u ubuntu git clone "https://x-access-token:$GITHUB_TOKEN@github.com/komapc/daatan.git" /home/ubuntu/app || echo "Repo clone failed"
     else
         echo "Repo already exists"
     fi
