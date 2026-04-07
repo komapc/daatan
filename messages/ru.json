@@ -110,7 +110,8 @@
     "usersLabel": "пользователей",
     "commitToPrompt": "Хотите сделать ставку на это предсказание?",
     "signInToCommit": "Войдите, чтобы сделать ставку",
-    "resolverActions": "Действия эксперта"
+    "resolverActions": "Действия эксперта",
+    "backToFeed": "Назад к прогнозам"
   },
   "Forecasts": {
     "title": "Редактировать прогноз",

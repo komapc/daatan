@@ -110,7 +110,8 @@
     "usersLabel": "משתמשים",
     "commitToPrompt": "רוצה להתחייב לתחזית זו?",
     "signInToCommit": "התחבר להתחייב",
-    "resolverActions": "פעולות פותר"
+    "resolverActions": "פעולות פותר",
+    "backToFeed": "חזרה לתחזיות"
   },
   "Forecasts": {
     "title": "עריכת תחזית",
