@@ -166,7 +166,20 @@
     "noCommitments": "No commitments yet",
     "noCommitmentsDesc": "You haven't committed to any forecasts yet.",
     "browseFeed": "Browse the feed to find forecasts to commit to",
-    "viewPrediction": "View forecast"
+    "viewPrediction": "View forecast",
+    "confidenceLabel": {
+      "almostCertainNo": "Almost certain NO",
+      "veryLikelyNo": "Very likely NO",
+      "probablyNo": "Probably NO",
+      "leaningNo": "Leaning NO",
+      "slightlyNo": "Slightly NO",
+      "neutral": "Neutral",
+      "slightlyYes": "Slightly YES",
+      "leaningYes": "Leaning YES",
+      "probablyYes": "Probably YES",
+      "veryLikelyYes": "Very likely YES",
+      "almostCertainYes": "Almost certain YES"
+    }
   },
   "leaderboard": {
     "title": "Leaderboard",

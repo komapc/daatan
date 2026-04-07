@@ -166,7 +166,20 @@
     "noCommitments": "אין התחייבויות עדיין",
     "noCommitmentsDesc": "עדיין לא התחייבת על שום תחזית.",
     "browseFeed": "גלוש בפיד כדי למצוא תחזיות להתחייב עליהן",
-    "viewPrediction": "צפה בתחזית"
+    "viewPrediction": "צפה בתחזית",
+    "confidenceLabel": {
+      "almostCertainNo": "כמעט בטוח שלא",
+      "veryLikelyNo": "סביר מאוד שלא",
+      "probablyNo": "כנראה שלא",
+      "leaningNo": "נוטה שלא",
+      "slightlyNo": "נוטה מעט שלא",
+      "neutral": "ניטרלי",
+      "slightlyYes": "נוטה מעט שכן",
+      "leaningYes": "נוטה שכן",
+      "probablyYes": "כנראה שכן",
+      "veryLikelyYes": "סביר מאוד שכן",
+      "almostCertainYes": "כמעט בטוח שכן"
+    }
   },
   "leaderboard": {
     "title": "טבלת דירוג",

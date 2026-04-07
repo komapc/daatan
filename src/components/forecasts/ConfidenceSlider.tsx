@@ -1,6 +1,7 @@
 'use client'
 
 import { CheckCircle2 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 interface ConfidenceSliderProps {
   value: number
@@ -21,15 +22,20 @@ export default function ConfidenceSlider({
   canCommit = true,
   isCommitted = false,
 }: ConfidenceSliderProps) {
-  // Derive label based on value
+  const t = useTranslations('commitment.confidenceLabel')
+
   const getLabel = (val: number) => {
-    if (val === 0) return 'Neutral'
-    if (val <= -90) return 'Almost sure NO'
-    if (val <= -50) return 'Probably NO'
-    if (val < 0) return 'Leaning NO'
-    if (val >= 90) return 'Almost sure YES'
-    if (val >= 50) return 'Probably YES'
-    return 'Leaning YES'
+    if (val === 0) return t('neutral')
+    if (val <= -90) return t('almostCertainNo')
+    if (val <= -70) return t('veryLikelyNo')
+    if (val <= -50) return t('probablyNo')
+    if (val <= -30) return t('leaningNo')
+    if (val < 0) return t('slightlyNo')
+    if (val >= 90) return t('almostCertainYes')
+    if (val >= 70) return t('veryLikelyYes')
+    if (val >= 50) return t('probablyYes')
+    if (val >= 30) return t('leaningYes')
+    return t('slightlyYes')
   }
 
   const isNeutral = value === 0
