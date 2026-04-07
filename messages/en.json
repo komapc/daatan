@@ -233,7 +233,9 @@
     "languageDescription": "Choose your preferred display language",
     "notifications": "Notifications",
     "notificationsDescription": "Choose which notifications you receive and how.",
-    "saved": "Settings saved"
+    "saved": "Settings saved",
+    "dangerZone": "Danger Zone",
+    "dangerZoneDescription": "Irreversible actions. Please proceed with caution."
   },
   "profile": {
     "title": "Profile",

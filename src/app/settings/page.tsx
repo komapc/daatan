@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react'
 import { useTranslations, useLocale } from 'next-intl'
 import { LanguagePicker } from '@/components/LanguagePicker'
 import NotificationPreferences from '@/components/settings/NotificationPreferences'
+import DeleteAccountSection from '@/components/settings/DeleteAccountSection'
 
 export default function SettingsPage() {
   const { status } = useSession({
@@ -50,6 +51,14 @@ export default function SettingsPage() {
         <div className="p-6">
           <NotificationPreferences />
         </div>
+      </div>
+
+      <div className="bg-navy-700 border border-red-900/50 rounded-xl shadow-sm overflow-hidden mt-6">
+        <div className="p-6 border-b border-red-900/50">
+          <h2 className="text-lg font-semibold text-red-400 mb-1">{t('dangerZone')}</h2>
+          <p className="text-sm text-gray-500">{t('dangerZoneDescription')}</p>
+        </div>
+        <DeleteAccountSection />
       </div>
     </div>
   )
