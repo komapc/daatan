@@ -158,7 +158,7 @@ it('returns 400 when prediction is not ACTIVE', async () => {
     expect(data.error).toMatch(/daily/i)
   })
 
-  it('returns 404 when no articles found', async () => {
+  it('returns 503 when no articles found', async () => {
     mockAuth.mockResolvedValue({ user: authenticatedUser })
     mockPrisma.prediction.findFirst.mockResolvedValue({
       id: 'pred1',
@@ -171,7 +171,7 @@ it('returns 400 when prediction is not ACTIVE', async () => {
     mockSearchArticles.mockResolvedValue([])
 
     const res = await POST(makeRequest('pred1', 'POST'), routeParams('pred1'))
-    expect(res.status).toBe(404)
+    expect(res.status).toBe(503)
   })
 
   it('creates snapshot and updates prediction on success', async () => {
