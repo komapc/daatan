@@ -389,8 +389,8 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
             {/* Confidence/Probability - Moved to top */}
             {prediction.status === 'ACTIVE' && prediction.outcomeType === 'BINARY' && (() => {
               const yesTokens = prediction.commitments.filter(c => c.binaryChoice === true).reduce((sum, c) => sum + c.cuCommitted, 0)
-              const totalTokens = prediction.commitments.reduce((sum, c) => sum + c.cuCommitted, 0)
-              const prob = totalTokens > 0 ? Math.round((yesTokens / totalTokens) * 100) : 50
+              const noTokens = prediction.commitments.filter(c => c.binaryChoice === false).reduce((sum, c) => sum + Math.abs(c.cuCommitted), 0)
+              const prob = (yesTokens + noTokens) > 0 ? Math.round((yesTokens / (yesTokens + noTokens)) * 100) : 50
               return (
                 <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-navy-700 text-teal text-sm font-medium border border-teal/20">
                   <TrendingUp className="w-4 h-4" />
@@ -495,8 +495,8 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
       <div className="mb-12">
         {prediction.outcomeType === 'BINARY' && (() => {
           const yesTokens = prediction.commitments.filter(c => c.binaryChoice === true).reduce((sum, c) => sum + c.cuCommitted, 0)
-          const totalTokens = prediction.commitments.reduce((sum, c) => sum + c.cuCommitted, 0)
-          const marketProb = totalTokens > 0 ? Math.round((yesTokens / totalTokens) * 100) : 50
+          const noTokens = prediction.commitments.filter(c => c.binaryChoice === false).reduce((sum, c) => sum + Math.abs(c.cuCommitted), 0)
+          const marketProb = (yesTokens + noTokens) > 0 ? Math.round((yesTokens / (yesTokens + noTokens)) * 100) : 50
           
           // Map user slider (-100 to 100) to 0-100 for gauge
           const userProb = (userConfidence + 100) / 2

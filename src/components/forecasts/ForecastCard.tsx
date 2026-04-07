@@ -316,10 +316,12 @@ export default function ForecastCard({
         <div className="flex-1 min-w-0">
           {/* Header: Status, Confidence, Deadline */}
           <div className="flex items-center flex-wrap gap-2 mb-4">
-            <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider ${badge.className}`}>
-              {badge.icon}
-              {badge.label}
-            </span>
+            {prediction.status !== 'ACTIVE' && (
+              <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider ${badge.className}`}>
+                {badge.icon}
+                {badge.label}
+              </span>
+            )}
 
             {/* Resolve By Date (Deadline) - Moved to top */}
             {(() => {
