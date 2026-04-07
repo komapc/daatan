@@ -166,7 +166,20 @@
     "noCommitments": "Ankoraŭ neniu engaĝo",
     "noCommitmentsDesc": "Vi ankoraŭ ne engaĝiĝis al iuj prognozoj.",
     "browseFeed": "Trafoliumu la fluon por trovi prognozojn por engaĝiĝi",
-    "viewPrediction": "Vidi prognozon"
+    "viewPrediction": "Vidi prognozon",
+    "confidenceLabel": {
+      "almostCertainNo": "Preskaŭ certe NE",
+      "veryLikelyNo": "Tre verŝajne NE",
+      "probablyNo": "Verŝajne NE",
+      "leaningNo": "Inklinas al NE",
+      "slightlyNo": "Iomete al NE",
+      "neutral": "Neŭtrale",
+      "slightlyYes": "Iomete al JES",
+      "leaningYes": "Inklinas al JES",
+      "probablyYes": "Verŝajne JES",
+      "veryLikelyYes": "Tre verŝajne JES",
+      "almostCertainYes": "Preskaŭ certe JES"
+    }
   },
   "leaderboard": {
     "title": "Rangolisto",

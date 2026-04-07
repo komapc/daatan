@@ -166,7 +166,20 @@
     "noCommitments": "Прогнозов пока нет",
     "noCommitmentsDesc": "Вы еще не делали ставок на прогнозы.",
     "browseFeed": "Перейдите в ленту, чтобы найти прогнозы для ставок",
-    "viewPrediction": "Посмотреть прогноз"
+    "viewPrediction": "Посмотреть прогноз",
+    "confidenceLabel": {
+      "almostCertainNo": "Почти наверняка НЕТ",
+      "veryLikelyNo": "Очень вероятно НЕТ",
+      "probablyNo": "Вероятно НЕТ",
+      "leaningNo": "Склоняюсь к НЕТ",
+      "slightlyNo": "Чуть склоняюсь к НЕТ",
+      "neutral": "Нейтрально",
+      "slightlyYes": "Чуть склоняюсь к ДА",
+      "leaningYes": "Склоняюсь к ДА",
+      "probablyYes": "Вероятно ДА",
+      "veryLikelyYes": "Очень вероятно ДА",
+      "almostCertainYes": "Почти наверняка ДА"
+    }
   },
   "leaderboard": {
     "title": "Таблица лидеров",

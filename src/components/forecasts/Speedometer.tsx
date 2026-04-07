@@ -131,8 +131,8 @@ export default function Speedometer({
   }, [isDragging])
 
   const backgroundArc = createArcPath(center, radius, 180, 360)
-  const greenArc = createArcPath(center, radius, 180, 270) // Left half
-  const redArc = createArcPath(center, radius, 270, 360) // Right half
+  const redArc = createArcPath(center, radius, 180, 270) // Left half (NO side)
+  const greenArc = createArcPath(center, radius, 270, 360) // Right half (YES side)
 
   const isDraggable = !!onUserPercentageChange && userPercentage !== undefined
 
