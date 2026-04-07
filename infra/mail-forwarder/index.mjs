@@ -17,6 +17,12 @@ export const handler = async (event) => {
 
   console.log(`Processing message ${messageId} for ${originalRecipient}`);
 
+  // Drop bounce/DSN messages addressed to the forwarder itself to break bounce loops.
+  if (originalRecipient === VERIFIED_FROM.toLowerCase()) {
+    console.log(`Dropping bounce/DSN message addressed to forwarder (${VERIFIED_FROM}).`);
+    return;
+  }
+
   // 1. Fetch raw email from S3
   const s3Response = await s3.send(new GetObjectCommand({
     Bucket: bucketName,
