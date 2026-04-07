@@ -23,6 +23,7 @@ export const PATCH = withAuth(async (request, user) => {
   const updatedUser = await prisma.user.update({
     where: { id: user.id },
     data: {
+      name: validatedData.name || null,
       username: validatedData.username || null,
       website: validatedData.website || null,
       twitterHandle: validatedData.twitterHandle || null,
@@ -30,6 +31,7 @@ export const PATCH = withAuth(async (request, user) => {
     },
     select: {
       id: true,
+      name: true,
       username: true,
       website: true,
       twitterHandle: true,

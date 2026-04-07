@@ -233,7 +233,9 @@
     "languageDescription": "בחר את שפת התצוגה המועדפת עליך",
     "notifications": "התראות",
     "notificationsDescription": "בחר אילו התראות תקבל וכיצד.",
-    "saved": "ההגדרות נשמרו"
+    "saved": "ההגדרות נשמרו",
+    "dangerZone": "אזור מסוכן",
+    "dangerZoneDescription": "פעולות בלתי הפיכות. נא לנהוג בזהירות."
   },
   "profile": {
     "title": "פרופיל",

@@ -21,6 +21,9 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: eu-central-1
 
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Trigger backup via SSM
         id: backup
         run: |
@@ -30,11 +33,13 @@ jobs:
             --output text)
           echo "Instance: $INSTANCE_ID"
 
+          SCRIPT=$(base64 -w 0 scripts/backup-db.sh)
+
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
             --comment "Scheduled DB backup $(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-            --parameters 'commands=["bash /home/ubuntu/backup-db.sh"]' \
+            --parameters "commands=[\"echo $SCRIPT | base64 -d > /tmp/backup-db.sh && bash /tmp/backup-db.sh\"]" \
             --output text \
             --query "Command.CommandId")
           echo "Command ID: $COMMAND_ID"

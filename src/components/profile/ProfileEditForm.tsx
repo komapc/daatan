@@ -31,6 +31,7 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [formData, setFormData] = useState({
+    name: user.name || '',
     username: user.username || '',
     website: user.website || '',
     twitterHandle: user.twitterHandle || '',
@@ -153,6 +154,24 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
               </Button>
             </div>
           </div>
+        </div>
+
+        {/* Display Name */}
+        <div>
+          <label htmlFor="name" className="flex items-center gap-2 text-sm font-bold text-text-secondary mb-2">
+            <User className="w-4 h-4 text-gray-400" />
+            Display Name
+          </label>
+          <input
+            type="text"
+            id="name"
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            placeholder="Your full name"
+            className="w-full px-4 py-3 bg-navy-800 text-white placeholder:text-text-subtle border border-navy-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-cobalt focus:border-transparent"
+            maxLength={60}
+          />
+          <p className="text-xs text-gray-500 mt-1">Your name as shown on your profile</p>
         </div>
 
         {/* Username */}

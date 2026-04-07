@@ -233,7 +233,9 @@
     "languageDescription": "Elektu vian preferatan montran lingvon",
     "notifications": "Sciigoj",
     "notificationsDescription": "Elektu kiujn sciigojn vi ricevas kaj kiel.",
-    "saved": "Agordoj konservitaj"
+    "saved": "Agordoj konservitaj",
+    "dangerZone": "Danĝera Zono",
+    "dangerZoneDescription": "Nerebligeblaj agoj. Bonvolu agi zorge."
   },
   "profile": {
     "title": "Profilo",
