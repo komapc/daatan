@@ -213,7 +213,7 @@ jobs:
           echo "Found Staging Instance: $INSTANCE_ID"
 
           RAW_BASE="https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}"
-          DEPLOY_FILES="scripts/blue-green-deploy.sh scripts/verify-health.sh scripts/verify-logs.sh scripts/verify-deploy.sh docker-compose.staging.yml infra/nginx/nginx-staging-ssl.conf"
+          DEPLOY_FILES="scripts/blue-green-deploy.sh scripts/fetch-secrets.sh scripts/verify-health.sh scripts/verify-logs.sh scripts/verify-deploy.sh docker-compose.staging.yml infra/nginx/nginx-staging-ssl.conf"
 
           echo "🚀 Sending SSM Command..."
           COMMAND_ID=$(aws ssm send-command \
@@ -247,6 +247,7 @@ jobs:
               "echo \"🚀 Executing blue-green deployment...\"",
               "export GIT_COMMIT='"${{ github.sha }}"'",
               "export SKIP_BUILD=true",
+              "export NEXT_PUBLIC_APP_VERSION='"${{ needs.build.outputs.app_version }}"'",
               "./scripts/blue-green-deploy.sh staging"
             ]' \
             --output text \
@@ -405,7 +406,7 @@ jobs:
           echo "Deploying Image Tag: $IMAGE_TAG"
 
           RAW_BASE="https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}"
-          DEPLOY_FILES="scripts/blue-green-deploy.sh scripts/verify-health.sh scripts/verify-logs.sh scripts/verify-deploy.sh docker-compose.prod.yml infra/nginx/nginx-prod-ssl.conf"
+          DEPLOY_FILES="scripts/blue-green-deploy.sh scripts/fetch-secrets.sh scripts/verify-health.sh scripts/verify-logs.sh scripts/verify-deploy.sh docker-compose.prod.yml infra/nginx/nginx-prod-ssl.conf"
 
           echo "🚀 Sending SSM Command..."
           COMMAND_ID=$(aws ssm send-command \
