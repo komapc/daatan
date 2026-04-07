@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
+import { useSession, signIn } from 'next-auth/react'
 import Link from 'next/link'
 import { createClientLogger } from '@/lib/client-logger'
 import {
@@ -246,6 +246,19 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
     triggerTranslation()
   }, [prediction, locale, translatedFields])
 
+  const handleCommitError = async (response: Response) => {
+    const data = await response.json().catch(() => ({}))
+    if (response.status === 401) {
+      signIn()
+      return
+    }
+    if (response.status === 404 && data.error === 'User not found') {
+      toast.error('Session expired — please sign out and sign back in')
+      return
+    }
+    toast.error(data.error || 'Failed to commit forecast')
+  }
+
   const handleCommitConfidence = async () => {
     if (userConfidence === 0 || !prediction) return
 
@@ -263,13 +276,13 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
         body: JSON.stringify(body),
       })
 
-      if (!response.ok) throw new Error('Failed to save forecast')
-      
+      if (!response.ok) { await handleCommitError(response); return }
+
       toast.success('Forecast recorded!')
       const updated = await fetch(`/api/forecasts/${id}`).then(r => r.json())
       setPrediction(updated)
       router.refresh()
-    } catch (err) {
+    } catch {
       toast.error('Failed to commit forecast')
     } finally {
       setIsSubmitting(false)
@@ -537,15 +550,24 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
 
                 {/* Confidence Slider Integration (Desktop & Mobile) */}
                 <div className="w-full mt-10">
-                  <ConfidenceSlider
-                    value={userConfidence}
-                    onChange={setUserConfidence}
-                    onCommit={handleCommitConfidence}
-                    isSubmitting={isSubmitting}
-                    disabled={prediction.status !== 'ACTIVE'}
-                    canCommit={userConfidence !== initialUserConfidence}
-                    isCommitted={!!prediction.userCommitment}
-                  />
+                  {session ? (
+                    <ConfidenceSlider
+                      value={userConfidence}
+                      onChange={setUserConfidence}
+                      onCommit={handleCommitConfidence}
+                      isSubmitting={isSubmitting}
+                      disabled={prediction.status !== 'ACTIVE'}
+                      canCommit={userConfidence !== initialUserConfidence}
+                      isCommitted={!!prediction.userCommitment}
+                    />
+                  ) : (
+                    <button
+                      onClick={() => signIn()}
+                      className="w-full py-4 rounded-xl font-bold text-sm uppercase tracking-widest bg-blue-600 text-white hover:bg-blue-500 shadow-lg shadow-blue-900/20 active:scale-[0.98] border border-blue-400/30 transition-all duration-200"
+                    >
+                      Sign in to vote
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -576,13 +598,13 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
                 }),
               })
 
-              if (!response.ok) throw new Error('Failed to save forecast')
-              
+              if (!response.ok) { await handleCommitError(response); return }
+
               toast.success('Forecast recorded!')
               const updated = await fetch(`/api/forecasts/${id}`).then(r => r.json())
               setPrediction(updated)
               router.refresh()
-            } catch (err) {
+            } catch {
               toast.error('Failed to commit forecast')
             } finally {
               setIsSubmitting(false)
@@ -669,7 +691,14 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
                   })}
                 </div>
 
-                {prediction.status === 'ACTIVE' && prediction.userCommitment && selectedOptionId === userOptionId && mcConfidence === Math.max(1, Math.abs(prediction.userCommitment.cuCommitted ?? 70)) ? (
+                {!session ? (
+                  <button
+                    onClick={() => signIn()}
+                    className="w-full py-4 rounded-xl font-bold text-sm uppercase tracking-widest bg-blue-600 text-white hover:bg-blue-500 shadow-lg shadow-blue-900/20 active:scale-[0.98] border border-blue-400/30 transition-all duration-200"
+                  >
+                    Sign in to vote
+                  </button>
+                ) : prediction.status === 'ACTIVE' && prediction.userCommitment && selectedOptionId === userOptionId && mcConfidence === Math.max(1, Math.abs(prediction.userCommitment.cuCommitted ?? 70)) ? (
                   <div className="flex items-center justify-center gap-2 py-4 px-4 bg-teal/10 border border-teal/30 rounded-xl">
                     <span className="text-sm font-bold text-teal uppercase tracking-widest">Your forecast is committed</span>
                   </div>
