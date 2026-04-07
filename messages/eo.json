@@ -110,7 +110,8 @@
     "usersLabel": "uzantoj",
     "commitToPrompt": "Ĉu vi volas engaĝiĝi al ĉi tiu antaŭdiro?",
     "signInToCommit": "Ensaluti por Engaĝiĝi",
-    "resolverActions": "Agoj de Solvanto"
+    "resolverActions": "Agoj de Solvanto",
+    "backToFeed": "Reen al prognozoj"
   },
   "Forecasts": {
     "title": "Redakti Prognozon",
@@ -129,7 +130,7 @@
     "saveSuccess": "Ŝanĝoj sukcese konservitaj!",
     "saveError": "Malsukcesis konservi",
     "notFound": "Prognozo ne trovita",
-    "backToFeed": "Reen al Fluo"
+    "backToFeed": "Reen al prognozoj"
   },
   "commitment": {
     "title": "Historio de Engaĝoj",

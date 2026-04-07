@@ -110,7 +110,8 @@
     "usersLabel": "users",
     "commitToPrompt": "Want to commit to this prediction?",
     "signInToCommit": "Sign In to Commit",
-    "resolverActions": "Resolver Actions"
+    "resolverActions": "Resolver Actions",
+    "backToFeed": "Back to Forecasts"
   },
   "Forecasts": {
     "title": "Edit Forecast",
@@ -129,7 +130,7 @@
     "saveSuccess": "Changes saved successfully!",
     "saveError": "Failed to save",
     "notFound": "Forecast not found",
-    "backToFeed": "Back to Feed"
+    "backToFeed": "Back to Forecasts"
   },
   "commitment": {
     "title": "Commitment History",

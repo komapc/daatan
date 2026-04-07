@@ -17,6 +17,12 @@ export const handler = async (event) => {
 
   console.log(`Processing message ${messageId} for ${originalRecipient}`);
 
+  // Drop bounce/DSN messages addressed to the forwarder itself to break bounce loops.
+  if (originalRecipient === VERIFIED_FROM.toLowerCase()) {
+    console.log(`Dropping bounce/DSN message addressed to forwarder (${VERIFIED_FROM}).`);
+    return;
+  }
+
   // 1. Fetch raw email from S3
   const s3Response = await s3.send(new GetObjectCommand({
     Bucket: bucketName,
@@ -25,17 +31,6 @@ export const handler = async (event) => {
 
   const rawEmailBuffer = Buffer.from(await s3Response.Body.transformToByteArray());
   let rawEmail = rawEmailBuffer.toString('utf-8');
-
-  // Strip SES receipt headers that were prepended when storing to S3.
-  // SES adds its own headers (Received, X-SES-*, etc.) followed by a blank
-  // line before the original email. Re-sending them causes the original
-  // headers to appear as body content in Gmail.
-  const sepCRLF = rawEmail.indexOf('\r\n\r\n');
-  const sepLF   = rawEmail.indexOf('\n\n');
-  const sep = (sepCRLF !== -1 && (sepLF === -1 || sepCRLF < sepLF))
-    ? sepCRLF + 4
-    : sepLF !== -1 ? sepLF + 2 : 0;
-  rawEmail = rawEmail.slice(sep);
 
   // 2. Determine destinations
   let destinations = [];

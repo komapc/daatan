@@ -353,11 +353,11 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
           <h2 className="text-xl font-semibold text-white mb-2">
             {error || 'Prediction not found'}
           </h2>
-          <button 
+          <button
             onClick={() => { router.push('/'); router.refresh(); }}
             className="text-blue-600 hover:underline"
           >
-            Back to Feed
+            {t('backToFeed')}
           </button>
         </div>
       </div>
@@ -372,7 +372,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
         className="inline-flex items-center gap-1 text-gray-500 hover:text-text-secondary mb-6"
       >
         <ChevronLeft className="w-4 h-4" />
-        Back to Feed
+        {t('backToFeed')}
       </button>
 
       <div className="xl:grid xl:grid-cols-[1fr_420px] xl:gap-8 xl:items-start">
@@ -383,9 +383,11 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusBadge(prediction.status)}`}>
-              {prediction.status.replace('_', ' ')}
-            </span>
+            {prediction.status !== 'ACTIVE' && (
+              <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusBadge(prediction.status)}`}>
+                {prediction.status.replace('_', ' ')}
+              </span>
+            )}
 
             {/* Deadline - Moved to top */}
             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-navy-700 text-gray-400 text-sm font-medium">

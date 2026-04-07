@@ -110,7 +110,8 @@
     "usersLabel": "משתמשים",
     "commitToPrompt": "רוצה להתחייב לתחזית זו?",
     "signInToCommit": "התחבר להתחייב",
-    "resolverActions": "פעולות פותר"
+    "resolverActions": "פעולות פותר",
+    "backToFeed": "חזרה לתחזיות"
   },
   "Forecasts": {
     "title": "עריכת תחזית",
@@ -129,7 +130,7 @@
     "saveSuccess": "השינויים נשמרו בהצלחה!",
     "saveError": "השמירה נכשלה",
     "notFound": "התחזית לא נמצאה",
-    "backToFeed": "חזרה לפיד"
+    "backToFeed": "חזרה לתחזיות"
   },
   "commitment": {
     "title": "היסטוריית התחייבויות",
