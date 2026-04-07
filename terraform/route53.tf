@@ -98,14 +98,16 @@ resource "aws_route53_record" "dkim" {
   records = ["${element(aws_ses_domain_dkim.main.dkim_tokens, count.index)}.dkim.amazonses.com"]
 }
 
-# SES SPF Record (Updated to use include:amazonses.com)
+# Root TXT record: SPF + Google site verification (must all be in one recordset)
 resource "aws_route53_record" "spf" {
   zone_id = aws_route53_zone.main.zone_id
   name    = var.domain_name
   type    = "TXT"
   ttl     = 300
   records = [
-    "v=spf1 include:amazonses.com ~all"
+    "v=spf1 include:amazonses.com include:resend.com ~all",
+    "google-site-verification=ATwti6XWdVyDu_RJlJhqcBsq-Z_lkjA7nq8ooac",
+    "google-site-verification=d1d667f41fecd0d0",
   ]
 }
 
@@ -137,14 +139,3 @@ resource "aws_route53_record" "mail_from_spf" {
   records = ["v=spf1 include:amazonses.com ~all"]
 }
 
-# Google Site Verification record (Moved to separate resource for clarity)
-resource "aws_route53_record" "google_verification" {
-  zone_id = aws_route53_zone.main.zone_id
-  name    = var.domain_name
-  type    = "TXT"
-  ttl     = 300
-  records = [
-    "google-site-verification=ATwti6XWdVyDu_RJlJhqcBsq-Z_lkjA7nq8ooac",
-    "google-site-verification=d1d667f41fecd0d0"
-  ]
-}
