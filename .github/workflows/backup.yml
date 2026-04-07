@@ -25,7 +25,7 @@ jobs:
         id: backup
         run: |
           INSTANCE_ID=$(aws ec2 describe-instances \
-            --filters "Name=tag:Name,Values=daatan-backend" "Name=tag:Environment,Values=staging" \
+            --filters "Name=tag:Name,Values=daatan-backend" "Name=tag:Environment,Values=prod" \
             --query "Reservations[0].Instances[0].InstanceId" \
             --output text)
           echo "Instance: $INSTANCE_ID"

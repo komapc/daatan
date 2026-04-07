@@ -58,7 +58,7 @@ services:
       - MAX_BOTS=${MAX_BOTS:-50}
       - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY}
       - NEXT_PUBLIC_VAPID_PUBLIC_KEY=${NEXT_PUBLIC_VAPID_PUBLIC_KEY}
-      - APP_VERSION=${APP_VERSION:-0.1.19}
+      - NEXT_PUBLIC_APP_VERSION=${NEXT_PUBLIC_APP_VERSION}
     depends_on:
       postgres:
         condition: service_healthy

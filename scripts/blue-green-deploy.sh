@@ -76,6 +76,12 @@ else
     exit 1
 fi
 
+# Fetch environment variables from AWS Secrets Manager
+if [ -f scripts/fetch-secrets.sh ]; then
+    chmod +x scripts/fetch-secrets.sh
+    ./scripts/fetch-secrets.sh "$ENVIRONMENT"
+fi
+
 # Source environment variables
 if [ -f .env ]; then
     set -a
@@ -232,7 +238,7 @@ ENV_ARGS="$ENV_ARGS -e EMAIL_FROM"
 ENV_ARGS="$ENV_ARGS -e MAX_BOTS=${MAX_BOTS:-50}"
 ENV_ARGS="$ENV_ARGS -e TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}"
 ENV_ARGS="$ENV_ARGS -e TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}"
-ENV_ARGS="$ENV_ARGS -e APP_VERSION=${APP_VERSION:-0.1.19}"
+ENV_ARGS="$ENV_ARGS -e NEXT_PUBLIC_APP_VERSION=${NEXT_PUBLIC_APP_VERSION}"
 
 if [ "$ENVIRONMENT" = "staging" ]; then
     ENV_ARGS="$ENV_ARGS -e DATABASE_URL=postgresql://daatan:${POSTGRES_PASSWORD}@postgres-staging:5432/daatan_staging"
