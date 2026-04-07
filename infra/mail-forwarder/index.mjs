@@ -82,8 +82,11 @@ export const handler = async (event) => {
   // Rewrite To: so Gmail shows the actual recipient, not mark@daatan.com
   rawEmail = rawEmail.replace(/^To: .*/mi, `To: ${destinations.join(", ")}`);
 
-  // Remove Return-Path (SES will add its own)
-  rawEmail = rawEmail.replace(/^Return-Path: .*/mi, "");
+  // Remove Return-Path (SES will add its own).
+  // Must include the line terminator — replacing with "" leaves a bare \r\n
+  // at the start of the message, which RFC 2822 parsers treat as end-of-headers,
+  // causing all subsequent headers to appear as body text in Gmail.
+  rawEmail = rawEmail.replace(/^Return-Path:[^\r\n]*\r?\n/mi, "");
 
   // 4. Send Raw Email
   try {
