@@ -91,7 +91,7 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
         const searchResults = await searchArticles(searchQuery, 4)
 
         if (searchResults.length === 0) {
-            return apiError('Failed to find recent context. No articles found.', 404)
+            return apiError('No recent articles found for this forecast. Try again later.', 503)
         }
 
         // Build sources array
