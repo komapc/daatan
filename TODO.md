@@ -1,6 +1,6 @@
 # TODO.md — Task Queue
 
-*Last updated: March 27, 2026 · v1.7.162*
+*Last updated: April 7, 2026 · v1.8.20*
 
 ---
 
@@ -10,7 +10,8 @@
 - [ ] **DeepL Integration** — evaluate switching from LLM-based translation to DeepL API for lower cost and faster background pre-translation at scale.
 
 ### Reliability & Infrastructure
-- [ ] **Fix next.daatan.com** — DNS A record still points to released EIP `18.197.41.255` (broken since 2026-04-06 outage). Should point to new staging IP once staging is provisioned via `terraform apply`.
+- [ ] **Fix backup.yml** — GitHub Actions backup workflow targets the staging instance (`Environment=staging`) instead of production. Scheduled prod backups are not running.
+- [ ] **Fix staging NEXT_PUBLIC_APP_VERSION** — staging container sets `APP_VERSION` but the app reads `NEXT_PUBLIC_APP_VERSION`; version always shows as `unknown` on staging.
 - [ ] **Migrate secrets to AWS Secrets Manager** — all API keys currently live in `.env` on EC2. Fetch them at container startup and inject as env vars so no app code changes are needed. Gives centralized management, rotation, and audit trail.
 - [ ] **Fix auto resolution** — investigate and fix the issue where the system cannot search the internet during the resolution stage.
 - [ ] **Use proper timezones** — ensure all timestamps are handled correctly across different timezones (UTC vs local).

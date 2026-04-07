@@ -129,7 +129,7 @@
     "saveSuccess": "Changes saved successfully!",
     "saveError": "Failed to save",
     "notFound": "Forecast not found",
-    "backToFeed": "Back to Feed"
+    "backToFeed": "Back to Forecasts"
   },
   "commitment": {
     "title": "Commitment History",
