@@ -20,7 +20,8 @@ resource "aws_iam_role_policy" "secrets_access" {
         Resource = [
           aws_secretsmanager_secret.env_vars.arn,
           aws_secretsmanager_secret.deploy_key.arn,
-          aws_secretsmanager_secret.github_token.arn
+          aws_secretsmanager_secret.github_token.arn,
+          "arn:aws:secretsmanager:eu-central-1:272007598366:secret:daatan-env-staging-LqU9t5"
         ]
       }
     ]
