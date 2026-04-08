@@ -426,6 +426,7 @@ jobs:
               "chmod +x scripts/*.sh",
               "",
               "echo \"🔄 Testing and reloading nginx config...\"",
+              "cp infra/nginx/nginx-prod-ssl.conf nginx-ssl.conf || true",
               "docker exec daatan-nginx nginx -t && docker exec daatan-nginx nginx -s reload || true",
               "",
               "echo \"🔐 Logging in to ECR (Region: eu-central-1)...\"",
