@@ -29,7 +29,7 @@ const createBotSchema = z
     maxVotesPerDay: z.number().int().min(0).max(50).default(10),
     stakeMin: z.number().int().min(1).default(10),
     stakeMax: z.number().int().min(1).default(100),
-    modelPreference: z.string().default('google/gemini-2.0-flash-exp:free'),
+    modelPreference: z.string().default('google/gemini-2.5-flash-preview:free'),
     hotnessMinSources: z.number().int().min(1).default(2),
     hotnessWindowHours: z.number().int().min(1).default(6),
     // Extended params (Stage 1 — stored only; wired in bot-runner in Stage 2)

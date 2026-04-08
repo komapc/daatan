@@ -646,8 +646,8 @@ model BotConfig {
   stakeMin Int @default(10)
   stakeMax Int @default(100)
 
-  // LLM model preference (e.g. "google/gemini-2.0-flash-exp:free")
-  modelPreference String @default("google/gemini-2.0-flash-exp:free")
+  // LLM model preference (e.g. "google/gemini-2.5-flash-preview:free")
+  modelPreference String @default("google/gemini-2.5-flash-preview:free")
 
   // Hotness detection thresholds
   hotnessMinSources  Int @default(2) // Min sources to consider hot

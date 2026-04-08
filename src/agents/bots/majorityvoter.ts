@@ -19,7 +19,7 @@ export const majorityVoter: BotDefinition = {
     maxVotesPerDay: 15,
     stakeMin: 10,
     stakeMax: 100,
-    modelPreference: 'google/gemini-2.0-flash-exp:free',
+    modelPreference: 'google/gemini-2.5-flash-preview:free',
     hotnessMinSources: 2,
     hotnessWindowHours: 6
 }
