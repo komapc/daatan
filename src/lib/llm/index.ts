@@ -60,7 +60,7 @@ export function createBotLLMService(modelName: string): ResilientLLMService {
     let directModelName = modelName.split(':').shift()?.split('/').pop() || 'gemini-1.5-flash'
 
     // Ensure we handle known renames or experimental suffixes if needed
-    if (directModelName === 'gemini-2.0-flash-exp' || directModelName === 'gemini-1.5-flash' || directModelName === 'gemini-1.5-pro') {
+    if (directModelName === 'gemini-2.0-flash-exp' || directModelName === 'gemini-2.5-flash-preview' || directModelName === 'gemini-1.5-flash' || directModelName === 'gemini-1.5-pro') {
       directModelName = 'gemini-2.5-flash'
     }
 

@@ -695,7 +695,7 @@ function EditBotModal({ bot, allTags, onSave, onClose }: {
             />
           </Field>
 
-          <Field label="LLM model" hint="OpenRouter model ID (e.g. google/gemini-2.0-flash-exp:free)">
+          <Field label="LLM model" hint="OpenRouter model ID (e.g. google/gemini-2.5-flash-preview:free)">
             <input
               value={form.modelPreference}
               onChange={(e) => setForm({ ...form, modelPreference: e.target.value })}

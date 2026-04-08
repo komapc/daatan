@@ -103,7 +103,7 @@ function makeBotRecord(overrides: Partial<Record<string, unknown>> = {}) {
     maxVotesPerDay: 10,
     stakeMin: 10,
     stakeMax: 50,
-    modelPreference: 'google/gemini-2.0-flash-exp:free',
+    modelPreference: 'google/gemini-2.5-flash-preview:free',
     hotnessMinSources: 2,
     hotnessWindowHours: 24,
     personaPrompt: 'You are a curious analyst.',
