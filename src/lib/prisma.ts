@@ -9,11 +9,6 @@ declare global {
 // Create Prisma client (using standard native driver)
 const createPrismaClient = (): PrismaClient => {
   return new PrismaClient({
-    datasources: {
-      db: {
-        url: env.DATABASE_URL,
-      },
-    },
     log: env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
   })
 }
