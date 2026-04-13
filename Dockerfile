@@ -90,6 +90,11 @@ COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 # Copy sharp for Next.js Image optimization (required in standalone mode)
 COPY --from=builder /app/node_modules/sharp ./node_modules/sharp
+# Copy pg driver (used by @prisma/adapter-pg for database connections)
+COPY --from=builder /app/node_modules/pg ./node_modules/pg
+COPY --from=builder /app/node_modules/pg-pool ./node_modules/pg-pool
+COPY --from=builder /app/node_modules/pg-protocol ./node_modules/pg-protocol
+COPY --from=builder /app/node_modules/pg-types ./node_modules/pg-types
 
 RUN chown -R nodejs:nodejs /app
 
