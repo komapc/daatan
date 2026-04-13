@@ -103,6 +103,11 @@ COPY --from=builder /app/node_modules/fast-check ./node_modules/fast-check
 COPY --from=builder /app/node_modules/pure-rand ./node_modules/pure-rand
 COPY --from=builder /app/node_modules/@standard-schema ./node_modules/@standard-schema
 
+# Verify @prisma/config and all its transitive deps are present.
+# This fails the build immediately if any COPY above is missing,
+# catching the error in CI rather than at deploy time on the server.
+RUN node -e "require('./node_modules/@prisma/config/dist/index.js')" && echo "Prisma deps OK"
+
 RUN chown -R nodejs:nodejs /app
 
 
