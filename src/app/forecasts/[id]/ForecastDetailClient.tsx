@@ -536,7 +536,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
                 <div className="flex justify-center gap-6 mt-10 text-[10px] font-bold uppercase tracking-widest border-t border-navy-600 pt-8 w-full">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-1 bg-[#A0AEC0] rounded-full" />
-                    <span className="text-gray-400">Market</span>
+                    <span className="text-gray-400">Community</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-1.5 bg-[#3B82F6] rounded-full" />
