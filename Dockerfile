@@ -28,6 +28,7 @@ ENV NEXT_PUBLIC_VAPID_PUBLIC_KEY=$NEXT_PUBLIC_VAPID_PUBLIC_KEY
 # AFTER this block so they don't bust the npm ci cache on every deploy.
 COPY package*.json ./
 COPY prisma ./prisma/
+COPY prisma.config.ts ./prisma.config.ts
 
 RUN npm ci
 
@@ -81,13 +82,19 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nodejs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nodejs:nodejs /app/.next/static ./.next/static
 
-# Copy Prisma schema and migrations for runtime migrate deploy
+# Copy Prisma schema, config and migrations for runtime migrate deploy
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 # Copy sharp for Next.js Image optimization (required in standalone mode)
 COPY --from=builder /app/node_modules/sharp ./node_modules/sharp
+# Copy pg driver (used by @prisma/adapter-pg for database connections)
+COPY --from=builder /app/node_modules/pg ./node_modules/pg
+COPY --from=builder /app/node_modules/pg-pool ./node_modules/pg-pool
+COPY --from=builder /app/node_modules/pg-protocol ./node_modules/pg-protocol
+COPY --from=builder /app/node_modules/pg-types ./node_modules/pg-types
 
 RUN chown -R nodejs:nodejs /app
 

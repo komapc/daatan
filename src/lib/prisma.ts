@@ -6,14 +6,17 @@ declare global {
   var prismaClient: PrismaClient | undefined
 }
 
-// Create Prisma client (using standard native driver)
+// Create Prisma client using the pg driver adapter (required by Prisma v7).
+// pg and @prisma/adapter-pg are loaded via require() inside the function body
+// so webpack does not statically bundle them (they use Node.js built-ins that
+// are unavailable in the edge runtime compilation).
 const createPrismaClient = (): PrismaClient => {
+  const { Pool } = require('pg') as typeof import('pg') // eslint-disable-line
+  const { PrismaPg } = require('@prisma/adapter-pg') as typeof import('@prisma/adapter-pg') // eslint-disable-line
+  const pool = new Pool({ connectionString: env.DATABASE_URL })
+  const adapter = new PrismaPg(pool)
   return new PrismaClient({
-    datasources: {
-      db: {
-        url: env.DATABASE_URL,
-      },
-    },
+    adapter,
     log: env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
   })
 }
