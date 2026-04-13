@@ -25,6 +25,7 @@ import {
   Info,
   Activity,
   BarChart3,
+  Mail,
 } from 'lucide-react'
 
 import { useTranslations } from 'next-intl'
@@ -45,6 +46,7 @@ const navItems: NavItem[] = [
   { href: '/profile', labelKey: 'profile', icon: User },
   { href: '/settings', labelKey: 'settings', icon: Settings },
   { href: '/about', labelKey: 'about', icon: Info },
+  { href: '/contact', labelKey: 'contact', icon: Mail },
   { href: '/retroanalysis', labelKey: 'retroanalysis', icon: History },
 ]
 
