@@ -95,6 +95,13 @@ COPY --from=builder /app/node_modules/pg ./node_modules/pg
 COPY --from=builder /app/node_modules/pg-pool ./node_modules/pg-pool
 COPY --from=builder /app/node_modules/pg-protocol ./node_modules/pg-protocol
 COPY --from=builder /app/node_modules/pg-types ./node_modules/pg-types
+# Copy @prisma/config transitive deps needed for `prisma migrate deploy` at runtime
+COPY --from=builder /app/node_modules/deepmerge-ts ./node_modules/deepmerge-ts
+COPY --from=builder /app/node_modules/effect ./node_modules/effect
+COPY --from=builder /app/node_modules/empathic ./node_modules/empathic
+COPY --from=builder /app/node_modules/fast-check ./node_modules/fast-check
+COPY --from=builder /app/node_modules/pure-rand ./node_modules/pure-rand
+COPY --from=builder /app/node_modules/@standard-schema ./node_modules/@standard-schema
 
 RUN chown -R nodejs:nodejs /app
 
