@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { analytics } from '@/lib/analytics'
+import { localEndOfDay } from '@/lib/utils/date'
 import {
   Newspaper,
   FileText,
@@ -170,7 +171,7 @@ export const ForecastWizard = ({ isExpressFlow = false, initialClaim = '' }: For
         setError('Resolution rules are required (minimum 10 characters).')
         return
       }
-      if (!formData.resolveByDatetime || new Date(formData.resolveByDatetime + 'T23:59:59.999Z') <= new Date()) {
+      if (!formData.resolveByDatetime || localEndOfDay(formData.resolveByDatetime) <= new Date()) {
         setCurrentStep(3)
         setError('Resolution date must be in the future.')
         return
@@ -205,8 +206,7 @@ export const ForecastWizard = ({ isExpressFlow = false, initialClaim = '' }: For
           outcomeType: formData.outcomeType,
           outcomePayload,
           resolutionRules: formData.resolutionRules,
-          // Interpret selected date as end-of-day UTC so picking "today" remains valid
-          resolveByDatetime: new Date(formData.resolveByDatetime + 'T23:59:59.999Z').toISOString(),
+          resolveByDatetime: localEndOfDay(formData.resolveByDatetime).toISOString(),
           isPublic: formData.isPublic,
           source: (!formData.newsAnchorId && !formData.newsAnchorUrl) ? 'manual' : undefined,
         }),
@@ -278,8 +278,7 @@ export const ForecastWizard = ({ isExpressFlow = false, initialClaim = '' }: For
       case 2:
         return formData.claimText.length >= 10
       case 3: {
-        // Interpret the selected date as end-of-day UTC so "today" stays valid
-        const dateOk = !!(formData.resolveByDatetime && new Date(formData.resolveByDatetime + 'T23:59:59.999Z') > new Date())
+        const dateOk = !!(formData.resolveByDatetime && localEndOfDay(formData.resolveByDatetime) > new Date())
         const rulesOk = !!(formData.resolutionRules && formData.resolutionRules.trim().length >= 10)
         const optionsOk = formData.outcomeType !== 'MULTIPLE_CHOICE' ||
           (formData.outcomeOptions ?? []).filter(o => o.trim()).length >= 2

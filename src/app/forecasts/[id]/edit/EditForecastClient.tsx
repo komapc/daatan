@@ -21,6 +21,7 @@ import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/Button'
 import { PrimaryLink } from '@/components/ui/PrimaryLink'
 import { createClientLogger } from '@/lib/client-logger'
+import { toLocalDatetimeInput } from '@/lib/utils/date'
 
 const log = createClientLogger('EditForecast')
 
@@ -86,7 +87,7 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
           claimText: data.claimText || '',
           detailsText: data.detailsText || '',
           resolutionRules: data.resolutionRules || '',
-          resolveByDatetime: resolveDate.toISOString().slice(0, 16),
+          resolveByDatetime: toLocalDatetimeInput(resolveDate),
           isPublic: data.isPublic !== false,
           options: data.options?.map((o: PredictionOption) => o.text) || [],
         })
