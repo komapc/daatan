@@ -11,6 +11,7 @@ import {
   AlertCircle,
 } from 'lucide-react'
 import type { PredictionFormData } from '../ForecastWizard'
+import { localEndOfDay } from '@/lib/utils/date'
 
 type Props = {
   formData: PredictionFormData
@@ -42,8 +43,7 @@ export const StepOutcome = ({ formData, updateFormData }: Props) => {
   const [options, setOptions] = useState<string[]>(formData.outcomeOptions || ['', ''])
   
   const minDate = new Date().toISOString().split('T')[0]
-  // Use end-of-day to match how the wizard interprets the selected date
-  const isDateInPast = formData.resolveByDatetime && new Date(formData.resolveByDatetime + 'T23:59:59.999Z') <= new Date()
+  const isDateInPast = formData.resolveByDatetime && localEndOfDay(formData.resolveByDatetime) <= new Date()
 
   // Sync options with form data
   useEffect(() => {
