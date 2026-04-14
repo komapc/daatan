@@ -35,6 +35,11 @@ vi.mock('@/components/ui/EmptyState', () => ({
   default: ({ description }: any) => <div>{description}</div>,
 }))
 
+// Mock TagFilter
+vi.mock('@/components/profile/TagFilter', () => ({
+  TagFilter: () => null,
+}))
+
 describe('UserProfileView Component', () => {
   const mockUser = {
     id: 'user-1',
@@ -67,7 +72,9 @@ describe('UserProfileView Component', () => {
       myPredictions: [],
       avgBrierScore: 0.123,
       brierCount: 2,
-      isOwnProfile: true
+      isOwnProfile: true,
+      userTags: [],
+      selectedTag: null,
     })
     
     render(component)
@@ -85,7 +92,9 @@ describe('UserProfileView Component', () => {
       myPredictions: [],
       avgBrierScore: null,
       brierCount: 0,
-      isOwnProfile: true
+      isOwnProfile: true,
+      userTags: [],
+      selectedTag: null,
     })
     
     const { rerender } = render(ownProfile)
@@ -99,7 +108,9 @@ describe('UserProfileView Component', () => {
       myPredictions: [],
       avgBrierScore: null,
       brierCount: 0,
-      isOwnProfile: false
+      isOwnProfile: false,
+      userTags: [],
+      selectedTag: null,
     })
     
     rerender(publicProfile)
@@ -114,7 +125,9 @@ describe('UserProfileView Component', () => {
       myPredictions: mockPredictions,
       avgBrierScore: null,
       brierCount: 0,
-      isOwnProfile: false
+      isOwnProfile: false,
+      userTags: [],
+      selectedTag: null,
     })
     
     render(component)
