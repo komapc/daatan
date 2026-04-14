@@ -14,9 +14,8 @@
     - [ ] Verify full CI/CD pipeline (Build, Test, Deploy) on Node.js 24 environment.
 
 ### Features & UX
-- [ ] **"Edit" button background** — when editing a prediction input field, the input background should change to white.
-- [ ] **Prediction filter too strict** — queries like "will Moldova attack Romania" are incorrectly rejected. Loosen the filter.
 - [ ] **Speedometer wrong value** — with 2 persons voting 2 vs 100, it shows 50% instead of the correct weighted value.
+- [ ] **Microservice for predictions** — consider extracting prediction/forecast logic into a dedicated microservice.
 
 ---
 
