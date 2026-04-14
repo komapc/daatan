@@ -150,6 +150,25 @@ jobs:
             NEXT_PUBLIC_ENV=production
             NEXT_PUBLIC_VAPID_PUBLIC_KEY=${{ secrets.NEXT_PUBLIC_VAPID_PUBLIC_KEY }}
 
+      - name: Build and push migrations image to ECR
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          target: migrations
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/daatan-app:staging-latest-migrations
+            ${{ steps.login-ecr.outputs.registry }}/daatan-app:${{ steps.app_version.outputs.version }}-migrations
+          cache-from: type=registry,ref=272007598366.dkr.ecr.eu-central-1.amazonaws.com/daatan-app:buildcache
+          build-args: |
+            NEXT_PUBLIC_APP_VERSION=${{ steps.app_version.outputs.version }}
+            GIT_COMMIT=${{ github.sha }}
+            DATABASE_URL=postgresql://placeholder
+            NEXTAUTH_URL=https://daatan.com
+            NEXT_PUBLIC_ENV=production
+            NEXT_PUBLIC_VAPID_PUBLIC_KEY=${{ secrets.NEXT_PUBLIC_VAPID_PUBLIC_KEY }}
+
   # Deploy to STAGING (on push to main)
   deploy-staging:
     name: Deploy to Staging
@@ -243,6 +262,10 @@ jobs:
               "",
               "echo \"🏷️ Tagging image...\"",
               "docker tag '"$ECR_REGISTRY"'/daatan-app:staging-latest daatan-app:staging-latest",
+              "",
+              "echo \"⬇️ Pulling migrations image...\"",
+              "docker pull '"$ECR_REGISTRY"'/daatan-app:staging-latest-migrations",
+              "docker tag '"$ECR_REGISTRY"'/daatan-app:staging-latest-migrations daatan-migrations:staging-latest",
               "",
               "echo \"🚀 Executing blue-green deployment...\"",
               "export GIT_COMMIT='"${{ github.sha }}"'",
@@ -437,6 +460,10 @@ jobs:
               "",
               "echo \"🏷️ Tagging image as latest...\"",
               "docker tag '"$ECR_REGISTRY"'/daatan-app:'"$IMAGE_TAG"' daatan-app:latest",
+              "",
+              "echo \"⬇️ Pulling migrations image...\"",
+              "docker pull '"$ECR_REGISTRY"'/daatan-app:'"$IMAGE_TAG"'-migrations",
+              "docker tag '"$ECR_REGISTRY"'/daatan-app:'"$IMAGE_TAG"'-migrations daatan-migrations:latest",
               "",
               "echo \"🚀 Executing blue-green deployment...\"",
               "export GIT_COMMIT='"${{ github.sha }}"'",

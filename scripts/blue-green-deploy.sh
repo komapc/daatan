@@ -312,12 +312,23 @@ done
 
 # ─── Phase 5: Run migrations (BEFORE swap — old container still serves traffic) ─
 echo ""
-echo "🗄️ Phase 5: Running Prisma migrations on new container..."
-docker exec $CONTAINER_NEW node node_modules/prisma/build/index.js migrate deploy 2>&1 || {
+echo "🗄️ Phase 5: Running Prisma migrations via dedicated migrations container..."
+# The migrations container is built from the builder stage and has full node_modules,
+# so prisma CLI and all transitive deps (@prisma/dev, effect, pathe, etc.) are always
+# available — no missing-module errors regardless of Prisma version.
+if [ "$ENVIRONMENT" = "staging" ] || [ "$ENVIRONMENT" = "next" ]; then
+    MIGRATIONS_IMAGE="daatan-migrations:staging-latest"
+    MIGRATION_DB_URL="postgresql://daatan:${POSTGRES_PASSWORD}@postgres-staging:5432/daatan_staging"
+else
+    MIGRATIONS_IMAGE="daatan-migrations:latest"
+    MIGRATION_DB_URL="postgresql://daatan:${POSTGRES_PASSWORD}@postgres:5432/daatan"
+fi
+echo "   Image: $MIGRATIONS_IMAGE"
+docker run --rm \
+    --network "$NETWORK" \
+    -e DATABASE_URL="$MIGRATION_DB_URL" \
+    "$MIGRATIONS_IMAGE" 2>&1 || {
     echo "❌ Migration failed! Aborting deployment."
-    echo "📋 New container logs:"
-    docker logs $CONTAINER_NEW --tail 50
-    # Clean up failed new container — old container keeps serving
     docker rm -f $CONTAINER_NEW 2>/dev/null || true
     echo "🔄 Old container still serving traffic — no downtime occurred"
     exit 1

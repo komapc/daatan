@@ -49,6 +49,15 @@ RUN npm run build 2>&1 || (echo "Build failed!" && cat .next/build-error.log 2>/
 # Compile seed.ts → seed.js so it can run in the slim production image (tsx is a devDep)
 RUN npx esbuild prisma/seed.ts --bundle --platform=node --outfile=prisma/seed.js --packages=external
 
+# Migrations stage — has the full node_modules from builder so prisma CLI
+# and ALL its transitive deps (@prisma/dev, effect, pathe, etc.) are always
+# available without hand-copying individual packages.
+# Run as a short-lived container during deploy (docker run --rm), not as a
+# long-running service. This is the Docker equivalent of a Kubernetes init container.
+FROM builder AS migrations
+RUN rm -rf .next public
+CMD ["node", "node_modules/prisma/build/index.js", "migrate", "deploy"]
+
 # Production stage
 FROM node:20-bookworm-slim AS runner
 
@@ -82,12 +91,13 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nodejs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nodejs:nodejs /app/.next/static ./.next/static
 
-# Copy Prisma schema, config and migrations for runtime migrate deploy
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
+# Copy compiled seed script (seed.ts compiled to seed.js during builder stage)
+COPY --from=builder /app/prisma/seed.js ./prisma/seed.js
+# Copy generated Prisma client (needed by app + seed at runtime)
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
+# Note: node_modules/prisma (CLI) and migration deps are NOT copied here.
+# Migrations now run in the dedicated migrations container which has full node_modules.
 # Copy sharp for Next.js Image optimization (required in standalone mode)
 COPY --from=builder /app/node_modules/sharp ./node_modules/sharp
 # Copy pg driver (used by @prisma/adapter-pg for database connections)
@@ -95,13 +105,9 @@ COPY --from=builder /app/node_modules/pg ./node_modules/pg
 COPY --from=builder /app/node_modules/pg-pool ./node_modules/pg-pool
 COPY --from=builder /app/node_modules/pg-protocol ./node_modules/pg-protocol
 COPY --from=builder /app/node_modules/pg-types ./node_modules/pg-types
-# Copy @prisma/config transitive deps needed for `prisma migrate deploy` at runtime
-COPY --from=builder /app/node_modules/deepmerge-ts ./node_modules/deepmerge-ts
-COPY --from=builder /app/node_modules/effect ./node_modules/effect
-COPY --from=builder /app/node_modules/empathic ./node_modules/empathic
-COPY --from=builder /app/node_modules/fast-check ./node_modules/fast-check
-COPY --from=builder /app/node_modules/pure-rand ./node_modules/pure-rand
-COPY --from=builder /app/node_modules/@standard-schema ./node_modules/@standard-schema
+
+# Verify @prisma/adapter-pg and its deps are present (fails build if missing)
+RUN node -e "require('./node_modules/@prisma/adapter-pg')" && echo "Prisma adapter OK"
 
 RUN chown -R nodejs:nodejs /app
 
