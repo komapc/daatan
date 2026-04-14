@@ -67,14 +67,14 @@ export default function PredictionsPage() {
       <div className="flex items-center justify-between mb-6 lg:mb-8">
         <div className="flex items-center gap-3">
           <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">Predictions</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white">Forecasts</h1>
         </div>
         <Link
           href="/predictions/new"
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
         >
           <Plus className="w-5 h-5" />
-          <span className="hidden sm:inline">New Prediction</span>
+          <span className="hidden sm:inline">New Forecast</span>
         </Link>
       </div>
 
@@ -147,20 +147,20 @@ export default function PredictionsPage() {
           variant="dashed"
           icon={<TrendingUp className="w-8 h-8 text-gray-400" />}
           iconBgClass="bg-navy-700"
-          title="No predictions yet"
-          description="Be the first to make a prediction!"
-          action={{ label: 'Create Prediction', href: '/predictions/new', icon: <Plus className="w-5 h-5" /> }}
+          title="No forecasts yet"
+          description="Be the first to make a forecast!"
+          action={{ label: 'Create Forecast', href: '/predictions/new', icon: <Plus className="w-5 h-5" /> }}
         />
       ) : (
         /* Predictions List */
         <div className="space-y-4">
           <div className="flex items-center justify-between px-2">
             <h2 className="text-lg font-semibold text-text-secondary">
-              {filter === 'ACTIVE' && 'Open Predictions'}
+              {filter === 'ACTIVE' && 'Open Forecasts'}
               {filter === 'CLOSING_SOON' && 'Closing Soon'}
               {filter === 'PENDING' && 'Awaiting Resolution'}
-              {filter === 'RESOLVED' && 'Resolved Predictions'}
-              {filter === 'ALL' && 'All Predictions'}
+              {filter === 'RESOLVED' && 'Resolved Forecasts'}
+              {filter === 'ALL' && 'All Forecasts'}
             </h2>
             <span className="text-sm text-gray-500">{predictions.length} results</span>
           </div>

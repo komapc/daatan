@@ -98,7 +98,7 @@ export default function CommentsTable() {
                 <tr>
                   <th className="p-3 border-b text-left">Content</th>
                   <th className="p-3 border-b text-left">Author</th>
-                  <th className="p-3 border-b text-left">Prediction</th>
+                  <th className="p-3 border-b text-left">Forecast</th>
                   <th className="p-3 border-b text-right">Created</th>
                   <th className="p-3 border-b text-right">Actions</th>
                 </tr>

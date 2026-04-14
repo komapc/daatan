@@ -54,9 +54,9 @@ export default function ConfidenceSlider({
             type="range"
             min="-100"
             max="100"
-            step="1"
+            step="any"
             value={value}
-            onChange={(e) => onChange(parseInt(e.target.value))}
+            onChange={(e) => onChange(Math.round(parseFloat(e.target.value)))}
             disabled={disabled || isSubmitting}
             className="w-full h-3 bg-navy-800 rounded-lg appearance-none cursor-pointer accent-blue-500 hover:accent-blue-400 transition-all border border-navy-600 shadow-inner"
           />

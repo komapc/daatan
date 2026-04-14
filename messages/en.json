@@ -31,7 +31,7 @@
   },
   "feed": {
     "title": "Forecasts",
-    "discover": "Discover active predictions and share your confidence",
+    "discover": "Discover active forecasts and share your confidence",
     "newForecast": "New Forecast",
     "filters": {
       "open": "Open",
@@ -62,7 +62,7 @@
     "empty_PENDING": "No forecasts awaiting resolution",
     "emptyDesc_PENDING": "All active forecasts are still in their prediction phase. Check back once their deadlines pass!",
     "empty_RESOLVED": "No resolved forecasts",
-    "emptyDesc_RESOLVED": "No predictions have been resolved yet. Results will appear here once they are finalized.",
+    "emptyDesc_RESOLVED": "No forecasts have been resolved yet. Results will appear here once they are finalized.",
     "empty_NEEDS_REVIEW": "No forecasts pending review",
     "emptyDesc_NEEDS_REVIEW": "Excellent! All bot-generated forecasts have been reviewed.",
     "empty_ALL": "No forecasts found",
@@ -71,7 +71,7 @@
     "loading": "Loading your feed..."
   },
   "forecast": {
-    "create": "New Prediction",
+    "create": "New Forecast",
     "createTitle": "Create Forecast",
     "createSubtitle": "Use Express for quick AI-assisted creation, or Manual for full control",
     "draft": "Draft",
@@ -203,16 +203,16 @@
     },
     "legend": {
       "rsTitle": "Reputation Score (RS)",
-      "rsDesc": "Reputation is earned by making correct predictions weighted by your confidence. Higher RS means more consistent accuracy.",
+      "rsDesc": "Reputation is earned by making correct forecasts weighted by your confidence. Higher RS means more consistent accuracy.",
       "cuTitle": "Confidence",
-      "cuDesc": "Confidence represents your intensity/conviction on each prediction. Correct calls increase your reputation; wrong calls decrease it.",
+      "cuDesc": "Confidence represents your intensity/conviction on each forecast. Correct calls increase your reputation; wrong calls decrease it.",
       "brierTitle": "Brier Score",
       "brierDesc": "Lower is better. Measures calibration: (your probability − actual outcome)². Perfect score = 0."
     }
   },
   "activity": {
     "title": "Activity Feed",
-    "subtitle": "Recent forecasts across all predictions",
+    "subtitle": "Recent forecasts",
     "committed": "forecasted",
     "participated": "participated",
     "on": "on",
@@ -243,7 +243,7 @@
     "editProfile": "Edit Profile",
     "website": "Website",
     "joined": "Joined",
-    "predictions": "Predictions",
+    "predictions": "Forecasts",
     "created": "created",
     "brierScore": "Brier Score",
     "scored": "scored",
