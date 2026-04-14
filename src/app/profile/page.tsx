@@ -20,9 +20,15 @@ import ForecastCard, { type Prediction } from '@/components/forecasts/ForecastCa
 import Link from 'next/link'
 import EmptyState from '@/components/ui/EmptyState'
 import { RoleBadge } from '@/components/RoleBadge'
+import { TagFilter } from '@/components/profile/TagFilter'
 
-export default async function ProfilePage() {
+interface ProfilePageProps {
+  searchParams: Promise<{ tag?: string }>
+}
+
+export default async function ProfilePage({ searchParams }: ProfilePageProps) {
   const t = await getTranslations('profile')
+  const { tag: selectedTag = null } = await searchParams
 
   try {
     const session = await auth()
@@ -60,9 +66,25 @@ export default async function ProfilePage() {
       redirect('/')
     }
 
-    // Fetch Brier score stats
+    // Fetch tags this user has committed on (for tag filter pills)
+    const userTags = await prisma.tag.findMany({
+      where: {
+        predictions: {
+          some: { commitments: { some: { userId: user.id } } },
+        },
+      },
+      select: { name: true, slug: true },
+      orderBy: { name: 'asc' },
+    })
+
+    // Fetch Brier score stats (filtered by tag if selected)
+    const brierWhere = {
+      userId: user.id,
+      brierScore: { not: null as null },
+      ...(selectedTag ? { prediction: { tags: { some: { slug: selectedTag } } } } : {}),
+    }
     const brierStats = await prisma.commitment.aggregate({
-      where: { userId: user.id, brierScore: { not: null } },
+      where: brierWhere,
       _avg: { brierScore: true },
       _count: { brierScore: true },
     })
@@ -197,12 +219,15 @@ export default async function ProfilePage() {
                 </div>
                 {avgBrierScore !== null && (
                   <div className="px-4 py-2 bg-navy-800 rounded-xl border border-navy-600" title="Brier Score = (probability − outcome)². Lower is better. Only computed when you enter a % yes estimate at stake time.">
-                    <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block">{t('brierScore')}</span>
+                    <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block">
+                      {t('brierScore')}{selectedTag ? ` · ${userTags.find(tag => tag.slug === selectedTag)?.name ?? selectedTag}` : ''}
+                    </span>
                     <span className="text-sm font-bold text-purple-700">{avgBrierScore.toFixed(3)}</span>
                     <span className="text-[10px] text-gray-400 block">{brierStats._count.brierScore} {t('scored')}</span>
                   </div>
                 )}
               </div>
+              <TagFilter tags={userTags} selectedTag={selectedTag} />
             </div>
 
             <div className="flex flex-row md:flex-col gap-4 w-full md:w-auto">

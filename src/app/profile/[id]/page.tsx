@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic'
 
 interface ProfilePageProps {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ tag?: string }>
 }
 
 export async function generateMetadata({ params }: ProfilePageProps): Promise<Metadata> {
@@ -55,8 +56,9 @@ export async function generateMetadata({ params }: ProfilePageProps): Promise<Me
   }
 }
 
-export default async function PublicProfilePage({ params }: ProfilePageProps) {
+export default async function PublicProfilePage({ params, searchParams }: ProfilePageProps) {
   const { id } = await params
+  const { tag: selectedTag = null } = await searchParams
 
   // Check session before try/catch — redirect() throws internally and would be
   // caught by the catch block, causing a spurious 404.
@@ -97,9 +99,25 @@ export default async function PublicProfilePage({ params }: ProfilePageProps) {
       notFound()
     }
 
-    // Fetch Brier score stats
+    // Fetch tags this user has committed on (for tag filter pills)
+    const userTags = await prisma.tag.findMany({
+      where: {
+        predictions: {
+          some: { commitments: { some: { userId: user.id } } },
+        },
+      },
+      select: { name: true, slug: true },
+      orderBy: { name: 'asc' },
+    })
+
+    // Fetch Brier score stats (filtered by tag if selected)
+    const brierWhere = {
+      userId: user.id,
+      brierScore: { not: null as null },
+      ...(selectedTag ? { prediction: { tags: { some: { slug: selectedTag } } } } : {}),
+    }
     const brierStats = await prisma.commitment.aggregate({
-      where: { userId: user.id, brierScore: { not: null } },
+      where: brierWhere,
       _avg: { brierScore: true },
       _count: { brierScore: true },
     })
@@ -184,6 +202,8 @@ export default async function PublicProfilePage({ params }: ProfilePageProps) {
           avgBrierScore={avgBrierScore}
           brierCount={brierStats._count.brierScore}
           isOwnProfile={false}
+          userTags={userTags}
+          selectedTag={selectedTag}
         />
       </>
     )
