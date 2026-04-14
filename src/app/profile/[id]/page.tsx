@@ -110,14 +110,11 @@ export default async function PublicProfilePage({ params, searchParams }: Profil
       orderBy: { name: 'asc' },
     })
 
+    const tagFilter = selectedTag ? { prediction: { tags: { some: { slug: selectedTag } } } } : {}
+
     // Fetch Brier score stats (filtered by tag if selected)
-    const brierWhere = {
-      userId: user.id,
-      brierScore: { not: null as null },
-      ...(selectedTag ? { prediction: { tags: { some: { slug: selectedTag } } } } : {}),
-    }
     const brierStats = await prisma.commitment.aggregate({
-      where: brierWhere,
+      where: { userId: user.id, brierScore: { not: null as null }, ...tagFilter },
       _avg: { brierScore: true },
       _count: { brierScore: true },
     })
@@ -125,11 +122,18 @@ export default async function PublicProfilePage({ params, searchParams }: Profil
       ? Math.round(brierStats._avg.brierScore * 1000) / 1000
       : null
 
-    // Fetch recent commitments (stakes) - only public ones
+    // Fetch per-tag RS delta (sum of rsChange for commitments in selected tag)
+    const rsTagStats = await prisma.commitment.aggregate({
+      where: { userId: user.id, rsChange: { not: null as null }, ...tagFilter },
+      _sum: { rsChange: true },
+    })
+    const rsTagDelta = selectedTag ? (rsTagStats._sum.rsChange ?? null) : null
+
+    // Fetch recent commitments (stakes) - only public ones, filtered by tag if selected
     const commitments = await prisma.commitment.findMany({
-      where: { 
+      where: {
         userId: user.id,
-        prediction: { isPublic: true }
+        prediction: { isPublic: true, ...(selectedTag ? { tags: { some: { slug: selectedTag } } } : {}) },
       },
       include: {
         prediction: {
@@ -204,6 +208,7 @@ export default async function PublicProfilePage({ params, searchParams }: Profil
           isOwnProfile={false}
           userTags={userTags}
           selectedTag={selectedTag}
+          rsTagDelta={rsTagDelta}
         />
       </>
     )

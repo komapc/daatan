@@ -77,14 +77,11 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
       orderBy: { name: 'asc' },
     })
 
+    const tagFilter = selectedTag ? { prediction: { tags: { some: { slug: selectedTag } } } } : {}
+
     // Fetch Brier score stats (filtered by tag if selected)
-    const brierWhere = {
-      userId: user.id,
-      brierScore: { not: null as null },
-      ...(selectedTag ? { prediction: { tags: { some: { slug: selectedTag } } } } : {}),
-    }
     const brierStats = await prisma.commitment.aggregate({
-      where: brierWhere,
+      where: { userId: user.id, brierScore: { not: null as null }, ...tagFilter },
       _avg: { brierScore: true },
       _count: { brierScore: true },
     })
@@ -92,9 +89,19 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
       ? Math.round(brierStats._avg.brierScore * 1000) / 1000
       : null
 
-    // Fetch recent commitments (stakes)
+    // Fetch per-tag RS delta (sum of rsChange for commitments in selected tag)
+    const rsTagStats = await prisma.commitment.aggregate({
+      where: { userId: user.id, rsChange: { not: null as null }, ...tagFilter },
+      _sum: { rsChange: true },
+    })
+    const rsTagDelta = selectedTag ? (rsTagStats._sum.rsChange ?? null) : null
+
+    // Fetch recent commitments (stakes), filtered by tag if selected
     const commitments = await prisma.commitment.findMany({
-      where: { userId: user.id },
+      where: {
+        userId: user.id,
+        ...(selectedTag ? { prediction: { tags: { some: { slug: selectedTag } } } } : {}),
+      },
       include: {
         prediction: {
           include: {
@@ -224,6 +231,12 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
                     </span>
                     <span className="text-sm font-bold text-purple-700">{avgBrierScore.toFixed(3)}</span>
                     <span className="text-[10px] text-gray-400 block">{brierStats._count.brierScore} {t('scored')}</span>
+                  </div>
+                )}
+                {rsTagDelta !== null && (
+                  <div className="px-4 py-2 bg-navy-800 rounded-xl border border-navy-600">
+                    <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block">RS · {userTags.find(tag => tag.slug === selectedTag)?.name ?? selectedTag}</span>
+                    <span className={`text-sm font-bold ${rsTagDelta >= 0 ? 'text-teal' : 'text-red-400'}`}>{rsTagDelta >= 0 ? '+' : ''}{rsTagDelta.toFixed(1)}</span>
                   </div>
                 )}
               </div>
