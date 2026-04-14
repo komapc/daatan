@@ -28,6 +28,7 @@ interface UserProfileViewProps {
   isOwnProfile?: boolean
   userTags: { name: string; slug: string }[]
   selectedTag: string | null
+  rsTagDelta?: number | null
 }
 
 export async function UserProfileView({
@@ -39,6 +40,7 @@ export async function UserProfileView({
   isOwnProfile = false,
   userTags,
   selectedTag,
+  rsTagDelta = null,
 }: UserProfileViewProps) {
   const t = await getTranslations('profile')
 
@@ -124,10 +126,16 @@ export async function UserProfileView({
               {avgBrierScore !== null && (
                 <div className="px-4 py-2 bg-navy-800 rounded-xl border border-navy-600" title="Brier Score = (probability − outcome)². Lower is better. Only computed when you enter a % yes estimate at stake time.">
                   <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block">
-                    {t('brierScore')}{selectedTag ? ` · ${userTags.find(t => t.slug === selectedTag)?.name ?? selectedTag}` : ''}
+                    {t('brierScore')}{selectedTag ? ` · ${userTags.find(tg => tg.slug === selectedTag)?.name ?? selectedTag}` : ''}
                   </span>
                   <span className="text-sm font-bold text-purple-700">{avgBrierScore.toFixed(3)}</span>
                   <span className="text-[10px] text-gray-400 block">{brierCount} {t('scored')}</span>
+                </div>
+              )}
+              {rsTagDelta !== null && (
+                <div className="px-4 py-2 bg-navy-800 rounded-xl border border-navy-600">
+                  <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block">RS · {userTags.find(tg => tg.slug === selectedTag)?.name ?? selectedTag}</span>
+                  <span className={`text-sm font-bold ${rsTagDelta >= 0 ? 'text-teal' : 'text-red-400'}`}>{rsTagDelta >= 0 ? '+' : ''}{rsTagDelta.toFixed(1)}</span>
                 </div>
               )}
             </div>
