@@ -343,7 +343,7 @@ export default function ForecastCard({
                 {prediction._count.commitments > 0 && prediction.outcomeType === 'BINARY' && (
                   <div className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider border border-navy-600 bg-navy-800 text-teal">
                     <TrendingUp className="w-3 h-3" />
-                    <span>{Math.round(((prediction.yesCount || 0) / ((prediction.yesCount || 0) + (prediction.noCount || 0))) * 100)}%</span>
+                    <span>{(() => { const t = (prediction.yesCount || 0) + (prediction.noCount || 0); return t > 0 ? `${Math.round(((prediction.yesCount || 0) / t) * 100)}%` : '—' })()}</span>
                   </div>
                 )}
                 {prediction.outcomeType === 'MULTIPLE_CHOICE' && prediction.options && prediction.options.length > 0 && prediction._count.commitments > 0 && (() => {
