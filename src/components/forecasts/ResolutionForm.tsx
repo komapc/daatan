@@ -138,7 +138,7 @@ export function ResolutionForm({ predictionId, outcomeType, options, onResolved 
             <CheckCircle className={`w-5 h-5 ${outcome === 'correct' ? 'text-green-600' : 'text-gray-400'}`} />
             <div className="text-left">
               <div className="font-medium text-white">Correct</div>
-              <div className="text-xs text-gray-500">Prediction came true</div>
+              <div className="text-xs text-gray-500">Forecast came true</div>
             </div>
           </button>
 
@@ -153,7 +153,7 @@ export function ResolutionForm({ predictionId, outcomeType, options, onResolved 
             <XCircle className={`w-5 h-5 ${outcome === 'wrong' ? 'text-red-600' : 'text-gray-400'}`} />
             <div className="text-left">
               <div className="font-medium text-white">Wrong</div>
-              <div className="text-xs text-gray-500">Prediction did not happen</div>
+              <div className="text-xs text-gray-500">Forecast did not happen</div>
             </div>
           </button>
 
