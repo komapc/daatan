@@ -8,6 +8,7 @@ import { env } from "@/env"
 import authConfig from "./auth.config"
 import type { Adapter } from "next-auth/adapters"
 import Credentials from "next-auth/providers/credentials"
+import bcrypt from "bcryptjs"
 import { notifyNewUserRegistered } from "@/lib/services/telegram"
 
 const log = createLogger('auth')
@@ -16,16 +17,52 @@ const isTest = process.env.PLAYWRIGHT_TEST === 'true'
 const isStaging = env.NEXT_PUBLIC_ENV === 'staging'
 const isHosted = env.NEXT_PUBLIC_ENV === 'staging' || env.NEXT_PUBLIC_ENV === 'production'
 
-// Merge Edge-compatible config with Node.js-only features (Prisma)
+// Merge Edge-compatible config (`authConfig`, used by middleware) with Node-only
+// features: Prisma adapter, bcrypt-backed Credentials provider, and the
+// Playwright test provider. Keeping these out of `auth.config.ts` is required
+// for middleware to bundle cleanly into the Edge runtime.
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   adapter: PrismaAdapter(prisma) as Adapter,
   debug: isStaging || env.NEXTAUTH_DEBUG === 'true',
   providers: [
-    ...authConfig.providers.filter(p => !['credentials', 'playwright'].includes(p.id)),
-    // Re-add standard credentials provider (already has full logic in authConfig for this app)
-    ...authConfig.providers.filter(p => p.id === 'credentials'),
-    // Override Playwright Credentials provider with DB logic if in test mode
+    ...authConfig.providers,
+    Credentials({
+      id: "credentials",
+      name: "Credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" }
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          return null
+        }
+
+        const user = await prisma.user.findUnique({
+          where: { email: String(credentials.email) }
+        })
+
+        if (!user || !user.password) {
+          return null
+        }
+
+        const isValid = await bcrypt.compare(String(credentials.password), user.password)
+
+        if (!isValid) {
+          return null
+        }
+
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role as any,
+          username: user.username,
+          rs: user.rs,
+        }
+      }
+    }),
     ...(isTest ? [
       Credentials({
         id: 'playwright',
