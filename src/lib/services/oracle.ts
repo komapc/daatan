@@ -8,22 +8,31 @@ const FORECAST_TIMEOUT_MS = 20_000
 const HEALTH_TIMEOUT_MS = 5_000
 const DEFAULT_MAX_ARTICLES = 3
 
-interface OracleForecastResponse {
+/** Per-source signal returned by the Oracle's /forecast endpoint. */
+export interface OracleSource {
+  source_id: string
+  source_name: string
+  url: string
+  /** Stance in [-1, 1]: positive = supports YES, negative = supports NO. */
+  stance: number
+  /** Certainty in [0, 1]: how confident this source is. */
+  certainty: number
+  /** Credibility weight from the leaderboard; 1.0 = neutral. */
+  credibility_weight: number
+  claims: string[]
+}
+
+/** Full response from POST /forecast. */
+export interface OracleForecastResponse {
   question: string
+  /** Aggregated stance in [-1, 1]. Map to [0, 1] probability via (mean+1)/2. */
   mean: number
   std: number
   ci_low: number
   ci_high: number
   articles_used: number
-  sources: Array<{
-    source_id: string
-    source_name: string
-    url: string
-    stance: number
-    certainty: number
-    credibility_weight: number
-    claims: string[]
-  }>
+  sources: OracleSource[]
+  /** True if the Oracle couldn't produce a real forecast (stub response). */
   placeholder: boolean
 }
 
@@ -37,15 +46,16 @@ interface OracleHealthResponse {
 const normalizeBaseUrl = (url: string): string => url.replace(/\/$/, '')
 
 /**
- * Calls the TruthMachine Oracle API to get a calibrated probability estimate
- * for a binary question.
+ * Call the TruthMachine Oracle API and return the full forecast payload.
  *
- * Returns a probability in [0, 1], or null if the Oracle is not configured,
- * returned no usable articles (including placeholder responses), or failed for any reason.
- *
- * Never throws — safe to call fire-and-forget style.
+ * Returns `null` if the Oracle is not configured, returned a placeholder
+ * response, had no usable articles, or failed for any reason (timeout,
+ * non-OK status, network error). Never throws — safe to call
+ * fire-and-forget style.
  */
-export const getOracleProbability = async (question: string): Promise<number | null> => {
+export const getOracleForecast = async (
+  question: string,
+): Promise<OracleForecastResponse | null> => {
   const url = env.ORACLE_URL
   const key = env.ORACLE_API_KEY
 
@@ -79,16 +89,31 @@ export const getOracleProbability = async (question: string): Promise<number | n
       return null
     }
 
-    const probability = (data.mean + 1) / 2
     log.info(
-      { question: question.slice(0, 80), probability, articlesUsed: data.articles_used },
-      'Oracle probability',
+      {
+        question: question.slice(0, 80),
+        mean: data.mean,
+        articlesUsed: data.articles_used,
+        sources: data.sources.length,
+      },
+      'Oracle forecast',
     )
-    return probability
+    return data
   } catch (err) {
     log.warn({ err }, 'Oracle request failed')
     return null
   }
+}
+
+/**
+ * Thin back-compat wrapper: returns just the scaled probability in [0, 1],
+ * or null if the Oracle path wasn't usable. Prefer `getOracleForecast` when
+ * you also want the sources or confidence interval.
+ */
+export const getOracleProbability = async (question: string): Promise<number | null> => {
+  const data = await getOracleForecast(question)
+  if (!data) return null
+  return (data.mean + 1) / 2
 }
 
 /**

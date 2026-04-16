@@ -4,6 +4,10 @@ interface SpeedometerProps {
   percentage?: number // Market average (default needle)
   userPercentage?: number // Thick interactive needle
   aiPercentage?: number // AI mark
+  /** Lower bound of AI confidence interval (0–100). Renders a translucent band when paired with aiCiHigh. */
+  aiCiLow?: number
+  /** Upper bound of AI confidence interval (0–100). */
+  aiCiHigh?: number
   label?: string
   color?: 'green' | 'red'
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
@@ -14,6 +18,8 @@ export default function Speedometer({
   percentage = 50,
   userPercentage,
   aiPercentage,
+  aiCiLow,
+  aiCiHigh,
   label,
   color = 'green',
   size = 'md',
@@ -169,6 +175,24 @@ export default function Speedometer({
         {/* Arcs */}
         <path d={greenArc} fill="none" stroke={`url(#${theme.greenGradientId})`} strokeWidth={strokeWidth} strokeLinecap="round" />
         <path d={redArc} fill="none" stroke={`url(#${theme.redGradientId})`} strokeWidth={strokeWidth} strokeLinecap="round" />
+
+        {/* AI Confidence Interval band (rendered under ticks so AI tick sits on top) */}
+        {aiCiLow !== undefined && aiCiHigh !== undefined && aiCiHigh > aiCiLow && (() => {
+          const ciLo = Math.min(100, Math.max(0, aiCiLow))
+          const ciHi = Math.min(100, Math.max(0, aiCiHigh))
+          const ciArc = createArcPath(center, radius, 180 + (ciLo / 100) * 180, 180 + (ciHi / 100) * 180)
+          return (
+            <path
+              data-testid="ai-ci-band"
+              d={ciArc}
+              fill="none"
+              stroke={theme.needleAI}
+              strokeWidth={strokeWidth}
+              strokeLinecap="butt"
+              opacity={0.25}
+            />
+          )
+        })()}
 
         {/* Market Mark (tick) */}
         {(() => {

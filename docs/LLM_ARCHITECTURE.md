@@ -102,8 +102,13 @@ Calibrated probability estimates for binary forecast questions come from the **T
 ### Client
 
 *   **`src/lib/services/oracle.ts`**: Oracle client.
-    *   `getOracleProbability(question)` → `number | null` in `[0, 1]`. Never throws; returns `null` on any failure so callers can fall back silently.
+    *   `getOracleForecast(question)` → `OracleForecastResponse | null`. Returns the full payload (`mean`, `std`, `ci_low`, `ci_high`, `articles_used`, `sources[]` with per-source `stance` / `certainty` / `credibility_weight` / `claims`) so callers can surface provenance alongside the probability. Never throws; returns `null` on any failure so callers can fall back silently.
+    *   `getOracleProbability(question)` → `number | null` in `[0, 1]`. Thin wrapper around `getOracleForecast` for callers that only need the scaled probability.
     *   `checkOracleHealth()` → `boolean`. Verifies the API is reachable and its version starts with `0.1`.
+
+### Persistence & UI surfacing
+
+When the Oracle path produces a probability for `POST /api/forecasts/[id]/context`, the full payload is persisted on the new `ContextSnapshot.oracleSnapshot` JSON column (camelCased: `{ mean, std, ciLow, ciHigh, articlesUsed, sources: [...] }`). The forecast detail page consumes this snapshot to render a translucent 95% CI band on the speedometer around the AI tick, inline CI text in the "AI estimate" block (e.g. `64% (95% CI: 52–76%)`), and an "Oracle sources" sub-section that chips each source with a credibility-weight dot (green ≥ 0.75, amber 0.4–0.75, grey < 0.4) and a `YES` / `NO` / `—` stance badge. LLM-fallback snapshots have `oracleSnapshot = null` and the UI gracefully hides the Oracle-only affordances.
 
 ### Fallback chain for forecast "AI %"
 

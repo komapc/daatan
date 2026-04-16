@@ -15,6 +15,36 @@ type Source = {
   publishedDate?: string | null
 }
 
+/** Single source entry within an Oracle forecast snapshot (camelCase variant used in UI). */
+type OracleSnapshotSource = {
+  sourceId: string
+  sourceName: string
+  url: string
+  /** [-1, 1] — negative favours NO, positive favours YES. */
+  stance: number
+  /** [0, 1] — how confident this source is. */
+  certainty: number
+  /** Leaderboard credibility weight; ~1.0 is neutral. */
+  credibilityWeight: number
+  claims: string[]
+}
+
+/** Full Oracle payload persisted alongside a context snapshot when the Oracle path is taken. */
+type OracleSnapshot = {
+  mean: number
+  std: number
+  ciLow: number
+  ciHigh: number
+  articlesUsed: number
+  sources: OracleSnapshotSource[]
+}
+
+export type AiEstimate = {
+  probability: number
+  ciLow?: number
+  ciHigh?: number
+}
+
 type Snapshot = {
   id: string
   summary: string
@@ -22,6 +52,7 @@ type Snapshot = {
   createdAt: string
   externalProbability?: number | null
   externalReasoning?: string | null
+  oracleSnapshot?: OracleSnapshot | null
 }
 
 type NewsAnchor = {
@@ -36,7 +67,18 @@ type Props = {
   initialContextUpdatedAt?: string | null
   canAnalyze: boolean
   newsAnchor?: NewsAnchor | null
-  onAiEstimate?: (value: number | null) => void
+  onAiEstimate?: (value: AiEstimate | null) => void
+}
+
+/** Map a snapshot's persisted probability + Oracle CI (if any) into the callback shape. */
+const toAiEstimate = (snap: Snapshot | undefined): AiEstimate | null => {
+  if (!snap || snap.externalProbability == null) return null
+  const oracle = snap.oracleSnapshot
+  return {
+    probability: snap.externalProbability,
+    ciLow: oracle?.ciLow,
+    ciHigh: oracle?.ciHigh,
+  }
 }
 
 export default function ContextTimeline({
@@ -68,7 +110,7 @@ export default function ContextTimeline({
           setContextUpdatedAt(data.contextUpdatedAt)
           const snaps: Snapshot[] = data.snapshots || []
           setSnapshots(snaps)
-          onAiEstimate?.(snaps[0]?.externalProbability ?? null)
+          onAiEstimate?.(toAiEstimate(snaps[0]))
         }
       } catch (err) {
         log.error({ err }, 'Failed to fetch context timeline')
@@ -95,7 +137,7 @@ export default function ContextTimeline({
       setContextUpdatedAt(data.contextUpdatedAt)
       const timeline: Snapshot[] = data.timeline || []
       setSnapshots(timeline)
-      onAiEstimate?.(timeline[0]?.externalProbability ?? null)
+      onAiEstimate?.(toAiEstimate(timeline[0]))
       toast.success(t('updated'), { id: 'analyze', duration: 3000 })
     } catch (e: any) {
       log.error({ err: e }, 'Failed to analyze context')
@@ -192,17 +234,32 @@ export default function ContextTimeline({
             </div>
           )}
           {/* AI probability estimate */}
-          {snapshots[0]?.externalProbability != null && (
-            <div className="mt-3 pt-3 border-t border-navy-600">
-              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">AI estimate</p>
-              <p className="text-2xl font-black text-amber-400">{snapshots[0].externalProbability}%</p>
-              {snapshots[0].externalReasoning && (
-                <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-                  {snapshots[0].externalReasoning}
+          {snapshots[0]?.externalProbability != null && (() => {
+            const latest = snapshots[0]
+            const oracle = latest.oracleSnapshot ?? null
+            return (
+              <div className="mt-3 pt-3 border-t border-navy-600">
+                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">AI estimate</p>
+                <p className="text-2xl font-black text-amber-400">
+                  {latest.externalProbability}%
+                  {oracle && (
+                    <span className="ml-2 text-xs font-normal text-gray-400">
+                      (95% CI: {oracle.ciLow}–{oracle.ciHigh}%)
+                    </span>
+                  )}
                 </p>
-              )}
-            </div>
-          )}
+                {latest.externalReasoning && (
+                  <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+                    {latest.externalReasoning}
+                    {oracle && ` · ${oracle.articlesUsed} article${oracle.articlesUsed === 1 ? '' : 's'}`}
+                  </p>
+                )}
+                {oracle && oracle.sources.length > 0 && (
+                  <OracleSources sources={oracle.sources} />
+                )}
+              </div>
+            )
+          })()}
         </div>
       )}
 
@@ -257,6 +314,51 @@ export default function ContextTimeline({
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+/** Renders Oracle per-source chips with a credibility dot and YES/NO/— stance badge. */
+const OracleSources = ({ sources }: { sources: OracleSnapshotSource[] }) => {
+  const getCredibilityColor = (w: number): string => {
+    if (w >= 0.75) return 'bg-emerald-400'
+    if (w >= 0.4) return 'bg-amber-400'
+    return 'bg-gray-500'
+  }
+
+  const getStance = (stance: number): { label: string; className: string } => {
+    if (stance > 0.15) return { label: 'YES', className: 'bg-emerald-500/20 text-emerald-300' }
+    if (stance < -0.15) return { label: 'NO', className: 'bg-rose-500/20 text-rose-300' }
+    return { label: '—', className: 'bg-gray-500/20 text-gray-400' }
+  }
+
+  return (
+    <div className="mt-3" data-testid="oracle-sources">
+      <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5">Oracle sources</p>
+      <div className="flex flex-wrap gap-1.5">
+        {sources.map((src) => {
+          const stance = getStance(src.stance)
+          return (
+            <a
+              key={src.sourceId}
+              href={src.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={`Credibility: ${src.credibilityWeight.toFixed(2)} · Certainty: ${(src.certainty * 100).toFixed(0)}%`}
+              className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-navy-600/60 border border-navy-500 hover:bg-navy-600 transition-colors"
+            >
+              <span
+                aria-label={`credibility ${src.credibilityWeight.toFixed(2)}`}
+                className={`w-1.5 h-1.5 rounded-full ${getCredibilityColor(src.credibilityWeight)}`}
+              />
+              <span className="text-xs text-gray-200">{src.sourceName}</span>
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${stance.className}`}>
+                {stance.label}
+              </span>
+            </a>
+          )
+        })}
+      </div>
     </div>
   )
 }

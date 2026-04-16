@@ -29,7 +29,7 @@ import CommentThread from '@/components/comments/CommentThread'
 import ConfidenceSlider from '@/components/forecasts/ConfidenceSlider'
 import CommitmentDisplay from '@/components/forecasts/CommitmentDisplay'
 import Speedometer from '@/components/forecasts/Speedometer'
-import ContextTimeline from '@/components/forecasts/ContextTimeline'
+import ContextTimeline, { type AiEstimate } from '@/components/forecasts/ContextTimeline'
 import { RoleBadge } from '@/components/RoleBadge'
 import { UserLink } from '@/components/UserLink'
 
@@ -173,7 +173,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
   const [userConfidence, setUserConfidence] = useState<number>(0)
   const [initialUserConfidence, setInitialUserConfidence] = useState<number | null>(null)
   const [mcConfidence, setMcConfidence] = useState<number>(70)
-  const [aiEstimate, setAiEstimate] = useState<number | null>(null)
+  const [aiEstimate, setAiEstimate] = useState<AiEstimate | null>(null)
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -525,7 +525,9 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
                 <Speedometer
                   percentage={marketProb}
                   userPercentage={userProb}
-                  aiPercentage={aiEstimate ?? prediction.confidence ?? undefined}
+                  aiPercentage={aiEstimate?.probability ?? prediction.confidence ?? undefined}
+                  aiCiLow={aiEstimate?.ciLow}
+                  aiCiHigh={aiEstimate?.ciHigh}
                   size="xl"
                   onUserPercentageChange={prediction.status === 'ACTIVE'
                     ? (pct) => setUserConfidence(Math.round(pct * 2 - 100))
@@ -542,7 +544,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
                     <div className="w-3 h-1.5 bg-[#3B82F6] rounded-full" />
                     <span className="text-blue-400">You</span>
                   </div>
-                  {(aiEstimate ?? prediction.confidence) != null && (
+                  {(aiEstimate?.probability ?? prediction.confidence) != null && (
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-1 bg-[#FBBF24] rounded-full" />
                       <span className="text-amber-400">AI</span>

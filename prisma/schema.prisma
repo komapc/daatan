@@ -273,6 +273,13 @@ model ContextSnapshot {
   externalProbability Int?    @map("external_probability") // 0–100, AI's probability estimate
   externalReasoning   String? @db.Text @map("external_reasoning") // Brief AI reasoning
 
+  // Full TruthMachine Oracle payload, when the Oracle path produced the probability.
+  // Shape: { mean, std, ciLow, ciHigh, articlesUsed,
+  //          sources: [{ sourceId, sourceName, url, stance, certainty,
+  //                      credibilityWeight, claims }] }
+  // Null when the LLM-fallback path was taken or Oracle is not configured.
+  oracleSnapshot Json? @map("oracle_snapshot")
+
   createdAt DateTime @default(now())
 
   @@index([predictionId, createdAt])

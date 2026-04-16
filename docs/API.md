@@ -130,6 +130,38 @@ Preview expected RS outcomes before committing.
 ### `GET /api/forecasts/[id]/context`
 Return the public context timeline for a forecast (list of dated context snapshots with source articles and the AI probability estimate at that time). Public — no auth required.
 
+**Response** — `{ currentContext, contextUpdatedAt, snapshots: ContextSnapshot[] }`, each snapshot shaped as:
+
+```jsonc
+{
+  "id": "cuid",
+  "predictionId": "cuid",
+  "summary": "string",
+  "sources": [{ "title": "...", "url": "...", "source": "...", "publishedDate": "..." }],
+  "externalProbability": 64,                          // 0–100, or null
+  "externalReasoning": "TruthMachine Oracle (...)",   // or null
+  "oracleSnapshot": {                                 // null when LLM-fallback path was used
+    "mean": 0.28,                                     // aggregated stance in [-1, 1]
+    "std": 0.12,
+    "ciLow": 52,                                      // 0–100, pre-scaled 95% CI
+    "ciHigh": 76,
+    "articlesUsed": 3,
+    "sources": [
+      {
+        "sourceId": "reuters",
+        "sourceName": "Reuters",
+        "url": "https://reuters.com/...",
+        "stance": 0.7,                                // [-1, 1], sign = YES/NO lean
+        "certainty": 0.85,                            // [0, 1]
+        "credibilityWeight": 0.95,                    // leaderboard weight, ~1.0 = neutral
+        "claims": ["..."]
+      }
+    ]
+  },
+  "createdAt": "ISO-8601"
+}
+```
+
 ---
 
 ### `POST /api/forecasts/[id]/context` — Auth
@@ -137,10 +169,12 @@ Refresh the AI context for a forecast: fetches web articles for the claim, asks 
 
 **Probability source (tried in order):**
 
-1. **TruthMachine Oracle API** (`POST ${ORACLE_URL}/forecast`) — calibrated multi-source estimate. Used when `ORACLE_URL` and `ORACLE_API_KEY` are set and the Oracle returns a non-placeholder response with at least one usable article. See [docs/LLM_ARCHITECTURE.md](./LLM_ARCHITECTURE.md#oracle-api-integration).
-2. **LLM `guessChances`** (Gemini → Ollama fallback) — used when the Oracle is unconfigured, times out, returns `placeholder: true`, or the API version is incompatible.
+1. **TruthMachine Oracle API** (`POST ${ORACLE_URL}/forecast`) — calibrated multi-source estimate. Used when `ORACLE_URL` and `ORACLE_API_KEY` are set and the Oracle returns a non-placeholder response with at least one usable article. See [docs/LLM_ARCHITECTURE.md](./LLM_ARCHITECTURE.md#oracle-api-integration). When this path is taken, the full Oracle payload (mean, std, 95% CI, per-source stance/certainty/credibility) is persisted on the snapshot in the `oracleSnapshot` field and surfaced in the UI.
+2. **LLM `guessChances`** (Gemini → Ollama fallback) — used when the Oracle is unconfigured, times out, returns `placeholder: true`, or the API version is incompatible. Snapshots from this path have `oracleSnapshot = null`.
 
 The chosen source is recorded in `externalReasoning` on the snapshot (`"TruthMachine Oracle (calibrated multi-source estimate)"` vs the LLM-generated justification).
+
+**Response** — `{ success, newContext, contextUpdatedAt, snapshot, timeline }` where `snapshot` and each `timeline` entry use the same `ContextSnapshot` shape documented under `GET /api/forecasts/[id]/context` above (including the optional `oracleSnapshot` field).
 
 ---
 
@@ -369,7 +403,7 @@ Liveness + readiness probe. Returns `200` when the DB is reachable, `503` when i
 ```json
 {
   "status": "ok",         // "ok" | "degraded"
-  "version": "1.9.0",     // app version from src/lib/version.ts
+  "version": "1.10.0",    // app version from src/lib/version.ts
   "commit": "e3a594f",    // short GIT_COMMIT baked at build time
   "timestamp": "2026-04-16T17:31:45.056Z",
   "env": "production",    // APP_ENV

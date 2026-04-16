@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { apiError, handleRouteError } from '@/lib/api-error'
 import { withAuth, type RouteContext } from '@/lib/api-middleware'
 import { prisma } from '@/lib/prisma'
@@ -6,7 +7,7 @@ import { getPromptTemplate, fillPrompt } from '@/lib/llm/bedrock-prompts'
 import { llmService } from '@/lib/llm'
 import { searchArticles, type SearchResult } from '@/lib/utils/webSearch'
 import { guessChances } from '@/lib/llm/expressPrediction'
-import { getOracleProbability } from '@/lib/services/oracle'
+import { getOracleForecast, type OracleSource } from '@/lib/services/oracle'
 
 export const dynamic = 'force-dynamic'
 
@@ -133,11 +134,31 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
         // 3. AI probability — try Oracle first, fall back to LLM guessChances
         let externalProbability: number | null = null
         let externalReasoning: string | null = null
+        // When the Oracle path is taken, persist the full payload (CI + sources) so
+        // the UI can render provenance. Shape is camelCased for frontend consumption.
+        let oracleSnapshotData: Prisma.InputJsonValue | null = null
 
-        const oracleProb = await getOracleProbability(prediction.claimText)
-        if (oracleProb !== null) {
-            externalProbability = Math.round(oracleProb * 100)
+        const oracleForecast = await getOracleForecast(prediction.claimText)
+        if (oracleForecast !== null) {
+            const toPercent = (v: number) => Math.round(((v + 1) / 2) * 100)
+            externalProbability = toPercent(oracleForecast.mean)
             externalReasoning = 'TruthMachine Oracle (calibrated multi-source estimate)'
+            oracleSnapshotData = {
+                mean: oracleForecast.mean,
+                std: oracleForecast.std,
+                ciLow: toPercent(oracleForecast.ci_low),
+                ciHigh: toPercent(oracleForecast.ci_high),
+                articlesUsed: oracleForecast.articles_used,
+                sources: oracleForecast.sources.map((s: OracleSource) => ({
+                    sourceId: s.source_id,
+                    sourceName: s.source_name,
+                    url: s.url,
+                    stance: s.stance,
+                    certainty: s.certainty,
+                    credibilityWeight: s.credibility_weight,
+                    claims: s.claims,
+                })),
+            }
         } else {
             const articlesMapped = searchResults.map((r: SearchResult) => ({
                 title: r.title,
@@ -166,6 +187,7 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
                     sources,
                     externalProbability,
                     externalReasoning,
+                    oracleSnapshot: oracleSnapshotData ?? undefined,
                 },
             }),
             prisma.prediction.update({
