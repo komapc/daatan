@@ -1,7 +1,7 @@
 # DAATAN Technical Documentation
 
 > Technical architecture, infrastructure, project structure, and development guide.
-> Last updated: April 2026
+> Last updated: April 16, 2026
 
 ---
 
@@ -30,7 +30,7 @@
 | Styling | Tailwind CSS | 3.4.x |
 | Database | PostgreSQL | 16 |
 | ORM | Prisma | 7.x |
-| Authentication | NextAuth.js | 4.24.x |
+| Authentication | NextAuth.js (Auth.js v5) | 5.0.0-beta.x |
 | Testing | Vitest | 4.x |
 | Containerization | Docker | Latest |
 | Reverse Proxy | Nginx | Alpine |
@@ -55,77 +55,68 @@
 
 ### High-Level Architecture
 
+Production and staging run on **two independent EC2 instances** in `eu-central-1`. Each instance is a self-contained Docker Compose stack (nginx + Next.js app + Postgres + certbot). See [INFRASTRUCTURE_SPLIT.md](./INFRASTRUCTURE_SPLIT.md) for instance IDs and IPs.
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         Internet                                │
+│                            Internet                             │
 └───────────────────────────┬─────────────────────────────────────┘
-                            │
                             ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                    AWS Route 53 (DNS)                           │
-│  daatan.com → EC2 Elastic IP                                    │
-│  staging.daatan.com → EC2 Elastic IP                            │
-└───────────────────────────┬─────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    AWS EC2 (t3.small)                           │
-│                    eu-central-1 (Frankfurt)                     │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │                    Docker Compose                         │  │
-│  │  ┌─────────────────────────────────────────────────────┐  │  │
-│  │  │              Nginx (daatan-nginx)                   │  │  │
-│  │  │         Port 80 (→301) / 443 (SSL)                  │  │  │
-│  │  └────────────────┬────────────────────────────────────┘  │  │
-│  │                   │                                       │  │
-│  │         ┌─────────┴─────────┐                             │  │
-│  │         ▼                   ▼                             │  │
-│  │  ┌─────────────┐     ┌─────────────────┐                  │  │
-│  │  │ daatan-app  │     │ daatan-app-     │                  │  │
-│  │  │ (Prod)      │     │ staging         │                  │  │
-│  │  │ :3000       │     │ :3000           │                  │  │
-│  │  └──────┬──────┘     └────────┬────────┘                  │  │
-│  │         │                     │                           │  │
-│  │         └──────────┬──────────┘                           │  │
-│  │                    ▼                                      │  │
-│  │  ┌────────────────────┐  ┌──────────────────────────┐    │  │
-│  │  │  daatan-postgres   │  │  daatan-postgres-staging │    │  │
-│  │  │  DB: daatan        │  │  DB: daatan_staging      │    │  │
-│  │  │  :5432 (internal)  │  │  :5432 (internal)        │    │  │
-│  │  └────────────────────┘  └──────────────────────────┘    │  │
-│  │                                                           │  │
-│  │         ┌──────────────────────┐                          │  │
-│  │         │  daatan-certbot      │                          │  │
-│  │         │  (SSL Renewal)       │                          │  │
-│  │         └──────────────────────┘                          │  │
-│  └───────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    AWS S3 (Backups)                             │
-│  daatan-db-backups-{account-id}                                 │
-└─────────────────────────────────────────────────────────────────┘
+│                       AWS Route 53 (DNS)                        │
+│  daatan.com          (A)  → 3.126.238.216  (prod EIP)           │
+│  api.daatan.com      (A)  → 3.126.238.216  (prod EIP)           │
+│  mission.daatan.com  (A)  → 3.126.238.216  (prod EIP)           │
+│  staging.daatan.com  (A)  → 63.180.208.34  (staging EIP)        │
+└───────────────┬───────────────────────────────┬─────────────────┘
+                ▼                               ▼
+┌─────────────────────────────────┐ ┌─────────────────────────────────┐
+│  EC2 i-04ea44d4243d35624 (prod) │ │ EC2 i-0406d237ca5d92cdf (staging)│
+│  t3.small · eu-central-1        │ │ t3.small · eu-central-1          │
+│  ┌───────────────────────────┐  │ │  ┌───────────────────────────┐   │
+│  │  daatan-nginx (80/443)    │  │ │  │  daatan-nginx (80/443)    │   │
+│  │           │               │  │ │  │           │               │   │
+│  │           ▼               │  │ │  │           ▼               │   │
+│  │  daatan-app :3000         │  │ │  │  daatan-app-staging :3000 │   │
+│  │           │               │  │ │  │  daatan-app-next   :3000  │   │
+│  │           ▼               │  │ │  │           │               │   │
+│  │  daatan-postgres          │  │ │  │           ▼               │   │
+│  │  (DB: daatan)             │  │ │  │  daatan-postgres-staging  │   │
+│  │                           │  │ │  │  (DB: daatan_staging)     │   │
+│  │  daatan-certbot           │  │ │  │  daatan-certbot           │   │
+│  └───────────────────────────┘  │ │  └───────────────────────────┘   │
+└────────────────┬────────────────┘ └────────────────┬────────────────┘
+                 ▼                                   ▼
+      s3://daatan-db-backups-...       s3://daatan-db-backups-staging-...
+      s3://daatan-uploads-prod-...     s3://daatan-uploads-staging-...
+
+                 ▼ (HTTPS, x-api-key)
+      ┌──────────────────────────────────────┐
+      │  oracle.daatan.com                   │
+      │  (FastAPI — retro repo, separate EC2)│
+      │  calibrated probability estimates    │
+      └──────────────────────────────────────┘
 ```
 
 ### Request Flow
 
-1. User requests `https://daatan.com`
-2. Route 53 resolves to EC2 Elastic IP
-3. Nginx terminates SSL and routes to appropriate container
-4. Next.js app processes request
-5. Prisma queries PostgreSQL if needed
-6. Response flows back through the chain
+1. User requests `https://daatan.com` (or `https://staging.daatan.com`).
+2. Route 53 resolves to the corresponding EC2 Elastic IP.
+3. Nginx on that instance terminates TLS (Let's Encrypt) and routes to the app container.
+4. Next.js processes the request; Prisma talks to the local Postgres container.
+5. When a route needs a calibrated probability (e.g. `POST /api/forecasts/[id]/context`), the app calls `${ORACLE_URL}/forecast` with the shared `x-api-key`, and falls back to the LLM chain on any failure or `placeholder` response.
+6. Response flows back through the chain.
 
 ### Docker Containers
 
 | Container | Image | Port | Purpose |
 |-----------|-------|------|---------|
 | `daatan-nginx` | `nginx:alpine` | 80, 443 | Reverse proxy, SSL termination |
-| `daatan-app` | `daatan-app:latest` | 3000 (internal) | Production Next.js app |
-| `daatan-app-staging` | `daatan-app:staging-*` | 3000 (internal) | Staging Next.js app |
-| `daatan-postgres` | `postgres:16-alpine` | 5432 (internal) | Production PostgreSQL (DB: `daatan`) |
-| `daatan-postgres-staging` | `postgres:16-alpine` | 5432 (internal) | Staging PostgreSQL (DB: `daatan_staging`) |
+| `daatan-app` | `daatan-app:<tag>` (prod host) | 3000 (internal) | Production Next.js app |
+| `daatan-app-staging` | `daatan-app:staging-*` (staging host) | 3000 (internal) | Staging Next.js app (active colour) |
+| `daatan-app-next` | `daatan-app:staging-*` (staging host) | 3000 (internal) | Staging blue/green candidate during deploys |
+| `daatan-postgres` | `postgres:16-alpine` (prod host) | 5432 (internal) | Production PostgreSQL (DB: `daatan`) |
+| `daatan-postgres-staging` | `postgres:16-alpine` (staging host) | 5432 (internal) | Staging PostgreSQL (DB: `daatan_staging`) |
 | `daatan-certbot` | `certbot/certbot` | - | SSL certificate renewal |
 
 ### Volumes
@@ -151,8 +142,8 @@ daatan/
 │   └── workflows/              # CI/CD pipelines
 │       └── deploy.yml          # Main deployment workflow
 ├── .husky/                     # Git hooks
-│   ├── pre-commit              # Build + test verification
-│   └── pre-push                # Auth change detection
+│   ├── pre-commit              # check-version-bump.sh + lint-staged (ESLint --fix)
+│   └── pre-push                # tsc --noEmit + `vitest run --changed` (excluding integration)
 ├── certbot/                    # SSL certificate storage
 │   ├── conf/                   # Let's Encrypt certificates
 │   └── www/                    # ACME challenge files
@@ -286,6 +277,7 @@ terraform/
 | `Dockerfile` | Multi-stage Docker build |
 | `docker-compose.yml` | Local development stack |
 | `docker-compose.prod.yml` | Production Docker stack |
+| `docker-compose.staging.yml` | Staging Docker stack (app-staging + app-next blue/green) |
 | `infra/nginx/nginx-ssl.conf` | Production nginx with SSL |
 | `infra/nginx/nginx-staging-ssl.conf` | Staging nginx with SSL |
 | `infra/nginx/nginx.conf` | Local development nginx |
@@ -302,12 +294,16 @@ terraform/
 | `FORECASTS_FLOW.md` | Forecast system implementation flow |
 | `TODO.md` | Development tasks and guidelines |
 | `TECH.md` | Technical architecture (this file) |
-| `DEPLOYMENT.md` | Deployment procedures and operations |
+| `INFRASTRUCTURE_SPLIT.md` | Prod / staging EC2 split details |
+| `docs/DEPLOYMENT.md` | Canonical deployment pipeline |
+| `docs/ROLLBACK.md` | Rollback procedures |
 | `SECRETS.md` | Secrets management guide |
+| `SECURITY.md` | Security policy & vulnerability reporting |
 | `VERSIONING.md` | Semantic versioning rules |
 | `PRODUCT.md` | Product documentation |
-| `MEMORY.md` | Session memory and context |
 | `TESTING.md` | Testing strategy and guidelines |
+| `docs/API.md` | HTTP API reference |
+| `docs/LLM_ARCHITECTURE.md` | LLM chain + Oracle integration |
 
 ### Testing Structure
 
@@ -334,7 +330,8 @@ src/
 | S3 Bucket | Staging DB backups | `daatan-db-backups-staging-272007598366` |
 | S3 Bucket | Avatar/upload storage | `daatan-uploads-prod-272007598366`, `daatan-uploads-staging-272007598366` |
 | Security Group | Firewall | HTTP, HTTPS (port 22 blocked — use SSM for server access) |
-| IAM Role | EC2 Profile | `daatan-ec2-role-staging` — SSM + S3 backup access (both buckets) |
+| IAM Role | EC2 Profile (prod) | `daatan-ec2-role-prod` — SSM + S3 backup/upload access (prod buckets) + Secrets Manager (`daatan-env-prod`) |
+| IAM Role | EC2 Profile (staging) | `daatan-ec2-role-staging` — SSM + S3 backup/upload access (staging buckets) + Secrets Manager (`daatan-env-staging`) |
 
 ### Live Deployment
 
@@ -366,39 +363,38 @@ src/
 
 ```hcl
 # Key resources managed by Terraform
-aws_instance.backend          # EC2 instance
-aws_eip.backend               # Elastic IP
-aws_route53_zone.main         # DNS zone
-aws_route53_record.*          # DNS records
-aws_s3_bucket.backups         # Backup bucket
+aws_instance.backend           # EC2 instances (one per env)
+aws_eip.backend                # Elastic IPs
+aws_route53_zone.main          # DNS zone
+aws_route53_record.*           # DNS records
+aws_s3_bucket.backups          # Backup buckets (prod + staging)
+aws_s3_bucket.uploads          # Upload buckets (prod + staging)
+aws_security_group.ec2         # Firewall rules
+aws_iam_role.ec2_role          # EC2 instance profile per env
+aws_vpc.main                   # VPC
+aws_subnet.public_a            # Public subnet
 ```
 
 ### Terraform Workflow (State Separation)
 
 Terraform state is stored in S3 (`daatan-terraform-state`) and uses DynamoDB for state locking.
-**Crucial:** Staging and Production environments are completely isolated using "Partial Configuration". You MUST pass the correct backend configuration file when initializing Terraform.
+**Crucial:** staging and production are completely isolated using "Partial Configuration" — you MUST pass the correct backend config when initialising Terraform.
 
 ```bash
 cd terraform
 
-# For Staging:
+# Staging
 terraform init -backend-config=backend-staging.hcl
-terraform plan -var="environment=staging"
+terraform plan  -var="environment=staging"
 terraform apply -var="environment=staging"
 
-# For Production:
+# Production
 terraform init -backend-config=backend-prod.hcl
-terraform plan -var="environment=prod"
+terraform plan  -var="environment=prod"
 terraform apply -var="environment=prod"
 ```
 
-aws_security_group.ec2        # Firewall rules
-aws_iam_role.ec2_role         # IAM role
-aws_vpc.main                  # VPC
-aws_subnet.public_a           # Public subnet
-```
-
-**Note:** Instance type changes are ignored in lifecycle to prevent accidental recreation.
+**Note:** instance-type changes are ignored in `lifecycle` to prevent accidental recreation.
 
 ### Estimated Monthly Costs
 
@@ -702,18 +698,17 @@ docker compose -f ~/app/docker-compose.prod.yml restart nginx
 
 ### Network Security
 
-- SSH restricted to specific CIDR
+- Port 22 closed at the security group — all shell access is via AWS SSM
 - Database not exposed publicly (internal Docker network)
 - All traffic forced to HTTPS
 - API routes have cache disabled
 
 ### Secrets Management
 
-- Environment variables for sensitive data
-- GitHub Secrets for CI/CD
-- `.env` file gitignored
-- No secrets in Docker images
-- See [SECRETS.md](./SECRETS.md) for details
+- Runtime secrets live in AWS Secrets Manager bundles (`daatan-env-prod`, `daatan-env-staging`) and are pulled into `~/app/.env` on each deploy by `scripts/fetch-secrets.sh`
+- GitHub Secrets are used only for build-time / workflow values (`AWS_ROLE_ARN`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, Telegram notifications)
+- `.env` is gitignored; no secrets are baked into Docker images
+- See [SECRETS.md](./SECRETS.md) for the full list, rotation runbook, and update flow
 
 ---
 

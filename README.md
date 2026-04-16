@@ -6,7 +6,7 @@
 
 [![Live](https://img.shields.io/badge/Production-daatan.com-green)](https://daatan.com)
 [![Staging](https://img.shields.io/badge/Staging-staging.daatan.com-yellow)](https://staging.daatan.com)
-[![Version](https://img.shields.io/badge/Version-1.7.70-blue)](https://github.com/komapc/daatan/releases)
+[![Version](https://img.shields.io/badge/Version-1.9.0-blue)](https://github.com/komapc/daatan/releases)
 [![Next.js](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)](https://www.typescriptlang.org/)
 
@@ -50,6 +50,7 @@ DAaTAn is a reputation-based product that enables testing understanding and fore
 | Hosting | AWS EC2 (eu-central-1) |
 | Storage | AWS S3 (avatars) |
 | LLM | Gemini (primary), Ollama (fallback), OpenRouter (bots) |
+| Forecast Oracle | TruthMachine Oracle API (`oracle.daatan.com`) — calibrated multi-source probability estimates |
 | Prompt Mgmt | AWS Bedrock Prompt Management |
 | Container | Docker + Nginx |
 | CI/CD | GitHub Actions |
@@ -103,10 +104,11 @@ git push origin v1.1.1
 
 ## Development Workflow
 
-1.  **Local Dev:** `npm run dev`
-2.  **Commit:** A pre-commit hook (husky) runs `npm run build` automatically to ensure the codebase is buildable.
-3.  **Deploy Staging:** Push to `main`.
-4.  **Deploy Production:** Run `./scripts/release.sh`.
+1. **Local dev:** `npm run dev`.
+2. **Commit:** a husky pre-commit hook runs `scripts/check-version-bump.sh` and `lint-staged` (ESLint `--fix` on staged TS/TSX).
+3. **Push:** a husky pre-push hook runs `tsc --noEmit` (typecheck) and `vitest run --changed` (tests related to changed files; integration tests excluded).
+4. **Deploy staging:** push to `main`.
+5. **Deploy production:** run `./scripts/release.sh` to tag `vX.Y.Z` and create a GitHub release.
 
 ---
 
@@ -128,8 +130,12 @@ git push origin v1.1.1
 | [POST_MORTEM.md](./POST_MORTEM.md) | Incident history and retrospectives |
 | [docs/bots.md](./docs/bots.md) | Autonomous bot system design and usage |
 | [docs/BOT_APPROVAL_WORKFLOW.md](./docs/BOT_APPROVAL_WORKFLOW.md) | Bot approval workflow (v1.7.31+) |
-| [docs/LLM_ARCHITECTURE.md](./docs/LLM_ARCHITECTURE.md) | LLM provider chain and Bedrock prompts |
-| [docs/TROUBLESHOOTING-AUTH.md](./docs/TROUBLESHOOTING-AUTH.md) | Auth troubleshooting guide |
+| [docs/LLM_ARCHITECTURE.md](./docs/LLM_ARCHITECTURE.md) | LLM provider chain, Bedrock prompts, Oracle integration |
+| [docs/API.md](./docs/API.md) | HTTP API reference |
+| [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) | Deployment pipeline (canonical) |
+| [docs/ROLLBACK.md](./docs/ROLLBACK.md) | Rollback procedures |
+| [INFRASTRUCTURE_SPLIT.md](./INFRASTRUCTURE_SPLIT.md) | Prod / staging EC2 split |
+| [docs/TROUBLESHOOTING-AUTH.md](./docs/TROUBLESHOOTING-AUTH.md) | Auth troubleshooting |
 
 ---
 

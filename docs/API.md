@@ -127,8 +127,20 @@ Preview expected RS outcomes before committing.
 
 ---
 
+### `GET /api/forecasts/[id]/context`
+Return the public context timeline for a forecast (list of dated context snapshots with source articles and the AI probability estimate at that time). Public — no auth required.
+
+---
+
 ### `POST /api/forecasts/[id]/context` — Auth
-Update the AI context note for a forecast (author only).
+Refresh the AI context for a forecast: fetches web articles for the claim, asks an LLM to summarise them, computes an "AI %" probability, and appends a new snapshot to the context timeline. Author-only and rate-limited to once per 24h per forecast.
+
+**Probability source (tried in order):**
+
+1. **TruthMachine Oracle API** (`POST ${ORACLE_URL}/forecast`) — calibrated multi-source estimate. Used when `ORACLE_URL` and `ORACLE_API_KEY` are set and the Oracle returns a non-placeholder response with at least one usable article. See [docs/LLM_ARCHITECTURE.md](./LLM_ARCHITECTURE.md#oracle-api-integration).
+2. **LLM `guessChances`** (Gemini → Ollama fallback) — used when the Oracle is unconfigured, times out, returns `placeholder: true`, or the API version is incompatible.
+
+The chosen source is recorded in `externalReasoning` on the snapshot (`"TruthMachine Oracle (calibrated multi-source estimate)"` vs the LLM-generated justification).
 
 ---
 
@@ -147,8 +159,22 @@ Generate an "express" forecast via AI from a URL or topic.
 
 ---
 
-### `GET /api/forecasts/express/guess` — Auth
-Guess the resolution of a forecast using AI.
+### `POST /api/forecasts/express/guess` — Auth
+Estimate the probability that a given claim will resolve YES, based on supplied article search results.
+
+**Body**
+
+```json
+{
+  "claimText": "string",
+  "detailsText": "string",
+  "articles": [{ "title": "...", "url": "...", "snippet": "..." }]
+}
+```
+
+**Response** `{ probability: number, reasoning: string }` (probability is `0–100`).
+
+Same Oracle-first → LLM-fallback logic as `POST /api/forecasts/[id]/context` above.
 
 ---
 
@@ -338,7 +364,18 @@ Trigger the bot runner. Used by the GitHub Actions cron workflow.
 ## System
 
 ### `GET /api/health`
-Basic health check. Returns `{ ok: true, db: "ok" }`.
+Liveness + readiness probe. Returns `200` when the DB is reachable, `503` when it is not.
+
+```json
+{
+  "status": "ok",         // "ok" | "degraded"
+  "version": "1.9.0",     // app version from src/lib/version.ts
+  "commit": "e3a594f",    // short GIT_COMMIT baked at build time
+  "timestamp": "2026-04-16T17:31:45.056Z",
+  "env": "production",    // APP_ENV
+  "db": true
+}
+```
 
 ### `GET /api/health/auth`
 Auth subsystem health check.

@@ -4,53 +4,61 @@
 
 ## Current Approach
 
-**Status:** Using `.env` files on server + **AWS Secrets Manager for Backup**
+**Source of truth:** AWS Secrets Manager bundles — `daatan-env-prod` and `daatan-env-staging` — each holding a full `.env` blob.
+
+On every deploy, `scripts/blue-green-deploy.sh` invokes `scripts/fetch-secrets.sh <env>` which pulls the bundle and writes it to `~/app/.env` on the instance. The container is then (re)started with those vars via `docker-compose.{prod,staging}.yml` and the `ENV_ARGS` list in `blue-green-deploy.sh`. On first boot, the EC2 user data (Terraform `ec2.tf`) performs the same pull to seed `~/app/.env`.
+
+> **Deploy-env → secret name mapping.** Inside `fetch-secrets.sh` the deploy environment string `production` is mapped to the Secrets Manager name `daatan-env-prod` (a single historical alias; Terraform and `restore_secrets.sh` both use `prod`). Staging uses its name verbatim: `staging` → `daatan-env-staging`. If you add a new environment you must register it in the case statement.
 
 ### What We Use
 
-| Secret | Location | Purpose |
-|--------|----------|---------|
-| `POSTGRES_PASSWORD` | Server `.env` | Database authentication |
-| `NEXTAUTH_SECRET` | Server `.env` | NextAuth.js session encryption |
-| `GOOGLE_CLIENT_ID` | Server `.env` | Google OAuth |
-| `GOOGLE_CLIENT_SECRET` | Server `.env` | Google OAuth |
-| `GEMINI_API_KEY` | Server `.env` | LLM API access |
-| `SERPER_API_KEY` | Server `.env` | Serper.dev API for Express Forecast web search |
-| `GA_MEASUREMENT_ID_PROD` | Server `.env` | Google Analytics 4 — production (daatan.com) |
-| `GA_MEASUREMENT_ID_STAGING` | Server `.env` | Google Analytics 4 — staging (staging.daatan.com) |
-| `TELEGRAM_BOT_TOKEN` | Server `.env` + GitHub Secret | @DaatanClawBot token from @BotFather |
-| `TELEGRAM_CHAT_ID` | Server `.env` + GitHub Secret | "Daatan Updates" channel ID (`-1003759282672`) |
-| `BOT_RUNNER_SECRET` | Server `.env` + GitHub Secret | Shared secret for `/api/bots/run` cron endpoint |
-| `OPENROUTER_API_KEY` | Server `.env` + GitHub Secret | OpenRouter LLM API key (used by bots) |
-| `RESEND_API_KEY` | Server `.env` | Email delivery via Resend |
-| `VAPID_PUBLIC_KEY` | Server `.env` | Browser push notification public key |
-| `VAPID_PRIVATE_KEY` | Server `.env` | Browser push notification private key |
-| `CRON_SECRET` | Server `.env` + GitHub Secret | Shared secret for `/api/cron/cleanup` endpoint |
+Full, currently-active list. Vars marked "GitHub secret" are **also** needed at image build time (Next.js public vars baked into the bundle) or by the deploy workflow itself; everything else is server-runtime only.
 
-### Current Setup
+| Variable | Secrets Manager bundle | GitHub secret? | Purpose |
+|----------|------------------------|----------------|---------|
+| `POSTGRES_PASSWORD` | ✅ | — | Postgres authentication |
+| `DATABASE_URL` | ✅ | — | Prisma connection string |
+| `NEXTAUTH_SECRET` | ✅ | — | NextAuth.js session encryption |
+| `NEXTAUTH_URL` | ✅ | — | Canonical site URL for NextAuth |
+| `GOOGLE_CLIENT_ID` | ✅ | — | Google OAuth |
+| `GOOGLE_CLIENT_SECRET` | ✅ | — | Google OAuth |
+| `GEMINI_API_KEY` | ✅ | — | Primary LLM provider |
+| `OPENROUTER_API_KEY` | ✅ | — | LLM provider used by bots |
+| `SERPER_API_KEY` | ✅ | — | Serper.dev — Express Forecast web search |
+| `NIMBLEWAY_API_KEY` | ✅ | — | Nimble web scraping |
+| `SERPAPI_API_KEY` | ✅ | — | SerpAPI (fallback search) |
+| `SCRAPINGBEE_API_KEY` | ✅ | — | ScrapingBee (fallback fetch) |
+| `ORACLE_URL` | ✅ | — | TruthMachine Oracle base URL (typically `https://oracle.daatan.com`) |
+| `ORACLE_API_KEY` | ✅ | — | Shared `x-api-key` for the Oracle; canonical copy at `openclaw/oracle-api-key` |
+| `GA_MEASUREMENT_ID_PROD` | ✅ | — | Google Analytics 4 — production |
+| `GA_MEASUREMENT_ID_STAGING` | ✅ | — | Google Analytics 4 — staging |
+| `TELEGRAM_BOT_TOKEN` | ✅ | ✅ | @DaatanClawBot token |
+| `TELEGRAM_CHAT_ID` | ✅ | ✅ | "Daatan Updates" channel ID |
+| `BOT_RUNNER_SECRET` | ✅ | ✅ | Shared secret for `POST /api/bots/run` |
+| `CRON_SECRET` | ✅ | ✅ | Shared secret for `/api/cron/cleanup` |
+| `RESEND_API_KEY` | ✅ | — | Email delivery |
+| `EMAIL_FROM` | ✅ | — | Default From: address |
+| `VAPID_PRIVATE_KEY` | ✅ | — | Web Push signing key (runtime-only) |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | ✅ | ✅ | Web Push subscription key — baked into the JS bundle at build, so it must be a GitHub secret |
+| `AWS_ROLE_ARN` | — | ✅ | OIDC role the `deploy.yml` workflow assumes to reach ECR + SSM |
 
-**Location:** `~/app/.env` on EC2 server (use `terraform output ec2_public_ip` to get IP)
+If this table drifts from reality, the canonical cross-check is `scripts/blue-green-deploy.sh` (`ENV_ARGS`) and `docker-compose.{prod,staging}.yml`, which are gated by CI via `scripts/check-env-parity.sh`.
 
-**Access:** SSH with key-based auth (`~/.ssh/daatan-key-new.pem`)
+### Location on the server
 
-**Permissions:** 
-- File: `600` (owner read/write only)
-- Directory: `700` (owner access only)
+**File:** `/home/ubuntu/app/.env` (owner `ubuntu`, mode `600`).
 
-### Pros & Cons
+**Access:** **AWS SSM only** — port 22 is closed on both instances (see [INFRASTRUCTURE_SPLIT.md](./INFRASTRUCTURE_SPLIT.md)).
 
-✅ **Pros:**
-- Simple to set up
-- No external dependencies
-- Works well for small teams
-- Easy to debug
+```bash
+# Production
+aws ssm start-session --target i-04ea44d4243d35624
 
-❌ **Cons:**
-- Secrets stored in plaintext on disk
-- No audit trail of access
-- Manual rotation process
-- Risk if server is compromised
-- No automatic expiration
+# Staging
+aws ssm start-session --target i-0406d237ca5d92cdf
+```
+
+Once inside a session, `sudo -u ubuntu -i` and `cat ~/app/.env`. Do **not** attempt `ssh -i …` — the key files referenced in historical runbooks are no longer active and port 22 is blocked at the security group.
 
 ---
 
@@ -106,31 +114,31 @@ ls -la ~/app/.env
 
 ---
 
-## Future Improvements
+## Updating a Secret
 
-### Short-term (Next 3-6 months)
+The canonical flow is: update the Secrets Manager bundle → redeploy → on-disk `.env` is refreshed by `fetch-secrets.sh`. Do **not** edit `~/app/.env` on the instance as the primary source: it will be overwritten on the next deploy.
 
-### 1. AWS Secrets Manager (Active Backup)
-**Status:** Implemented (Sync Only)
-- Secrets are stored in AWS Secrets Manager for backup and recovery.
-- **Secret Names:** `daatan-env-staging`, `daatan-env-prod`.
-- **Sync Process:** manually run `aws secretsmanager put-secret-value` after updating `.env`.
-
-**Usage:**
 ```bash
-# Backup current .env to AWS
-aws secretsmanager put-secret-value \
-  --secret-id daatan-env-staging \
-  --secret-string "file://.env"
-
-# Restore .env from AWS
 aws secretsmanager get-secret-value \
-  --secret-id daatan-env-staging \
-  --query SecretString \
-  --output text > .env
+  --secret-id daatan-env-prod --region eu-central-1 \
+  --query SecretString --output text > /tmp/daatan-env-prod.env
+
+# Edit /tmp/daatan-env-prod.env
+
+aws secretsmanager put-secret-value \
+  --secret-id daatan-env-prod --region eu-central-1 \
+  --secret-string file:///tmp/daatan-env-prod.env
+
+rm /tmp/daatan-env-prod.env
 ```
 
-### 2. VAPID Keys (Browser Push Notifications)
+Then redeploy (tag `v*` for prod, push to `main` for staging) — or, if you need the new value live without a redeploy, SSM in and `docker restart daatan-app` (prod) / `daatan-app-staging` (staging) after manually running `./scripts/fetch-secrets.sh production` (or `staging`) from `~/app/`.
+
+For the shared `ORACLE_API_KEY` specifically, also update the canonical copy at `openclaw/oracle-api-key` so the retro EC2 (`oracle-api.service`) stays in sync.
+
+---
+
+## VAPID Keys (Browser Push Notifications)
 
 VAPID keys authenticate our server when sending Web Push notifications. Two keys are required:
 
@@ -148,10 +156,9 @@ npx web-push generate-vapid-keys
 ```
 
 **After generating:**
-1. Update `NEXT_PUBLIC_VAPID_PUBLIC_KEY` in the GitHub Actions secret (Settings → Secrets → `NEXT_PUBLIC_VAPID_PUBLIC_KEY`)
-2. Update both keys in `~/app/.env` on the server
-3. Restart the app container: `docker restart daatan-app` / `daatan-app-staging`
-4. Sync to AWS Secrets Manager
+1. Update `NEXT_PUBLIC_VAPID_PUBLIC_KEY` in GitHub Actions secrets (Settings → Secrets → `NEXT_PUBLIC_VAPID_PUBLIC_KEY`) so new image builds pick it up.
+2. Update both keys in `daatan-env-prod` and `daatan-env-staging` in AWS Secrets Manager (see "Updating a Secret" above).
+3. Trigger a redeploy so a new image is built with the new `NEXT_PUBLIC_VAPID_PUBLIC_KEY` and the runtime pulls the new `VAPID_PRIVATE_KEY`.
 
 **Key rotation (if push subscriptions break):**
 - All existing push subscriptions become invalid after key rotation — users must re-subscribe
@@ -206,18 +213,19 @@ npx web-push generate-vapid-keys
 # Private Key: <NEW_PRIVATE>
 ```
 
-Update server `.env`:
+Update the Secrets Manager bundle (prod example — repeat for staging):
 ```bash
-# SSH to server
-ssh -i ~/.ssh/daatan-key-new.pem ubuntu@<PROD_IP>
+# Pull, edit, push back (see "Updating a Secret" above for full flow)
+aws secretsmanager get-secret-value --secret-id daatan-env-prod \
+  --region eu-central-1 --query SecretString --output text > /tmp/env.prod
 
-# Edit .env on server
-sudo nano ~/app/.env
+# Edit /tmp/env.prod — set new VAPID_PRIVATE_KEY, new
+# NEXT_PUBLIC_VAPID_PUBLIC_KEY, and keep VAPID_PRIVATE_KEY_OLD=<OLD_PRIVATE>
+# for the grace period.
 
-# Modify (keep old key for grace period):
-VAPID_PRIVATE_KEY=<NEW_PRIVATE>
-VAPID_PRIVATE_KEY_OLD=<OLD_PRIVATE>
-NEXT_PUBLIC_VAPID_PUBLIC_KEY=<NEW_PUBLIC>
+aws secretsmanager put-secret-value --secret-id daatan-env-prod \
+  --region eu-central-1 --secret-string file:///tmp/env.prod
+rm /tmp/env.prod
 ```
 
 Update GitHub Secrets:
@@ -246,10 +254,12 @@ const register = async () => {
 }
 ```
 
-Restart app container to activate grace period:
+Redeploy (tag `v*` for prod, push to `main` for staging) so the new image is built with the new public key and the runtime reloads the new private key. To force without a full deploy:
 ```bash
-ssh -i ~/.ssh/daatan-key-new.pem ubuntu@<PROD_IP>
-docker restart daatan-app  # or daatan-app-staging
+aws ssm start-session --target i-04ea44d4243d35624   # prod; staging: i-0406d237ca5d92cdf
+sudo -u ubuntu -i
+cd ~/app && ./scripts/fetch-secrets.sh production    # or staging
+docker restart daatan-app                            # or daatan-app-staging
 ```
 
 Verify notifications still work:
@@ -263,19 +273,24 @@ Document grace period end date:
 
 **Stage 3: Cleanup (After 72 hours)**
 
-Remove old key and restart:
+Remove old key from the Secrets Manager bundle, then redeploy:
+
 ```bash
-ssh -i ~/.ssh/daatan-key-new.pem ubuntu@<PROD_IP>
+# Pull, delete VAPID_PRIVATE_KEY_OLD line, push back
+aws secretsmanager get-secret-value --secret-id daatan-env-prod \
+  --region eu-central-1 --query SecretString --output text > /tmp/env.prod
+sed -i '/^VAPID_PRIVATE_KEY_OLD=/d' /tmp/env.prod
+aws secretsmanager put-secret-value --secret-id daatan-env-prod \
+  --region eu-central-1 --secret-string file:///tmp/env.prod
+rm /tmp/env.prod
+```
 
-# Remove old key from .env
-sudo nano ~/app/.env
-# Delete line: VAPID_PRIVATE_KEY_OLD=...
+Redeploy (or SSM + `fetch-secrets.sh` + `docker restart` — see above). Verify no WebPush failures:
 
-# Restart app
-docker restart daatan-app  # or daatan-app-staging
-
-# Verify no WebPush failures in logs
-docker logs daatan-app | grep -i "webpush\|subscription"
+```bash
+aws ssm start-session --target i-04ea44d4243d35624
+sudo -u ubuntu -i
+docker logs daatan-app 2>&1 | grep -iE "webpush|subscription"
 ```
 
 Clean up database (optional):
@@ -311,19 +326,7 @@ Monitor push notification success rate:
 
 ### Rollback Procedure (if issues occur)
 
-If push notifications fail during grace period:
-
-```bash
-ssh -i ~/.ssh/daatan-key-new.pem ubuntu@<PROD_IP>
-
-# Revert to old key
-sudo nano ~/app/.env
-# Restore old key, remove new key and _OLD suffix
-
-docker restart daatan-app
-
-# Notify team
-```
+If push notifications fail during grace period, swap the old and new keys back in the Secrets Manager bundle (`VAPID_PRIVATE_KEY = <OLD_PRIVATE>`, drop the `_OLD` line) and redeploy or force-refresh via SSM as above. Notify the team.
 
 ### Timeline Reference
 
@@ -350,44 +353,19 @@ A: The next CI build will fail at `next build` step (NEXT_PUBLIC_VAPID_PUBLIC_KE
 **Q: How often should we rotate?**
 A: Annually as preventative measure. Emergency rotation only if private key is leaked.
 
-### 3. Google Client Secret Rotation
-**When:** If `invalid_client` errors appear in logs or Google Cloud Console integrity is compromised.
-1.  **Generate New Secret:** Go to Google Cloud Console > Credentials > OAuth 2.0 Client IDs > Reset Secret.
-2.  **Update Config:**
-    *   Update `.env` on both Staging and Production EC2 instances.
-    *   Update local `.env`.
-    *   Sync to AWS Secrets Manager (see above).
-3.  **Restart Containers:** `docker restart daatan-app` (Prod) / `daatan-app-staging` (Staging).
+### Google Client Secret Rotation
+**When:** if `invalid_client` errors appear in logs or the Google Cloud Console client integrity is compromised.
+1. **Generate new secret** in Google Cloud Console → Credentials → OAuth 2.0 Client IDs → Reset Secret.
+2. **Update both Secrets Manager bundles** (`daatan-env-prod`, `daatan-env-staging`) following "Updating a Secret" above.
+3. **Redeploy** both environments (or SSM + `fetch-secrets.sh` + `docker restart` for a fast-path).
 
 ---
 
-## Migration Plan
+## Remaining gaps
 
-### Phase 1: Audit ~~(Week 1)~~ — Done
-- [x] Document all secrets currently in use (see table above)
-- [x] Identify which secrets are shared vs unique
-- [x] Determine rotation schedule for each secret
-- [ ] Set up password manager for team
-
-### Phase 2: AWS Secrets Manager ~~(Week 2-3)~~ — Partial
-- [x] Create AWS Secrets Manager secrets (`daatan-env-prod`, `daatan-env-staging`)
-- [x] IAM policies scoped to specific secret ARNs
-- [x] EC2 user data retrieves secrets on bootstrap
-- [ ] Update application to read from Secrets Manager at runtime (currently reads `.env`)
-- [ ] Automate sync (currently manual `aws secretsmanager put-secret-value`)
-- [ ] Remove secrets from `.env` (keep as fallback)
-
-### Phase 3: Automation (Week 4)
-- [ ] Set up automatic rotation for database passwords
-- [ ] Create rotation Lambda functions
-- [ ] Document new process
-- [ ] Train team on new workflow
-
-### Phase 4: Cleanup (Week 5)
-- [ ] Remove `.env` files from servers
-- [ ] Update deployment scripts
-- [ ] Update documentation
-- [ ] Conduct security review
+- The app still reads env vars from the in-container process environment (originally sourced from `~/app/.env`), not directly from Secrets Manager at runtime. Rotations require a redeploy or SSM + `fetch-secrets.sh` + `docker restart` to take effect.
+- No automated rotation (e.g. Lambda-driven password rotation for Postgres). Done manually on the schedule above.
+- The `production` → `daatan-env-prod` alias inside `fetch-secrets.sh` is load-bearing — if you ever add a new deploy env, extend the `case` statement in that script.
 
 ---
 
@@ -418,53 +396,42 @@ A: Annually as preventative measure. Emergency rotation only if private key is l
 
 ---
 
-## Secrets Checklist
+## Secrets Checklists
 
-### Adding New Secret
+### Adding a new secret
 
-- [ ] Add to `.env.example` with placeholder value
-- [ ] Document in this file (SECRETS.md)
-- [ ] Add to server `.env` file
-- [ ] Restart affected containers
-- [ ] Test in staging first
-- [ ] Store backup in password manager
-- [ ] Update deployment documentation
+1. Add to `.env.example` with a placeholder value and a short comment.
+2. Document it in the "What We Use" table above.
+3. Reference it in `docker-compose.prod.yml` + `docker-compose.staging.yml` and in `ENV_ARGS` of `scripts/blue-green-deploy.sh` (the `scripts/check-env-parity.sh` CI step will shout if one is missing).
+4. Also add it to `src/env.ts` if the app code needs to read it.
+5. Append it to both `daatan-env-prod` and `daatan-env-staging` Secrets Manager bundles (see "Updating a Secret").
+6. Deploy to staging first, verify in logs, then tag a release for production.
 
-### Rotating Secret
+### Rotating a secret
 
-- [ ] Generate new secret value
-- [ ] Update in password manager
-- [ ] Update server `.env` file
-- [ ] Restart affected containers
-- [ ] Verify services work
-- [ ] Document rotation date
-- [ ] Remove old secret after 24h grace period
+1. Generate the new value at its source of truth (provider dashboard, `openssl rand -hex 32`, etc.).
+2. Update both `daatan-env-prod` and `daatan-env-staging` bundles.
+3. Deploy (preferred) or force-refresh via SSM + `fetch-secrets.sh` + `docker restart`.
+4. Verify `/api/health` returns `200`; spot-check the affected feature.
+5. Record the rotation date in your password manager.
 
 ---
 
 ## FAQ
 
-**Q: Why not use GitHub Secrets?**
-A: GitHub Secrets are for CI/CD workflows, not runtime secrets. They're exposed to GitHub Actions runners and shouldn't be used for production secrets.
-
-**Q: Can I use environment variables in Docker Compose?**
-A: Yes, we currently do this. Docker Compose reads from `.env` file. This is acceptable for MVP but should migrate to Secrets Manager.
+**Q: Why not use GitHub Secrets for everything?**
+A: GitHub Secrets are visible to Actions workflows and shouldn't carry runtime API keys. We use them only for values needed during the deploy workflow itself (`AWS_ROLE_ARN`, Telegram notifications) or baked into the build image (`NEXT_PUBLIC_VAPID_PUBLIC_KEY`).
 
 **Q: How do I add a new secret?**
-A: 
-1. Add to `.env.example` (without real value)
-2. SSH to server: `ssh daatan`
-3. Edit `.env`: `nano ~/app/.env`
-4. Add: `NEW_SECRET="value"`
-5. Restart: `docker compose -f docker-compose.prod.yml restart app-staging`
+A: See the checklist above — short version: `.env.example` + compose + blue-green + `src/env.ts` + both Secrets Manager bundles, then deploy.
 
 **Q: What if I accidentally commit a secret?**
-A: 
-1. Immediately rotate the secret
-2. Remove from git history: `git filter-branch` or BFG Repo-Cleaner
-3. Force push to remote
-4. Notify team
-5. Review commit access
+A:
+1. Rotate it immediately.
+2. Remove from git history (`git filter-repo` or BFG Repo-Cleaner). Coordinate with the team — force-push is required.
+3. Update both Secrets Manager bundles with the new value.
+4. Redeploy.
+5. Notify the team.
 
 ---
 
@@ -477,4 +444,4 @@ A:
 
 ---
 
-Last updated: March 5, 2026
+Last updated: April 16, 2026
