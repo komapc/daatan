@@ -1,6 +1,7 @@
 import { guessChances } from '@/lib/llm/expressPrediction'
+import { getOracleProbability } from '@/lib/services/oracle'
 import { z } from 'zod'
-import { apiError, handleRouteError } from '@/lib/api-error'
+import { handleRouteError } from '@/lib/api-error'
 import { withAuth } from '@/lib/api-middleware'
 import { NextResponse } from 'next/server'
 
@@ -19,8 +20,15 @@ export const POST = withAuth(async (request) => {
     const body = await request.json()
     const { claimText, detailsText, articles } = guessSchema.parse(body)
 
-    const result = await guessChances(claimText, detailsText, articles)
+    const oracleProb = await getOracleProbability(claimText)
+    if (oracleProb !== null) {
+      return NextResponse.json({
+        probability: Math.round(oracleProb * 100),
+        reasoning: 'TruthMachine Oracle (calibrated multi-source estimate)',
+      })
+    }
 
+    const result = await guessChances(claimText, detailsText, articles)
     return NextResponse.json(result)
   } catch (error) {
     return handleRouteError(error, 'Failed to guess chances')
