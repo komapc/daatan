@@ -50,6 +50,6 @@ Our TruthMachine converts those extracted metrics into quantitative vectors usin
 
 **Self-Hosted Cloud Compute:** The backend is built on dedicated AWS EC2 instances, leveraging our AWS Activate tier to keep initial burn rates near zero.
 
-**Orchestration:** We currently orchestrate our local LLMs via OpenClaw and custom wrappers.
+**Orchestration:** LLM calls go through LiteLLM + `instructor` for structured output; primary backend is AWS Bedrock (Nova family) with OpenRouter as a fallback.
 
 **Scalability:** The architecture is designed to be lean. As the matrix expands from 100x100 to 200x200 and deeper, we have a clear, cost-effective path to horizontally scale up to multiple EC2 instances. This keeps our burn rate incredibly low while maintaining the data velocity we need to beat the market.

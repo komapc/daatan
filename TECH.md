@@ -66,7 +66,6 @@ Production and staging run on **two independent EC2 instances** in `eu-central-1
 │                       AWS Route 53 (DNS)                        │
 │  daatan.com          (A)  → 3.126.238.216  (prod EIP)           │
 │  api.daatan.com      (A)  → 3.126.238.216  (prod EIP)           │
-│  mission.daatan.com  (A)  → 3.126.238.216  (prod EIP)           │
 │  staging.daatan.com  (A)  → 63.180.208.34  (staging EIP)        │
 └───────────────┬───────────────────────────────┬─────────────────┘
                 ▼                               ▼
