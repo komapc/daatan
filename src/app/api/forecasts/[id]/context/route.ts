@@ -6,6 +6,7 @@ import { getPromptTemplate, fillPrompt } from '@/lib/llm/bedrock-prompts'
 import { llmService } from '@/lib/llm'
 import { searchArticles, type SearchResult } from '@/lib/utils/webSearch'
 import { guessChances } from '@/lib/llm/expressPrediction'
+import { getOracleProbability } from '@/lib/services/oracle'
 
 export const dynamic = 'force-dynamic'
 
@@ -129,24 +130,31 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
         const newContextSummary = result.text.trim()
         const now = new Date()
 
-        // 3. Guess AI probability based on same articles
-        const articlesMapped = searchResults.map((r: SearchResult) => ({
-            title: r.title,
-            source: r.source || 'Unknown',
-            snippet: r.snippet,
-        }))
+        // 3. AI probability — try Oracle first, fall back to LLM guessChances
         let externalProbability: number | null = null
         let externalReasoning: string | null = null
-        try {
-            const chances = await guessChances(
-                prediction.claimText,
-                prediction.detailsText ?? '',
-                articlesMapped
-            )
-            externalProbability = chances.probability
-            externalReasoning = chances.reasoning
-        } catch (err) {
-            // Non-fatal: proceed without probability estimate
+
+        const oracleProb = await getOracleProbability(prediction.claimText)
+        if (oracleProb !== null) {
+            externalProbability = Math.round(oracleProb * 100)
+            externalReasoning = 'TruthMachine Oracle (calibrated multi-source estimate)'
+        } else {
+            const articlesMapped = searchResults.map((r: SearchResult) => ({
+                title: r.title,
+                source: r.source || 'Unknown',
+                snippet: r.snippet,
+            }))
+            try {
+                const chances = await guessChances(
+                    prediction.claimText,
+                    prediction.detailsText ?? '',
+                    articlesMapped
+                )
+                externalProbability = chances.probability
+                externalReasoning = chances.reasoning
+            } catch {
+                // Non-fatal: proceed without probability estimate
+            }
         }
 
         // 4. Create snapshot + update prediction in a transaction
