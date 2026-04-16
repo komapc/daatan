@@ -1,8 +1,12 @@
+import { env } from '@/env'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('oracle')
 
 const EXPECTED_API_VERSION = '0.1'
+const FORECAST_TIMEOUT_MS = 20_000
+const HEALTH_TIMEOUT_MS = 5_000
+const DEFAULT_MAX_ARTICLES = 3
 
 interface OracleForecastResponse {
   question: string
@@ -25,22 +29,25 @@ interface OracleForecastResponse {
 
 interface OracleHealthResponse {
   status: string
-  version: string
-  leaderboard_sources: number
+  version?: string
+  leaderboard_sources?: number
 }
+
+/** Strip a single trailing slash so `${baseUrl}/path` doesn't produce a double slash. */
+const normalizeBaseUrl = (url: string): string => url.replace(/\/$/, '')
 
 /**
  * Calls the TruthMachine Oracle API to get a calibrated probability estimate
  * for a binary question.
  *
  * Returns a probability in [0, 1], or null if the Oracle is not configured,
- * returned no usable articles, or failed for any reason.
+ * returned no usable articles (including placeholder responses), or failed for any reason.
  *
  * Never throws — safe to call fire-and-forget style.
  */
 export const getOracleProbability = async (question: string): Promise<number | null> => {
-  const url = process.env.ORACLE_URL
-  const key = process.env.ORACLE_API_KEY
+  const url = env.ORACLE_URL
+  const key = env.ORACLE_API_KEY
 
   if (!url || !key) {
     log.debug('Oracle not configured — skipping')
@@ -48,11 +55,11 @@ export const getOracleProbability = async (question: string): Promise<number | n
   }
 
   try {
-    const res = await fetch(`${url}/forecast`, {
+    const res = await fetch(`${normalizeBaseUrl(url)}/forecast`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': key },
-      body: JSON.stringify({ question, max_articles: 3 }),
-      signal: AbortSignal.timeout(20_000),
+      body: JSON.stringify({ question, max_articles: DEFAULT_MAX_ARTICLES }),
+      signal: AbortSignal.timeout(FORECAST_TIMEOUT_MS),
     })
 
     if (!res.ok) {
@@ -90,12 +97,12 @@ export const getOracleProbability = async (question: string): Promise<number | n
  * Never throws.
  */
 export const checkOracleHealth = async (): Promise<boolean> => {
-  const url = process.env.ORACLE_URL
+  const url = env.ORACLE_URL
   if (!url) return false
 
   try {
-    const res = await fetch(`${url}/health`, {
-      signal: AbortSignal.timeout(5_000),
+    const res = await fetch(`${normalizeBaseUrl(url)}/health`, {
+      signal: AbortSignal.timeout(HEALTH_TIMEOUT_MS),
     })
     if (!res.ok) return false
 

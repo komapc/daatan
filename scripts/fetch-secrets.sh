@@ -4,7 +4,14 @@
 # Usage: ./scripts/fetch-secrets.sh [staging|prod]
 
 ENVIRONMENT=${1:-prod}
-SECRET_NAME="daatan-env-${ENVIRONMENT}"
+
+# Map deploy environment names to Secrets Manager names.
+# blue-green-deploy.sh uses "production" but the secret is named "daatan-env-prod".
+case "$ENVIRONMENT" in
+  production) SECRET_SUFFIX="prod" ;;
+  *)          SECRET_SUFFIX="$ENVIRONMENT" ;;
+esac
+SECRET_NAME="daatan-env-${SECRET_SUFFIX}"
 
 echo "🔐 Fetching secrets from AWS Secrets Manager: ${SECRET_NAME}"
 

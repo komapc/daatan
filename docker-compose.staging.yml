@@ -60,6 +60,8 @@ services:
       - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY}
       - NEXT_PUBLIC_VAPID_PUBLIC_KEY=${NEXT_PUBLIC_VAPID_PUBLIC_KEY}
       - NEXT_PUBLIC_APP_VERSION=${NEXT_PUBLIC_APP_VERSION}
+      - ORACLE_URL=${ORACLE_URL}
+      - ORACLE_API_KEY=${ORACLE_API_KEY}
     depends_on:
       postgres-staging:
         condition: service_healthy
@@ -105,6 +107,8 @@ services:
       - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY}
       - NEXT_PUBLIC_VAPID_PUBLIC_KEY=${NEXT_PUBLIC_VAPID_PUBLIC_KEY}
       - NEXT_PUBLIC_APP_VERSION=${NEXT_PUBLIC_APP_VERSION}
+      - ORACLE_URL=${ORACLE_URL}
+      - ORACLE_API_KEY=${ORACLE_API_KEY}
     depends_on:
       postgres-staging:
         condition: service_healthy
