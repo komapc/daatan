@@ -234,6 +234,45 @@ builder  ──► runner      (slim production app image, ~200MB)
 
 ---
 
+## Secrets Bootstrap (`fetch-secrets.sh`)
+
+Runtime environment variables are stored in AWS Secrets Manager as two
+bundles — `daatan-env-prod` and `daatan-env-staging`, each holding a full
+`.env` blob. They are pulled onto the instance at deploy time by
+`scripts/fetch-secrets.sh` (called from `scripts/blue-green-deploy.sh`).
+
+**Deploy-env → Secrets Manager name mapping (load-bearing alias):**
+
+| `blue-green-deploy.sh` argument | `fetch-secrets.sh` `ENVIRONMENT` | Secret name |
+|---|---|---|
+| `production` | `production` | `daatan-env-prod` |
+| `staging`    | `staging`    | `daatan-env-staging` |
+
+The `production → prod` rename happens inside `fetch-secrets.sh` via a
+`case` statement (historical: Terraform created the secret as
+`daatan-env-prod` but the deploy pipeline uses the word `production`
+everywhere else). **If you add a new deploy environment, extend the
+`case` statement** — otherwise the pull will silently fall back to
+the existing `.env` on the server and your new values will never go
+live. The fall-back is intentional (so a transient IAM/network blip
+doesn't brick a deploy) but it also hides genuine misconfigurations,
+so watch the `⚠️ Could not fetch …` line in the deploy log.
+
+```bash
+# scripts/fetch-secrets.sh — excerpt
+ENVIRONMENT=${1:-prod}
+case "$ENVIRONMENT" in
+  production) SECRET_SUFFIX="prod" ;;
+  *)          SECRET_SUFFIX="$ENVIRONMENT" ;;
+esac
+SECRET_NAME="daatan-env-${SECRET_SUFFIX}"
+```
+
+See [SECRETS.md](../SECRETS.md) for the full list of variables carried
+in the bundles, the update flow, and rotation runbooks.
+
+---
+
 ## Manual / Emergency Operations
 
 ### Manual staging deploy (workflow dispatch)
