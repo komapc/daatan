@@ -26,10 +26,10 @@
 |-------|------------|---------|
 | Framework | Next.js (App Router) | 15.5.x |
 | Language | TypeScript | 5.x |
-| Runtime | Node.js | 20.x |
+| Runtime | Node.js | 24.x |
 | Styling | Tailwind CSS | 3.4.x |
 | Database | PostgreSQL | 16 |
-| ORM | Prisma | 5.22.x |
+| ORM | Prisma | 7.x |
 | Authentication | NextAuth.js | 4.24.x |
 | Testing | Vitest | 4.x |
 | Containerization | Docker | Latest |
@@ -550,7 +550,7 @@ aws ssm send-command --instance-ids <ID> --document-name AWS-RunShellScript \
 docker exec -e DATABASE_URL=postgresql://daatan:<PASS>@postgres:5432/daatan \
   daatan-app-staging npx prisma migrate deploy
 
-# Check migration status (24 migrations total as of v1.7.70)
+# Check migration status (30 migrations total as of v1.8.x)
 docker exec daatan-app-staging npx prisma migrate status
 
 # Manual backup (script handles this automatically)

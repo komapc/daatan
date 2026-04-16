@@ -45,7 +45,7 @@ DAaTAn is a reputation-based product that enables testing understanding and fore
 | Framework | Next.js 15 (React 18) |
 | Language | TypeScript 5 |
 | Styling | Tailwind CSS |
-| Database | PostgreSQL 16 + Prisma 5.22 |
+| Database | PostgreSQL 16 + Prisma 7.x |
 | Auth | NextAuth.js (Google OAuth) |
 | Hosting | AWS EC2 (eu-central-1) |
 | Storage | AWS S3 (avatars) |

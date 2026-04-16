@@ -282,6 +282,9 @@ List all forecasts regardless of status.
 ### `PATCH /api/admin/forecasts/[id]`
 Admin-level forecast update (no status restrictions).
 
+### `POST /api/admin/forecasts/backfill-rules` — Admin
+LLM-generate resolution rules for all forecasts that are missing them. Long-running (up to 300s).
+
 ### `GET /api/admin/approvals`
 List forecasts with status `PENDING_APPROVAL`.
 
@@ -340,5 +343,28 @@ Basic health check. Returns `{ ok: true, db: "ok" }`.
 ### `GET /api/health/auth`
 Auth subsystem health check.
 
+### `GET /api/health/search`
+Search provider health check. Returns credit/status for Serper, SerpAPI, and ScrapingBee.
+
 ### `GET /api/cron/cleanup`
 Clean up expired/stale data. Intended for cron use.
+
+---
+
+## Auth
+
+### `POST /api/auth/signup`
+Register a new account with email + password.
+
+### `POST /api/auth/forgot-password`
+Send a password reset email.
+
+### `POST /api/auth/reset-password`
+Reset password using a token from the reset email.
+
+---
+
+## Account
+
+### `DELETE /api/account`
+Delete the authenticated user's account and all associated data.

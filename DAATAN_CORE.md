@@ -25,11 +25,11 @@ Every feature must pass ALL checks:
 If any check fails → out of scope.
 
 ## 2. Technology Stack
-- **Framework:** Next.js 14 (App Router)
+- **Framework:** Next.js 15 (App Router)
 - **Language:** TypeScript 5
 - **Frontend:** React 18, Tailwind CSS
-- **Backend:** Next.js API Routes, Node.js 20
-- **Database:** PostgreSQL 16 (Prisma 5.22 ORM)
+- **Backend:** Next.js API Routes, Node.js 24
+- **Database:** PostgreSQL 16 (Prisma 7.x ORM)
 - **Authentication:** NextAuth.js (Google OAuth)
 - **Testing:** Vitest
 - **AI Integration:** Gemini (primary), Ollama (fallback), OpenRouter (bots), AWS Bedrock (prompt management)
