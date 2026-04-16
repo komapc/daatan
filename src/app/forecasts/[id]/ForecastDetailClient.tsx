@@ -354,7 +354,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
             {error || 'Prediction not found'}
           </h2>
           <button
-            onClick={() => { router.push('/'); router.refresh(); }}
+            onClick={() => router.back()}
             className="text-blue-600 hover:underline"
           >
             {t('backToFeed')}
@@ -368,7 +368,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
     <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">
       {/* Back Link */}
       <button
-        onClick={() => { router.push('/'); router.refresh(); }}
+        onClick={() => router.back()}
         className="inline-flex items-center gap-1 text-gray-500 hover:text-text-secondary mb-6"
       >
         <ChevronLeft className="w-4 h-4" />
