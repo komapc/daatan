@@ -90,7 +90,15 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
         // Clean up news anchor title: strip subtitle after " | " or " – " (common in Wikipedia-style titles)
         const rawQuery = prediction.newsAnchor?.title || prediction.claimText
         const searchQuery = rawQuery.split(/\s+[|—–]\s+/)[0].trim()
-        const searchResults = await searchArticles(searchQuery, 4)
+        // `searchArticles` throws "Search API not available" when every provider in the
+        // fallback chain fails (e.g. transient ECONNRESET on DDG when paid providers are
+        // unconfigured). Convert that into a clean 503 instead of leaking a 500 to the client.
+        let searchResults: SearchResult[]
+        try {
+            searchResults = await searchArticles(searchQuery, 4)
+        } catch {
+            return apiError('No recent articles found for this forecast. Try again later.', 503)
+        }
 
         if (searchResults.length === 0) {
             return apiError('No recent articles found for this forecast. Try again later.', 503)

@@ -174,6 +174,27 @@ it('returns 400 when prediction is not ACTIVE', async () => {
     expect(res.status).toBe(503)
   })
 
+  it('returns 503 (not 500) when all search providers fail', async () => {
+    // Regression: searchArticles throws "Search API not available" when every provider
+    // in the fallback chain fails (transient DDG ECONNRESET, misconfigured keys, etc.).
+    // The route must convert that into a clean 503, not leak a 500.
+    mockAuth.mockResolvedValue({ user: authenticatedUser })
+    mockPrisma.prediction.findFirst.mockResolvedValue({
+      id: 'pred1',
+      authorId: 'user1',
+      status: 'ACTIVE',
+      claimText: 'Test claim',
+      contextUpdatedAt: null,
+      newsAnchor: null,
+    })
+    mockSearchArticles.mockRejectedValue(new Error('Search API not available'))
+
+    const res = await POST(makeRequest('pred1', 'POST'), routeParams('pred1'))
+    expect(res.status).toBe(503)
+    const data = await res.json()
+    expect(data.error).toMatch(/no recent articles/i)
+  })
+
   it('creates snapshot and updates prediction on success', async () => {
     mockAuth.mockResolvedValue({ user: authenticatedUser })
     mockPrisma.prediction.findFirst.mockResolvedValue({
