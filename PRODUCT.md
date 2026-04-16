@@ -245,4 +245,4 @@ The influence/strength of a specific prediction in scoring/visibility calculatio
 - [FORECASTS_FLOW.md](./FORECASTS_FLOW.md) — Prediction system implementation
 - [TODO.md](./TODO.md) — Development tasks and priorities
 - [TECH.md](./TECH.md) — Technical architecture, infrastructure, and project structure
-- [DEPLOYMENT.md](./DEPLOYMENT.md) — Deployment procedures and operations
+- [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) — Deployment procedures and operations (canonical)
