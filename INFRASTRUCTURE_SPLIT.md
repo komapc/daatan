@@ -25,8 +25,8 @@ with production and staging workloads on separate, isolated hardware.
 - **Backups:** `daatan-db-backups-272007598366` (S3 bucket)
 
 ### Staging Environment
-- **Instance:** `i-0286f62b47117b85c` (t3.small: 2GB RAM)
-- **IP Address:** `63.182.198.80` (Elastic IP)
+- **Instance:** `i-0406d237ca5d92cdf` (t3.small: 2GB RAM)
+- **IP Address:** `63.180.208.34` (Elastic IP)
 - **Tag:** `Environment=staging`, `Name=daatan-backend`
 - **IAM Role:** `daatan-ec2-role-staging`
 - **Domains:**
@@ -53,7 +53,7 @@ daatan.com          (A)     → 3.126.238.216   (production)
 www.daatan.com      (CNAME) → daatan.com
 api.daatan.com      (A)     → 3.126.238.216   (production)
 mission.daatan.com  (A)     → 3.126.238.216   (production)
-staging.daatan.com  (A)     → 63.182.198.80   (staging)
+staging.daatan.com  (A)     → 63.180.208.34   (staging)
 ```
 
 ## SSL/TLS Certificates
@@ -75,14 +75,14 @@ All access is via **AWS SSM only** — port 22 is closed on both instances.
 aws ssm start-session --target i-04ea44d4243d35624
 
 # Staging instance
-aws ssm start-session --target i-0286f62b47117b85c
+aws ssm start-session --target i-0406d237ca5d92cdf
 ```
 
 Or use the `/ssm` slash command in Claude Code.
 
 ## Deployment Process
 - Production changes: Git tag `v*` → CI/CD → `i-04ea44d4243d35624` (filter: `Environment=prod`)
-- Staging changes: Push to `main` → CI/CD → `i-0286f62b47117b85c` (filter: `Environment=staging`)
+- Staging changes: Push to `main` → CI/CD → `i-0406d237ca5d92cdf` (filter: `Environment=staging`)
 - Both use GitHub Actions workflow (`.github/workflows/deploy.yml`)
 - Both use blue-green deployment via `scripts/blue-green-deploy.sh`
 
@@ -114,6 +114,6 @@ Database backups created during the split process (March 2026):
 Both stored in S3 with manual upload prefix for easy recovery.
 
 ---
-**Last Updated:** March 22, 2026
+**Last Updated:** April 16, 2026
 **Terraform Module:** ec2.tf, route53.tf, s3.tf
 **Infrastructure Status:** ✅ Operational
