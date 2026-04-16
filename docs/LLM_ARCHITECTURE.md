@@ -94,3 +94,34 @@ const response = await botLlm.generateContent({ prompt: "..." })
 
 1.  Create a class in `src/lib/llm/providers/` implementing `LLMProvider`.
 2.  Add it to the initialization list in `src/lib/llm/index.ts`.
+
+## Oracle API Integration
+
+Calibrated probability estimates for binary forecast questions come from the **TruthMachine Oracle API** (`oracle.daatan.com`) — a FastAPI microservice in the [retro repo](https://github.com/komapc/retro) that runs a multi-source article ingest + gatekeeper + extractor pipeline with credibility-weighted aggregation.
+
+### Client
+
+*   **`src/lib/services/oracle.ts`**: Oracle client.
+    *   `getOracleProbability(question)` → `number | null` in `[0, 1]`. Never throws; returns `null` on any failure so callers can fall back silently.
+    *   `checkOracleHealth()` → `boolean`. Verifies the API is reachable and its version starts with `0.1`.
+
+### Fallback chain for forecast "AI %"
+
+1.  **Oracle** (`POST /forecast` with 20s timeout) — calibrated multi-source estimate.
+2.  **LLM `guessChances`** (Gemini → Ollama via the provider chain above) — used if Oracle is not configured, times out, returns a placeholder response, or has zero usable articles.
+
+### Call sites
+
+*   `POST /api/forecasts/[id]/context` — step 3 "AI probability" in the context analysis route.
+*   `POST /api/forecasts/express/guess` — the express forecast guess endpoint.
+
+In both routes, Oracle is tried first; if it returns `null`, the existing `guessChances` path runs unchanged.
+
+### Configuration
+
+| Env var | Required? | Notes |
+|---------|-----------|-------|
+| `ORACLE_URL` | Optional | Defaults to unconfigured (falls back to LLM). Set to `https://oracle.daatan.com` to enable. |
+| `ORACLE_API_KEY` | Optional | Must match the `ORACLE_API_KEY` set in `oracle-api.service` on the retro EC2 instance. Stored in AWS Secrets Manager at `openclaw/oracle-api-key`. |
+
+Both are validated in `src/env.ts` and delivered to production/staging via the `daatan-env-prod` / `daatan-env-staging` AWS Secrets Manager bundles, which are pulled to `~/app/.env` on each deploy by `scripts/fetch-secrets.sh`.
