@@ -264,7 +264,7 @@ The API is the product.
 | 7 | API auth & billing | Deferred — open/internal first |
 | 8 | Commercial branding | TBD (TruthMachine is working name) |
 | 9 | **Legal review** — Investment Adviser registration risk | ⚠️ Must resolve before commercial launch |
-| 10 | Orchestration layer (OpenClaw vs custom) | TBD during build |
+| 10 | Orchestration layer (custom wrapper over LiteLLM) | Resolved — LiteLLM + instructor |
 | 11 | Political lean axis learning (model-derived, not manual) | Phase 2 — model fills it |
 | 12 | Daatan ↔ TruthMachine API integration | Future — fully separate for now |
 | 13 | PulseNews integration | Future — product exists but not priority |

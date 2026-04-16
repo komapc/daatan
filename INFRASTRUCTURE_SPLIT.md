@@ -15,7 +15,6 @@ with production and staging workloads on separate, isolated hardware.
   - `daatan.com` (primary)
   - `www.daatan.com` (CNAME to daatan.com)
   - `api.daatan.com` (production)
-  - `mission.daatan.com` (OpenClaw chat interface)
 - **Services:**
   - `daatan-app` — Production Next.js application
   - `daatan-postgres` — Production PostgreSQL database
@@ -52,7 +51,6 @@ with production and staging workloads on separate, isolated hardware.
 daatan.com          (A)     → 3.126.238.216   (production)
 www.daatan.com      (CNAME) → daatan.com
 api.daatan.com      (A)     → 3.126.238.216   (production)
-mission.daatan.com  (A)     → 3.126.238.216   (production)
 staging.daatan.com  (A)     → 63.180.208.34   (staging)
 ```
 

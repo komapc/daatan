@@ -29,7 +29,7 @@ Full, currently-active list. Vars marked "GitHub secret" are **also** needed at 
 | `SERPAPI_API_KEY` | ✅ | — | SerpAPI (fallback search) |
 | `SCRAPINGBEE_API_KEY` | ✅ | — | ScrapingBee (fallback fetch) |
 | `ORACLE_URL` | ✅ | — | TruthMachine Oracle base URL (typically `https://oracle.daatan.com`) |
-| `ORACLE_API_KEY` | ✅ | — | Shared `x-api-key` for the Oracle; canonical copy at `openclaw/oracle-api-key` |
+| `ORACLE_API_KEY` | ✅ | — | Shared `x-api-key` for the Oracle; canonical copy at `openclaw/oracle-api-key` (legacy naming — OpenClaw is decommissioned, prefix retained for back-compat) |
 | `GA_MEASUREMENT_ID_PROD` | ✅ | — | Google Analytics 4 — production |
 | `GA_MEASUREMENT_ID_STAGING` | ✅ | — | Google Analytics 4 — staging |
 | `TELEGRAM_BOT_TOKEN` | ✅ | ✅ | @DaatanClawBot token |
@@ -134,7 +134,7 @@ rm /tmp/daatan-env-prod.env
 
 Then redeploy (tag `v*` for prod, push to `main` for staging) — or, if you need the new value live without a redeploy, SSM in and `docker restart daatan-app` (prod) / `daatan-app-staging` (staging) after manually running `./scripts/fetch-secrets.sh production` (or `staging`) from `~/app/`.
 
-For the shared `ORACLE_API_KEY` specifically, also update the canonical copy at `openclaw/oracle-api-key` so the retro EC2 (`oracle-api.service`) stays in sync.
+For the shared `ORACLE_API_KEY` specifically, also update the canonical copy at `openclaw/oracle-api-key` in the retro account (legacy prefix — see note above) so the retro EC2 (`oracle-api.service`) stays in sync.
 
 ---
 

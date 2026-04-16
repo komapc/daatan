@@ -38,15 +38,6 @@ resource "aws_route53_record" "www" {
   records = [var.domain_name]
 }
 
-# Mission/OpenClaw chat interface subdomain (production)
-resource "aws_route53_record" "mission" {
-  zone_id = aws_route53_zone.main.zone_id
-  name    = "mission.${var.domain_name}"
-  type    = "A"
-  ttl     = 300
-  records = [aws_eip.production.public_ip]
-}
-
 # ====================================================================
 # STAGING DOMAIN RECORDS (staging.daatan.com)
 # ====================================================================
