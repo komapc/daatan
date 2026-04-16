@@ -94,3 +94,41 @@ const response = await botLlm.generateContent({ prompt: "..." })
 
 1.  Create a class in `src/lib/llm/providers/` implementing `LLMProvider`.
 2.  Add it to the initialization list in `src/lib/llm/index.ts`.
+
+---
+
+## Oracle API Integration (Planned)
+
+The **TruthMachine Oracle** (`oracle.daatan.com`) is a separate FastAPI service that returns calibrated probability estimates for binary questions, weighted by each source's historical Brier score from the Factum Atlas.
+
+**Status:** API + pipeline implemented. Pending EC2 deploy and daatan wiring.
+
+### Integration point
+
+```typescript
+// src/lib/services/oracle.ts  (to be created)
+export async function getOracleForecast(question: string): Promise<number | null> {
+  const url = process.env.ORACLE_URL
+  const key = process.env.ORACLE_API_KEY
+  if (!url || !key) return null
+
+  const res = await fetch(`${url}/forecast`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': key },
+    body: JSON.stringify({ question }),
+    signal: AbortSignal.timeout(20_000),
+  })
+  if (!res.ok) return null
+  const data = await res.json()
+  return (data.mean + 1) / 2  // convert stance [-1,1] → probability [0,1]
+}
+```
+
+### Required env vars (not yet added)
+
+| Variable | Description |
+|---|---|
+| `ORACLE_URL` | `https://oracle.daatan.com` |
+| `ORACLE_API_KEY` | Shared secret (same key configured in `oracle-api.service` on retro EC2) |
+
+See [retro/docs/ORACLE_API.md](https://github.com/komapc/retro/blob/main/docs/ORACLE_API.md) for full Oracle API documentation.

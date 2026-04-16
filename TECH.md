@@ -39,6 +39,7 @@
 | IaC | Terraform | 1.x |
 | CI/CD | GitHub Actions | - |
 | AI Integration | Google Gemini API (primary), Ollama (fallback), OpenRouter (bots) | - |
+| Oracle API | TruthMachine Oracle (`oracle.daatan.com`) — calibrated probability estimates | - |
 | Prompt Management | AWS Bedrock Prompt Management | - |
 | Email | Resend | - |
 | Push Notifications | web-push (VAPID) | - |
