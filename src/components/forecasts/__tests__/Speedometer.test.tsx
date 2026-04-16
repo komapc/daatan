@@ -70,4 +70,43 @@ describe('Speedometer component', () => {
     const { getByText } = render(<Speedometer percentage={NaN} label="Test NaN" color="green" />)
     expect(getByText('50%')).toBeDefined()
   })
+
+  it('does not render an AI CI band when bounds are omitted', () => {
+    const { container } = render(
+      <Speedometer percentage={50} aiPercentage={50} label="Test" color="green" />,
+    )
+    expect(container.querySelector('[data-testid="ai-ci-band"]')).toBeNull()
+  })
+
+  it('renders a translucent AI CI arc band when aiCiLow/aiCiHigh are provided', () => {
+    const { container } = render(
+      <Speedometer
+        percentage={50}
+        aiPercentage={50}
+        aiCiLow={40}
+        aiCiHigh={60}
+        label="Test"
+        color="green"
+      />,
+    )
+    const band = container.querySelector('[data-testid="ai-ci-band"]') as SVGPathElement | null
+    expect(band).not.toBeNull()
+    expect(band?.getAttribute('d')).toMatch(/^M /)
+    // Band should be translucent amber
+    expect(Number(band?.getAttribute('opacity'))).toBeLessThan(1)
+  })
+
+  it('does not render an AI CI band when aiCiHigh <= aiCiLow', () => {
+    const { container } = render(
+      <Speedometer
+        percentage={50}
+        aiPercentage={50}
+        aiCiLow={60}
+        aiCiHigh={60}
+        label="Test"
+        color="green"
+      />,
+    )
+    expect(container.querySelector('[data-testid="ai-ci-band"]')).toBeNull()
+  })
 })

@@ -203,6 +203,107 @@ describe('ContextTimeline', () => {
     expect(link).toHaveAttribute('target', '_blank')
   })
 
+  it('renders Oracle CI text and sources when oracleSnapshot is present', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({
+        currentContext: 'Oracle-backed context',
+        contextUpdatedAt: '2026-02-20T10:00:00Z',
+        snapshots: [
+          {
+            id: 's1',
+            summary: 'Oracle-backed context',
+            sources: [],
+            createdAt: '2026-02-20T10:00:00Z',
+            externalProbability: 64,
+            externalReasoning: 'TruthMachine Oracle (calibrated multi-source estimate)',
+            oracleSnapshot: {
+              mean: 0.28,
+              std: 0.12,
+              ciLow: 52,
+              ciHigh: 76,
+              articlesUsed: 3,
+              sources: [
+                {
+                  sourceId: 'reuters',
+                  sourceName: 'Reuters',
+                  url: 'https://reuters.com/x',
+                  stance: 0.7,
+                  certainty: 0.85,
+                  credibilityWeight: 0.95,
+                  claims: ['Claim A'],
+                },
+                {
+                  sourceId: 'blog',
+                  sourceName: 'Random Blog',
+                  url: 'https://blog.example.com/x',
+                  stance: -0.4,
+                  certainty: 0.3,
+                  credibilityWeight: 0.25,
+                  claims: ['Claim B'],
+                },
+              ],
+            },
+          },
+        ],
+      }),
+    })
+
+    renderWithIntl(<ContextTimeline predictionId="p1" canAnalyze={false} />)
+
+    // Confidence interval text
+    await waitFor(() => {
+      expect(screen.getByText(/95% CI: 52–76%/)).toBeInTheDocument()
+    })
+
+    // Articles-used suffix appended to reasoning
+    expect(screen.getByText(/3 articles/)).toBeInTheDocument()
+
+    // Oracle sources sub-section with both sources rendered as chips
+    const oracleSection = screen.getByTestId('oracle-sources')
+    expect(oracleSection).toBeInTheDocument()
+    expect(screen.getByText('Reuters')).toBeInTheDocument()
+    expect(screen.getByText('Random Blog')).toBeInTheDocument()
+
+    // Stance badges (YES for positive stance, NO for negative)
+    expect(screen.getAllByText('YES').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('NO').length).toBeGreaterThanOrEqual(1)
+
+    // Source chip links open in a new tab
+    const reutersChip = screen.getByText('Reuters').closest('a')
+    expect(reutersChip).toHaveAttribute('href', 'https://reuters.com/x')
+    expect(reutersChip).toHaveAttribute('target', '_blank')
+  })
+
+  it('omits the Oracle sources sub-section when oracleSnapshot is null', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({
+        currentContext: 'LLM-fallback context',
+        contextUpdatedAt: '2026-02-20T10:00:00Z',
+        snapshots: [
+          {
+            id: 's1',
+            summary: 'LLM-fallback context',
+            sources: [],
+            createdAt: '2026-02-20T10:00:00Z',
+            externalProbability: 55,
+            externalReasoning: 'Based on articles',
+            oracleSnapshot: null,
+          },
+        ],
+      }),
+    })
+
+    renderWithIntl(<ContextTimeline predictionId="p1" canAnalyze={false} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('55%')).toBeInTheDocument()
+    })
+    expect(screen.queryByTestId('oracle-sources')).toBeNull()
+    expect(screen.queryByText(/95% CI/)).toBeNull()
+  })
+
   it('pluralizes previous updates correctly', async () => {
     mockFetch.mockResolvedValue({
       ok: true,
