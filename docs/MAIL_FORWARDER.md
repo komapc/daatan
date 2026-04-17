@@ -67,6 +67,13 @@ Both Mark and Andrey can send outbound email from their `@daatan.com` addresses 
 | 2026-04-07 | PR #601 stripped all headers by slicing at first `\r\n\r\n`, causing "From header is missing" Gmail rejection | PR #605: removed the strip block entirely |
 | 2026-04-07 | Bounce loop: DSNs sent to `forwarder@daatan.com` were re-forwarded, causing cascades | PR #605: drop messages whose destination == `VERIFIED_FROM` |
 | 2026-04-07 | `Return-Path:` replaced with `""` left a leading blank line, causing all headers to appear as email body in Gmail | Commit on `infra/sync-terraform-drift`: regex now includes `\r?\n` to remove the entire line |
+| 2026-04-15 | Folded `From:` / `Reply-To:` headers (common in Google Groups, mailing lists, Apple Mail) left their continuation line as an orphan after the single-line rewrite. SES saw two address-like tokens and rejected with `MessageRejected: The following identities failed the check`. `Sender:`/`Resent-*` headers with unverified addresses had the same effect. Dropped ~10–15 mails between Apr 7 and Apr 17 before the alarm made it visible. | Folded-header-aware regex helpers (`replaceHeader`/`removeHeader`); `Sender`/`Resent-From`/`Resent-Sender`/`Resent-Return-Path` stripped from outbound. Unit test in `infra/mail-forwarder/index.test.mjs`. |
+
+Run the unit tests locally with:
+
+```bash
+node --test infra/mail-forwarder/index.test.mjs
+```
 
 ## Deploying changes
 

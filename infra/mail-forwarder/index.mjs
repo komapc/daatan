@@ -9,6 +9,33 @@ const FORWARD_MAPPING = JSON.parse(process.env.FORWARD_MAPPING || "{}");
 const VERIFIED_FROM = process.env.VERIFIED_FROM || "forwarder@daatan.com";
 const CATCH_ALL_DESTINATIONS = (process.env.CATCH_ALL_DESTINATIONS || "").split(",").filter(Boolean);
 
+// RFC 5322 header utilities. Headers can be "folded" across multiple lines:
+// any continuation line begins with whitespace (space or tab). A naive
+// single-line regex (e.g. /^From: .*/m) only rewrites the first line and
+// leaves continuation lines as orphans that the MTA still reads as part of
+// the header value — which is how unverified addresses end up in our
+// rewritten From: and trigger SES MessageRejected.
+const headerBodyRe = (name) =>
+  new RegExp(`^${name}:[^\\r\\n]*(?:\\r?\\n[ \\t][^\\r\\n]*)*`, "mi");
+
+const headerWithTerminatorRe = (name) =>
+  new RegExp(`^${name}:[^\\r\\n]*(?:\\r?\\n[ \\t][^\\r\\n]*)*\\r?\\n`, "mi");
+
+const replaceHeader = (raw, name, newValue) =>
+  raw.replace(headerBodyRe(name), `${name}: ${newValue}`);
+
+const removeHeader = (raw, name) => raw.replace(headerWithTerminatorRe(name), "");
+
+const hasHeader = (raw, name) =>
+  new RegExp(`^${name}:`, "mi").test(raw);
+
+const extractHeader = (raw, name) => {
+  const m = raw.match(headerBodyRe(name));
+  if (!m) return null;
+  // Strip the "Name:" prefix, collapse folded whitespace into a single space.
+  return m[0].replace(new RegExp(`^${name}:`, "i"), "").replace(/\s+/g, " ").trim();
+};
+
 export const handler = async (event) => {
   const sesRecord = event.Records[0].ses;
   const messageId = sesRecord.mail.messageId;
@@ -49,44 +76,46 @@ export const handler = async (event) => {
   }
 
   // 3. Prepare Forwarding Headers
-  // We need to replace From: and add Reply-To:
-  // Note: We use regex to handle multi-line headers and case-sensitivity
-  
-  // Extract original From
-  const fromMatch = rawEmail.match(/^From: (.*(?:\r?\n\s+.*)*)/mi);
-  const originalFrom = fromMatch ? fromMatch[1].trim() : "unknown@example.com";
+  const originalFrom = extractHeader(rawEmail, "From") || "unknown@example.com";
 
-  // Rewrite From: to our verified identity
-  // We preserve the "Display Name" if possible
+  // Preserve the Display Name part when rewriting From:.
   let displayPart = "";
   if (originalFrom.includes("<")) {
     displayPart = originalFrom.split("<")[0].trim();
   } else if (!originalFrom.includes("@")) {
     displayPart = originalFrom;
   }
-  
-  const newFrom = displayPart 
+
+  const newFrom = displayPart
     ? `${displayPart} via Daatan <${VERIFIED_FROM}>`
     : `Daatan Forwarder <${VERIFIED_FROM}>`;
 
-  // Remove existing Reply-To and From, then inject new ones
-  rawEmail = rawEmail.replace(/^From: .*/mi, `From: ${newFrom}`);
-  
-  if (rawEmail.match(/^Reply-To: /mi)) {
-    rawEmail = rawEmail.replace(/^Reply-To: .*/mi, `Reply-To: ${originalFrom}`);
-  } else {
-    // Inject Reply-To right after From
-    rawEmail = rawEmail.replace(/^From: (.*)/mi, `From: $1\r\nReply-To: ${originalFrom}`);
-  }
-  
-  // Rewrite To: so Gmail shows the actual recipient, not mark@daatan.com
-  rawEmail = rawEmail.replace(/^To: .*/mi, `To: ${destinations.join(", ")}`);
+  // Rewrite From: (folded-aware — see header regex comment above).
+  rawEmail = replaceHeader(rawEmail, "From", newFrom);
 
-  // Remove Return-Path (SES will add its own).
-  // Must include the line terminator — replacing with "" leaves a bare \r\n
-  // at the start of the message, which RFC 2822 parsers treat as end-of-headers,
-  // causing all subsequent headers to appear as body text in Gmail.
-  rawEmail = rawEmail.replace(/^Return-Path:[^\r\n]*\r?\n/mi, "");
+  // Reply-To: either replace in place or inject right after From:.
+  if (hasHeader(rawEmail, "Reply-To")) {
+    rawEmail = replaceHeader(rawEmail, "Reply-To", originalFrom);
+  } else {
+    rawEmail = rawEmail.replace(
+      headerBodyRe("From"),
+      (m) => `${m}\r\nReply-To: ${originalFrom}`
+    );
+  }
+
+  // Rewrite To: so Gmail shows the actual destination, not e.g. mark@daatan.com.
+  rawEmail = replaceHeader(rawEmail, "To", destinations.join(", "));
+
+  // SES rejects SendRawEmail if any address in From/Sender/Return-Path/Resent-*
+  // headers references an unverified identity. Strip everything that can carry
+  // a third-party address; SES will regenerate what it needs.
+  //
+  // Return-Path removal must include the trailing line terminator, otherwise
+  // a leading blank line fools RFC 2822 parsers into treating the rest of the
+  // headers as body text in Gmail.
+  for (const name of ["Return-Path", "Sender", "Resent-From", "Resent-Sender", "Resent-Return-Path"]) {
+    rawEmail = removeHeader(rawEmail, name);
+  }
 
   // 4. Send Raw Email
   try {
