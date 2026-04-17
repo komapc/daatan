@@ -1,4 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { prisma } from '@/lib/prisma'
+
+// Passthrough interactive transactions so `tx.*` hits the same mocked `prisma.*` delegates.
+beforeEach(() => {
+  vi.mocked(prisma.$transaction).mockImplementation(async (fn: (tx: typeof prisma) => Promise<unknown>) =>
+    fn(prisma),
+  )
+})
 
 // ─── Prisma mock ─────────────────────────────────────────────────────────────
 vi.mock('@/lib/prisma', () => ({
@@ -52,6 +60,7 @@ vi.mock('@/lib/services/rss', () => ({
 // ─── Commitment mock ─────────────────────────────────────────────────────────
 vi.mock('@/lib/services/commitment', () => ({
   createCommitment: vi.fn(),
+  emitCreateCommitmentSideEffects: vi.fn(),
 }))
 
 // ─── Logger mock ─────────────────────────────────────────────────────────────
@@ -1243,7 +1252,8 @@ describe('runDueBots — CU auto-refill (ensureBotCU)', () => {
     await runDueBots(false)
 
     expect(prisma.user.findUnique).not.toHaveBeenCalled()
-    expect(prisma.$transaction).not.toHaveBeenCalled()
+    // Forecast create + initial stake use a single interactive transaction (CU refill path was removed).
+    expect(prisma.$transaction).toHaveBeenCalled()
   })
 
 })

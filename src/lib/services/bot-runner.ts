@@ -24,7 +24,11 @@ import { prisma } from '@/lib/prisma'
 import { createBotLLMService } from '@/lib/llm'
 import { getPromptTemplate, fillPrompt } from '@/lib/llm/bedrock-prompts'
 import { fetchRssFeeds, detectHotTopics, type HotTopic } from '@/lib/services/rss'
-import { createCommitment } from '@/lib/services/commitment'
+import {
+  createCommitment,
+  emitCreateCommitmentSideEffects,
+  type CommitmentPrediction,
+} from '@/lib/services/commitment'
 import { createLogger } from '@/lib/logger'
 import { slugify, generateUniqueSlug } from '@/lib/utils/slugify'
 import { BotAction } from '@prisma/client'
@@ -603,67 +607,80 @@ async function processTopic(
     }).then(rows => rows.map(r => r.slug).filter((s): s is string => s !== null))
     const uniqueSlug = generateUniqueSlug(baseSlug, existingSlugs)
 
-    // Create as DRAFT
-    const prediction = await prisma.prediction.create({
-      data: {
-        authorId: bot.userId,
-        claimText: forecast.claimText.slice(0, 499),
-        slug: uniqueSlug,
-        detailsText: forecast.detailsText,
-        outcomeType: 'BINARY',
-        outcomePayload: { type: 'BINARY' },
-        resolutionRules: forecast.resolutionRules,
-        resolveByDatetime: resolveBy,
-        source: 'bot',
-        status: 'DRAFT',
-        shareToken: crypto.randomBytes(8).toString('hex'),
-        tags: forecast.tags?.length
-          ? {
-            connectOrCreate: forecast.tags.slice(0, 5).map((tagName: string) => {
-              const tagSlug = slugify(tagName)
-              return {
-                where: { slug: tagSlug },
-                create: { name: tagName, slug: tagSlug },
-              }
-            }),
-          }
-          : undefined,
-      },
-    })
+    const predictionCreateData = {
+      authorId: bot.userId,
+      claimText: forecast.claimText.slice(0, 499),
+      slug: uniqueSlug,
+      detailsText: forecast.detailsText,
+      outcomeType: 'BINARY' as const,
+      outcomePayload: { type: 'BINARY' as const },
+      resolutionRules: forecast.resolutionRules,
+      resolveByDatetime: resolveBy,
+      source: 'bot' as const,
+      status: 'DRAFT' as const,
+      shareToken: crypto.randomBytes(8).toString('hex'),
+      tags: forecast.tags?.length
+        ? {
+          connectOrCreate: forecast.tags.slice(0, 5).map((tagName: string) => {
+            const tagSlug = slugify(tagName)
+            return {
+              where: { slug: tagSlug },
+              create: { name: tagName, slug: tagSlug },
+            }
+          }),
+        }
+        : undefined,
+    }
 
     // Publish: determine status based on approval workflow
     // If requireApprovalForForecasts is true, create as PENDING_APPROVAL (don't stake yet)
     // If autoApprove is true, go directly to ACTIVE
     // Otherwise, use PENDING_APPROVAL (standard bot behavior)
     const publishStatus = bot.requireApprovalForForecasts ? 'PENDING_APPROVAL' : (bot.autoApprove ? 'ACTIVE' : 'PENDING_APPROVAL')
-    await prisma.prediction.update({
-      where: { id: prediction.id },
-      data: { status: publishStatus, publishedAt: new Date() },
-    })
 
-    // Only stake on forecast if NOT requiring approval
-    // If approval is required, staking happens when user approves via /api/forecasts/[id]/approve
-    //
-    // NOTE: Forecast creation and staking are separate operations (not transactional).
-    // If staking fails after forecast creation, the forecast exists without bot's stake.
-    // This is acceptable because:
-    // - For approval workflow: staking is deferred to approval time anyway
-    // - For auto-approve bots: occasional orphaned forecasts are acceptable vs. blocking all creation
-    // - The commitment service logs staking failures
-    // TODO: Consider wrapping in transaction for autoApprove=true bots in future refactor
-    //
+    let prediction
     let stakeAmount: number | null = null
-    if (!bot.requireApprovalForForecasts) {
-      stakeAmount = randomInt(bot.stakeMin, bot.stakeMax)
-      const result = await createCommitment(bot.userId, prediction.id, {
-        confidence: stakeAmount, // Positive = YES; bot always votes yes on its own forecast
-      })
 
-      if (!result.ok) {
-        log.warn(
-          { botId: bot.id, predictionId: prediction.id, error: result.error, forecastStatus: publishStatus },
-          'Staking failed on forecast (forecast created but not staked - potential orphan)',
+    if (bot.requireApprovalForForecasts) {
+      prediction = await prisma.prediction.create({ data: predictionCreateData })
+      await prisma.prediction.update({
+        where: { id: prediction.id },
+        data: { status: publishStatus, publishedAt: new Date() },
+      })
+    } else {
+      const stake = randomInt(bot.stakeMin, bot.stakeMax)
+      stakeAmount = stake
+      try {
+        const out = await prisma.$transaction(async (tx) => {
+          const pred = await tx.prediction.create({ data: predictionCreateData })
+          await tx.prediction.update({
+            where: { id: pred.id },
+            data: { status: publishStatus, publishedAt: new Date() },
+          })
+          const stakeResult = await createCommitment(
+            bot.userId,
+            pred.id,
+            { confidence: stake },
+            { tx },
+          )
+          if (!stakeResult.ok) {
+            throw new Error(stakeResult.error ?? 'Commitment failed')
+          }
+          return { prediction: pred, stakeResult }
+        })
+        prediction = out.prediction
+        emitCreateCommitmentSideEffects(
+          { ...out.prediction, options: [] } as CommitmentPrediction,
+          out.stakeResult.data,
+          { confidence: stake },
         )
+      } catch (stakeErr) {
+        log.error(
+          { err: stakeErr, botId: bot.id, topic: topicTitle },
+          'Forecast create+stake transaction failed',
+        )
+        await logBotAction(bot.id, 'ERROR', { title: topicTitle }, null, String(stakeErr), dryRun)
+        return 'error'
       }
     }
 
