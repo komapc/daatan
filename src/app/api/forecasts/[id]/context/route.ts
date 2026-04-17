@@ -8,6 +8,9 @@ import { llmService } from '@/lib/llm'
 import { searchArticles, type SearchResult } from '@/lib/utils/webSearch'
 import { guessChances } from '@/lib/llm/expressPrediction'
 import { getOracleForecast, type OracleSource } from '@/lib/services/oracle'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('forecast-context')
 
 export const dynamic = 'force-dynamic'
 
@@ -96,9 +99,25 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
         let searchResults: SearchResult[]
         try {
             searchResults = await searchArticles(searchQuery, 4)
-        } catch {
+        } catch (err) {
+            log.warn(
+                { predictionId: prediction.id, searchQuery, err },
+                'context.search_failed',
+            )
             return apiError('No recent articles found for this forecast. Try again later.', 503)
         }
+
+        log.info(
+            {
+                predictionId: prediction.id,
+                searchQuery,
+                resultCount: searchResults.length,
+                resultDomains: searchResults.map((r) => {
+                    try { return new URL(r.url).hostname } catch { return r.url }
+                }),
+            },
+            'context.search_done',
+        )
 
         if (searchResults.length === 0) {
             return apiError('No recent articles found for this forecast. Try again later.', 503)
@@ -151,6 +170,16 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
             const toPercent = (v: number) => Math.round(((v + 1) / 2) * 100)
             externalProbability = toPercent(oracleForecast.mean)
             externalReasoning = 'TruthMachine Oracle (calibrated multi-source estimate)'
+            log.info(
+                {
+                    predictionId: prediction.id,
+                    path: 'oracle',
+                    probability: externalProbability,
+                    articlesUsed: oracleForecast.articles_used,
+                    sourceCount: oracleForecast.sources.length,
+                },
+                'context.ai_estimate',
+            )
             oracleSnapshotData = {
                 mean: oracleForecast.mean,
                 std: oracleForecast.std,
@@ -181,8 +210,20 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
                 )
                 externalProbability = chances.probability
                 externalReasoning = chances.reasoning
-            } catch {
-                // Non-fatal: proceed without probability estimate
+                log.info(
+                    {
+                        predictionId: prediction.id,
+                        path: 'llm_fallback',
+                        probability: externalProbability,
+                        reason: 'oracle_returned_null',
+                    },
+                    'context.ai_estimate',
+                )
+            } catch (err) {
+                log.warn(
+                    { predictionId: prediction.id, err, path: 'llm_fallback' },
+                    'context.ai_estimate_failed',
+                )
             }
         }
 
