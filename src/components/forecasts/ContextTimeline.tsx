@@ -213,33 +213,67 @@ export default function ContextTimeline({
               </a>
             </div>
           )}
-          {/* Sources from latest snapshot */}
-          {snapshots[0]?.sources && (snapshots[0].sources as Source[]).length > 0 && (
-            <div className="mt-3 pt-3 border-t border-navy-600">
-              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">{t('sources')}</p>
-              <div className="flex flex-wrap gap-2">
-                {(snapshots[0].sources as Source[]).map((src, i) => (
-                  <a
-                    key={i}
-                    href={src.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-cobalt-light hover:underline"
-                  >
-                    {src.source || src.title}
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                ))}
+          {/* Sources from latest snapshot.
+              We hide entries whose URL matches the news anchor to avoid the
+              "Based on: maariv / Sources: maariv" double-display when the
+              search returned the same article (or only that article). */}
+          {(() => {
+            const allSources = (snapshots[0]?.sources as Source[] | undefined) ?? []
+            const anchorUrl = newsAnchor?.url
+            const dedupedSources = anchorUrl
+              ? allSources.filter((s) => s.url !== anchorUrl)
+              : allSources
+            if (dedupedSources.length === 0) return null
+            return (
+              <div className="mt-3 pt-3 border-t border-navy-600">
+                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">{t('sources')}</p>
+                <div className="flex flex-wrap gap-2">
+                  {dedupedSources.map((src, i) => (
+                    <a
+                      key={i}
+                      href={src.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-cobalt-light hover:underline"
+                    >
+                      {src.source || src.title}
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
-          {/* AI probability estimate */}
+            )
+          })()}
+          {/* AI probability estimate.
+              Source badge ("Oracle" vs "LLM estimate") makes the provenance
+              of the number explicit: when the Oracle is unreachable / has no
+              usable predictions, daatan silently falls back to the legacy
+              LLM `guessChances` path which returns only a point estimate.
+              Without the badge the user sees a single number with no CI and
+              has no way to know which path produced it. */}
           {snapshots[0]?.externalProbability != null && (() => {
             const latest = snapshots[0]
             const oracle = latest.oracleSnapshot ?? null
+            const isOracle = oracle != null
             return (
               <div className="mt-3 pt-3 border-t border-navy-600">
-                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">AI estimate</p>
+                <div className="flex items-center gap-2 mb-1">
+                  <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">AI estimate</p>
+                  <span
+                    className={
+                      isOracle
+                        ? 'text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+                        : 'text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-500/15 text-gray-400 border border-gray-500/30'
+                    }
+                    title={
+                      isOracle
+                        ? 'TruthMachine Oracle — calibrated multi-source estimate with confidence interval'
+                        : 'LLM fallback — single point estimate, used when Oracle has no usable sources'
+                    }
+                  >
+                    {isOracle ? 'Oracle' : 'LLM estimate'}
+                  </span>
+                </div>
                 <p className="text-2xl font-black text-amber-400">
                   {latest.externalProbability}%
                   {oracle && (
