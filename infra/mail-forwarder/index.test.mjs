@@ -1,14 +1,14 @@
-// Standalone unit test for the mail forwarder header-rewrite logic.
-// Uses Node's built-in `node:test` runner (no dependencies).
+// Unit tests for the mail forwarder header-rewrite logic.
 //
-// Run:  node --test infra/mail-forwarder/index.test.mjs
+// Run with the app test suite: npm test
+// Or standalone: npx vitest run infra/mail-forwarder/index.test.mjs
 //
 // Exercises the three failure modes we've actually hit in production:
 //   1. Folded From: header leaking an unverified address (SES MessageRejected).
 //   2. Return-Path: removal leaving a leading blank line (Gmail body corruption).
 //   3. Sender:/Resent-* headers carrying unverified addresses into SES.
 
-import { test } from "node:test";
+import { test } from "vitest";
 import assert from "node:assert/strict";
 
 // Re-export the pure helpers by importing the module after stubbing
