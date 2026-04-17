@@ -6,7 +6,12 @@ const log = createLogger('oracle')
 const EXPECTED_API_VERSION = '0.1'
 const FORECAST_TIMEOUT_MS = 20_000
 const HEALTH_TIMEOUT_MS = 5_000
-const DEFAULT_MAX_ARTICLES = 3
+// Bumped from 3 → 5 to give the Oracle headroom when some results 404,
+// paywall, or get gatekeeper-rejected. Budget impact is small: the Oracle
+// already runs gatekeeper+extractor in parallel, so wall-clock ≈ slowest
+// article, not sum. Bedrock Nova is cheap per call. Oracle-side cap
+// (`settings.max_articles = 5`) already supports this.
+const DEFAULT_MAX_ARTICLES = 5
 
 /** Per-source signal returned by the Oracle's /forecast endpoint. */
 export interface OracleSource {
