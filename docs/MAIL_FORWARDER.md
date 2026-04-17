@@ -18,9 +18,11 @@ Sender → SES inbound (eu-central-1) → S3 (raw email stored)
 
 | Recipient | Forwarded to |
 |-----------|-------------|
-| `mark@daatan.com` | `komapc@gmail.com` |
+| `mark@daatan.com` | `komapc@gmail.com`, `andrey1bar@gmail.com` |
 | `andrey@daatan.com` | `andrey1bar@gmail.com` |
 | anything else (`office@`, etc.) | `komapc@gmail.com`, `andrey1bar@gmail.com` (catch-all) |
+
+**Invariant:** every incoming `@daatan.com` mail must reach at least `andrey1bar@gmail.com`. Any new mapping added to `FORWARD_MAPPING` must include it.
 
 Configured via Lambda env var `FORWARD_MAPPING` (JSON) and `CATCH_ALL_DESTINATIONS` (comma-separated). Managed in `terraform/ses.tf`.
 
@@ -83,12 +85,28 @@ aws lambda update-function-code --function-name daatan-mail-forwarder-prod --zip
 # Then run terraform apply to sync state hash
 ```
 
-## Monitoring
+## Monitoring & alerting
 
-CloudWatch log group: `/aws/lambda/daatan-mail-forwarder-prod`
+**CloudWatch log group**: `/aws/lambda/daatan-mail-forwarder-prod`
 
 Useful filter patterns:
+
 - `"Processing message"` — all invocations with recipient
 - `"Email forwarded"` — successful forwards
 - `"Failed to forward"` — errors
 - `"Dropping bounce"` — suppressed DSN loops
+
+**Alarm**: `daatan-mail-forwarder-errors-prod` fires on any `AWS/Lambda Errors > 0` in a 5-minute window, publishing to SNS topic `daatan-mail-forwarder-alerts-prod`. The topic is subscribed **directly to `andrey1bar@gmail.com` and `komapc@gmail.com`** — not to `ops@daatan.com` — because an alarm about a broken forwarder must not depend on the forwarder to deliver. The first `terraform apply` that creates these resources will send each Gmail a confirmation link; both must be clicked for alerts to arrive.
+
+## Retention & archive
+
+- **Durable archive**: the Gmail inboxes — that's where mail lives long-term.
+- **S3 staging bucket** (`daatan-mail-inbound-prod-*`): **14-day retention**, transitioned to Glacier Instant Retrieval at day 7. This exists only as a recovery window if the Lambda breaks silently; in normal operation every message has already been forwarded to Gmail by the time SES writes it to S3.
+- **No versioning** on the bucket — once lifecycle expires an object, it is gone.
+
+To recover a message that failed to forward within the 14-day window:
+
+```bash
+aws s3 cp s3://daatan-mail-inbound-prod-272007598366/<messageId> /tmp/mail.eml
+# Inspect, fix the Lambda, re-invoke if needed.
+```

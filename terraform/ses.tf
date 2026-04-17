@@ -33,15 +33,24 @@ resource "aws_s3_bucket" "mail" {
 resource "aws_s3_bucket_lifecycle_configuration" "mail" {
   bucket = aws_s3_bucket.mail.id
 
+  # Retain raw MIME for 14 days so that if the forwarder Lambda breaks
+  # silently on a weekend we have a recovery window. Transition to
+  # Glacier Instant Retrieval at 7 days to keep cost near zero
+  # (catch-all still sends a live copy to Gmail, which is the durable archive).
   rule {
-    id     = "auto-delete-old-mail"
+    id     = "archive-then-expire"
     status = "Enabled"
 
-    expiration {
-      days = 1
+    filter {}
+
+    transition {
+      days          = 7
+      storage_class = "GLACIER_IR"
     }
 
-    filter {}
+    expiration {
+      days = 14
+    }
   }
 }
 
@@ -143,8 +152,11 @@ resource "aws_lambda_function" "forwarder" {
     variables = {
       S3_BUCKET              = aws_s3_bucket.mail.id
       VERIFIED_FROM          = "forwarder@${var.domain_name}"
+      # Invariant: every mapping must include andrey1bar@gmail.com so Andrey
+      # sees every incoming mail. The catch-all below already satisfies this
+      # for any address not listed here.
       FORWARD_MAPPING        = jsonencode({
-        "mark@daatan.com"   = "komapc@gmail.com",
+        "mark@daatan.com"   = ["komapc@gmail.com", "andrey1bar@gmail.com"],
         "andrey@daatan.com" = "andrey1bar@gmail.com"
       })
       CATCH_ALL_DESTINATIONS = "komapc@gmail.com,andrey1bar@gmail.com"
@@ -192,4 +204,52 @@ resource "aws_ses_receipt_rule" "forwarding" {
     function_arn = aws_lambda_function.forwarder.arn
     position     = 2
   }
+}
+
+# ====================================================================
+# FORWARDER ALERTING (SNS + CloudWatch alarm)
+#
+# If the Lambda fails, raw mail still lands in S3 but is invisible to
+# anyone. The S3 lifecycle expires it after 14 days, so we need a signal
+# within that window.
+#
+# SNS is subscribed directly to personal Gmail addresses (NOT to
+# ops@daatan.com) on purpose: an alarm about the forwarder being broken
+# must not depend on the forwarder to be delivered.
+# ====================================================================
+
+resource "aws_sns_topic" "mail_alerts" {
+  name = "daatan-mail-forwarder-alerts-${var.environment}"
+}
+
+resource "aws_sns_topic_subscription" "mail_alerts_andrey" {
+  topic_arn = aws_sns_topic.mail_alerts.arn
+  protocol  = "email"
+  endpoint  = "andrey1bar@gmail.com"
+}
+
+resource "aws_sns_topic_subscription" "mail_alerts_mark" {
+  topic_arn = aws_sns_topic.mail_alerts.arn
+  protocol  = "email"
+  endpoint  = "komapc@gmail.com"
+}
+
+resource "aws_cloudwatch_metric_alarm" "forwarder_errors" {
+  alarm_name          = "daatan-mail-forwarder-errors-${var.environment}"
+  alarm_description   = "daatan-mail-forwarder-${var.environment} Lambda threw an error. Check /aws/lambda/daatan-mail-forwarder-${var.environment} logs. Raw mail is still in s3://${aws_s3_bucket.mail.id}/ for up to 14 days."
+  namespace           = "AWS/Lambda"
+  metric_name         = "Errors"
+  statistic           = "Sum"
+  comparison_operator = "GreaterThanThreshold"
+  threshold           = 0
+  period              = 300
+  evaluation_periods  = 1
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    FunctionName = aws_lambda_function.forwarder.function_name
+  }
+
+  alarm_actions = [aws_sns_topic.mail_alerts.arn]
+  ok_actions    = [aws_sns_topic.mail_alerts.arn]
 }
