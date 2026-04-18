@@ -56,6 +56,8 @@ type Prediction = {
   resolutionRules?: string | null
   sentiment?: string | null
   confidence?: number | null
+  aiCiLow?: number | null
+  aiCiHigh?: number | null
   extractedEntities?: string[]
   consensusLine?: string | null
   sourceSummary?: string | null
@@ -526,8 +528,8 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
                   percentage={marketProb}
                   userPercentage={userProb}
                   aiPercentage={aiEstimate?.probability ?? prediction.confidence ?? undefined}
-                  aiCiLow={aiEstimate?.ciLow}
-                  aiCiHigh={aiEstimate?.ciHigh}
+                  aiCiLow={aiEstimate?.ciLow ?? prediction.aiCiLow ?? undefined}
+                  aiCiHigh={aiEstimate?.ciHigh ?? prediction.aiCiHigh ?? undefined}
                   size="xl"
                   onUserPercentageChange={prediction.status === 'ACTIVE'
                     ? (pct) => setUserConfidence(Math.round(pct * 2 - 100))

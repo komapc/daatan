@@ -221,6 +221,11 @@ model Prediction {
   consensusLine     String?    @db.Text        // "Based on 4 sources, 72% indicate escalation"
   sourceSummary     String?    @db.Text        // Aggregated summary from multi-source articles
 
+  // AI forecast 95% CI (0–100). Denormalized from the latest Oracle ContextSnapshot
+  // so list endpoints can render the range on cards without a join.
+  aiCiLow  Int? @map("ai_ci_low")
+  aiCiHigh Int? @map("ai_ci_high")
+
   // Status & timestamps
   status           PredictionStatus @default(DRAFT)
   createdAt        DateTime         @default(now())

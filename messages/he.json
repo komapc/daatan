@@ -112,7 +112,13 @@
     "commitToPrompt": "רוצה להתחייב לתחזית זו?",
     "signInToCommit": "התחבר להתחייב",
     "resolverActions": "פעולות פותר",
-    "backToFeed": "חזרה לתחזיות"
+    "backToFeed": "חזרה לתחזיות",
+    "voter": "מצביע אחד",
+    "voters": "{count} מצביעים",
+    "votersWithStake": "{count} מצביעים · {cu} CU",
+    "voterWithStake": "מצביע אחד · {cu} CU",
+    "aiEstimateTooltip": "הערכת AI: {probability}%",
+    "aiEstimateWithCiTooltip": "הערכת AI: {probability}% (CI 95% {low}–{high}%)"
   },
   "Forecasts": {
     "title": "עריכת תחזית",

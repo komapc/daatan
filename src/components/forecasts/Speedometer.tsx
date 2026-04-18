@@ -176,21 +176,56 @@ export default function Speedometer({
         <path d={greenArc} fill="none" stroke={`url(#${theme.greenGradientId})`} strokeWidth={strokeWidth} strokeLinecap="round" />
         <path d={redArc} fill="none" stroke={`url(#${theme.redGradientId})`} strokeWidth={strokeWidth} strokeLinecap="round" />
 
-        {/* AI Confidence Interval band (rendered under ticks so AI tick sits on top) */}
+        {/* AI Confidence Interval band (rendered under ticks so AI tick sits on top).
+            Wider than the arc stroke so it shows as a bright amber halo extending
+            outside the green/red arc — visibility on saturated colors was poor when
+            the band was the same width as the arc (amber washed into green). */}
         {aiCiLow !== undefined && aiCiHigh !== undefined && aiCiHigh > aiCiLow && (() => {
           const ciLo = Math.min(100, Math.max(0, aiCiLow))
           const ciHi = Math.min(100, Math.max(0, aiCiHigh))
-          const ciArc = createArcPath(center, radius, 180 + (ciLo / 100) * 180, 180 + (ciHi / 100) * 180)
+          const startDeg = 180 + (ciLo / 100) * 180
+          const endDeg = 180 + (ciHi / 100) * 180
+          const ciArc = createArcPath(center, radius, startDeg, endDeg)
+          const getTick = (deg: number) => {
+            const rad = (deg * Math.PI) / 180
+            const half = strokeWidth / 2 + 4
+            return {
+              x1: center.x + (radius - half) * Math.cos(rad),
+              y1: center.y + (radius - half) * Math.sin(rad),
+              x2: center.x + (radius + half) * Math.cos(rad),
+              y2: center.y + (radius + half) * Math.sin(rad),
+            }
+          }
+          const lowTick = getTick(startDeg)
+          const highTick = getTick(endDeg)
           return (
-            <path
-              data-testid="ai-ci-band"
-              d={ciArc}
-              fill="none"
-              stroke={theme.needleAI}
-              strokeWidth={strokeWidth}
-              strokeLinecap="butt"
-              opacity={0.25}
-            />
+            <g>
+              <path
+                data-testid="ai-ci-band"
+                d={ciArc}
+                fill="none"
+                stroke={theme.needleAI}
+                strokeWidth={strokeWidth + 4}
+                strokeLinecap="butt"
+                opacity={0.6}
+              />
+              <line
+                data-testid="ai-ci-tick-low"
+                x1={lowTick.x1} y1={lowTick.y1} x2={lowTick.x2} y2={lowTick.y2}
+                stroke={theme.needleAI}
+                strokeWidth={1.5}
+                strokeLinecap="round"
+                opacity={0.9}
+              />
+              <line
+                data-testid="ai-ci-tick-high"
+                x1={highTick.x1} y1={highTick.y1} x2={highTick.x2} y2={highTick.y2}
+                stroke={theme.needleAI}
+                strokeWidth={1.5}
+                strokeLinecap="round"
+                opacity={0.9}
+              />
+            </g>
           )
         })()}
 

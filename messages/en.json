@@ -112,7 +112,13 @@
     "commitToPrompt": "Want to commit to this prediction?",
     "signInToCommit": "Sign In to Commit",
     "resolverActions": "Resolver Actions",
-    "backToFeed": "Back to Forecasts"
+    "backToFeed": "Back to Forecasts",
+    "voter": "{count} voter",
+    "voters": "{count} voters",
+    "votersWithStake": "{count} voters · {cu} CU staked",
+    "voterWithStake": "{count} voter · {cu} CU staked",
+    "aiEstimateTooltip": "AI estimate: {probability}%",
+    "aiEstimateWithCiTooltip": "AI estimate: {probability}% (95% CI {low}–{high}%)"
   },
   "Forecasts": {
     "title": "Edit Forecast",

@@ -12,6 +12,9 @@ import { createLogger } from '@/lib/logger'
 
 const log = createLogger('forecast-context')
 
+/** Per-forecast cooldown between context updates (hours). */
+const CONTEXT_UPDATE_COOLDOWN_HOURS = 1
+
 export const dynamic = 'force-dynamic'
 
 /** Raw Next.js 15 context where params is a Promise. Used for direct exports. */
@@ -68,12 +71,15 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
             return apiError('Context can only be updated for active predictions', 400)
         }
 
-        // Rate Limiting: once per 24 hours per forecast
+        // Rate Limiting: per-forecast cooldown
         if (prediction.contextUpdatedAt) {
             const now = new Date()
             const timeDiffHours = (now.getTime() - new Date(prediction.contextUpdatedAt).getTime()) / (1000 * 60 * 60)
-            if (timeDiffHours < 24) {
-                return apiError('Context was updated recently. Please wait 24 hours between updates.', 429)
+            if (timeDiffHours < CONTEXT_UPDATE_COOLDOWN_HOURS) {
+                const label = CONTEXT_UPDATE_COOLDOWN_HOURS === 1
+                    ? 'an hour'
+                    : `${CONTEXT_UPDATE_COOLDOWN_HOURS} hours`
+                return apiError(`Context was updated recently. Please wait ${label} between updates.`, 429)
             }
         }
 
@@ -161,6 +167,11 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
         // 3. AI probability — try Oracle first, fall back to LLM guessChances
         let externalProbability: number | null = null
         let externalReasoning: string | null = null
+        // Denormalized CI bounds for the Prediction row so list endpoints render
+        // the range without joining ContextSnapshot. Null when the LLM-fallback path
+        // ran (no CI available) so we know to clear stale values from a prior Oracle run.
+        let predictionCiLow: number | null = null
+        let predictionCiHigh: number | null = null
         // When the Oracle path is taken, persist the full payload (CI + sources) so
         // the UI can render provenance. Shape is camelCased for frontend consumption.
         let oracleSnapshotData: Prisma.InputJsonValue | null = null
@@ -169,6 +180,8 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
         if (oracleForecast !== null) {
             const toPercent = (v: number) => Math.round(((v + 1) / 2) * 100)
             externalProbability = toPercent(oracleForecast.mean)
+            predictionCiLow = toPercent(oracleForecast.ci_low)
+            predictionCiHigh = toPercent(oracleForecast.ci_high)
             externalReasoning = 'TruthMachine Oracle (calibrated multi-source estimate)'
             log.info(
                 {
@@ -183,8 +196,8 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
             oracleSnapshotData = {
                 mean: oracleForecast.mean,
                 std: oracleForecast.std,
-                ciLow: toPercent(oracleForecast.ci_low),
-                ciHigh: toPercent(oracleForecast.ci_high),
+                ciLow: predictionCiLow,
+                ciHigh: predictionCiHigh,
                 articlesUsed: oracleForecast.articles_used,
                 sources: oracleForecast.sources.map((s: OracleSource) => ({
                     sourceId: s.source_id,
@@ -245,6 +258,9 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
                     detailsText: newContextSummary,
                     contextUpdatedAt: now,
                     ...(externalProbability !== null && { confidence: externalProbability }),
+                    // Clear stale CI if this run took the LLM-fallback path after a prior Oracle run
+                    aiCiLow: predictionCiLow,
+                    aiCiHigh: predictionCiHigh,
                 },
             }),
         ])
