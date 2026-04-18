@@ -381,17 +381,17 @@ export default function ForecastCard({
             })()}
             {prediction.status === 'ACTIVE' && prediction.confidence != null && (() => {
               const hasRange = prediction.aiCiLow != null && prediction.aiCiHigh != null && prediction.aiCiHigh > prediction.aiCiLow
+              const spread = hasRange ? Math.round((prediction.aiCiHigh! - prediction.aiCiLow!) / 2) : 0
               const titleKey = hasRange ? 'aiEstimateWithCiTooltip' : 'aiEstimateTooltip'
               return (
                 <span
                   className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider border border-amber-500/30 bg-amber-500/10 text-amber-400"
                   title={t(titleKey, {
                     probability: prediction.confidence,
-                    low: prediction.aiCiLow ?? 0,
-                    high: prediction.aiCiHigh ?? 0,
+                    spread,
                   })}
                 >
-                  AI: {hasRange ? `${prediction.aiCiLow}–${prediction.aiCiHigh}%` : `${prediction.confidence}%`}
+                  AI: {hasRange ? `${prediction.confidence}±${spread}%` : `${prediction.confidence}%`}
                 </span>
               )
             })()}

@@ -118,7 +118,7 @@
     "votersWithStake": "{count} участников · {cu} CU",
     "voterWithStake": "{count} участник · {cu} CU",
     "aiEstimateTooltip": "Оценка ИИ: {probability}%",
-    "aiEstimateWithCiTooltip": "Оценка ИИ: {probability}% (95% CI {low}–{high}%)"
+    "aiEstimateWithCiTooltip": "Оценка ИИ: {probability}% ± {spread}%"
   },
   "Forecasts": {
     "title": "Редактировать прогноз",

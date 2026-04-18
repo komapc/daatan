@@ -118,7 +118,7 @@
     "votersWithStake": "{count} voters · {cu} CU staked",
     "voterWithStake": "{count} voter · {cu} CU staked",
     "aiEstimateTooltip": "AI estimate: {probability}%",
-    "aiEstimateWithCiTooltip": "AI estimate: {probability}% (95% CI {low}–{high}%)"
+    "aiEstimateWithCiTooltip": "AI estimate: {probability}% ± {spread}%"
   },
   "Forecasts": {
     "title": "Edit Forecast",

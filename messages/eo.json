@@ -118,7 +118,7 @@
     "votersWithStake": "{count} voĉdonantoj · {cu} CU",
     "voterWithStake": "{count} voĉdonanto · {cu} CU",
     "aiEstimateTooltip": "AI-takso: {probability}%",
-    "aiEstimateWithCiTooltip": "AI-takso: {probability}% (95% CI {low}–{high}%)"
+    "aiEstimateWithCiTooltip": "AI-takso: {probability}% ± {spread}%"
   },
   "Forecasts": {
     "title": "Redakti Prognozon",
