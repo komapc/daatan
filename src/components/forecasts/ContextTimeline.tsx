@@ -276,9 +276,9 @@ export default function ContextTimeline({
                 </div>
                 <p className="text-2xl font-black text-amber-400">
                   {latest.externalProbability}%
-                  {oracle && (
+                  {oracle && oracle.ciHigh > oracle.ciLow && (
                     <span className="ml-2 text-xs font-normal text-gray-400">
-                      (95% CI: {oracle.ciLow}–{oracle.ciHigh}%)
+                      ± {Math.round((oracle.ciHigh - oracle.ciLow) / 2)}%
                     </span>
                   )}
                 </p>
