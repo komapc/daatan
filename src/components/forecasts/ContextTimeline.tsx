@@ -119,7 +119,7 @@ export default function ContextTimeline({
       }
     }
     fetchTimeline()
-  }, [predictionId])
+  }, [predictionId, onAiEstimate])
 
   const handleAnalyze = async () => {
     setIsAnalyzing(true)

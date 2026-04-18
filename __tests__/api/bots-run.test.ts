@@ -24,8 +24,7 @@ describe('POST /api/bots/run', () => {
     process.env.BOT_RUNNER_SECRET = VALID_SECRET
   })
 
-  it.skip('returns 401 when x-bot-runner-secret header is missing', async () => {
-    // TODO: Re-enable after fixing secret validation
+  it('returns 401 when x-bot-runner-secret header is missing', async () => {
     const { POST } = await import('@/app/api/bots/run/route')
 
     const req = new NextRequest('http://localhost/api/bots/run', { method: 'POST' })
@@ -36,8 +35,7 @@ describe('POST /api/bots/run', () => {
     expect(data.error).toBe('Unauthorized')
   })
 
-  it.skip('returns 401 when x-bot-runner-secret header has a wrong value', async () => {
-    // TODO: Re-enable after fixing secret validation
+  it('returns 401 when x-bot-runner-secret header has a wrong value', async () => {
     const { POST } = await import('@/app/api/bots/run/route')
 
     const req = new NextRequest('http://localhost/api/bots/run', {
@@ -51,20 +49,24 @@ describe('POST /api/bots/run', () => {
     expect(data.error).toBe('Unauthorized')
   })
 
-  it.skip('returns 401 when BOT_RUNNER_SECRET env var is not set', async () => {
-    // TODO: Re-enable after fixing secret validation
-    const { POST } = await import('@/app/api/bots/run/route')
+  it('returns 401 when BOT_RUNNER_SECRET env var is not set', async () => {
+    const prior = process.env.BOT_RUNNER_SECRET
     delete process.env.BOT_RUNNER_SECRET
+    try {
+      const { POST } = await import('@/app/api/bots/run/route')
 
-    const req = new NextRequest('http://localhost/api/bots/run', {
-      method: 'POST',
-      headers: { 'x-bot-runner-secret': 'any-value' },
-    })
-    const res = await POST(req)
-    const data = await res.json()
+      const req = new NextRequest('http://localhost/api/bots/run', {
+        method: 'POST',
+        headers: { 'x-bot-runner-secret': 'any-value' },
+      })
+      const res = await POST(req)
+      const data = await res.json()
 
-    expect(res.status).toBe(401)
-    expect(data.error).toBe('Unauthorized')
+      expect(res.status).toBe(401)
+      expect(data.error).toBe('Unauthorized')
+    } finally {
+      if (prior !== undefined) process.env.BOT_RUNNER_SECRET = prior
+    }
   })
 
   it('calls runDueBots(false) and returns summaries when secret is correct', async () => {

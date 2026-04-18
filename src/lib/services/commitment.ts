@@ -7,8 +7,8 @@ import type { ServiceResult } from '@/lib/types/service'
 
 const log = createLogger('commitment-service')
 
-/** Prediction with options, as needed for commitment validation. */
-interface CommitmentPrediction {
+/** Prediction with options, as needed for commitment validation and notifications. */
+export interface CommitmentPrediction {
   id: string
   status: string
   authorId: string
@@ -86,65 +86,46 @@ const commitmentInclude = {
   },
 } satisfies Prisma.CommitmentInclude
 
-/**
- * Create a new commitment on a prediction.
- * Stores confidence (-100..100) in cuCommitted; derives binaryChoice from sign.
- */
-export async function createCommitment(
-  userId: string,
+type CommitmentRow = Prisma.CommitmentGetPayload<{ include: typeof commitmentInclude }>
+
+const writeCommitmentInTx = async (
+  tx: Prisma.TransactionClient,
   predictionId: string,
+  prediction: CommitmentPrediction,
+  user: { id: string; rs: number },
+  userId: string,
   data: CreateCommitmentData,
-): Promise<ServiceResult<Prisma.CommitmentGetPayload<{ include: typeof commitmentInclude }>>> {
-  const [prediction, user] = await Promise.all([
-    prisma.prediction.findUnique({
+): Promise<CommitmentRow> => {
+  const isFirstCommitment = (await tx.commitment.count({ where: { predictionId } })) === 0
+
+  const created = await tx.commitment.create({
+    data: {
+      userId,
+      predictionId,
+      optionId: data.optionId,
+      binaryChoice: deriveBinaryChoice(prediction.outcomeType, data.confidence),
+      cuCommitted: data.confidence,
+      rsSnapshot: user.rs,
+    },
+    include: commitmentInclude,
+  })
+
+  if (isFirstCommitment) {
+    await tx.prediction.update({
       where: { id: predictionId },
-      include: { options: true },
-    }),
-    prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true, rs: true },
-    }),
-  ])
-
-  if (!prediction) return { ok: false, error: 'Prediction not found', status: 404 }
-  if (!user) return { ok: false, error: 'User not found', status: 404 }
-
-  const eligibilityError = validateCommitEligibility(prediction, userId)
-  if (eligibilityError) return eligibilityError
-
-  const existing = await prisma.commitment.findUnique({
-    where: { userId_predictionId: { userId, predictionId } },
-  })
-  if (existing) return { ok: false, error: 'Already committed to this prediction', status: 400 }
-
-  const outcomeError = validateOutcomeChoice(prediction, data)
-  if (outcomeError) return outcomeError
-
-  const commitment = await prisma.$transaction(async (tx) => {
-    const isFirstCommitment = (await tx.commitment.count({ where: { predictionId } })) === 0
-
-    const created = await tx.commitment.create({
-      data: {
-        userId,
-        predictionId,
-        optionId: data.optionId,
-        binaryChoice: deriveBinaryChoice(prediction.outcomeType, data.confidence),
-        cuCommitted: data.confidence,
-        rsSnapshot: user.rs,
-      },
-      include: commitmentInclude,
+      data: { lockedAt: new Date() },
     })
+  }
 
-    if (isFirstCommitment) {
-      await tx.prediction.update({
-        where: { id: predictionId },
-        data: { lockedAt: new Date() },
-      })
-    }
+  return created
+}
 
-    return created
-  })
-
+/** Telegram + in-app notifications after a commitment row exists (e.g. after an outer transaction commits). */
+export const emitCreateCommitmentSideEffects = (
+  prediction: CommitmentPrediction,
+  commitment: CommitmentRow,
+  data: CreateCommitmentData,
+): void => {
   const choiceLabel = prediction.outcomeType === 'MULTIPLE_CHOICE'
     ? commitment.option?.text ?? 'option'
     : data.confidence >= 0 ? 'Yes' : 'No'
@@ -158,8 +139,59 @@ export async function createCommitment(
     message: `${commitment.user.name || commitment.user.username || 'Someone'} committed with ${data.confidence > 0 ? '+' : ''}${data.confidence} confidence (${choiceLabel}) on "${prediction.claimText.substring(0, 80)}"`,
     link: `/forecasts/${prediction.slug || prediction.id}`,
     predictionId: prediction.id,
-    actorId: userId,
+    actorId: commitment.userId,
   })
+}
+
+export type CreateCommitmentTxOptions = { tx: Prisma.TransactionClient }
+
+/**
+ * Create a new commitment on a prediction.
+ * Stores confidence (-100..100) in cuCommitted; derives binaryChoice from sign.
+ * Pass `{ tx }` to participate in a caller-managed transaction (no nested $transaction); side effects run only after commit via {@link emitCreateCommitmentSideEffects}.
+ */
+export async function createCommitment(
+  userId: string,
+  predictionId: string,
+  data: CreateCommitmentData,
+  options?: CreateCommitmentTxOptions,
+): Promise<ServiceResult<CommitmentRow>> {
+  const db = options?.tx ?? prisma
+
+  const [prediction, user] = await Promise.all([
+    db.prediction.findUnique({
+      where: { id: predictionId },
+      include: { options: true },
+    }),
+    db.user.findUnique({
+      where: { id: userId },
+      select: { id: true, rs: true },
+    }),
+  ])
+
+  if (!prediction) return { ok: false, error: 'Prediction not found', status: 404 }
+  if (!user) return { ok: false, error: 'User not found', status: 404 }
+
+  const eligibilityError = validateCommitEligibility(prediction, userId)
+  if (eligibilityError) return eligibilityError
+
+  const existing = await db.commitment.findUnique({
+    where: { userId_predictionId: { userId, predictionId } },
+  })
+  if (existing) return { ok: false, error: 'Already committed to this prediction', status: 400 }
+
+  const outcomeError = validateOutcomeChoice(prediction, data)
+  if (outcomeError) return outcomeError
+
+  let commitment: CommitmentRow
+  if (options?.tx) {
+    commitment = await writeCommitmentInTx(options.tx, predictionId, prediction, user, userId, data)
+  } else {
+    commitment = await prisma.$transaction((tx) =>
+      writeCommitmentInTx(tx, predictionId, prediction, user, userId, data),
+    )
+    emitCreateCommitmentSideEffects(prediction, commitment, data)
+  }
 
   return { ok: true, data: commitment, status: 201 }
 }
