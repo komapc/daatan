@@ -251,9 +251,9 @@ describe('ContextTimeline', () => {
 
     renderWithIntl(<ContextTimeline predictionId="p1" canAnalyze={false} />)
 
-    // Confidence interval text
+    // Spread shown as ±halfWidth (ciHigh=76, ciLow=52 → (76-52)/2 = 12)
     await waitFor(() => {
-      expect(screen.getByText(/95% CI: 52–76%/)).toBeInTheDocument()
+      expect(screen.getByText(/± 12%/)).toBeInTheDocument()
     })
 
     // Articles-used suffix appended to reasoning
@@ -301,7 +301,7 @@ describe('ContextTimeline', () => {
       expect(screen.getByText('55%')).toBeInTheDocument()
     })
     expect(screen.queryByTestId('oracle-sources')).toBeNull()
-    expect(screen.queryByText(/95% CI/)).toBeNull()
+    expect(screen.queryByText(/±/)).toBeNull()
   })
 
   it('pluralizes previous updates correctly', async () => {
