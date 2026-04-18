@@ -112,7 +112,13 @@
     "commitToPrompt": "Хотите сделать ставку на это предсказание?",
     "signInToCommit": "Войдите, чтобы сделать ставку",
     "resolverActions": "Действия эксперта",
-    "backToFeed": "Назад к прогнозам"
+    "backToFeed": "Назад к прогнозам",
+    "voter": "{count} участник",
+    "voters": "{count} участников",
+    "votersWithStake": "{count} участников · {cu} CU",
+    "voterWithStake": "{count} участник · {cu} CU",
+    "aiEstimateTooltip": "Оценка ИИ: {probability}%",
+    "aiEstimateWithCiTooltip": "Оценка ИИ: {probability}% (95% CI {low}–{high}%)"
   },
   "Forecasts": {
     "title": "Редактировать прогноз",

@@ -69,6 +69,9 @@ export type Prediction = {
   userHasCommitted?: boolean
   yesCount?: number
   noCount?: number
+  confidence?: number | null
+  aiCiLow?: number | null
+  aiCiHigh?: number | null
 }
 
 interface ForecastCardProps {
@@ -360,11 +363,38 @@ export default function ForecastCard({
               </div>
             )}
 
-            {prediction.totalCuCommitted !== undefined && prediction.totalCuCommitted > 0 && (
-              <span className="flex items-center gap-1 px-2.5 py-0.5 bg-amber-900/20 text-amber-400 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider border border-amber-100">
-                Confidence: {prediction.totalCuCommitted}
-              </span>
-            )}
+            {prediction._count.commitments > 0 && (() => {
+              const n = prediction._count.commitments
+              const cu = prediction.totalCuCommitted
+              const titleKey = cu && cu > 0
+                ? (n === 1 ? 'voterWithStake' : 'votersWithStake')
+                : (n === 1 ? 'voter' : 'voters')
+              return (
+                <span
+                  className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider border border-navy-600 bg-navy-800 text-gray-300"
+                  title={t(titleKey, { count: n, cu: cu ?? 0 })}
+                >
+                  <Users className="w-3 h-3" />
+                  {n}
+                </span>
+              )
+            })()}
+            {prediction.status === 'ACTIVE' && prediction.confidence != null && (() => {
+              const hasRange = prediction.aiCiLow != null && prediction.aiCiHigh != null && prediction.aiCiHigh > prediction.aiCiLow
+              const titleKey = hasRange ? 'aiEstimateWithCiTooltip' : 'aiEstimateTooltip'
+              return (
+                <span
+                  className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider border border-amber-500/30 bg-amber-500/10 text-amber-400"
+                  title={t(titleKey, {
+                    probability: prediction.confidence,
+                    low: prediction.aiCiLow ?? 0,
+                    high: prediction.aiCiHigh ?? 0,
+                  })}
+                >
+                  AI: {hasRange ? `${prediction.aiCiLow}–${prediction.aiCiHigh}%` : `${prediction.confidence}%`}
+                </span>
+              )
+            })()}
             {prediction.tags && prediction.tags.length > 0 && (
               <>
                 {prediction.tags.slice(0, 2).map((tag) => (

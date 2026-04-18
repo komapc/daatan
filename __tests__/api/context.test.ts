@@ -8,9 +8,10 @@ const { mockAuth } = vi.hoisted(() => ({
 }))
 vi.mock('@/auth', () => ({ auth: mockAuth }))
 
-const { mockSearchArticles, mockGenerateContent, mockPrisma } = vi.hoisted(() => ({
+const { mockSearchArticles, mockGenerateContent, mockPrisma, mockGetOracleForecast } = vi.hoisted(() => ({
   mockSearchArticles: vi.fn(),
   mockGenerateContent: vi.fn(),
+  mockGetOracleForecast: vi.fn().mockResolvedValue(null),
   mockPrisma: {
     prediction: {
       findFirst: vi.fn(),
@@ -23,6 +24,10 @@ const { mockSearchArticles, mockGenerateContent, mockPrisma } = vi.hoisted(() =>
     },
     $transaction: vi.fn(),
   },
+}))
+
+vi.mock('@/lib/services/oracle', () => ({
+  getOracleForecast: (...args: unknown[]) => mockGetOracleForecast(...args),
 }))
 
 vi.mock('@/lib/utils/webSearch', () => ({
@@ -127,7 +132,7 @@ it('returns 400 when prediction is not ACTIVE', async () => {
     expect(res.status).toBe(400)
   })
 
-  it('returns 429 when rate limited (updated within 24h)', async () => {
+  it('returns 429 when rate limited (updated within 1h)', async () => {
     mockAuth.mockResolvedValue({ user: authenticatedUser })
     mockPrisma.prediction.findFirst.mockResolvedValue({
       id: 'pred1',
@@ -230,6 +235,76 @@ it('returns 400 when prediction is not ACTIVE', async () => {
 
     // Verify search used newsAnchor title
     expect(mockSearchArticles).toHaveBeenCalledWith('Bitcoin Rally', 4)
+  })
+
+  it('denormalizes Oracle CI bounds onto Prediction when Oracle path runs', async () => {
+    // Guards the list-card rendering path: cards read aiCiLow/aiCiHigh directly
+    // from Prediction (no ContextSnapshot join), so the route must persist them.
+    mockAuth.mockResolvedValue({ user: authenticatedUser })
+    mockPrisma.prediction.findFirst.mockResolvedValue({
+      id: 'pred1',
+      authorId: 'user1',
+      status: 'ACTIVE',
+      claimText: 'Bitcoin will reach $100k',
+      detailsText: null,
+      contextUpdatedAt: null,
+      newsAnchor: null,
+    })
+    mockSearchArticles.mockResolvedValue([
+      { title: 'BTC', url: 'https://example.com/1', source: 'Reuters', publishedDate: '2026-02-20', snippet: '.' },
+    ])
+    mockGenerateContent.mockResolvedValue({ text: 'Summary' })
+    // Oracle returns stance in [-1, 1]; route maps to percent via (v+1)/2 * 100
+    mockGetOracleForecast.mockResolvedValueOnce({
+      question: 'Bitcoin will reach $100k',
+      mean: 0.2,      // → 60%
+      std: 0.1,
+      ci_low: 0.0,    // → 50%
+      ci_high: 0.4,   // → 70%
+      articles_used: 3,
+      sources: [],
+      placeholder: false,
+    })
+    mockPrisma.$transaction.mockResolvedValue([{ id: 'snap1', summary: 'Summary', sources: [], createdAt: new Date() }, {}])
+    mockPrisma.contextSnapshot.findMany.mockResolvedValue([])
+
+    const res = await POST(makeRequest('pred1', 'POST'), routeParams('pred1'))
+    expect(res.status).toBe(200)
+
+    // Inspect the prediction.update call inside the transaction
+    const ops = mockPrisma.$transaction.mock.calls[0][0] as unknown[]
+    // ops[1] is the prediction.update invocation — grab its args from the mock
+    const predictionUpdateCall = mockPrisma.prediction.update.mock.calls[0][0]
+    expect(predictionUpdateCall.data.confidence).toBe(60)
+    expect(predictionUpdateCall.data.aiCiLow).toBe(50)
+    expect(predictionUpdateCall.data.aiCiHigh).toBe(70)
+    expect(ops).toHaveLength(2)
+  })
+
+  it('clears aiCiLow/aiCiHigh on LLM-fallback path (no Oracle CI available)', async () => {
+    mockAuth.mockResolvedValue({ user: authenticatedUser })
+    mockPrisma.prediction.findFirst.mockResolvedValue({
+      id: 'pred1',
+      authorId: 'user1',
+      status: 'ACTIVE',
+      claimText: 'Test',
+      detailsText: null,
+      contextUpdatedAt: null,
+      newsAnchor: null,
+    })
+    mockSearchArticles.mockResolvedValue([
+      { title: 'N', url: 'https://example.com', source: 'X', publishedDate: '2026-02-20', snippet: '.' },
+    ])
+    mockGenerateContent.mockResolvedValue({ text: 'Summary' })
+    mockGetOracleForecast.mockResolvedValueOnce(null)
+    mockPrisma.$transaction.mockResolvedValue([{ id: 'snap1', summary: 'Summary', sources: [], createdAt: new Date() }, {}])
+    mockPrisma.contextSnapshot.findMany.mockResolvedValue([])
+
+    await POST(makeRequest('pred1', 'POST'), routeParams('pred1'))
+
+    const predictionUpdateCall = mockPrisma.prediction.update.mock.calls[0][0]
+    expect(predictionUpdateCall.data.aiCiLow).toBeNull()
+    expect(predictionUpdateCall.data.aiCiHigh).toBeNull()
   })
 
   it('passes previousContext to LLM prompt when detailsText exists', async () => {

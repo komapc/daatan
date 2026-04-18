@@ -112,7 +112,13 @@
     "commitToPrompt": "Ĉu vi volas engaĝiĝi al ĉi tiu antaŭdiro?",
     "signInToCommit": "Ensaluti por Engaĝiĝi",
     "resolverActions": "Agoj de Solvanto",
-    "backToFeed": "Reen al prognozoj"
+    "backToFeed": "Reen al prognozoj",
+    "voter": "{count} voĉdonanto",
+    "voters": "{count} voĉdonantoj",
+    "votersWithStake": "{count} voĉdonantoj · {cu} CU",
+    "voterWithStake": "{count} voĉdonanto · {cu} CU",
+    "aiEstimateTooltip": "AI-takso: {probability}%",
+    "aiEstimateWithCiTooltip": "AI-takso: {probability}% (95% CI {low}–{high}%)"
   },
   "Forecasts": {
     "title": "Redakti Prognozon",
