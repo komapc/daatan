@@ -118,7 +118,7 @@
     "votersWithStake": "{count} מצביעים · {cu} CU",
     "voterWithStake": "מצביע אחד · {cu} CU",
     "aiEstimateTooltip": "הערכת AI: {probability}%",
-    "aiEstimateWithCiTooltip": "הערכת AI: {probability}% (CI 95% {low}–{high}%)"
+    "aiEstimateWithCiTooltip": "הערכת AI: {probability}% (95% CI {low}–{high}%)"
   },
   "Forecasts": {
     "title": "עריכת תחזית",
