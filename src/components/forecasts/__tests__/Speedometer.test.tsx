@@ -109,4 +109,28 @@ describe('Speedometer component', () => {
     )
     expect(container.querySelector('[data-testid="ai-ci-band"]')).toBeNull()
   })
+
+  it('renders tick marks at both CI bounds when a valid range is given', () => {
+    const { container } = render(
+      <Speedometer
+        percentage={50}
+        aiPercentage={50}
+        aiCiLow={40}
+        aiCiHigh={60}
+        label="Test"
+        color="green"
+      />,
+    )
+    // Ticks frame the translucent band so the user can see where the range ends.
+    expect(container.querySelector('[data-testid="ai-ci-tick-low"]')).not.toBeNull()
+    expect(container.querySelector('[data-testid="ai-ci-tick-high"]')).not.toBeNull()
+  })
+
+  it('omits CI tick marks when bounds are absent', () => {
+    const { container } = render(
+      <Speedometer percentage={50} aiPercentage={50} label="Test" color="green" />,
+    )
+    expect(container.querySelector('[data-testid="ai-ci-tick-low"]')).toBeNull()
+    expect(container.querySelector('[data-testid="ai-ci-tick-high"]')).toBeNull()
+  })
 })
