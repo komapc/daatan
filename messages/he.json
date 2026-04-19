@@ -218,13 +218,15 @@
   },
   "activity": {
     "title": "פיד פעילות",
-    "subtitle": "התחייבויות אחרונות בכל התחזיות",
+    "subtitle": "פעילות אחרונה",
     "committed": "התחייב",
     "cuOn": "CU על",
     "noActivity": "אין פעילות עדיין",
     "willHappen": "יקרה",
     "wontHappen": "לא יקרה",
     "participated": "השתתף",
+    "voted": "הצביע",
+    "picked": "בחר",
     "on": "על"
   },
   "notifications": {

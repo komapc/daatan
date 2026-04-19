@@ -218,13 +218,15 @@
   },
   "activity": {
     "title": "Agad-Fluo",
-    "subtitle": "Lastatempaj engaĝoj trans ĉiuj prognozoj",
+    "subtitle": "Lastatempa agado",
     "committed": "engaĝita",
     "cuOn": "KU sur",
     "noActivity": "Ankoraŭ neniu agado",
     "willHappen": "Okazos",
     "wontHappen": "Ne okazos",
     "participated": "partoprenis",
+    "voted": "voĉdonis",
+    "picked": "elektis",
     "on": "en"
   },
   "notifications": {

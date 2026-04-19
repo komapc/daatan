@@ -218,13 +218,15 @@
   },
   "activity": {
     "title": "Лента активности",
-    "subtitle": "Последние ставки по всем прогнозам",
+    "subtitle": "Последняя активность",
     "committed": "поставил(а)",
     "cuOn": "CU на",
     "noActivity": "Активности пока нет",
     "willHappen": "Произойдет",
     "wontHappen": "Не произойдет",
     "participated": "участвовал(а)",
+    "voted": "проголосовал(а)",
+    "picked": "выбрал(а)",
     "on": "в"
   },
   "notifications": {
