@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Activity, Loader2, TrendingUp, Clock, User } from 'lucide-react'
+import { Activity, Loader2, TrendingUp, CheckCircle2, XCircle, CircleDot, Clock, User } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { createClientLogger } from '@/lib/client-logger'
 import { useTranslations } from 'next-intl'
@@ -67,11 +67,45 @@ export default function ActivityFeedPage() {
     )
   }
 
-  const getChoiceLabel = (item: ActivityItem) => {
-    if (item.option) return item.option.text
-    if (item.binaryChoice === true) return t('willHappen')
-    if (item.binaryChoice === false) return t('wontHappen')
-    return '—'
+  /** Map a commitment into the pieces the UI renders:
+   *  verb ("voted" / "picked"), coloured chip (YES / NO / option text),
+   *  and a small leading icon (TrendingUp / TrendingDown / CircleDot). */
+  const describeAction = (item: ActivityItem) => {
+    if (item.option) {
+      return {
+        verb: t('picked'),
+        chipText: item.option.text,
+        chipClass: 'bg-cobalt/15 text-blue-400 border-cobalt/30',
+        Icon: CircleDot,
+        iconClass: 'text-blue-400',
+      }
+    }
+    if (item.binaryChoice === true) {
+      return {
+        verb: t('voted'),
+        chipText: 'YES',
+        chipClass: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+        Icon: CheckCircle2,
+        iconClass: 'text-emerald-400',
+      }
+    }
+    if (item.binaryChoice === false) {
+      return {
+        verb: t('voted'),
+        chipText: 'NO',
+        chipClass: 'bg-rose-500/15 text-rose-400 border-rose-500/30',
+        Icon: XCircle,
+        iconClass: 'text-rose-400',
+      }
+    }
+    // Fallback for odd data: a commitment with no binary/option (shouldn't happen).
+    return {
+      verb: t('participated'),
+      chipText: '—',
+      chipClass: 'bg-gray-500/15 text-gray-400 border-gray-500/30',
+      Icon: CircleDot,
+      iconClass: 'text-gray-400',
+    }
   }
 
   return (
@@ -113,38 +147,48 @@ export default function ActivityFeedPage() {
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 bg-navy-700 rounded-xl border border-navy-600 p-4 hover:border-cobalt/30 hover:shadow-sm transition-all">
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <div className="text-sm text-text-secondary">
-                      <UserLink 
-                        userId={item.user.id}
-                        username={item.user.username}
-                        name={item.user.name}
-                        className="font-semibold text-white"
-                      />
-                      {' '}{t('participated')}{' '}{t('on')}{' '}
-                      <span className="font-medium text-blue-600">
-                        &quot;{getChoiceLabel(item)}&quot;
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1 text-xs text-gray-400 shrink-0">
-                      <Clock className="w-3 h-3" />
-                      {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}
-                    </div>
-                  </div>
+                {(() => {
+                  const action = describeAction(item)
+                  return (
+                    <div className="flex-1 bg-navy-700 rounded-xl border border-navy-600 p-4 hover:border-cobalt/30 hover:shadow-sm transition-all">
+                      {/* Action line: user + verb + coloured choice chip + CU + timestamp */}
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2 flex-wrap text-sm text-text-secondary">
+                          <action.Icon className={`w-4 h-4 shrink-0 ${action.iconClass}`} />
+                          <UserLink
+                            userId={item.user.id}
+                            username={item.user.username}
+                            name={item.user.name}
+                            className="font-semibold text-white"
+                          />
+                          <span>{action.verb}</span>
+                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${action.chipClass}`}>
+                            {action.chipText}
+                          </span>
+                          <span className="text-gray-500">·</span>
+                          <span className="font-semibold text-amber-400">{item.cuCommitted} CU</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-gray-400 shrink-0">
+                          <Clock className="w-3 h-3" />
+                          {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}
+                        </div>
+                      </div>
 
-                  <Link
-                    href={`/forecasts/${item.prediction.slug || item.prediction.id}`}
-                    className="block text-sm text-gray-400 hover:text-blue-600 line-clamp-2 transition-colors"
-                  >
-                    {item.prediction.claimText}
-                  </Link>
+                      {/* Primary title: the actual forecast claim, linked to detail page */}
+                      <Link
+                        href={`/forecasts/${item.prediction.slug || item.prediction.id}`}
+                        className="block text-base font-medium text-white hover:text-blue-400 line-clamp-2 transition-colors"
+                      >
+                        {item.prediction.claimText}
+                      </Link>
 
-                  <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
-                    <TrendingUp className="w-3 h-3" />
-                    <span>RS: {item.user.rs.toFixed(0)}</span>
-                  </div>
-                </div>
+                      <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
+                        <TrendingUp className="w-3 h-3" />
+                        <span>RS: {item.user.rs.toFixed(0)}</span>
+                      </div>
+                    </div>
+                  )
+                })()}
               </div>
             ))}
           </div>

@@ -218,9 +218,11 @@
   },
   "activity": {
     "title": "Activity Feed",
-    "subtitle": "Recent forecasts",
+    "subtitle": "Recent activity",
     "committed": "forecasted",
     "participated": "participated",
+    "voted": "voted",
+    "picked": "picked",
     "on": "on",
     "cuOn": "Confidence on",
     "noActivity": "No activity yet",
