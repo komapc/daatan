@@ -31,7 +31,7 @@ jobs:
             -H "x-bot-runner-secret: ${{ secrets.BOT_RUNNER_SECRET }}" \
             -H "Content-Type: application/json" \
             -d "{\"dryRun\":$DRY_RUN}" \
-            --max-time 120)
+            --max-time 270)
 
           HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
           BODY=$(echo "$RESPONSE" | head -n-1)

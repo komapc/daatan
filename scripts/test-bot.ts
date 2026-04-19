@@ -1,4 +1,4 @@
-import { runDueBots } from '../src/lib/services/bot-runner'
+import { runDueBots } from '../src/lib/services/bots'
 
 async function main() {
   console.log('Running bots...')

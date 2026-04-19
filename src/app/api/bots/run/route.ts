@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { runDueBots } from '@/lib/services/bot-runner'
+import { runDueBots } from '@/lib/services/bots'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('api/bots/run')
