@@ -52,7 +52,7 @@ vi.mock('@/lib/llm/bedrock-prompts', () => ({
 }))
 
 // ─── RSS mock ────────────────────────────────────────────────────────────────
-vi.mock('@/lib/services/rss', () => ({
+vi.mock('@/lib/services/bots/rss', () => ({
   fetchRssFeeds: vi.fn(),
   detectHotTopics: vi.fn(),
 }))
@@ -165,8 +165,8 @@ describe('runDueBots', () => {
 
   it('runs a bot that has never run before (lastRunAt = null)', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/rss')
-    const { runDueBots } = await import('@/lib/services/bot-runner')
+    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/bots/rss')
+    const { runDueBots } = await import('@/lib/services/bots')
 
     const bot = makeBot({ lastRunAt: null, maxVotesPerDay: 0 })
     vi.mocked(prisma.botConfig.findMany).mockResolvedValue([bot] as any)
@@ -184,7 +184,7 @@ describe('runDueBots', () => {
 
   it('skips a bot whose interval has not elapsed yet', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { runDueBots } = await import('@/lib/services/bot-runner')
+    const { runDueBots } = await import('@/lib/services/bots')
 
     // lastRunAt = 30 minutes ago, interval = 60 min → not due yet
     const lastRunAt = new Date(Date.now() - 30 * 60 * 1000)
@@ -198,8 +198,8 @@ describe('runDueBots', () => {
 
   it('runs a bot whose interval has exactly elapsed', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/rss')
-    const { runDueBots } = await import('@/lib/services/bot-runner')
+    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/bots/rss')
+    const { runDueBots } = await import('@/lib/services/bots')
 
     // lastRunAt = exactly 60 minutes ago, interval = 60 min → due (nextRunAt === now)
     const lastRunAt = new Date(Date.now() - 60 * 60 * 1000)
@@ -218,8 +218,8 @@ describe('runDueBots', () => {
 
   it('runs a bot that is overdue (last run longer ago than interval)', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/rss')
-    const { runDueBots } = await import('@/lib/services/bot-runner')
+    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/bots/rss')
+    const { runDueBots } = await import('@/lib/services/bots')
 
     // lastRunAt = 3 hours ago, interval = 60 min → overdue
     const lastRunAt = new Date(Date.now() - 3 * 60 * 60 * 1000)
@@ -238,8 +238,8 @@ describe('runDueBots', () => {
 
   it('processes multiple bots independently — runs due ones, skips not-due ones', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/rss')
-    const { runDueBots } = await import('@/lib/services/bot-runner')
+    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/bots/rss')
+    const { runDueBots } = await import('@/lib/services/bots')
 
     const dueBot = makeBot({
       id: 'bot-due',
@@ -267,8 +267,8 @@ describe('runDueBots', () => {
 
   it('updates lastRunAt after running a bot (non-dry-run)', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/rss')
-    const { runDueBots } = await import('@/lib/services/bot-runner')
+    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/bots/rss')
+    const { runDueBots } = await import('@/lib/services/bots')
 
     const bot = makeBot({ maxVotesPerDay: 0 })
     vi.mocked(prisma.botConfig.findMany).mockResolvedValue([bot] as any)
@@ -288,8 +288,8 @@ describe('runDueBots', () => {
 
   it('does not update lastRunAt in dry-run mode', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/rss')
-    const { runDueBots } = await import('@/lib/services/bot-runner')
+    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/bots/rss')
+    const { runDueBots } = await import('@/lib/services/bots')
 
     const bot = makeBot({ maxVotesPerDay: 0 })
     vi.mocked(prisma.botConfig.findMany).mockResolvedValue([bot] as any)
@@ -305,7 +305,7 @@ describe('runDueBots', () => {
 
   it('returns empty array when there are no active bots', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { runDueBots } = await import('@/lib/services/bot-runner')
+    const { runDueBots } = await import('@/lib/services/bots')
 
     vi.mocked(prisma.botConfig.findMany).mockResolvedValue([])
 
@@ -328,8 +328,8 @@ describe('runDueBots — maxForecastsPerDay cap', () => {
 
   it('skips forecast creation when daily cap is already reached', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/rss')
-    const { runDueBots } = await import('@/lib/services/bot-runner')
+    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/bots/rss')
+    const { runDueBots } = await import('@/lib/services/bots')
 
     const bot = makeBot({ maxForecastsPerDay: 3, maxVotesPerDay: 0 })
     vi.mocked(prisma.botConfig.findMany).mockResolvedValue([bot] as any)
@@ -350,8 +350,8 @@ describe('runDueBots — maxForecastsPerDay cap', () => {
 
   it('creates up to the remaining forecast slots only', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/rss')
-    const { runDueBots } = await import('@/lib/services/bot-runner')
+    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/bots/rss')
+    const { runDueBots } = await import('@/lib/services/bots')
     const { createCommitment } = await import('@/lib/services/commitment')
 
     const bot = makeBot({ maxForecastsPerDay: 3, maxVotesPerDay: 0 })
@@ -400,8 +400,8 @@ describe('runDueBots — maxForecastsPerDay cap', () => {
 
   it('increments forecastsCreated in summary for each successfully created forecast', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/rss')
-    const { runDueBots } = await import('@/lib/services/bot-runner')
+    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/bots/rss')
+    const { runDueBots } = await import('@/lib/services/bots')
     const { createCommitment } = await import('@/lib/services/commitment')
 
     const bot = makeBot({ maxForecastsPerDay: 5, maxVotesPerDay: 0 })
@@ -436,8 +436,8 @@ describe('runDueBots — maxForecastsPerDay cap', () => {
 
   it('increments skipped when dedup check says topic already covered', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/rss')
-    const { runDueBots } = await import('@/lib/services/bot-runner')
+    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/bots/rss')
+    const { runDueBots } = await import('@/lib/services/bots')
 
     const bot = makeBot({ maxForecastsPerDay: 5, maxVotesPerDay: 0 })
     vi.mocked(prisma.botConfig.findMany).mockResolvedValue([bot] as any)
@@ -462,8 +462,8 @@ describe('runDueBots — maxForecastsPerDay cap', () => {
 
   it('increments skipped when there are no hot topics', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/rss')
-    const { runDueBots } = await import('@/lib/services/bot-runner')
+    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/bots/rss')
+    const { runDueBots } = await import('@/lib/services/bots')
 
     const bot = makeBot({ maxVotesPerDay: 0 })
     vi.mocked(prisma.botConfig.findMany).mockResolvedValue([bot] as any)
@@ -493,7 +493,7 @@ describe('runBotById', () => {
 
   it('throws when the bot is not found', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { runBotById } = await import('@/lib/services/bot-runner')
+    const { runBotById } = await import('@/lib/services/bots')
 
     vi.mocked(prisma.botConfig.findUnique).mockResolvedValue(null)
 
@@ -502,8 +502,8 @@ describe('runBotById', () => {
 
   it('returns a summary with the correct botId', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/rss')
-    const { runBotById } = await import('@/lib/services/bot-runner')
+    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/bots/rss')
+    const { runBotById } = await import('@/lib/services/bots')
 
     const bot = makeBot({ id: 'specific-bot', maxVotesPerDay: 0 })
     vi.mocked(prisma.botConfig.findUnique).mockResolvedValue(bot as any)
@@ -520,8 +520,8 @@ describe('runBotById', () => {
 
   it('updates lastRunAt after running (non-dry-run)', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/rss')
-    const { runBotById } = await import('@/lib/services/bot-runner')
+    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/bots/rss')
+    const { runBotById } = await import('@/lib/services/bots')
 
     const bot = makeBot({ maxVotesPerDay: 0 })
     vi.mocked(prisma.botConfig.findUnique).mockResolvedValue(bot as any)
@@ -541,8 +541,8 @@ describe('runBotById', () => {
 
   it('does not update lastRunAt in dry-run mode', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/rss')
-    const { runBotById } = await import('@/lib/services/bot-runner')
+    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/bots/rss')
+    const { runBotById } = await import('@/lib/services/bots')
 
     const bot = makeBot({ maxVotesPerDay: 0 })
     vi.mocked(prisma.botConfig.findUnique).mockResolvedValue(bot as any)
@@ -558,8 +558,8 @@ describe('runBotById', () => {
 
   it('sets dryRun flag correctly in returned summary', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/rss')
-    const { runBotById } = await import('@/lib/services/bot-runner')
+    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/bots/rss')
+    const { runBotById } = await import('@/lib/services/bots')
 
     const bot = makeBot({ maxVotesPerDay: 0 })
     vi.mocked(prisma.botConfig.findUnique).mockResolvedValue(bot as any)
@@ -574,8 +574,8 @@ describe('runBotById', () => {
 
   it('does not call fetchRssFeeds when newsSources is empty', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { fetchRssFeeds } = await import('@/lib/services/rss')
-    const { runBotById } = await import('@/lib/services/bot-runner')
+    const { fetchRssFeeds } = await import('@/lib/services/bots/rss')
+    const { runBotById } = await import('@/lib/services/bots')
 
     const bot = makeBot({ newsSources: [], maxVotesPerDay: 0 })
     vi.mocked(prisma.botConfig.findUnique).mockResolvedValue(bot as any)
@@ -589,9 +589,9 @@ describe('runBotById', () => {
 
   it('in dry-run mode creates a log entry but does not call createCommitment', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/rss')
+    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/bots/rss')
     const { createCommitment } = await import('@/lib/services/commitment')
-    const { runBotById } = await import('@/lib/services/bot-runner')
+    const { runBotById } = await import('@/lib/services/bots')
 
     const bot = makeBot({ maxVotesPerDay: 0 })
     vi.mocked(prisma.botConfig.findUnique).mockResolvedValue(bot as any)
@@ -635,7 +635,7 @@ describe('runDueBots — activeHours gate', () => {
 
   it('returns skipped=-1 (sentinel) when UTC hour is outside the configured window', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { runDueBots } = await import('@/lib/services/bot-runner')
+    const { runDueBots } = await import('@/lib/services/bots')
 
     // hour=12, window=8–10 → outside
     const bot = makeBot({ activeHoursStart: 8, activeHoursEnd: 10 })
@@ -649,7 +649,7 @@ describe('runDueBots — activeHours gate', () => {
 
   it('does not update lastRunAt when gate rejects the bot (gatedByActiveHours=true)', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { runDueBots } = await import('@/lib/services/bot-runner')
+    const { runDueBots } = await import('@/lib/services/bots')
 
     const bot = makeBot({ activeHoursStart: 8, activeHoursEnd: 10 })
     vi.mocked(prisma.botConfig.findMany).mockResolvedValue([bot] as any)
@@ -661,8 +661,8 @@ describe('runDueBots — activeHours gate', () => {
 
   it('runs normally when UTC hour is inside the configured window', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/rss')
-    const { runDueBots } = await import('@/lib/services/bot-runner')
+    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/bots/rss')
+    const { runDueBots } = await import('@/lib/services/bots')
 
     // hour=12, window=10–14 → inside
     const bot = makeBot({ activeHoursStart: 10, activeHoursEnd: 14, maxVotesPerDay: 0 })
@@ -682,7 +682,7 @@ describe('runDueBots — activeHours gate', () => {
 
   it('correctly handles overnight range: hour=12 is NOT in start=22,end=6 window', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { runDueBots } = await import('@/lib/services/bot-runner')
+    const { runDueBots } = await import('@/lib/services/bots')
 
     // Overnight: active when hour>=22 OR hour<6. hour=12 → outside
     const bot = makeBot({ activeHoursStart: 22, activeHoursEnd: 6 })
@@ -695,8 +695,8 @@ describe('runDueBots — activeHours gate', () => {
 
   it('correctly handles overnight range: hour=23 IS in start=22,end=6 window', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/rss')
-    const { runDueBots } = await import('@/lib/services/bot-runner')
+    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/bots/rss')
+    const { runDueBots } = await import('@/lib/services/bots')
 
     vi.setSystemTime(new Date('2026-02-20T23:00:00Z')) // hour=23
 
@@ -716,8 +716,8 @@ describe('runDueBots — activeHours gate', () => {
 
   it('correctly handles overnight range: hour=3 IS in start=22,end=6 window', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/rss')
-    const { runDueBots } = await import('@/lib/services/bot-runner')
+    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/bots/rss')
+    const { runDueBots } = await import('@/lib/services/bots')
 
     vi.setSystemTime(new Date('2026-02-20T03:00:00Z')) // hour=3
 
@@ -737,8 +737,8 @@ describe('runDueBots — activeHours gate', () => {
 
   it('runBotById (isManual=true) bypasses the active hours gate entirely', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/rss')
-    const { runBotById } = await import('@/lib/services/bot-runner')
+    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/bots/rss')
+    const { runBotById } = await import('@/lib/services/bots')
 
     // hour=12, window=8–10 → would be skipped in runDueBots, but not in runBotById
     const bot = makeBot({ activeHoursStart: 8, activeHoursEnd: 10, maxVotesPerDay: 0 })
@@ -773,8 +773,8 @@ describe('runDueBots — canCreateForecasts and canVote flags', () => {
 
   it('does not fetch RSS or create forecasts when canCreateForecasts=false', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { fetchRssFeeds } = await import('@/lib/services/rss')
-    const { runDueBots } = await import('@/lib/services/bot-runner')
+    const { fetchRssFeeds } = await import('@/lib/services/bots/rss')
+    const { runDueBots } = await import('@/lib/services/bots')
 
     const bot = makeBot({ canCreateForecasts: false, maxVotesPerDay: 0 })
     vi.mocked(prisma.botConfig.findMany).mockResolvedValue([bot] as any)
@@ -790,8 +790,8 @@ describe('runDueBots — canCreateForecasts and canVote flags', () => {
 
   it('does not vote when canVote=false even if maxVotesPerDay is positive', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/rss')
-    const { runDueBots } = await import('@/lib/services/bot-runner')
+    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/bots/rss')
+    const { runDueBots } = await import('@/lib/services/bots')
 
     const bot = makeBot({ canVote: false, canCreateForecasts: false, maxVotesPerDay: 10 })
     vi.mocked(prisma.botConfig.findMany).mockResolvedValue([bot] as any)
@@ -826,9 +826,9 @@ describe('runDueBots — autoApprove', () => {
 
   it('publishes forecast as ACTIVE when autoApprove=true', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/rss')
+    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/bots/rss')
     const { createCommitment } = await import('@/lib/services/commitment')
-    const { runDueBots } = await import('@/lib/services/bot-runner')
+    const { runDueBots } = await import('@/lib/services/bots')
 
     const bot = makeBot({ autoApprove: true, maxVotesPerDay: 0 })
     vi.mocked(prisma.botConfig.findMany).mockResolvedValue([bot] as any)
@@ -860,9 +860,9 @@ describe('runDueBots — autoApprove', () => {
 
   it('publishes forecast as PENDING_APPROVAL when autoApprove=false', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/rss')
+    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/bots/rss')
     const { createCommitment } = await import('@/lib/services/commitment')
-    const { runDueBots } = await import('@/lib/services/bot-runner')
+    const { runDueBots } = await import('@/lib/services/bots')
 
     const bot = makeBot({ autoApprove: false, maxVotesPerDay: 0 })
     vi.mocked(prisma.botConfig.findMany).mockResolvedValue([bot] as any)
@@ -908,8 +908,8 @@ describe('runDueBots — quality gate', () => {
 
   it('skips forecast when quality gate returns pass=false', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/rss')
-    const { runDueBots } = await import('@/lib/services/bot-runner')
+    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/bots/rss')
+    const { runDueBots } = await import('@/lib/services/bots')
 
     const bot = makeBot({ maxVotesPerDay: 0 })
     vi.mocked(prisma.botConfig.findMany).mockResolvedValue([bot] as any)
@@ -938,9 +938,9 @@ describe('runDueBots — quality gate', () => {
 
   it('allows forecast when quality gate returns pass=true', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/rss')
+    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/bots/rss')
     const { createCommitment } = await import('@/lib/services/commitment')
-    const { runDueBots } = await import('@/lib/services/bot-runner')
+    const { runDueBots } = await import('@/lib/services/bots')
 
     const bot = makeBot({ maxVotesPerDay: 0 })
     vi.mocked(prisma.botConfig.findMany).mockResolvedValue([bot] as any)
@@ -986,8 +986,8 @@ describe('runDueBots — tagFilter skip signal', () => {
 
   it('skips topic and increments skipped when LLM signals skip=true due to tag mismatch', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/rss')
-    const { runDueBots } = await import('@/lib/services/bot-runner')
+    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/bots/rss')
+    const { runDueBots } = await import('@/lib/services/bots')
 
     const bot = makeBot({ tagFilter: ['crypto', 'finance'], maxVotesPerDay: 0 })
     vi.mocked(prisma.botConfig.findMany).mockResolvedValue([bot] as any)
@@ -1015,8 +1015,8 @@ describe('runDueBots — tagFilter skip signal', () => {
 
   it('includes tag constraint in prompt when tagFilter is non-empty', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/rss')
-    const { runDueBots } = await import('@/lib/services/bot-runner')
+    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/bots/rss')
+    const { runDueBots } = await import('@/lib/services/bots')
 
     const bot = makeBot({ tagFilter: ['crypto', 'bitcoin'], maxVotesPerDay: 0 })
     vi.mocked(prisma.botConfig.findMany).mockResolvedValue([bot] as any)
@@ -1065,7 +1065,7 @@ describe('runDueBots — voting', () => {
   it('calls createCommitment and increments votes when LLM says shouldVote=true', async () => {
     const { prisma } = await import('@/lib/prisma')
     const { createCommitment } = await import('@/lib/services/commitment')
-    const { runDueBots } = await import('@/lib/services/bot-runner')
+    const { runDueBots } = await import('@/lib/services/bots')
 
     // canCreateForecasts=false so only voting runs
     const bot = makeBot({ canCreateForecasts: false, maxVotesPerDay: 5 })
@@ -1088,7 +1088,7 @@ describe('runDueBots — voting', () => {
   it('does not call createCommitment when LLM says shouldVote=false', async () => {
     const { prisma } = await import('@/lib/prisma')
     const { createCommitment } = await import('@/lib/services/commitment')
-    const { runDueBots } = await import('@/lib/services/bot-runner')
+    const { runDueBots } = await import('@/lib/services/bots')
 
     const bot = makeBot({ canCreateForecasts: false, maxVotesPerDay: 5 })
     vi.mocked(prisma.botConfig.findMany).mockResolvedValue([bot] as any)
@@ -1109,7 +1109,7 @@ describe('runDueBots — voting', () => {
   it('includes voteBias hint in the vote prompt when voteBias != 50', async () => {
     const { prisma } = await import('@/lib/prisma')
     const { createCommitment } = await import('@/lib/services/commitment')
-    const { runDueBots } = await import('@/lib/services/bot-runner')
+    const { runDueBots } = await import('@/lib/services/bots')
 
     const bot = makeBot({ canCreateForecasts: false, maxVotesPerDay: 5, voteBias: 80 })
     vi.mocked(prisma.botConfig.findMany).mockResolvedValue([bot] as any)
@@ -1131,7 +1131,7 @@ describe('runDueBots — voting', () => {
   it('omits voteBias hint when voteBias == 50 (neutral)', async () => {
     const { prisma } = await import('@/lib/prisma')
     const { createCommitment } = await import('@/lib/services/commitment')
-    const { runDueBots } = await import('@/lib/services/bot-runner')
+    const { runDueBots } = await import('@/lib/services/bots')
 
     const bot = makeBot({ canCreateForecasts: false, maxVotesPerDay: 5, voteBias: 50 })
     vi.mocked(prisma.botConfig.findMany).mockResolvedValue([bot] as any)
@@ -1153,7 +1153,7 @@ describe('runDueBots — voting', () => {
   it('respects maxVotesPerDay cap and does not vote more than allowed', async () => {
     const { prisma } = await import('@/lib/prisma')
     const { createCommitment } = await import('@/lib/services/commitment')
-    const { runDueBots } = await import('@/lib/services/bot-runner')
+    const { runDueBots } = await import('@/lib/services/bots')
 
     // maxVotesPerDay=2, 3 candidates available → at most 2 votes
     const bot = makeBot({ canCreateForecasts: false, maxVotesPerDay: 2 })
@@ -1198,9 +1198,9 @@ describe('runDueBots — CU auto-refill (ensureBotCU)', () => {
 
   it('no-ops in dry-run mode (does not refill CU)', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/rss')
+    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/bots/rss')
     const { createCommitment } = await import('@/lib/services/commitment')
-    const { runDueBots } = await import('@/lib/services/bot-runner')
+    const { runDueBots } = await import('@/lib/services/bots')
 
     // Bot with cuRefillAt=10, low balance (5 CU) → would refill in non-dry-run
     const bot = makeBot({ cuRefillAt: 10, cuRefillAmount: 50, maxVotesPerDay: 0 })
@@ -1227,9 +1227,9 @@ describe('runDueBots — CU auto-refill (ensureBotCU)', () => {
 
   it('no-ops when cuRefillAt=0 (feature disabled)', async () => {
     const { prisma } = await import('@/lib/prisma')
-    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/rss')
+    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/bots/rss')
     const { createCommitment } = await import('@/lib/services/commitment')
-    const { runDueBots } = await import('@/lib/services/bot-runner')
+    const { runDueBots } = await import('@/lib/services/bots')
 
     const bot = makeBot({ cuRefillAt: 0, maxVotesPerDay: 0 })
     vi.mocked(prisma.botConfig.findMany).mockResolvedValue([bot] as any)
@@ -1277,9 +1277,9 @@ describe('runDueBots — tagFilter sanitization', () => {
   /** Sets up the minimum mocks needed to get a bot through one forecast creation cycle. */
   async function runBotWithTagFilter(tagFilter: string[]) {
     const { prisma } = await import('@/lib/prisma')
-    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/rss')
+    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/bots/rss')
     const { createCommitment } = await import('@/lib/services/commitment')
-    const { runDueBots } = await import('@/lib/services/bot-runner')
+    const { runDueBots } = await import('@/lib/services/bots')
 
     const bot = makeBot({ tagFilter, maxVotesPerDay: 0 })
     vi.mocked(prisma.botConfig.findMany).mockResolvedValue([bot] as any)

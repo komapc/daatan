@@ -65,7 +65,7 @@ vi.mock('@/lib/llm/bedrock-prompts', () => ({
 }))
 
 // ─── Bot runner mock ──────────────────────────────────────────────────────────
-vi.mock('@/lib/services/bot-runner', () => ({
+vi.mock('@/lib/services/bots', () => ({
   runBotById: vi.fn(),
 }))
 
@@ -736,7 +736,7 @@ describe('POST /api/admin/bots/[id]/run', () => {
   it('triggers runBotById with dryRun=false when ?dry param is absent', async () => {
     const { POST } = await import('@/app/api/admin/bots/[id]/run/route')
     const { prisma } = await import('@/lib/prisma')
-    const { runBotById } = await import('@/lib/services/bot-runner')
+    const { runBotById } = await import('@/lib/services/bots')
     mockAuth.mockResolvedValue(ADMIN_SESSION)
 
     vi.mocked(prisma.botConfig.findUnique).mockResolvedValue(makeBotRecord() as any)
@@ -756,7 +756,7 @@ describe('POST /api/admin/bots/[id]/run', () => {
   it('triggers runBotById with dryRun=true when ?dry=true', async () => {
     const { POST } = await import('@/app/api/admin/bots/[id]/run/route')
     const { prisma } = await import('@/lib/prisma')
-    const { runBotById } = await import('@/lib/services/bot-runner')
+    const { runBotById } = await import('@/lib/services/bots')
     mockAuth.mockResolvedValue(ADMIN_SESSION)
 
     vi.mocked(prisma.botConfig.findUnique).mockResolvedValue(makeBotRecord() as any)
@@ -774,7 +774,7 @@ describe('POST /api/admin/bots/[id]/run', () => {
   it('returns summary from runBotById in response', async () => {
     const { POST } = await import('@/app/api/admin/bots/[id]/run/route')
     const { prisma } = await import('@/lib/prisma')
-    const { runBotById } = await import('@/lib/services/bot-runner')
+    const { runBotById } = await import('@/lib/services/bots')
     mockAuth.mockResolvedValue(ADMIN_SESSION)
 
     const mockSummary = {

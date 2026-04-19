@@ -10,7 +10,7 @@ vi.mock('@/lib/logger', () => ({
 }))
 
 // ─── Bot runner mock ──────────────────────────────────────────────────────────
-vi.mock('@/lib/services/bot-runner', () => ({
+vi.mock('@/lib/services/bots', () => ({
   runDueBots: vi.fn(),
 }))
 
@@ -71,7 +71,7 @@ describe('POST /api/bots/run', () => {
 
   it('calls runDueBots(false) and returns summaries when secret is correct', async () => {
     const { POST } = await import('@/app/api/bots/run/route')
-    const { runDueBots } = await import('@/lib/services/bot-runner')
+    const { runDueBots } = await import('@/lib/services/bots')
 
     const mockSummaries = [
       { botId: 'bot-1', botName: 'TestBot', forecastsCreated: 1, votes: 2, skipped: 0, errors: 0, dryRun: false, gatedByActiveHours: false },
@@ -93,7 +93,7 @@ describe('POST /api/bots/run', () => {
 
   it('returns 500 and error message when runDueBots throws', async () => {
     const { POST } = await import('@/app/api/bots/run/route')
-    const { runDueBots } = await import('@/lib/services/bot-runner')
+    const { runDueBots } = await import('@/lib/services/bots')
 
     vi.mocked(runDueBots).mockRejectedValue(new Error('Service unavailable'))
 

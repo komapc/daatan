@@ -140,23 +140,25 @@ News topic: "{{topicTitle}}"
 Source URLs: {{sourceUrls}}
 Today's date: {{todayDate}}
 
-Create a concise, verifiable forecast as JSON with these exact fields:
+Create a single, specific, verifiable forecast as JSON with these exact fields:
 {
   "claimText": "A testable prediction statement starting with 🤖 (max 200 chars)",
-  "detailsText": "2–4 sentences of background context and resolution criteria",
+  "detailsText": "3–5 sentences: (1) what is happening and why it matters, (2) the key factors that could push the outcome YES or NO, (3) what a YES resolution looks like concretely.",
   "outcomeType": "BINARY",
-  "resolveByDatetime": "ISO 8601 date, e.g. 2026-09-15T00:00:00Z (30–180 days from today)",
-  "resolutionRules": "1–2 sentences describing exactly how to decide the outcome",
+  "resolveByDatetime": "ISO 8601 date chosen to match the topic's natural resolution point — e.g. the election date, earnings report date, treaty deadline, or product launch window. If no natural date exists, pick 60–120 days from today.",
+  "resolutionRules": "Exactly how a neutral third party decides YES or NO: name the source (official government data, Reuters/AP report, company announcement) and the specific threshold or event required.",
   "tags": ["tag1", "tag2"]
 }
 
 Requirements:
 - claimText MUST begin with "🤖 "
-- Be specific enough that a third party can verify the outcome objectively
-- Use English throughout
-- resolveByDatetime must be strictly in the future{{tagConstraint}}`,
+- claimText must name a specific measurable threshold or event — never "will perform well" or "will be successful"
+- detailsText must NOT just summarise the news; it must explain the YES/NO split
+- resolutionRules must cite a specific authoritative source, not "reliable news sources"
+- resolveByDatetime must be strictly in the future and justified by the topic
+- Use English throughout{{tagConstraint}}`,
 
-    'forecast-quality-validation': `You are a forecast quality validator. Review this forecast for issues.
+    'forecast-quality-validation': `You are a strict forecast quality validator for a prediction market. Reject anything that would embarrass the platform.
 
 Claim: "{{claimText}}"
 Details: "{{detailsText}}"
@@ -164,13 +166,16 @@ Resolve By: "{{resolveByDatetime}}"
 Resolution Rules: "{{resolutionRules}}"
 Original Topic: "{{topicTitle}}"
 
-Check:
-1. Is the claim specific and testable (not vague or tautological)?
-2. Does the claim relate to the original topic?
-3. Is resolveByDatetime a valid future date with a reasonable timeframe (30-365 days)?
-4. Do the resolution rules clearly explain how to decide the outcome?
+Fail the forecast if ANY of these are true:
+1. The claim is vague, tautological, or cannot be objectively verified (e.g. "will face challenges", "will perform well")
+2. The claim does not clearly relate to the original topic
+3. The resolution rules cite "reliable sources" or "news reports" without naming a specific authoritative source
+4. The resolution rules lack a concrete threshold or triggering event
+5. resolveByDatetime is more than 365 days away or less than 14 days away
+6. The detailsText is generic boilerplate that could apply to any news story
+7. The claim duplicates a well-known near-certain or near-impossible outcome
 
-Respond ONLY with JSON: { "pass": true|false, "reason": "one sentence if failed" }`,
+Respond ONLY with JSON: { "pass": true|false, "reason": "one sentence explaining the specific failure if failed" }`,
 
     'bot-vote-decision': `{{personaPrompt}}
 

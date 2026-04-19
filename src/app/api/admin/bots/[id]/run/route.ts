@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-middleware'
-import { runBotById } from '@/lib/services/bot-runner'
+import { runBotById } from '@/lib/services/bots'
 import { apiError, handleRouteError } from '@/lib/api-error'
 import { prisma } from '@/lib/prisma'
 

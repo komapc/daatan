@@ -23,7 +23,7 @@ import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { createBotLLMService } from '@/lib/llm'
 import { getPromptTemplate, fillPrompt } from '@/lib/llm/bedrock-prompts'
-import { fetchRssFeeds, detectHotTopics, type HotTopic } from '@/lib/services/rss'
+import { fetchRssFeeds, detectHotTopics, type HotTopic } from '@/lib/services/bots/rss'
 import {
   createCommitment,
   emitCreateCommitmentSideEffects,

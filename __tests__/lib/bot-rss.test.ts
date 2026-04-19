@@ -34,11 +34,11 @@ describe('detectHotTopics', () => {
     publishedAt: new Date(Date.now() - hoursAgo * 60 * 60 * 1000),
   })
 
-  let detectHotTopics: typeof import('@/lib/services/rss').detectHotTopics
+  let detectHotTopics: typeof import('@/lib/services/bots/rss').detectHotTopics
 
   beforeEach(async () => {
     vi.resetModules()
-    detectHotTopics = (await import('@/lib/services/rss')).detectHotTopics
+    detectHotTopics = (await import('@/lib/services/bots/rss')).detectHotTopics
   })
 
   it('returns empty array when given no items', () => {
@@ -163,13 +163,13 @@ describe('detectHotTopics', () => {
 })
 
 describe('fetchRssFeeds', () => {
-  let fetchRssFeeds: typeof import('@/lib/services/rss').fetchRssFeeds
+  let fetchRssFeeds: typeof import('@/lib/services/bots/rss').fetchRssFeeds
 
   beforeEach(async () => {
     vi.resetModules()
     mockParseURL.mockReset()
     mockFetch.mockReset()
-    fetchRssFeeds = (await import('@/lib/services/rss')).fetchRssFeeds
+    fetchRssFeeds = (await import('@/lib/services/bots/rss')).fetchRssFeeds
   })
 
   it('returns mapped RssItems from a successful feed', async () => {
