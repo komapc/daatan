@@ -93,6 +93,7 @@ export default function ContextTimeline({
   const [contextUpdatedAt, setContextUpdatedAt] = useState(initialContextUpdatedAt || null)
   const [snapshots, setSnapshots] = useState<Snapshot[]>([])
   const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [isContextOpen, setIsContextOpen] = useState(false)
   const [isTimelineOpen, setIsTimelineOpen] = useState(false)
   const [hasFetched, setHasFetched] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
@@ -138,6 +139,7 @@ export default function ContextTimeline({
       const timeline: Snapshot[] = data.timeline || []
       setSnapshots(timeline)
       onAiEstimate?.(toAiEstimate(timeline[0]))
+      setIsContextOpen(true)
       toast.success(t('updated'), { id: 'analyze', duration: 3000 })
     } catch (e: any) {
       log.error({ err: e }, 'Failed to analyze context')
@@ -167,30 +169,41 @@ export default function ContextTimeline({
 
   return (
     <div className="mb-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
+      {/* Header — clicking toggles the context body */}
+      <button
+        onClick={() => setIsContextOpen((o) => !o)}
+        className="w-full flex items-center justify-between mb-3 group"
+      >
         <h2 className="text-lg font-semibold text-white flex items-center gap-2">
           <FileText className="w-5 h-5" />
           {t('title')}
         </h2>
-        {canAnalyze && (
-          <button
-            onClick={handleAnalyze}
-            disabled={isAnalyzing}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-600 bg-cobalt/10 hover:bg-blue-100 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isAnalyzing ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <RefreshCw className="w-4 h-4" />
-            )}
-            {t('analyze')}
-          </button>
-        )}
-      </div>
+        <div className="flex items-center gap-2">
+          {canAnalyze && (
+            <span
+              role="button"
+              onClick={(e) => { e.stopPropagation(); handleAnalyze() }}
+              aria-disabled={isAnalyzing}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-600 bg-cobalt/10 hover:bg-blue-100 rounded-md transition-colors aria-disabled:opacity-50 aria-disabled:pointer-events-none"
+            >
+              {isAnalyzing ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4" />
+              )}
+              {t('analyze')}
+            </span>
+          )}
+          {isContextOpen ? (
+            <ChevronUp className="w-4 h-4 text-gray-400 group-hover:text-gray-300 transition-colors" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-gray-400 group-hover:text-gray-300 transition-colors" />
+          )}
+        </div>
+      </button>
 
       {/* Current context card */}
-      {currentContext && (
+      {currentContext && isContextOpen && (
         <div className="p-4 border border-navy-600 rounded-xl bg-navy-700 shadow-sm">
           <p className="text-gray-300 whitespace-pre-wrap leading-relaxed">{currentContext}</p>
           {contextUpdatedAt && (
@@ -297,8 +310,8 @@ export default function ContextTimeline({
         </div>
       )}
 
-      {/* Previous updates toggle */}
-      {previousSnapshots.length > 0 && (
+      {/* Previous updates toggle — only visible when context is expanded */}
+      {isContextOpen && previousSnapshots.length > 0 && (
         <div className="mt-4">
           <button
             onClick={() => setIsTimelineOpen(!isTimelineOpen)}
