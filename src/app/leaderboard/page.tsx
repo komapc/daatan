@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import { Trophy, Loader2, Medal, TrendingUp, Wallet, Target, BarChart3 } from 'lucide-react'
-import Link from 'next/link'
 import EmptyState from '@/components/ui/EmptyState'
 import { createClientLogger } from '@/lib/client-logger'
 import { useTranslations } from 'next-intl'
@@ -32,6 +32,7 @@ type LeaderboardUser = {
 
 export default function LeaderboardPage() {
   const t = useTranslations('leaderboard')
+  const router = useRouter()
   const [users, setUsers] = useState<LeaderboardUser[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [sortBy, setSortBy] = useState<SortBy>('rs')
@@ -162,8 +163,18 @@ export default function LeaderboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {users.map((user, index) => (
-                  <tr key={user.id} className={`hover:bg-cobalt/10/30 transition-colors ${index < 3 ? 'bg-amber-900/20/10' : ''}`}>
+                {users.map((user, index) => {
+                  const goToProfile = () => router.push(`/profile/${user.id}`)
+                  return (
+                  <tr
+                    key={user.id}
+                    onClick={goToProfile}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goToProfile() } }}
+                    role="link"
+                    tabIndex={0}
+                    aria-label={`View profile of ${user.name || user.username || 'user'}`}
+                    className={`cursor-pointer hover:bg-cobalt/10/30 focus:bg-cobalt/10/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 transition-colors ${index < 3 ? 'bg-amber-900/20/10' : ''}`}
+                  >
                     <td className="px-4 sm:px-6 py-4">
                       <div className="flex justify-center">
                         {getRankIcon(index)}
@@ -210,7 +221,8 @@ export default function LeaderboardPage() {
                       </span>
                     </td>
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
           </div>
