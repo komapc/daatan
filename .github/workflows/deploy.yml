@@ -232,7 +232,7 @@ jobs:
           echo "Found Staging Instance: $INSTANCE_ID"
 
           RAW_BASE="https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}"
-          DEPLOY_FILES="scripts/blue-green-deploy.sh scripts/fetch-secrets.sh scripts/verify-health.sh scripts/verify-logs.sh scripts/verify-deploy.sh docker-compose.staging.yml infra/nginx/nginx-staging-ssl.conf"
+          DEPLOY_FILES="scripts/blue-green-deploy.sh scripts/cleanup-docker-images.sh scripts/fetch-secrets.sh scripts/verify-health.sh scripts/verify-logs.sh scripts/verify-deploy.sh docker-compose.staging.yml infra/nginx/nginx-staging-ssl.conf"
 
           echo "🚀 Sending SSM Command..."
           COMMAND_ID=$(aws ssm send-command \
@@ -256,6 +256,9 @@ jobs:
               "",
               "echo \"🔐 Logging in to ECR (Region: eu-central-1)...\"",
               "aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin '"$ECR_REGISTRY"'",
+              "",
+              "echo \"🧹 Pruning old Docker images before pull...\"",
+              "./scripts/cleanup-docker-images.sh 3 || echo \"  ⚠️ Cleanup failed (non-fatal, continuing)\"",
               "",
               "echo \"⬇️ Pulling staging image...\"",
               "docker pull '"$ECR_REGISTRY"'/daatan-app:staging-latest",
@@ -429,7 +432,7 @@ jobs:
           echo "Deploying Image Tag: $IMAGE_TAG"
 
           RAW_BASE="https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}"
-          DEPLOY_FILES="scripts/blue-green-deploy.sh scripts/fetch-secrets.sh scripts/verify-health.sh scripts/verify-logs.sh scripts/verify-deploy.sh docker-compose.prod.yml infra/nginx/nginx-prod-ssl.conf"
+          DEPLOY_FILES="scripts/blue-green-deploy.sh scripts/cleanup-docker-images.sh scripts/fetch-secrets.sh scripts/verify-health.sh scripts/verify-logs.sh scripts/verify-deploy.sh docker-compose.prod.yml infra/nginx/nginx-prod-ssl.conf"
 
           echo "🚀 Sending SSM Command..."
           COMMAND_ID=$(aws ssm send-command \
@@ -454,6 +457,9 @@ jobs:
               "",
               "echo \"🔐 Logging in to ECR (Region: eu-central-1)...\"",
               "aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin '"$ECR_REGISTRY"'",
+              "",
+              "echo \"🧹 Pruning old Docker images before pull...\"",
+              "./scripts/cleanup-docker-images.sh 3 || echo \"  ⚠️ Cleanup failed (non-fatal, continuing)\"",
               "",
               "echo \"⬇️ Pulling production image (tag: '"$IMAGE_TAG"')...\"",
               "docker pull '"$ECR_REGISTRY"'/daatan-app:'"$IMAGE_TAG"'",
