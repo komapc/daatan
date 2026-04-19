@@ -163,14 +163,12 @@ export default function LeaderboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {users.map((user, index) => {
-                  const goToProfile = () => router.push(`/profile/${user.id}`)
-                  return (
+                {users.map((user, index) => (
                   <tr
                     key={user.id}
-                    onClick={goToProfile}
-                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goToProfile() } }}
-                    role="link"
+                    onClick={() => router.push(`/profile/${user.id}`)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); router.push(`/profile/${user.id}`) } }}
+                    role="button"
                     tabIndex={0}
                     aria-label={`View profile of ${user.name || user.username || 'user'}`}
                     className={`cursor-pointer hover:bg-cobalt/10/30 focus:bg-cobalt/10/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 transition-colors ${index < 3 ? 'bg-amber-900/20/10' : ''}`}
@@ -221,8 +219,7 @@ export default function LeaderboardPage() {
                       </span>
                     </td>
                   </tr>
-                  )
-                })}
+                ))}
               </tbody>
             </table>
           </div>
