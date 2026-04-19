@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Activity, Loader2, TrendingUp, TrendingDown, CircleDot, Clock, User } from 'lucide-react'
+import { Activity, Loader2, TrendingUp, CheckCircle2, XCircle, CircleDot, Clock, User } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { createClientLogger } from '@/lib/client-logger'
 import { useTranslations } from 'next-intl'
@@ -85,7 +85,7 @@ export default function ActivityFeedPage() {
         verb: t('voted'),
         chipText: 'YES',
         chipClass: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-        Icon: TrendingUp,
+        Icon: CheckCircle2,
         iconClass: 'text-emerald-400',
       }
     }
@@ -94,7 +94,7 @@ export default function ActivityFeedPage() {
         verb: t('voted'),
         chipText: 'NO',
         chipClass: 'bg-rose-500/15 text-rose-400 border-rose-500/30',
-        Icon: TrendingDown,
+        Icon: XCircle,
         iconClass: 'text-rose-400',
       }
     }
