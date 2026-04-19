@@ -14,6 +14,9 @@ const renderWithIntl = (ui: React.ReactElement) => {
   )
 }
 
+const openSection = () =>
+  fireEvent.click(screen.getByRole('button', { name: new RegExp(enMessages.context.title, 'i') }))
+
 describe('ContextTimeline', () => {
   beforeEach(() => {
     vi.resetAllMocks()
@@ -46,7 +49,24 @@ describe('ContextTimeline', () => {
     expect(screen.queryByText(enMessages.context.analyze)).not.toBeInTheDocument()
   })
 
-  it('displays initial context', async () => {
+  it('section is collapsed by default', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({
+        currentContext: 'Current situation summary',
+        contextUpdatedAt: '2026-02-20T10:00:00Z',
+        snapshots: [{ id: 's1', summary: 'Current situation summary', sources: [], createdAt: '2026-02-20T10:00:00Z' }],
+      }),
+    })
+
+    await act(async () => {
+      renderWithIntl(<ContextTimeline predictionId="p1" initialContext="Current situation summary" canAnalyze={false} />)
+    })
+
+    expect(screen.queryByText('Current situation summary')).not.toBeInTheDocument()
+  })
+
+  it('displays initial context after expanding section', async () => {
     mockFetch.mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({
@@ -66,6 +86,7 @@ describe('ContextTimeline', () => {
       )
     })
 
+    openSection()
     expect(screen.getByText('Current situation summary')).toBeInTheDocument()
   })
 
@@ -85,12 +106,14 @@ describe('ContextTimeline', () => {
       expect(mockFetch).toHaveBeenCalledWith('/api/forecasts/p1/context')
     })
 
+    openSection()
+
     await waitFor(() => {
       expect(screen.getByText('Fetched context')).toBeInTheDocument()
     })
   })
 
-  it('shows previous updates toggle when there are multiple snapshots', async () => {
+  it('shows previous updates toggle when section is expanded', async () => {
     mockFetch.mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({
@@ -104,6 +127,9 @@ describe('ContextTimeline', () => {
     })
 
     renderWithIntl(<ContextTimeline predictionId="p1" canAnalyze={false} />)
+
+    await waitFor(() => expect(mockFetch).toHaveBeenCalled())
+    openSection()
 
     await waitFor(() => {
       expect(screen.getByText('1 previous update')).toBeInTheDocument()
@@ -125,6 +151,9 @@ describe('ContextTimeline', () => {
 
     renderWithIntl(<ContextTimeline predictionId="p1" canAnalyze={false} />)
 
+    await waitFor(() => expect(mockFetch).toHaveBeenCalled())
+    openSection()
+
     await waitFor(() => {
       expect(screen.getByText('1 previous update')).toBeInTheDocument()
     })
@@ -137,7 +166,7 @@ describe('ContextTimeline', () => {
     expect(screen.getByText('Older update')).toBeInTheDocument()
   })
 
-  it('calls POST and updates state when analyze is clicked', async () => {
+  it('calls POST and updates state when analyze is clicked, then auto-expands', async () => {
     // First call: GET on mount
     mockFetch.mockResolvedValueOnce({
       ok: true,
@@ -168,6 +197,7 @@ describe('ContextTimeline', () => {
       expect(mockFetch).toHaveBeenCalledWith('/api/forecasts/p1/context', { method: 'POST' })
     })
 
+    // Section auto-expands after analyze
     await waitFor(() => {
       expect(screen.getByText('Freshly analyzed context')).toBeInTheDocument()
     })
@@ -193,6 +223,9 @@ describe('ContextTimeline', () => {
     })
 
     renderWithIntl(<ContextTimeline predictionId="p1" canAnalyze={false} />)
+
+    await waitFor(() => expect(mockFetch).toHaveBeenCalled())
+    openSection()
 
     await waitFor(() => {
       expect(screen.getByText('Reuters')).toBeInTheDocument()
@@ -251,6 +284,9 @@ describe('ContextTimeline', () => {
 
     renderWithIntl(<ContextTimeline predictionId="p1" canAnalyze={false} />)
 
+    await waitFor(() => expect(mockFetch).toHaveBeenCalled())
+    openSection()
+
     // Spread shown as ±halfWidth (ciHigh=76, ciLow=52 → (76-52)/2 = 12)
     await waitFor(() => {
       expect(screen.getByText(/± 12%/)).toBeInTheDocument()
@@ -297,6 +333,9 @@ describe('ContextTimeline', () => {
 
     renderWithIntl(<ContextTimeline predictionId="p1" canAnalyze={false} />)
 
+    await waitFor(() => expect(mockFetch).toHaveBeenCalled())
+    openSection()
+
     await waitFor(() => {
       expect(screen.getByText('55%')).toBeInTheDocument()
     })
@@ -319,6 +358,9 @@ describe('ContextTimeline', () => {
     })
 
     renderWithIntl(<ContextTimeline predictionId="p1" canAnalyze={false} />)
+
+    await waitFor(() => expect(mockFetch).toHaveBeenCalled())
+    openSection()
 
     await waitFor(() => {
       expect(screen.getByText('2 previous updates')).toBeInTheDocument()

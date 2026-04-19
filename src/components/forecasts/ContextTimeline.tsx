@@ -139,6 +139,7 @@ export default function ContextTimeline({
       const timeline: Snapshot[] = data.timeline || []
       setSnapshots(timeline)
       onAiEstimate?.(toAiEstimate(timeline[0]))
+      setIsContextOpen(true)
       toast.success(t('updated'), { id: 'analyze', duration: 3000 })
     } catch (e: any) {
       log.error({ err: e }, 'Failed to analyze context')
