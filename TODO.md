@@ -16,6 +16,9 @@
 
 ### Features & UX
 - [x] **Speedometer wrong value** — fixed: community gauge uses CU-weighted yes/no totals (see `ForecastDetailClient.speedometer.test.tsx` and `/api/forecasts` enrichment).
+- [ ] **Search** — add a search endpoint + UI so users can find forecasts by claim text / tag / author. No search today beyond filter pills on the feed.
+- [ ] **Find similar forecasts** — on a forecast detail page, surface a "Similar forecasts" section. Candidates: tag overlap, claim-text similarity (embedding-based), shared news anchor. Needed as duplication check when creating new forecasts too.
+- [ ] **Fix leaderboard** — known broken / incorrect ranking. Audit RS / accuracy calculation, Brier-score path, and the ranking API before fixing (no concrete repro yet — user reported general brokenness).
 - [ ] **Microservice for predictions** — defer until a concrete driver appears (independent scaling, separate deploy cadence, or team ownership split). Until then the operational cost (two deployables, auth, data sync, and failure modes) usually outweighs the benefit for a single-app codebase.
 
 ---
