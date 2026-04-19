@@ -1,6 +1,6 @@
 # TODO.md — Task Queue
 
-*Last updated: April 18, 2026 · v1.10.2*
+*Last updated: April 19, 2026 · v1.10.4*
 
 ---
 
@@ -12,6 +12,7 @@
     - [ ] Update `actions/checkout`, `actions/setup-node`, `aws-actions/configure-aws-credentials`, and `docker/build-push-action` to versions supporting Node.js 24 once released.
     - [ ] Update `node-version` in `.github/workflows/deploy.yml` from `'20'` to `'24'`.
     - [ ] Verify full CI/CD pipeline (Build, Test, Deploy) on Node.js 24 environment.
+- [x] **Auto-prune old Docker images on deploy** — `scripts/cleanup-docker-images.sh` wired into staging + prod deploys; keeps 3 newest app + 3 newest migrations tags. Fixes the 99%-disk outage on 2026-04-18.
 
 ### Features & UX
 - [x] **Speedometer wrong value** — fixed: community gauge uses CU-weighted yes/no totals (see `ForecastDetailClient.speedometer.test.tsx` and `/api/forecasts` enrichment).
