@@ -148,8 +148,12 @@ export default function Speedometer({
         width={width}
         height={height}
         viewBox={`0 0 ${width} ${height}`}
-        className={`overflow-visible${isDraggable ? ' select-none' : ''}`}
-        style={isDraggable ? { cursor: isDragging ? 'grabbing' : 'grab' } : undefined}
+        // touch-none is critical on iOS Safari: without touchAction:none the
+        // browser claims the drag as a page scroll after a few pixels and
+        // stops routing pointermove to the SVG, so the needle freezes.
+        // setPointerCapture alone cannot override Safari's scroll decision.
+        className={`overflow-visible${isDraggable ? ' select-none touch-none' : ''}`}
+        style={isDraggable ? { cursor: isDragging ? 'grabbing' : 'grab', WebkitTouchCallout: 'none' } : undefined}
         onPointerDown={isDraggable ? handlePointerDown : undefined}
         onPointerMove={isDraggable ? handlePointerMove : undefined}
         onPointerUp={isDraggable ? handlePointerUp : undefined}
