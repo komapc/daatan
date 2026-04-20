@@ -614,13 +614,16 @@ async function processTopic(
       shareToken: crypto.randomBytes(8).toString('hex'),
       tags: forecast.tags?.length
         ? {
-          connectOrCreate: forecast.tags.slice(0, 5).map((tagName: string) => {
-            const tagSlug = slugify(tagName)
-            return {
-              where: { slug: tagSlug },
-              create: { name: tagName, slug: tagSlug },
-            }
-          }),
+          connectOrCreate: forecast.tags
+            .filter((t: unknown): t is string => typeof t === 'string' && t.length > 0)
+            .slice(0, 5)
+            .map((tagName: string) => {
+              const tagSlug = slugify(tagName)
+              return {
+                where: { slug: tagSlug },
+                create: { name: tagName, slug: tagSlug },
+              }
+            }),
         }
         : undefined,
     }
