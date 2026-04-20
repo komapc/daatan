@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-type SortBy = 'rs' | 'accuracy' | 'totalCorrect' | 'cuCommitted' | 'brierScore'
+type SortBy = 'rs' | 'accuracy' | 'totalCorrect' | 'cuCommitted' | 'brierScore' | 'roi' | 'truthScore'
 
 // GET /api/leaderboard - Enhanced leaderboard with multiple sort modes
 export async function GET(request: NextRequest) {
@@ -29,7 +29,6 @@ export async function GET(request: NextRequest) {
 
     const userIds = users.map(u => u.id)
 
-    // Four targeted queries instead of loading all commitments into memory
     const [cuSums, rsGainSums, resolvedCommitments, brierScoreSums] = await Promise.all([
       // Total CU committed per user
       prisma.commitment.groupBy({
@@ -43,7 +42,7 @@ export async function GET(request: NextRequest) {
         where: { userId: { in: userIds }, rsChange: { gt: 0 } },
         _sum: { rsChange: true },
       }),
-      // Only resolved commitments (for accuracy calculation)
+      // Resolved commitments — needed for accuracy + ROI
       prisma.commitment.findMany({
         where: {
           userId: { in: userIds },
@@ -51,7 +50,7 @@ export async function GET(request: NextRequest) {
         },
         select: { userId: true, cuCommitted: true, cuReturned: true },
       }),
-      // Average Brier score per user (only commitments with probability set)
+      // Average Brier score per user
       prisma.commitment.groupBy({
         by: ['userId'],
         where: { userId: { in: userIds }, brierScore: { not: null } },
@@ -60,24 +59,29 @@ export async function GET(request: NextRequest) {
       }),
     ])
 
-    // Build lookup maps for O(1) access
+    // Build lookup maps
     const cuByUser = new Map(cuSums.map(s => [s.userId, s._sum.cuCommitted ?? 0]))
     const rsGainByUser = new Map(rsGainSums.map(s => [s.userId, s._sum.rsChange ?? 0]))
-    const resolvedByUser = new Map<string, { total: number; correct: number }>()
+
+    // Accuracy + ROI from resolved commitments
+    const resolvedByUser = new Map<string, { total: number; correct: number; cuCommitted: number; cuReturned: number }>()
     for (const c of resolvedCommitments) {
-      const entry = resolvedByUser.get(c.userId) ?? { total: 0, correct: 0 }
+      const entry = resolvedByUser.get(c.userId) ?? { total: 0, correct: 0, cuCommitted: 0, cuReturned: 0 }
       entry.total++
+      entry.cuCommitted += c.cuCommitted
+      entry.cuReturned += c.cuReturned ?? 0
       if ((c.cuReturned ?? 0) > c.cuCommitted) entry.correct++
       resolvedByUser.set(c.userId, entry)
     }
+
     const brierByUser = new Map(brierScoreSums.map(s => [s.userId, {
       avg: s._avg.brierScore,
       count: s._count.brierScore,
     }]))
 
-    // Compute stats for each user
     const leaderboard = users.map((user) => {
-      const resolved = resolvedByUser.get(user.id) ?? { total: 0, correct: 0 }
+      const resolved = resolvedByUser.get(user.id) ?? { total: 0, correct: 0, cuCommitted: 0, cuReturned: 0 }
+
       const accuracy = resolved.total > 0
         ? Math.round((resolved.correct / resolved.total) * 100)
         : null
@@ -86,6 +90,17 @@ export async function GET(request: NextRequest) {
       const avgBrierScore = (brier && brier.count > 0 && brier.avg != null)
         ? Math.round(brier.avg * 1000) / 1000
         : null
+
+      // ROI: net CU gain on resolved commitments relative to amount committed
+      // (cuReturned - cuCommitted) / cuCommitted * 100, null if no resolved bets
+      const roi = (resolved.cuCommitted > 0)
+        ? Math.round(((resolved.cuReturned - resolved.cuCommitted) / resolved.cuCommitted) * 10000) / 100
+        : null
+
+      // TruthScore (MS log score): sum(log(p) if YES, log(1-p) if NO) / n
+      // Not yet computed — requires per-commitment probability values.
+      // Field is reserved; will be wired once probability is stored on commitments.
+      const truthScore: number | null = null
 
       return {
         id: user.id,
@@ -103,10 +118,11 @@ export async function GET(request: NextRequest) {
         totalRsGained: Math.round((rsGainByUser.get(user.id) ?? 0) * 100) / 100,
         avgBrierScore,
         brierCount: brier?.count ?? 0,
+        roi,
+        truthScore,
       }
     })
 
-    // Sort by requested metric (Brier score: lower is better, nulls last)
     const sortFns: Record<SortBy, (a: typeof leaderboard[0], b: typeof leaderboard[0]) => number> = {
       rs: (a, b) => b.rs - a.rs,
       accuracy: (a, b) => (b.accuracy ?? -1) - (a.accuracy ?? -1),
@@ -116,8 +132,10 @@ export async function GET(request: NextRequest) {
         if (a.avgBrierScore == null && b.avgBrierScore == null) return 0
         if (a.avgBrierScore == null) return 1
         if (b.avgBrierScore == null) return -1
-        return a.avgBrierScore - b.avgBrierScore // ascending: lower = better
+        return a.avgBrierScore - b.avgBrierScore
       },
+      roi: (a, b) => (b.roi ?? -Infinity) - (a.roi ?? -Infinity),
+      truthScore: (a, b) => (b.truthScore ?? -Infinity) - (a.truthScore ?? -Infinity),
     }
 
     leaderboard.sort(sortFns[sortBy] || sortFns.rs)
