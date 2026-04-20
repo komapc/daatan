@@ -31,6 +31,14 @@ describe('slugify', () => {
     expect(slugify('')).toBe('')
   })
 
+  it('handles null without crashing', () => {
+    expect(slugify(null)).toBe('')
+  })
+
+  it('handles undefined without crashing', () => {
+    expect(slugify(undefined)).toBe('')
+  })
+
   it('handles text with only special characters', () => {
     expect(slugify('!!!@@@###')).toBe('')
   })

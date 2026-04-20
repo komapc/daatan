@@ -68,7 +68,7 @@ export async function suggestTags(claim: string, details?: string) {
 
     try {
       const parsed = JSON.parse(result.text)
-      return parsed.tags as string[]
+      return (parsed.tags ?? []).filter((t: unknown): t is string => typeof t === 'string' && t.length > 0)
     } catch {
       log.error({ text: result.text }, 'Failed to parse tag suggestion response')
       return []

@@ -316,19 +316,21 @@ export const POST = withAuth(async (request, user) => {
           source: data.source ?? null,
           confidence: data.confidence ?? null,
           shareToken,
-          // Connect or create tags
+          // Connect or create tags — filter nulls that LLM responses sometimes inject
           tags: data.tags?.length
             ? {
-              connectOrCreate: data.tags.map((tagName) => {
-                const tagSlug = slugify(tagName)
-                return {
-                  where: { slug: tagSlug },
-                  create: {
-                    name: tagName,
-                    slug: tagSlug,
-                  },
-                }
-              }),
+              connectOrCreate: data.tags
+                .filter((t): t is string => typeof t === 'string' && t.length > 0)
+                .map((tagName) => {
+                  const tagSlug = slugify(tagName)
+                  return {
+                    where: { slug: tagSlug },
+                    create: {
+                      name: tagName,
+                      slug: tagSlug,
+                    },
+                  }
+                }),
             }
             : undefined,
         },

@@ -2,7 +2,8 @@
  * Generate URL-friendly slug from text
  * Handles special characters, spaces, and ensures uniqueness
  */
-export function slugify(text: string): string {
+export function slugify(text: string | null | undefined): string {
+  if (!text) return ''
   return text
     .toLowerCase()
     .trim()

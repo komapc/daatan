@@ -1,6 +1,6 @@
 # TODO.md — Task Queue
 
-*Last updated: April 20, 2026 · v1.10.14*
+*Last updated: April 20, 2026 · v1.10.16*
 
 ---
 
@@ -20,11 +20,17 @@
   - `src/lib/services/bots/runner.ts` (871 lines) — split out voting, quality gate, staking
 - [ ] **Fix `act()` warnings in tests** — `ForecastDetailClient` tests produce React `act()` warnings on every run. Masks real async issues and pollutes CI output.
 - [ ] **Type `catch` blocks properly** — 8 `catch (e: any)` blocks lose error type safety. Use `unknown` + type narrowing or a typed error helper.
-- [ ] **Remove stale Stage 1/2 comments** — `src/app/api/admin/bots/[id]/route.ts` and `src/app/api/admin/bots/route.ts` still say "Stage 1 — stored only; wired in Stage 2". Both stages are long done.
+- [x] **Remove stale Stage 1/2 comments** — `src/app/api/admin/bots/[id]/route.ts` and `src/app/api/admin/bots/route.ts` still say "Stage 1 — stored only; wired in Stage 2". Both stages are long done.
 
 ### Features & UX
 - [ ] **Search** — add a search endpoint + UI so users can find forecasts by claim text / tag / author. No search today beyond filter pills on the feed.
-- [ ] **Find similar forecasts** — on a forecast detail page, surface a "Similar forecasts" section. Candidates: tag overlap, claim-text similarity (embedding-based), shared news anchor. Needed as duplication check when creating new forecasts too.
+- [ ] **Find similar forecasts** — tag/keyword-based similarity in two surfaces:
+  1. **Forecast creation** — after the user fills in claim text and tags, query for 2–3 active forecasts sharing ≥1 tag or significant keyword overlap. Show as a "Similar forecasts — is yours a duplicate?" warning inline in the creation form before submit.
+  2. **Forecast detail page** — "See also" section below the main card. Show 2–3 active forecasts with the highest tag overlap (same tags), falling back to keyword overlap in claim text (stop-word-filtered, ≥2 matching words). Exclude resolved/void forecasts and the current forecast itself.
+  - **API**: `GET /api/forecasts/similar?id=<id>&limit=3` (for detail page) + inline query on creation client.
+  - **Similarity logic** (v1): score = (shared tags × 3) + (shared claim keywords × 1), return top N by score descending.
+  - **Future**: swap scoring function for embedding cosine similarity without changing the API surface.
+  - **Not needed**: new DB columns or migrations — tags and claimText are already indexed.
 - [ ] **Microservice for predictions** — defer until a concrete driver appears (independent scaling, separate deploy cadence, or team ownership split). Until then the operational cost (two deployables, auth, data sync, and failure modes) usually outweighs the benefit for a single-app codebase.
 
 ---
