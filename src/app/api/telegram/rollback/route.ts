@@ -14,9 +14,14 @@
  *   GH_ROLLBACK_TOKEN           — PAT with actions:write on this repo
  *   GITHUB_REPOSITORY           — e.g. "komapc/daatan"
  *   AWS_REGION                  — e.g. "eu-central-1"
+ *   NEXTAUTH_URL                — production base URL (e.g. "https://daatan.com")
+ *   STAGING_URL                 — staging base URL (e.g. "https://staging.daatan.com")
  */
 
 import { NextResponse } from 'next/server'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('telegram-rollback')
 
 const TELEGRAM_API = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`
 const GITHUB_REPO = process.env.GITHUB_REPOSITORY ?? 'komapc/daatan'
@@ -76,8 +81,8 @@ async function getAvailableVersions(): Promise<string[]> {
 
 async function getCurrentVersions(): Promise<{ prod: string; staging: string }> {
   const [prodResp, stagingResp] = await Promise.allSettled([
-    fetch('https://daatan.com/api/health', { next: { revalidate: 0 } }),
-    fetch('https://staging.daatan.com/api/health', { next: { revalidate: 0 } }),
+    fetch(`${process.env.NEXTAUTH_URL ?? 'https://daatan.com'}/api/health`, { next: { revalidate: 0 } }),
+    fetch(`${process.env.STAGING_URL ?? 'https://staging.daatan.com'}/api/health`, { next: { revalidate: 0 } }),
   ])
   const parse = async (r: PromiseSettledResult<Response>) => {
     if (r.status !== 'fulfilled' || !r.value.ok) return 'unknown'
@@ -250,7 +255,7 @@ export async function POST(request: Request) {
     )
     return NextResponse.json({ ok: true })
   } catch (err) {
-    console.error('[telegram/rollback] webhook error:', err)
+    log.error({ err }, 'Telegram rollback webhook error')
     return NextResponse.json({ ok: true }) // Always 200 to Telegram
   }
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { toError } from '@/lib/utils/error'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 import Link from 'next/link'
@@ -49,8 +50,8 @@ function ResetPasswordForm() {
       if (!res.ok) throw new Error(data.error || 'Something went wrong')
       setDone(true)
       setTimeout(() => router.push('/auth/signin'), 2500)
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err) {
+      setError(toError(err).message)
     } finally {
       setIsLoading(false)
     }

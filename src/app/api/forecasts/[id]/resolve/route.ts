@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { resolvePredictionSchema } from '@/lib/validations/prediction'
 import { apiError } from '@/lib/api-error'
+import { toError } from '@/lib/utils/error'
 import { withAuth } from '@/lib/api-middleware'
 import { notifyForecastResolved } from '@/lib/services/telegram'
 import { createNotification } from '@/lib/services/notification'
@@ -19,8 +20,9 @@ export const POST = withAuth(async (request, user, { params }) => {
       resolutionNote,
       correctOptionId,
     })
-  } catch (err: any) {
-    if (err.statusCode) return apiError(err.message, err.statusCode)
+  } catch (err) {
+    const e = toError(err) as Error & { statusCode?: number }
+    if (e.statusCode) return apiError(e.message, e.statusCode)
     throw err
   }
   const { result, prediction } = resolveResult

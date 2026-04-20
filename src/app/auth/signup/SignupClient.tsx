@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { toError } from '@/lib/utils/error'
 import { signIn } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -52,8 +53,8 @@ export default function SignupClient() {
         router.push(callbackUrl)
         router.refresh()
       }
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err) {
+      setError(toError(err).message)
     } finally {
       setIsLoading(false)
     }

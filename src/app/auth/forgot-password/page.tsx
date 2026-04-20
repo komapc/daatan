@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { toError } from '@/lib/utils/error'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Mail, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
@@ -28,8 +29,8 @@ export default function ForgotPasswordPage() {
         throw new Error(data.error || 'Something went wrong')
       }
       setSent(true)
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err) {
+      setError(toError(err).message)
     } finally {
       setIsLoading(false)
     }
