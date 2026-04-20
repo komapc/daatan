@@ -1,5 +1,5 @@
-import { render, screen, waitFor } from '@testing-library/react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, waitFor, act } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { useSession } from 'next-auth/react'
 import { NextIntlClientProvider } from 'next-intl'
 import ForecastDetailClient from '../ForecastDetailClient'
@@ -39,20 +39,31 @@ const wrap = (ui: React.ReactElement) => (
   <NextIntlClientProvider locale="en" messages={enMessages}>{ui}</NextIntlClientProvider>
 )
 
+const globalFetch = global.fetch
+afterEach(() => { global.fetch = globalFetch })
+
 describe('ForecastDetailClient — Deadline panel', () => {
   beforeEach(() => {
     vi.mocked(useSession).mockReturnValue({ data: null, status: 'unauthenticated' } as any)
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => makePrediction(),
+    })
   })
 
   it('renders the Resolution date label', async () => {
-    render(wrap(<ForecastDetailClient initialData={makePrediction() as any} />))
+    await act(async () => {
+      render(wrap(<ForecastDetailClient initialData={makePrediction() as any} />))
+    })
     // The translation key is 'deadline' but its value is 'Resolution date'
     const labels = await screen.findAllByText(/resolution date/i)
     expect(labels.length).toBeGreaterThan(0)
   })
 
   it('shows a non-empty formatted date after mount (isMounted guard)', async () => {
-    render(wrap(<ForecastDetailClient initialData={makePrediction() as any} />))
+    await act(async () => {
+      render(wrap(<ForecastDetailClient initialData={makePrediction() as any} />))
+    })
 
     // Wait for isMounted useEffect to set state and the date to appear
     await waitFor(() => {
@@ -63,7 +74,9 @@ describe('ForecastDetailClient — Deadline panel', () => {
   })
 
   it('deadline text includes a timezone abbreviation (GMT or UTC or named zone)', async () => {
-    render(wrap(<ForecastDetailClient initialData={makePrediction() as any} />))
+    await act(async () => {
+      render(wrap(<ForecastDetailClient initialData={makePrediction() as any} />))
+    })
 
     await waitFor(() => {
       // toLocaleString with timeZoneName: 'short' always appends a tz token

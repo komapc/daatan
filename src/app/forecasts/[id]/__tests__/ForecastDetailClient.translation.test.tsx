@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { useSession } from 'next-auth/react'
 import { NextIntlClientProvider } from 'next-intl'
@@ -76,10 +76,17 @@ describe('ForecastDetailClient Translation', () => {
       data: null,
       status: 'unauthenticated',
     } as any)
+    // Default fetch: return base prediction so mount effect settles inside act
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => basePrediction,
+    } as Response)
   })
 
-  it('shows original text by default in English locale', () => {
-    renderWithIntl(<ForecastDetailClient initialData={basePrediction as any} />, 'en')
+  it('shows original text by default in English locale', async () => {
+    await act(async () => {
+      renderWithIntl(<ForecastDetailClient initialData={basePrediction as any} />, 'en')
+    })
     expect(screen.getByText('Original English Claim')).toBeInTheDocument()
     expect(screen.getByText('Original English Details')).toBeInTheDocument()
     // Button should NOT exist in English
@@ -87,21 +94,17 @@ describe('ForecastDetailClient Translation', () => {
   })
 
   it('triggers translation and shows Hebrew toggle + disclaimer in Hebrew locale', async () => {
-    // First mock: initial API fetch on mount (returns base prediction)
-    vi.mocked(fetch).mockResolvedValueOnce({
-      ok: true,
-      json: async () => basePrediction,
-    } as Response)
-    // Second mock: translation fetch
-    vi.mocked(fetch).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        claimText: 'תרגום כותרת',
-        detailsText: 'תרגום פירוט'
-      }),
-    } as Response)
+    // Override default: first call returns base prediction, second returns translation
+    vi.mocked(fetch)
+      .mockResolvedValueOnce({ ok: true, json: async () => basePrediction } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ claimText: 'תרגום כותרת', detailsText: 'תרגום פירוט' }),
+      } as Response)
 
-    renderWithIntl(<ForecastDetailClient initialData={basePrediction as any} />, 'he')
+    await act(async () => {
+      renderWithIntl(<ForecastDetailClient initialData={basePrediction as any} />, 'he')
+    })
 
     // It should trigger fetch
     await waitFor(() => {
@@ -139,9 +142,13 @@ describe('ForecastDetailClient Translation', () => {
   })
 
   it('handles translation failure gracefully in detailed view', async () => {
-    vi.mocked(fetch).mockRejectedValueOnce(new Error('Translation failed'))
+    vi.mocked(fetch)
+      .mockResolvedValueOnce({ ok: true, json: async () => basePrediction } as Response)
+      .mockRejectedValueOnce(new Error('Translation failed'))
 
-    renderWithIntl(<ForecastDetailClient initialData={basePrediction as any} />, 'he')
+    await act(async () => {
+      renderWithIntl(<ForecastDetailClient initialData={basePrediction as any} />, 'he')
+    })
 
     // Should show original text if translation fails
     await waitFor(() => {

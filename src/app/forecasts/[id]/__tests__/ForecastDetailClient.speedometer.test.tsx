@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react'
+import { render, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { useSession } from 'next-auth/react'
 import { NextIntlClientProvider } from 'next-intl'
@@ -55,25 +55,35 @@ const wrap = (ui: React.ReactElement) => (
   <NextIntlClientProvider locale="en" messages={enMessages}>{ui}</NextIntlClientProvider>
 )
 
-const renderPrediction = (commitments: { binaryChoice: boolean; cuCommitted: number }[]) =>
-  render(wrap(<ForecastDetailClient initialData={makePrediction(commitments) as any} />))
+const renderPrediction = async (commitments: { binaryChoice: boolean; cuCommitted: number }[]) => {
+  let result!: ReturnType<typeof render>
+  await act(async () => {
+    result = render(wrap(<ForecastDetailClient initialData={makePrediction(commitments) as any} />))
+  })
+  return result
+}
 
 describe('Speedometer — probability calculation', () => {
   beforeEach(() => {
     speedometerMock.mockClear()
     vi.mocked(useSession).mockReturnValue({ data: null, status: 'unauthenticated' } as any)
+    // Provide a default fetch response so the mount effect settles inside act
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => makePrediction([]),
+    })
   })
 
-  it('shows 50% when there are no commitments', () => {
-    renderPrediction([])
+  it('shows 50% when there are no commitments', async () => {
+    await renderPrediction([])
     expect(speedometerMock).toHaveBeenCalledWith(
       expect.objectContaining({ percentage: 50 }),
       expect.anything()
     )
   })
 
-  it('uses CU amounts, not headcount — 2 CU yes vs 100 CU no = ~2%', () => {
-    renderPrediction([
+  it('uses CU amounts, not headcount — 2 CU yes vs 100 CU no = ~2%', async () => {
+    await renderPrediction([
       { binaryChoice: true,  cuCommitted: 2   },
       { binaryChoice: false, cuCommitted: 100 },
     ])
@@ -84,9 +94,9 @@ describe('Speedometer — probability calculation', () => {
     )
   })
 
-  it('headcount would give 50% but CU gives 2% — regression guard', () => {
+  it('headcount would give 50% but CU gives 2% — regression guard', async () => {
     // Reported bug: 2 persons (2 CU vs 100 CU) was showing 50% (headcount) instead of 2% (CU)
-    renderPrediction([
+    await renderPrediction([
       { binaryChoice: true,  cuCommitted: 2   },
       { binaryChoice: false, cuCommitted: 100 },
     ])
@@ -95,8 +105,8 @@ describe('Speedometer — probability calculation', () => {
     expect(call.percentage).toBe(2)
   })
 
-  it('shows 50% when yes and no CU are equal', () => {
-    renderPrediction([
+  it('shows 50% when yes and no CU are equal', async () => {
+    await renderPrediction([
       { binaryChoice: true,  cuCommitted: 50 },
       { binaryChoice: false, cuCommitted: 50 },
     ])
@@ -106,8 +116,8 @@ describe('Speedometer — probability calculation', () => {
     )
   })
 
-  it('shows 100% when all CU is on yes', () => {
-    renderPrediction([
+  it('shows 100% when all CU is on yes', async () => {
+    await renderPrediction([
       { binaryChoice: true, cuCommitted: 200 },
       { binaryChoice: true, cuCommitted: 100 },
     ])
@@ -117,8 +127,8 @@ describe('Speedometer — probability calculation', () => {
     )
   })
 
-  it('shows 0% when all CU is on no', () => {
-    renderPrediction([
+  it('shows 0% when all CU is on no', async () => {
+    await renderPrediction([
       { binaryChoice: false, cuCommitted: 100 },
       { binaryChoice: false, cuCommitted: 50  },
     ])
@@ -128,10 +138,10 @@ describe('Speedometer — probability calculation', () => {
     )
   })
 
-  it('weights by CU — one large staker outweighs many small ones', () => {
+  it('weights by CU — one large staker outweighs many small ones', async () => {
     // 10 persons × 1 CU yes = 10 CU; 1 person × 90 CU no = 90 CU
     // headcount: 10/11 = 91% — wrong; CU: 10/100 = 10% — correct
-    renderPrediction([
+    await renderPrediction([
       ...Array(10).fill({ binaryChoice: true,  cuCommitted: 1 }),
       { binaryChoice: false, cuCommitted: 90 },
     ])
@@ -149,9 +159,6 @@ describe('Speedometer — state update after voting (router.refresh regression)'
   })
 
   it('fetches once on mount but not again when initialData prop changes (simulates router.refresh)', async () => {
-    // The component always fetches from the API on mount to get fresh data (bypassing ISR cache).
-    // When router.refresh() delivers new initialData prop with the same id, the effect
-    // does NOT re-run (id dependency unchanged), so fetch is called exactly once.
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => makePrediction([]),
@@ -159,14 +166,20 @@ describe('Speedometer — state update after voting (router.refresh regression)'
     global.fetch = fetchMock
 
     const initial = makePrediction([])
-    const { rerender } = render(wrap(<ForecastDetailClient initialData={initial as any} />))
+    let rerender!: ReturnType<typeof render>['rerender']
+    await act(async () => {
+      const r = render(wrap(<ForecastDetailClient initialData={initial as any} />))
+      rerender = r.rerender
+    })
 
     // Simulate router.refresh(): re-render with new initialData reference (same id)
     const refreshedInitial = { ...initial, claimText: 'Server-refreshed claim' }
-    rerender(wrap(<ForecastDetailClient initialData={refreshedInitial as any} />))
+    await act(async () => {
+      rerender(wrap(<ForecastDetailClient initialData={refreshedInitial as any} />))
+    })
 
     // fetch is called once on mount, but NOT again on re-render with same id
-    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
+    expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
   it('re-fetches when navigating to a different forecast id', async () => {
@@ -176,13 +189,11 @@ describe('Speedometer — state update after voting (router.refresh regression)'
     })
     global.fetch = fetchMock
 
-    const initial = makePrediction([])
-    // Render without initialData matching 'pred-1' — by passing a different id via params mock
-    // The useEffect guard: if initialData.id === id, skip. Here we provide no initialData.
-    render(wrap(<ForecastDetailClient />))
+    await act(async () => {
+      render(wrap(<ForecastDetailClient />))
+    })
 
     // Should fetch since there's no initialData
-    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/forecasts/pred-1'))
-    void initial
+    expect(fetchMock).toHaveBeenCalledWith('/api/forecasts/pred-1')
   })
 })
