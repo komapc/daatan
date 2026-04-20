@@ -21,7 +21,6 @@ const updateBotSchema = z
     hotnessMinSources: z.number().int().min(1).optional(),
     hotnessWindowHours: z.number().int().min(1).optional(),
     isActive: z.boolean().optional(),
-    // Extended params (Stage 1 — stored only; wired in bot-runner in Stage 2)
     activeHoursStart: z.number().int().min(0).max(23).nullable().optional(),
     activeHoursEnd: z.number().int().min(0).max(23).nullable().optional(),
     tagFilter: z.array(z.string().min(1)).optional(),
