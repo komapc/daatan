@@ -1,23 +1,16 @@
 /**
-  * Bot runner service.
+ * Bot runner service.
  *
- * Called by / api / bots / run on a schedule(GitHub Actions every 5 minutes).
+ * Called by /api/bots/run on a schedule (GitHub Actions every 5 minutes).
  * For each active bot that is "due", it:
  * 1. Fetches RSS feeds configured for the bot
-  * 2. Detects hot topics(appearing in multiple sources)
-    * 3. Deduplicates against existing forecast titles(LLM - based)
-      * 4. Generates and posts a new forecast(with 🤖 in title)
- * 5. Stakes on the forecast immediately
-  * 6. Optionally votes on existing open forecasts
-    * 7. Logs all actions to BotRunLog
-      *
- * Extended params wired here(Stage 2):
- * - activeHoursStart / End: UTC hour window gate at top of runBot()
-  * - canCreateForecasts / canVote: phase enable flags
-    * - tagFilter: prompt injection for creation; DB filter for voting
-      * - voteBias: soft prompt hint in vote decision
-        * - cuRefillAt / cuRefillAmount: ADMIN_GRANT auto top - up via ensureBotCU()
-          */
+ * 2. Detects hot topics (appearing in multiple sources)
+ * 3. Deduplicates against existing forecast titles (LLM-based)
+ * 4. Generates and posts a new forecast (with 🤖 in title)
+ * 5. Stakes on the forecast immediately (or defers if requireApprovalForForecasts)
+ * 6. Optionally votes on existing ACTIVE forecasts
+ * 7. Logs all actions to BotRunLog
+ */
 
 import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'

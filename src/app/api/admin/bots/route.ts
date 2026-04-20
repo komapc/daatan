@@ -32,7 +32,6 @@ const createBotSchema = z
     modelPreference: z.string().default('google/gemini-2.5-flash-preview:free'),
     hotnessMinSources: z.number().int().min(1).default(2),
     hotnessWindowHours: z.number().int().min(1).default(6),
-    // Extended params (Stage 1 — stored only; wired in bot-runner in Stage 2)
     activeHoursStart: z.number().int().min(0).max(23).nullable().default(null),
     activeHoursEnd: z.number().int().min(0).max(23).nullable().default(null),
     tagFilter: z.array(z.string().min(1)).default([]),
