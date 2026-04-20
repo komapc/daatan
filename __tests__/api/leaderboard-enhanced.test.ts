@@ -172,3 +172,96 @@ describe('GET /api/leaderboard (enhanced)', () => {
     expect(data.error).toBe('Failed to fetch leaderboard')
   })
 })
+
+// Helper: sets up all mocks for a standard leaderboard call.
+// Calls mockReset() before setting Once items — clearAllMocks() leaves the
+// Once queue intact, so leftover items from a previous describe would shift
+// which mock gets which Once value.
+async function setupDefaultMocks(findManyOverride?: any[]) {
+  const { prisma } = await import('@/lib/prisma')
+  vi.mocked(prisma.commitment.groupBy).mockReset()
+  vi.mocked(prisma.user.findMany).mockResolvedValue(mockUsers as any)
+  vi.mocked(prisma.commitment.groupBy)
+    .mockResolvedValueOnce(mockCuSums as any)    // cuSums
+    .mockResolvedValueOnce(mockRsGainSums as any) // rsGainSums
+    .mockResolvedValueOnce([] as any)             // brierScoreSums
+    .mockResolvedValue([] as any)                 // safety net
+  vi.mocked(prisma.commitment.findMany).mockResolvedValue(
+    (findManyOverride ?? mockResolvedCommitments) as any
+  )
+}
+
+describe('GET /api/leaderboard — new indices (ROI + TruthScore)', () => {
+  beforeEach(async () => {
+    vi.clearAllMocks()
+    await setupDefaultMocks()
+  })
+
+  it('computes ROI correctly from resolved commitments', async () => {
+    const request = new NextRequest('http://localhost/api/leaderboard')
+    const response = await GET(request)
+    const data = await response.json()
+
+    // Alice: cuCommitted=20, cuReturned=15 → ROI = (15-20)/20*100 = -25%
+    const alice = data.leaderboard.find((u: any) => u.username === 'alice')
+    expect(alice.roi).toBe(-25)
+
+    // Bob: cuCommitted=40, cuReturned=60 → ROI = (60-40)/40*100 = +50%
+    const bob = data.leaderboard.find((u: any) => u.username === 'bob')
+    expect(bob.roi).toBe(50)
+  })
+
+  it('sorts by ROI descending', async () => {
+    const request = new NextRequest('http://localhost/api/leaderboard?sortBy=roi')
+    const response = await GET(request)
+    const data = await response.json()
+
+    expect(data.leaderboard[0].username).toBe('bob')   // +50%
+    expect(data.leaderboard[1].username).toBe('alice') // -25%
+  })
+
+  it('returns roi=null when user has no resolved commitments', async () => {
+    await setupDefaultMocks([])
+
+    const request = new NextRequest('http://localhost/api/leaderboard')
+    const response = await GET(request)
+    const data = await response.json()
+
+    for (const user of data.leaderboard) {
+      expect(user.roi).toBeNull()
+    }
+  })
+
+  it('returns truthScore=null for all users (stub)', async () => {
+    const request = new NextRequest('http://localhost/api/leaderboard')
+    const response = await GET(request)
+    const data = await response.json()
+
+    for (const user of data.leaderboard) {
+      expect(user.truthScore).toBeNull()
+    }
+  })
+
+  it('sortBy=truthScore does not crash (all nulls sorted last)', async () => {
+    const request = new NextRequest('http://localhost/api/leaderboard?sortBy=truthScore')
+    const response = await GET(request)
+    const data = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(data.leaderboard).toHaveLength(2)
+  })
+
+  it('puts users with null ROI last when sorting by roi', async () => {
+    // Only alice has resolved commitments
+    await setupDefaultMocks([
+      { userId: 'u1', cuCommitted: 10, cuReturned: 15 },
+    ] as any)
+
+    const request = new NextRequest('http://localhost/api/leaderboard?sortBy=roi')
+    const response = await GET(request)
+    const data = await response.json()
+
+    expect(data.leaderboard[0].username).toBe('alice') // has ROI
+    expect(data.leaderboard[1].roi).toBeNull()         // bob: no resolved → null → last
+  })
+})
