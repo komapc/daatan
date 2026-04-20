@@ -205,15 +205,22 @@
       "accuracy": "Precizeco",
       "mostCorrect": "Plej Ĝusta",
       "cuCommitted": "Plej Engaĝita KU",
-      "brierScore": "Brier-Poentaro"
+      "brierScore": "Brier-Poentaro",
+      "roi": "Rendimento",
+      "truthScore": "TruthScore"
     },
+    "soon": "baldaŭ",
     "legend": {
       "rsTitle": "Reputaci-Poentaro (RS)",
       "rsDesc": "Reputacio estas gajnata per ĝustaj prognozoj pezigitaj laŭ via konfido. Pli alta RS signifas pli konsekventan precizecon.",
       "cuTitle": "Konfido",
       "cuDesc": "Konfido reprezentas la profundon de via engaĝiĝo en ĉiu prognozo. Ĝustaj vokoj pliigas vian reputacion; malĝustaj malpliigas ĝin.",
       "brierTitle": "Brier-Poentaro",
-      "brierDesc": "Malpli estas pli bone. Mezuras kalibron: (via probablo − reala rezulto)². Perfekta poentaro = 0."
+      "brierDesc": "Malpli estas pli bone. Mezuras kalibron: (via probablo − reala rezulto)². Perfekta poentaro = 0.",
+      "roiTitle": "Rendimento sur Investo (ROI)",
+      "roiDesc": "Neta KU-gajno en solvitaj prognozoj kiel procento de investita KU. Pozitiva = profita; negativa = perda.",
+      "truthScoreTitle": "TruthScore (baldaŭ)",
+      "truthScoreDesc": "Logaritma poentad-regulo uzata de Microsoft Research. Rekompensas fidindajn ĝustajn prognozojn. Pli alta estas pli bone."
     }
   },
   "activity": {
