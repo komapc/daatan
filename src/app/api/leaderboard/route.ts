@@ -42,13 +42,15 @@ export async function GET(request: NextRequest) {
         where: { userId: { in: userIds }, rsChange: { gt: 0 } },
         _sum: { rsChange: true },
       }),
-      // Resolved commitments — needed for accuracy + ROI
+      // Resolved commitments — needed for accuracy
+      // rsChange > 0 means the user's confidence was better than random (correct direction)
       prisma.commitment.findMany({
         where: {
           userId: { in: userIds },
           prediction: { status: { in: ['RESOLVED_CORRECT', 'RESOLVED_WRONG'] } },
+          rsChange: { not: null },
         },
-        select: { userId: true, cuCommitted: true, cuReturned: true },
+        select: { userId: true, rsChange: true },
       }),
       // Average Brier score per user
       prisma.commitment.groupBy({
@@ -63,14 +65,13 @@ export async function GET(request: NextRequest) {
     const cuByUser = new Map(cuSums.map(s => [s.userId, s._sum.cuCommitted ?? 0]))
     const rsGainByUser = new Map(rsGainSums.map(s => [s.userId, s._sum.rsChange ?? 0]))
 
-    // Accuracy + ROI from resolved commitments
-    const resolvedByUser = new Map<string, { total: number; correct: number; cuCommitted: number; cuReturned: number }>()
+    // Accuracy from resolved commitments
+    // A commitment is "correct" when rsChange > 0 (user's confidence beat the random baseline)
+    const resolvedByUser = new Map<string, { total: number; correct: number }>()
     for (const c of resolvedCommitments) {
-      const entry = resolvedByUser.get(c.userId) ?? { total: 0, correct: 0, cuCommitted: 0, cuReturned: 0 }
+      const entry = resolvedByUser.get(c.userId) ?? { total: 0, correct: 0 }
       entry.total++
-      entry.cuCommitted += c.cuCommitted
-      entry.cuReturned += c.cuReturned ?? 0
-      if ((c.cuReturned ?? 0) > c.cuCommitted) entry.correct++
+      if ((c.rsChange ?? 0) > 0) entry.correct++
       resolvedByUser.set(c.userId, entry)
     }
 
@@ -80,7 +81,7 @@ export async function GET(request: NextRequest) {
     }]))
 
     const leaderboard = users.map((user) => {
-      const resolved = resolvedByUser.get(user.id) ?? { total: 0, correct: 0, cuCommitted: 0, cuReturned: 0 }
+      const resolved = resolvedByUser.get(user.id) ?? { total: 0, correct: 0 }
 
       const accuracy = resolved.total > 0
         ? Math.round((resolved.correct / resolved.total) * 100)
@@ -91,11 +92,8 @@ export async function GET(request: NextRequest) {
         ? Math.round(brier.avg * 1000) / 1000
         : null
 
-      // ROI: net CU gain on resolved commitments relative to amount committed
-      // (cuReturned - cuCommitted) / cuCommitted * 100, null if no resolved bets
-      const roi = (resolved.cuCommitted > 0)
-        ? Math.round(((resolved.cuReturned - resolved.cuCommitted) / resolved.cuCommitted) * 10000) / 100
-        : null
+      // ROI is not reliably computable from confidence-based commitments; reserved for future use.
+      const roi: number | null = null
 
       // TruthScore (MS log score): sum(log(p) if YES, log(1-p) if NO) / n
       // Not yet computed — requires per-commitment probability values.
