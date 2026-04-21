@@ -45,10 +45,10 @@ const mockRsGainSums = [
   { userId: 'u2', _sum: { rsChange: 6.0 } },  // 3.0 + 3.0
 ]
 const mockResolvedCommitments = [
-  { userId: 'u1', cuCommitted: 10, cuReturned: 15 }, // correct (15 > 10)
-  { userId: 'u1', cuCommitted: 10, cuReturned: 0 },  // wrong (0 < 10)
-  { userId: 'u2', cuCommitted: 20, cuReturned: 30 }, // correct
-  { userId: 'u2', cuCommitted: 20, cuReturned: 30 }, // correct
+  { userId: 'u1', rsChange: 5 },  // correct (rsChange > 0)
+  { userId: 'u1', rsChange: -5 }, // wrong (rsChange < 0)
+  { userId: 'u2', rsChange: 3 },  // correct
+  { userId: 'u2', rsChange: 3 },  // correct
 ]
 
 describe('GET /api/leaderboard (enhanced)', () => {
