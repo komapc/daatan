@@ -26,6 +26,12 @@ const replaceHeader = (raw, name, newValue) =>
 
 const removeHeader = (raw, name) => raw.replace(headerWithTerminatorRe(name), "");
 
+// Remove ALL occurrences of a header (handles emails with multiple instances, e.g. DKIM-Signature).
+const removeAllHeaders = (raw, name) => {
+  const re = new RegExp(`^${name}:[^\\r\\n]*(?:\\r?\\n[ \\t][^\\r\\n]*)*\\r?\\n`, "gmi");
+  return raw.replace(re, "");
+};
+
 const hasHeader = (raw, name) =>
   new RegExp(`^${name}:`, "mi").test(raw);
 
@@ -115,6 +121,13 @@ export const handler = async (event) => {
   // headers as body text in Gmail.
   for (const name of ["Return-Path", "Sender", "Resent-From", "Resent-Sender", "Resent-Return-Path"]) {
     rawEmail = removeHeader(rawEmail, name);
+  }
+
+  // DKIM-Signature and ARC-* headers are invalidated when we rewrite From/To.
+  // SES also rejects emails with duplicate DKIM-Signature headers.
+  // Strip them all; SES will add its own DKIM signature on send.
+  for (const name of ["DKIM-Signature", "ARC-Seal", "ARC-Message-Signature", "ARC-Authentication-Results"]) {
+    rawEmail = removeAllHeaders(rawEmail, name);
   }
 
   // 4. Send Raw Email
