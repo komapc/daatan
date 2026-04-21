@@ -11,6 +11,7 @@ import crypto from 'crypto'
  * produce the same hash.
  */
 export function hashUrl(url: string): string {
+  if (!url) return ''
   const normalizedUrl = url
     .toLowerCase()
     .replace(/^https?:\/\//, '')
