@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
+import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { useSession, signOut, signIn } from 'next-auth/react'
 import { VERSION } from '@/lib/version'
@@ -26,6 +26,7 @@ import {
   Activity,
   BarChart3,
   Mail,
+  Search,
 } from 'lucide-react'
 
 import { useTranslations } from 'next-intl'
@@ -52,8 +53,25 @@ const navItems: NavItem[] = [
 
 const Sidebar = () => {
   const pathname = usePathname()
+  const router = useRouter()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [hasMounted, setHasMounted] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (searchOpen) searchInputRef.current?.focus()
+  }, [searchOpen])
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    const q = searchQuery.trim()
+    setSearchOpen(false)
+    setSearchQuery('')
+    handleCloseMenu()
+    router.push(q ? `/forecasts?q=${encodeURIComponent(q)}` : '/forecasts')
+  }
 
   // Safely call useSession and provide defaults to avoid build-time crashes
   const sessionData = useSession()
@@ -139,6 +157,13 @@ const Sidebar = () => {
           <h1 className="text-lg font-bold text-white">DAATAN</h1>
         </Link>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => { setSearchOpen(true); setIsMobileMenuOpen(true) }}
+            className="p-2 rounded-lg hover:bg-navy-800 transition-colors"
+            aria-label="Search forecasts"
+          >
+            <Search className="w-5 h-5 text-text-secondary" />
+          </button>
           {hasMounted && status === 'authenticated' && session?.user && (
             <UserLink
               userId={session.user.id}
@@ -208,6 +233,33 @@ const Sidebar = () => {
         {/* Navigation */}
         <nav className="flex-1 px-4 py-6 overflow-y-auto">
           <ul className="space-y-1">
+            {/* Search */}
+            <li>
+              {searchOpen ? (
+                <form onSubmit={handleSearch} className="flex items-center gap-2 px-2 py-1.5">
+                  <input
+                    ref={searchInputRef}
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    placeholder="Search forecasts…"
+                    className="flex-1 bg-navy-800 text-white text-sm px-3 py-2 rounded-lg border border-navy-600 outline-none focus:border-blue-500 placeholder-gray-500"
+                    onKeyDown={e => e.key === 'Escape' && setSearchOpen(false)}
+                  />
+                  <button type="button" onClick={() => setSearchOpen(false)} className="p-1 text-gray-400 hover:text-white">
+                    <X className="w-4 h-4" />
+                  </button>
+                </form>
+              ) : (
+                <button
+                  onClick={() => setSearchOpen(true)}
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg text-text-secondary hover:bg-navy-800 hover:text-white transition-colors w-full"
+                >
+                  <Search className="w-5 h-5" />
+                  <span className="font-medium">Search</span>
+                </button>
+              )}
+            </li>
+
             {navLinks.map((item) => {
               const isActive = pathname === item.href
               const Icon = item.icon
