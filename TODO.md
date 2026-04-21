@@ -1,6 +1,6 @@
 # TODO.md — Task Queue
 
-*Last updated: April 20, 2026 · v1.10.21*
+*Last updated: April 20, 2026 · v1.10.22*
 
 ---
 
@@ -13,7 +13,8 @@
 - [ ] **Service layer for API routes** — ~105 direct `prisma.*` calls remaining across 47 files in `src/app/api/`. Pass 1 done (forecast + comment routes, PR #663). Continue extracting business logic into `src/lib/services/`.
 
 ### Features & UX
-- [ ] **Search** — add a search endpoint + UI so users can find forecasts by claim text / tag / author. No search today beyond filter pills on the feed.
+- [x] **Search** — forecast search by claim text + tags, sidebar icon, `/forecasts?q=` URL. PR #665.
+- [ ] **Verbose forecast creation progress** — the creation flow (article fetch → AI content analysis → moderation → forecast save) can take 10–20 s with no feedback beyond a generic spinner. Add step-by-step status messages in the creation UI so the user knows what's happening at each stage (e.g. "Fetching article…", "Analysing content…", "Checking moderation…", "Saving forecast…").
 - [ ] **Find similar forecasts** — tag/keyword-based similarity in two surfaces:
   1. **Forecast creation** — after the user fills in claim text and tags, query for 2–3 active forecasts sharing ≥1 tag or significant keyword overlap. Show as a "Similar forecasts — is yours a duplicate?" warning inline in the creation form before submit.
   2. **Forecast detail page** — "See also" section below the main card. Show 2–3 active forecasts with the highest tag overlap (same tags), falling back to keyword overlap in claim text (stop-word-filtered, ≥2 matching words). Exclude resolved/void forecasts and the current forecast itself.
