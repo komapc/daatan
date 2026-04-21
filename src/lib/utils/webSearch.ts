@@ -18,7 +18,8 @@ export interface SearchResult {
 
 interface SerperNewsItem {
   title: string
-  link: string
+  link?: string  // can be absent on some result types (knowledge panels, featured snippets)
+  url?: string   // alternate field name seen on organic/topStories items
   snippet: string
   date?: string
 }
@@ -26,6 +27,7 @@ interface SerperNewsItem {
 interface SerperResponse {
   organic?: SerperNewsItem[]
   news?: SerperNewsItem[]
+  topStories?: SerperNewsItem[]  // returned by /news when no standard news results exist
 }
 
 async function searchWithSerper(
@@ -55,15 +57,21 @@ async function searchWithSerper(
 
   const data: SerperResponse = await response.json()
   const news = data.news ?? []
-  const results = news.length > 0 ? news : (data.organic ?? [])
+  const results = news.length > 0
+    ? news
+    : (data.topStories?.length ? data.topStories : (data.organic ?? []))
 
-  return results.slice(0, limit).map(item => ({
-    title: item.title,
-    url: item.link,
-    snippet: item.snippet,
-    source: extractDomain(item.link),
-    publishedDate: item.date || undefined,
-  }))
+  return results
+    .map(item => ({ ...item, resolvedLink: item.link || item.url }))
+    .filter(item => item.resolvedLink)
+    .slice(0, limit)
+    .map(item => ({
+      title: item.title,
+      url: item.resolvedLink!,
+      snippet: item.snippet,
+      source: extractDomain(item.resolvedLink!),
+      publishedDate: item.date || undefined,
+    }))
 }
 
 function formatSerperDate(date: Date): string {
@@ -107,13 +115,16 @@ async function searchWithSerpApi(query: string, limit: number): Promise<SearchRe
   const data: SerpApiResponse = await response.json()
   const results = data.news_results ?? []
 
-  return results.slice(0, limit).map(item => ({
-    title: item.title,
-    url: item.link,
-    snippet: item.snippet,
-    source: item.source?.name || extractDomain(item.link),
-    publishedDate: item.date || undefined,
-  }))
+  return results
+    .filter(item => item.link)
+    .slice(0, limit)
+    .map(item => ({
+      title: item.title,
+      url: item.link,
+      snippet: item.snippet,
+      source: item.source?.name || extractDomain(item.link),
+      publishedDate: item.date || undefined,
+    }))
 }
 
 // ──────────────────────────────────────────────
