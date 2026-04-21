@@ -29,6 +29,10 @@ const headerWithTerminatorRe = (name) =>
 const replaceHeader = (raw, name, newValue) =>
   raw.replace(headerBodyRe(name), `${name}: ${newValue}`);
 const removeHeader = (raw, name) => raw.replace(headerWithTerminatorRe(name), "");
+const removeAllHeaders = (raw, name) => {
+  const re = new RegExp(`^${name}:[^\\r\\n]*(?:\\r?\\n[ \\t][^\\r\\n]*)*\\r?\\n`, "gmi");
+  return raw.replace(re, "");
+};
 
 test("folded From: header is fully replaced, no unverified continuation leaks", () => {
   const raw = [
@@ -74,6 +78,24 @@ test("Sender: and Resent-* headers (which SES checks) are removed", () => {
   assert.ok(!/^Resent-From:/mi.test(out));
   assert.ok(!/^Resent-Sender:/mi.test(out));
   assert.ok(out.includes("From: a@b.com"));
+  assert.ok(out.includes("Subject: x"));
+});
+
+test("multiple DKIM-Signature headers are all stripped (SES rejects duplicates)", () => {
+  const raw = [
+    "DKIM-Signature: v=1; a=rsa-sha256; d=sender.example; s=sel1;",
+    " b=abc123",
+    "DKIM-Signature: v=1; a=rsa-sha256; d=google.com; s=20230601;",
+    " b=xyz789",
+    "From: a@b.com",
+    "Subject: x",
+    "",
+    "body",
+  ].join("\r\n");
+
+  const out = removeAllHeaders(raw, "DKIM-Signature");
+  assert.ok(!/^DKIM-Signature:/mi.test(out), "all DKIM-Signature headers must be removed");
+  assert.ok(out.includes("From: a@b.com"), "other headers must be preserved");
   assert.ok(out.includes("Subject: x"));
 });
 
