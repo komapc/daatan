@@ -6,11 +6,7 @@ import { useSession, signIn } from 'next-auth/react'
 import Link from 'next/link'
 import { createClientLogger } from '@/lib/client-logger'
 import {
-  User,
   Calendar,
-  Target,
-  Users,
-  ExternalLink,
   Loader2,
   AlertCircle,
   TrendingUp,
@@ -27,135 +23,17 @@ import { useTranslations, useLocale } from 'next-intl'
 import { ModeratorResolutionSection } from './ModeratorResolutionSection'
 import CommentThread from '@/components/comments/CommentThread'
 import ConfidenceSlider from '@/components/forecasts/ConfidenceSlider'
-import CommitmentDisplay from '@/components/forecasts/CommitmentDisplay'
 import Speedometer from '@/components/forecasts/Speedometer'
 import ContextTimeline, { type AiEstimate } from '@/components/forecasts/ContextTimeline'
 import { RoleBadge } from '@/components/RoleBadge'
 import { UserLink } from '@/components/UserLink'
+import { ForecastInfoPanel } from './_forecast/ForecastInfoPanel'
+import { ResolutionInfo } from './_forecast/ResolutionInfo'
+import { BotApprovalSection } from './_forecast/BotApprovalSection'
+import { CommitmentsHistory } from './_forecast/CommitmentsHistory'
+import type { Prediction } from './_forecast/types'
 
 const log = createClientLogger('ForecastDetail')
-
-type Prediction = {
-  id: string
-  slug?: string
-  isPublic: boolean
-  shareToken: string
-  claimText: string
-  detailsText?: string
-  outcomeType: 'BINARY' | 'MULTIPLE_CHOICE' | 'NUMERIC_THRESHOLD'
-  outcomePayload?: Record<string, unknown>
-  status: string
-  lockedAt?: string | null
-  resolveByDatetime: string
-  contextUpdatedAt?: string
-  publishedAt?: string
-  resolvedAt?: string
-  resolutionOutcome?: string
-  resolutionNote?: string
-  evidenceLinks?: string[]
-  resolutionRules?: string | null
-  sentiment?: string | null
-  confidence?: number | null
-  aiCiLow?: number | null
-  aiCiHigh?: number | null
-  extractedEntities?: string[]
-  consensusLine?: string | null
-  sourceSummary?: string | null
-  source?: string | null
-  author: {
-    id: string
-    name: string
-    username?: string
-    image?: string
-    rs: number
-    role?: 'USER' | 'RESOLVER' | 'ADMIN'
-  }
-  newsAnchor?: {
-    id: string
-    title: string
-    url: string
-    source?: string
-  }
-  options: Array<{
-    id: string
-    text: string
-    isCorrect?: boolean
-  }>
-  commitments: Array<{
-    id: string
-    cuCommitted: number
-    binaryChoice?: boolean
-    rsSnapshot: number
-    createdAt: string
-    cuReturned?: number | null
-    rsChange?: number | null
-    user: {
-      id: string
-      name: string
-      username?: string
-      image?: string
-    }
-    option?: {
-      id: string
-      text: string
-    }
-  }>
-  totalCuCommitted: number
-  userCommitment?: {
-    id: string
-    cuCommitted: number
-    binaryChoice?: boolean
-    optionId?: string
-  }
-}
-
-interface ForecastInfoPanelProps {
-  prediction: Prediction
-  variant?: 'desktop' | 'mobile'
-  isMounted: boolean
-}
-
-function ForecastInfoPanel({ prediction, variant = 'desktop', isMounted }: ForecastInfoPanelProps) {
-  const t = useTranslations('forecast')
-  return (
-    <>
-      <div className={variant === 'mobile' ? 'grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8' : 'grid grid-cols-1 gap-3'}>
-        {/* Deadline */}
-        <div className="p-4 border border-navy-600 rounded-xl bg-navy-700 shadow-sm">
-          <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-gray-400 mb-2">
-            <Calendar className="w-3.5 h-3.5" />
-            {t('deadline')}
-          </div>
-          <div className="text-white font-semibold truncate" suppressHydrationWarning>
-            {isMounted && new Date(prediction.resolveByDatetime).toLocaleString('en-US', {
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-              timeZoneName: 'short',
-            })}
-          </div>
-        </div>
-
-        {/* Category/Tags */}
-        <div className="p-4 border border-navy-600 rounded-xl bg-navy-700 shadow-sm">
-          <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-gray-400 mb-2">
-            <Target className="w-3.5 h-3.5" />
-            Tags
-          </div>
-          <div className="flex flex-wrap gap-1">
-            {prediction.extractedEntities?.slice(0, 3).map((tag, i) => (
-              <span key={i} className="px-2 py-0.5 bg-navy-800 text-gray-400 text-[10px] font-bold uppercase tracking-wider rounded border border-navy-600">
-                {tag}
-              </span>
-            )) || <span className="text-gray-400 italic text-xs">None</span>}
-          </div>
-        </div>
-      </div>
-    </>
-  )
-}
 
 export default function ForecastDetailClient({ initialData }: { initialData?: Prediction }) {
   const { id } = useParams() as { id: string }
@@ -728,96 +606,15 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
       </div>
 
       {/* Resolution Info (if resolved) */}
-      {prediction.resolvedAt && (
-        <div className="p-4 bg-cobalt/10 border border-cobalt/30 rounded-lg mb-8">
-          <h3 className="font-semibold text-cobalt-light mb-2">Resolution</h3>
-          <p className="text-cobalt-light mb-2">
-            Resolved as <strong className={prediction.resolutionOutcome === 'wrong' ? 'text-red-600' : undefined}>{prediction.resolutionOutcome}</strong> on {formatDate(prediction.resolvedAt)}
-          </p>
-          {prediction.resolutionNote && (
-            <p className="text-sm text-blue-600">{prediction.resolutionNote}</p>
-          )}
-          {prediction.evidenceLinks && prediction.evidenceLinks.length > 0 && (
-            <div className="mt-3">
-              <div className="text-sm font-medium text-cobalt-light mb-1">Evidence:</div>
-              <ul className="space-y-1">
-                {prediction.evidenceLinks.map((link, i) => (
-                  <li key={i}>
-                    <a
-                      href={link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-blue-600 hover:underline flex items-center gap-1"
-                    >
-                      {link}
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      )}
+      <ResolutionInfo prediction={prediction} formatDate={formatDate} />
 
       {/* Approval Section for PENDING_APPROVAL forecasts */}
       {canApprove && (
-        <div className="mb-8 p-5 bg-amber-900/20 border border-amber-700/40 rounded-xl">
-          <div className="flex items-center gap-2 mb-3">
-            <AlertCircle className="w-5 h-5 text-amber-600" />
-            <h3 className="text-lg font-semibold text-amber-900">Pending Approval</h3>
-          </div>
-          <p className="text-sm text-amber-400 mb-4">
-            This bot-generated forecast is awaiting human review before going live.
-          </p>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => handleApproveAction('ACTIVE')}
-              disabled={isApproving}
-              className="flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
-            >
-              {isApproving ? 'Approving…' : 'Approve'}
-            </button>
-            <button
-              onClick={() => handleApproveAction('VOID')}
-              disabled={isApproving}
-              className="flex items-center gap-1.5 px-4 py-2 bg-navy-700 border border-red-800/50 text-red-600 text-sm font-medium rounded-lg hover:bg-red-900/20 disabled:opacity-50 transition-colors"
-            >
-              Reject
-            </button>
-          </div>
-          {(prediction.sentiment || prediction.confidence != null || prediction.consensusLine) && (
-            <div className="mt-3 p-3 bg-cobalt/10 border border-indigo-100 rounded-lg space-y-1.5 text-sm">
-              {prediction.sentiment && (
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-indigo-900">Sentiment:</span>
-                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                    prediction.sentiment === 'positive' ? 'bg-green-100 text-teal' :
-                    prediction.sentiment === 'negative' ? 'bg-red-100 text-red-400' :
-                    'bg-navy-700 text-text-secondary'
-                  }`}>
-                    {prediction.sentiment}
-                  </span>
-                </div>
-              )}
-              {prediction.confidence != null && (
-                <div className="text-indigo-900">Confidence: <span className="font-medium">{prediction.confidence}%</span></div>
-              )}
-              {prediction.consensusLine && (
-                <p className="italic text-gray-300">&quot;{prediction.consensusLine}&quot;</p>
-              )}
-              {prediction.extractedEntities && prediction.extractedEntities.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {prediction.extractedEntities.map((entity, i) => (
-                    <span key={i} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">
-                      {entity}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        <BotApprovalSection
+          prediction={prediction}
+          isApproving={isApproving}
+          onApprove={handleApproveAction}
+        />
       )}
 
       {/* Moderator Resolution Section */}
@@ -829,43 +626,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
       />
 
       {/* Commitments List */}
-      {prediction.commitments.length > 0 && (
-        <div className="mt-12">
-          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <Users className="w-5 h-5" />
-            Forecasts History
-          </h2>
-          <div className="border border-navy-600 rounded-lg divide-y divide-navy-600">
-            {prediction.commitments.map((commitment) => (
-              <div key={commitment.id} className="p-4 flex items-center justify-between">
-                <UserLink
-                  userId={commitment.user.id}
-                  username={commitment.user.username}
-                  name={commitment.user.name}
-                  image={commitment.user.image}
-                  showAvatar={true}
-                  avatarSize={32}
-                >
-                  <div>
-                    <div className="font-medium text-white">{commitment.user.name}</div>
-                    <div className="text-sm text-gray-500">
-                      {prediction.outcomeType === 'BINARY'
-                        ? (commitment.binaryChoice ? 'Will happen' : 'Won\'t happen')
-                        : commitment.option?.text
-                      }
-                    </div>
-                  </div>
-                </UserLink>
-                <div className="text-right">
-                  <div className="font-semibold text-gray-400">
-                    {(commitment as any).probability ? `${Math.round((commitment as any).probability * 100)}%` : ''}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <CommitmentsHistory prediction={prediction} />
 
       {/* Author Section - Moved to bottom */}
       <div className="mt-12 p-6 border border-navy-600 rounded-xl bg-navy-700 shadow-sm flex items-center justify-between">
