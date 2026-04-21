@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import crypto from 'crypto'
 import { auth } from '@/auth'
 import { createPredictionSchema, listPredictionsQuerySchema } from '@/lib/validations/prediction'
 import { apiError, handleRouteError } from '@/lib/api-error'
 import { withAuth } from '@/lib/api-middleware'
-import { prisma } from '@/lib/prisma'
 import { transitionExpiredPredictions } from '@/lib/services/prediction-lifecycle'
-import { hashUrl } from '@/lib/utils/hash'
 import { checkContent } from '@/lib/services/moderation'
 import { translatePredictionToAllLocales } from '@/lib/services/translation'
+import { listForecasts, enrichPredictions, upsertNewsAnchor, verifyUserExists, createForecast } from '@/lib/services/forecast'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('api-forecasts')
@@ -18,7 +16,6 @@ export const dynamic = 'force-dynamic'
 // GET /api/predictions - List predictions (public, with optional session for user context)
 export async function GET(request: NextRequest) {
   try {
-    // Transition any ACTIVE predictions past their deadline to PENDING
     await transitionExpiredPredictions()
 
     const { searchParams } = new URL(request.url)
@@ -40,9 +37,7 @@ export async function GET(request: NextRequest) {
       sortOrder: searchParams.get('sortOrder') || 'desc',
     }
     const result = listPredictionsQuerySchema.safeParse(queryData)
-    if (!result.success) {
-      return handleRouteError(result.error)
-    }
+    if (!result.success) return handleRouteError(result.error)
     const query = result.data
 
     const resolvedOnly = searchParams.get('resolvedOnly') === 'true'
@@ -50,13 +45,10 @@ export async function GET(request: NextRequest) {
 
     const where: Record<string, unknown> = {}
 
-    // Handle resolved filter
     if (resolvedOnly) {
       where.status = { in: ['RESOLVED_CORRECT', 'RESOLVED_WRONG', 'VOID', 'UNRESOLVABLE'] }
     } else if (query.status) {
-      // Security check: Only admins/approvers can list DRAFT or PENDING_APPROVAL
       if (['DRAFT', 'PENDING_APPROVAL'].includes(query.status) && !isAdminOrApprover) {
-        // Fallback or error? Let's fallback to ACTIVE to avoid 403 breakage in public UI
         where.status = 'ACTIVE'
       } else {
         where.status = query.status
@@ -65,145 +57,52 @@ export async function GET(request: NextRequest) {
 
     if (query.authorId) where.authorId = query.authorId
 
-    // Filter by tags (comma-separated, match predictions that have ANY of the selected tags)
     if (query.tags) {
       const tagNames = query.tags.split(',').map(t => t.trim()).filter(Boolean)
       if (tagNames.length > 0) {
-        where.tags = {
-          some: {
-            name: { in: tagNames },
-          },
-        }
+        where.tags = { some: { name: { in: tagNames } } }
       }
     }
 
-    // Don't show drafts or pending-approval forecasts in public feed
     if (!query.authorId && !query.status && !resolvedOnly) {
       where.status = { notIn: ['DRAFT', 'PENDING_APPROVAL'] }
     }
 
-    // Hide unlisted forecasts from everyone except the author or admin.
-    // Applies to ALL query shapes (feed, resolved, status-filtered, tag-filtered).
     if (query.authorId) {
       const isOwnProfile = session?.user?.id === query.authorId
       const isAdmin = session?.user?.role === 'ADMIN'
-      if (!isOwnProfile && !isAdmin) {
-        where.isPublic = true
-      }
+      if (!isOwnProfile && !isAdmin) where.isPublic = true
     } else {
       where.isPublic = true
     }
 
-    // Handle "closing soon" filter (within 7 days)
     if (closingSoon && query.status === 'ACTIVE') {
       const sevenDaysFromNow = new Date()
       sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7)
-      where.resolveByDatetime = {
-        lte: sevenDaysFromNow,
-        gte: new Date(),
-      }
+      where.resolveByDatetime = { lte: sevenDaysFromNow, gte: new Date() }
     }
 
-    // For CU sort: fetch a larger pool without skip/take, sort in memory after enrichment
     const isCuSort = query.sortBy === 'cu'
-    const dbOrderBy = closingSoon || query.sortBy === 'deadline'
+    const orderBy: Record<string, 'asc' | 'desc'> = closingSoon || query.sortBy === 'deadline'
       ? { resolveByDatetime: query.sortOrder as 'asc' | 'desc' }
       : { createdAt: query.sortOrder as 'asc' | 'desc' }
 
-    const [predictions, total] = await Promise.all([
-      prisma.prediction.findMany({
-        where,
-        include: {
-          author: {
-            select: {
-              id: true,
-              name: true,
-              username: true,
-              image: true,
-              rs: true,
-              role: true,
-            },
-          },
-          newsAnchor: {
-            select: {
-              id: true,
-              title: true,
-              url: true,
-              source: true,
-              imageUrl: true,
-            },
-          },
-          tags: {
-            select: { name: true },
-          },
-          options: {
-            orderBy: { displayOrder: 'asc' },
-          },
-          _count: {
-            select: { commitments: true },
-          },
-          commitments: {
-            select: {
-              cuCommitted: true,
-              userId: true,
-              binaryChoice: true,
-              optionId: true,
-            },
-          },
-        },
-        orderBy: dbOrderBy,
-        // For CU sort: fetch up to 200 so we can sort the full set in memory
-        skip: isCuSort ? 0 : (query.page - 1) * query.limit,
-        take: isCuSort ? 200 : query.limit,
-      }),
-      prisma.prediction.count({ where }),
-    ])
+    const { predictions, total } = await listForecasts({
+      where, orderBy, page: query.page, limit: query.limit,
+      isCuSort, sortOrder: query.sortOrder as 'asc' | 'desc',
+    })
 
-    // Get current user ID for commitment indicator (guard: session can throw on malformed cookie)
     let userId: string | undefined
     try {
-      const session = await auth()
-      userId = session?.user?.id
+      userId = (await auth())?.user?.id
     } catch {
       userId = undefined
     }
 
-    // Transform predictions to include totalCuCommitted, userHasCommitted, and aggregate counts for speedometers
-    const enrichedPredictions = predictions.map(({ commitments, ...pred }) => {
-      const totalCuCommitted = commitments ? commitments.reduce((sum: number, c: any) => sum + c.cuCommitted, 0) : 0
-      const userHasCommitted = (userId && commitments) ? commitments.some((c: any) => c.userId === userId) : false
-
-      // Calculate aggregate choice counts for speedometers
-      let yesCount = 0
-      let noCount = 0
-      if (pred.outcomeType === 'BINARY' && commitments) {
-        yesCount = commitments.filter(c => c.binaryChoice === true).reduce((sum: number, c: any) => sum + c.cuCommitted, 0)
-        noCount = commitments.filter(c => c.binaryChoice === false).reduce((sum: number, c: any) => sum + Math.abs(c.cuCommitted), 0)
-      }
-
-      const options = (pred as any).options?.map((opt: any) => ({
-        ...opt,
-        commitmentsCount: commitments ? commitments.filter((c: any) => c.optionId === opt.id).length : 0,
-      })) || []
-
-      return {
-        ...pred,
-        totalCuCommitted,
-        userHasCommitted,
-        yesCount,
-        noCount,
-        options,
-      }
+    const finalPredictions = enrichPredictions(predictions, userId, {
+      page: query.page, limit: query.limit,
+      sortOrder: query.sortOrder as 'asc' | 'desc', isCuSort,
     })
-
-    // For CU sort: sort in memory then slice to the requested page window
-    const finalPredictions = isCuSort
-      ? enrichedPredictions
-          .sort((a, b) => query.sortOrder === 'asc' 
-            ? a.totalCuCommitted - b.totalCuCommitted 
-            : b.totalCuCommitted - a.totalCuCommitted)
-          .slice((query.page - 1) * query.limit, query.page * query.limit)
-      : enrichedPredictions
 
     return NextResponse.json({
       predictions: finalPredictions,
@@ -224,192 +123,56 @@ export const POST = withAuth(async (request, user) => {
   const body = await request.json()
   const data = createPredictionSchema.parse(body)
 
-  // Verify user exists in database (JWT may reference a deleted/missing user)
-  const userExists = await prisma.user.findUnique({
-    where: { id: user.id },
-    select: { id: true },
-  })
+  const userExists = await verifyUserExists(user.id)
   if (!userExists) {
     return apiError('User not found. Please sign out and sign back in.', 403)
   }
 
-  // Validate resolve-by is in the future
   if (new Date(data.resolveByDatetime) <= new Date()) {
     return apiError('Resolution date must be in the future', 400)
   }
 
-  // AI Content Moderation
-  const moderationText = `${data.claimText}\n\n${data.detailsText || ''}`
-  const moderationResult = await checkContent(moderationText, 'forecast')
-  
+  const moderationResult = await checkContent(`${data.claimText}\n\n${data.detailsText || ''}`, 'forecast')
   if (moderationResult.isOffensive) {
     const cleanReason = moderationResult.reason.replace('OFFENSIVE_INPUT:', '').trim()
     return apiError(`Moderation: ${cleanReason}`, 400)
   }
 
-  // Auto-create news anchor from URL if no newsAnchorId provided
   let newsAnchorId = data.newsAnchorId
   if (!newsAnchorId && data.newsAnchorUrl) {
-    const urlHash = hashUrl(data.newsAnchorUrl)
-
-    // Upsert: find existing or create new
-    const anchor = await prisma.newsAnchor.upsert({
-      where: { urlHash },
-      update: {},
-      create: {
-        url: data.newsAnchorUrl,
-        urlHash,
-        title: data.newsAnchorTitle || data.newsAnchorUrl,
-        source: data.newsAnchorUrl ? new URL(data.newsAnchorUrl).hostname.replace('www.', '') : undefined,
-      },
-    })
+    const anchor = await upsertNewsAnchor(data.newsAnchorUrl, data.newsAnchorTitle)
     newsAnchorId = anchor.id
   }
 
-  // Build outcome payload based on type
   let outcomePayload: Record<string, unknown> = data.outcomePayload ?? {}
   if (data.outcomeType === 'BINARY' && Object.keys(outcomePayload).length === 0) {
     outcomePayload = { type: 'BINARY' }
   }
 
-  // Generate slug from claim text
-  const { slugify, generateUniqueSlug } = await import('@/lib/utils/slugify')
-  const baseSlug = slugify(data.claimText)
+  try {
+    const prediction = await createForecast({
+      authorId: user.id,
+      claimText: data.claimText,
+      detailsText: data.detailsText,
+      outcomeType: data.outcomeType,
+      outcomePayload,
+      resolutionRules: data.resolutionRules,
+      resolveByDatetime: data.resolveByDatetime,
+      isPublic: data.isPublic,
+      source: data.source,
+      confidence: data.confidence,
+      newsAnchorId,
+      tags: data.tags,
+    })
 
-  // Check for existing slugs
-  const existingPredictions = await prisma.prediction.findMany({
-    where: {
-      slug: {
-        startsWith: baseSlug,
-      },
-    },
-    select: { slug: true },
-  })
+    translatePredictionToAllLocales(prediction!.id).catch(err => {
+      log.error({ err, predictionId: prediction!.id }, 'Background translation failed')
+    })
 
-  const existingSlugs = existingPredictions
-    .map(p => p.slug)
-    .filter((s): s is string => s !== null)
-
-  let uniqueSlug = generateUniqueSlug(baseSlug, existingSlugs)
-  let prediction
-  let retryCount = 0
-  const maxRetries = 3
-
-  const shareToken = crypto.randomBytes(8).toString('hex')
-
-  while (retryCount < maxRetries) {
-    try {
-      // Create prediction
-      prediction = await prisma.prediction.create({
-        data: {
-          authorId: user.id,
-          newsAnchorId: newsAnchorId,
-          claimText: data.claimText,
-          slug: uniqueSlug,
-          detailsText: data.detailsText,
-          outcomeType: data.outcomeType,
-          outcomePayload: outcomePayload as object,
-          resolutionRules: data.resolutionRules,
-          resolveByDatetime: new Date(data.resolveByDatetime),
-          status: 'DRAFT',
-          isPublic: data.isPublic ?? true,
-          source: data.source ?? null,
-          confidence: data.confidence ?? null,
-          shareToken,
-          // Connect or create tags — filter nulls that LLM responses sometimes inject
-          tags: data.tags?.length
-            ? {
-              connectOrCreate: data.tags
-                .filter((t): t is string => typeof t === 'string' && t.length > 0)
-                .map((tagName) => {
-                  const tagSlug = slugify(tagName)
-                  return {
-                    where: { slug: tagSlug },
-                    create: {
-                      name: tagName,
-                      slug: tagSlug,
-                    },
-                  }
-                }),
-            }
-            : undefined,
-        },
-        include: {
-          author: {
-            select: {
-              id: true,
-              name: true,
-              username: true,
-              image: true,
-            },
-          },
-          newsAnchor: true,
-          options: true,
-          tags: true,
-        },
-      })
-
-      // If successful, break out of the retry loop
-      break
-    } catch (error: any) {
-      // Prisma P2002: Unique constraint failed
-      if (error.code === 'P2002' && error.meta?.target?.includes('slug')) {
-        retryCount++
-        if (retryCount >= maxRetries) {
-          return apiError('Failed to generate a unique URL slug after multiple attempts. Please try again.', 500)
-        }
-        // Generate a new slug with a secure random suffix for the next try
-        uniqueSlug = `${baseSlug}-${crypto.randomBytes(3).toString('hex')}`
-        continue
-      }
-
-      // For any other error, throw it so it is caught by withAuth and properly logged
-      throw error
-    }
+    return NextResponse.json(prediction, { status: 201 })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Unexpected error'
+    if (msg.includes('unique URL slug')) return apiError(msg, 500)
+    throw err
   }
-
-  // Safety check, shouldn't hit this due to throw/return above but TS needs it
-  if (!prediction) {
-    return apiError('Unexpected error during prediction creation', 500)
-  }
-
-  // Create options for multiple choice
-  if (data.outcomeType === 'MULTIPLE_CHOICE' && data.outcomePayload) {
-    const payload = data.outcomePayload as { options?: string[] }
-    if (payload.options && Array.isArray(payload.options)) {
-      await prisma.predictionOption.createMany({
-        data: payload.options.map((text, index) => ({
-          predictionId: prediction.id,
-          text,
-          displayOrder: index,
-        })),
-      })
-    }
-  }
-
-  // Fetch with options
-  const result = await prisma.prediction.findUnique({
-    where: { id: prediction.id },
-    include: {
-      author: {
-        select: {
-          id: true,
-          name: true,
-          username: true,
-          image: true,
-        },
-      },
-      newsAnchor: true,
-      options: {
-        orderBy: { displayOrder: 'asc' },
-      },
-    },
-  })
-
-  // Trigger background translations (non-blocking)
-  translatePredictionToAllLocales(prediction.id).catch(err => {
-    log.error({ err, predictionId: prediction.id }, 'Background translation failed')
-  })
-
-  return NextResponse.json(result, { status: 201 })
 })
