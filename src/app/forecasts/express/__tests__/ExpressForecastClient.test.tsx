@@ -92,6 +92,92 @@ describe('ExpressForecastClient', () => {
     expect(input.value).toContain('Bitcoin')
   })
 
+  // ── Progress stages ────────────────────────────────────────────
+  describe('progress stages', () => {
+    it('shows checking step immediately on generate click', async () => {
+      vi.spyOn(globalThis, 'fetch').mockReturnValueOnce(new Promise(() => {})) // never resolves
+
+      render(<ExpressForecastClient userId="test-user" />)
+      const input = screen.getByPlaceholderText(/Describe your event OR paste/)
+      fireEvent.change(input, { target: { value: 'Bitcoin will hit 100k' } })
+
+      await act(async () => {
+        fireEvent.click(screen.getByText('Generate Forecast'))
+      })
+
+      expect(screen.getByText('Checking content')).toBeInTheDocument()
+    })
+
+    it('transitions to searching step on searching SSE event', async () => {
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode(
+            JSON.stringify({ stage: 'searching', data: { message: 'Looking for articles…' } }) + '\n'
+          ))
+          // leave open so the component stays in that state
+        },
+      })
+      vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(stream, { status: 200 }))
+
+      render(<ExpressForecastClient userId="test-user" />)
+      fireEvent.change(screen.getByPlaceholderText(/Describe your event OR paste/), { target: { value: 'Bitcoin will hit 100k' } })
+
+      await act(async () => {
+        fireEvent.click(screen.getByText('Generate Forecast'))
+      })
+
+      await screen.findByText('Searching for articles')
+      expect(screen.getByText(/Looking for articles/)).toBeInTheDocument()
+    })
+
+    it('shows AI analysis step and sub-message on analyzing SSE event', async () => {
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode(
+            JSON.stringify({ stage: 'analyzing', data: { message: 'AI is reading 3 articles…' } }) + '\n'
+          ))
+        },
+      })
+      vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(stream, { status: 200 }))
+
+      render(<ExpressForecastClient userId="test-user" />)
+      fireEvent.change(screen.getByPlaceholderText(/Describe your event OR paste/), { target: { value: 'Bitcoin will hit 100k' } })
+
+      await act(async () => {
+        fireEvent.click(screen.getByText('Generate Forecast'))
+      })
+
+      await screen.findByText('AI analysis')
+      expect(screen.getByText(/AI is reading 3 articles/)).toBeInTheDocument()
+    })
+
+    it('shows forecast preview when prediction_formed event arrives', async () => {
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode(
+            JSON.stringify({
+              stage: 'prediction_formed',
+              data: {
+                message: 'Forecast drafted',
+                preview: { claim: 'Bitcoin will hit $100k', resolveBy: '2026-12-31T23:59:59Z', outcomeType: 'BINARY', options: [] },
+              },
+            }) + '\n'
+          ))
+        },
+      })
+      vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(stream, { status: 200 }))
+
+      render(<ExpressForecastClient userId="test-user" />)
+      fireEvent.change(screen.getByPlaceholderText(/Describe your event OR paste/), { target: { value: 'Bitcoin will hit 100k' } })
+
+      await act(async () => {
+        fireEvent.click(screen.getByText('Generate Forecast'))
+      })
+
+      await screen.findByText('Bitcoin will hit $100k')
+    })
+  })
+
   // ── Confirm & Publish flow (direct API integration) ───────────
   describe('handleCreatePrediction (Confirm & Publish)', () => {
     const generatedData: GeneratedPrediction = {
