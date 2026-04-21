@@ -123,6 +123,7 @@ export async function generateExpressPrediction(
   skipSources?: boolean
 ): Promise<ExpressPredictionResult> {
   // Proactive Content Moderation
+  onProgress?.('checking', { message: 'Checking content…' })
   const moderation = await checkContent(userInput, 'forecast')
   if (moderation.isOffensive) {
     throw new Error(`OFFENSIVE_INPUT: ${moderation.reason}`)
@@ -130,7 +131,7 @@ export async function generateExpressPrediction(
 
   // Source-free path: skip web search entirely
   if (skipSources) {
-    onProgress?.('analyzing', { message: 'Analyzing your input...' })
+    onProgress?.('analyzing', { message: 'AI is drafting your forecast…' })
 
     const now = new Date()
     const currentYear = now.getFullYear()
@@ -161,6 +162,15 @@ export async function generateExpressPrediction(
       })
       prediction = JSON.parse(result.text)
       prediction.claimText = humanizeISODates(prediction.claimText)
+      onProgress?.('prediction_formed', {
+        message: 'Forecast drafted — finalising…',
+        preview: {
+          claim: prediction.claimText,
+          resolveBy: prediction.resolveByDatetime,
+          outcomeType: prediction.outcomeType,
+          options: prediction.options || [],
+        },
+      })
     } catch (error) {
       log.error({ err: error }, 'Failed to generate source-free express prediction')
       throw error
@@ -181,7 +191,7 @@ export async function generateExpressPrediction(
       prediction.options = []
     }
 
-    onProgress?.('finalizing', { message: 'Finalizing prediction...' })
+    onProgress?.('finalizing', { message: 'Almost done — preparing your forecast for review…' })
 
     return { ...prediction, newsAnchor: null, additionalLinks: [] }
   }
@@ -299,7 +309,10 @@ URL: ${article.url}
     })
     .join('\n')
 
-  onProgress?.('analyzing', { message: 'Analyzing context and forming prediction...' })
+  onProgress?.('analyzing', {
+    message: `AI is reading ${searchResults.length} article${searchResults.length !== 1 ? 's' : ''} and drafting your forecast…`,
+    articleCount: searchResults.length,
+  })
 
   // Step 3: Generate prediction with LLM
   const now = new Date()
@@ -356,7 +369,7 @@ URL: ${article.url}
   }
 
   onProgress?.('prediction_formed', {
-    message: 'Prediction formed',
+    message: 'Forecast drafted — attaching sources…',
     preview: {
       claim: prediction.claimText,
       resolveBy: prediction.resolveByDatetime,
@@ -374,7 +387,7 @@ URL: ${article.url}
     title: article.title
   }))
 
-  onProgress?.('finalizing', { message: 'Finalizing prediction...' })
+  onProgress?.('finalizing', { message: 'Almost done — preparing your forecast for review…' })
 
   return {
     ...prediction,

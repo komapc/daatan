@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Sparkles, Search, FileText, Loader2, AlertCircle, Edit2, RotateCcw, ArrowLeft, X, Plus, List, Trash2, Eye, EyeOff } from 'lucide-react'
+import { Sparkles, Search, FileText, Loader2, AlertCircle, Edit2, RotateCcw, ArrowLeft, X, Plus, List, Trash2, Eye, EyeOff, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { createClientLogger } from '@/lib/client-logger'
 
@@ -36,15 +36,27 @@ interface GeneratedPrediction {
   }>
 }
 
-type Step = 'input' | 'searching' | 'analyzing' | 'generating' | 'review' | 'error'
+type Step = 'input' | 'checking' | 'searching' | 'analyzing' | 'generating' | 'review' | 'error'
 
-export default function ExpressForecastClient({ 
-  userId, 
-  initialInput = '', 
-  onInputChange 
+const ANALYZING_MESSAGES = [
+  'Reading source articles…',
+  'Identifying key claims and context…',
+  'Drafting forecast language…',
+  'Calibrating resolution criteria…',
+  'Estimating probability…',
+  'Almost there…',
+]
+
+export default function ExpressForecastClient({
+  userId,
+  initialInput = '',
+  onInputChange
 }: ExpressForecastClientProps) {
   const router = useRouter()
   const [userInput, setUserInput] = useState(initialInput)
+  const [analyzingMsgIdx, setAnalyzingMsgIdx] = useState(0)
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
+  const startTimeRef = useRef<number | null>(null)
 
   const handleUserInputChange = (val: string) => {
     setUserInput(val)
@@ -66,6 +78,26 @@ export default function ExpressForecastClient({
   const [editForm, setEditForm] = useState<GeneratedPrediction | null>(null)
   const [newTag, setNewTag] = useState('')
 
+  // Rotate analyzing sub-messages every 4s, run elapsed timer during long steps
+  useEffect(() => {
+    const isLongStep = ['checking', 'searching', 'analyzing', 'generating'].includes(step)
+    if (!isLongStep) {
+      startTimeRef.current = null
+      setElapsedSeconds(0)
+      setAnalyzingMsgIdx(0)
+      return
+    }
+    if (!startTimeRef.current) startTimeRef.current = Date.now()
+
+    const timer = setInterval(() => {
+      setElapsedSeconds(Math.floor((Date.now() - startTimeRef.current!) / 1000))
+      if (step === 'analyzing') {
+        setAnalyzingMsgIdx(i => (i + 1) % ANALYZING_MESSAGES.length)
+      }
+    }, 4000)
+    return () => clearInterval(timer)
+  }, [step])
+
   const examples = [
     "Bitcoin will reach $100k this year",
     "Who will win the next Champions League?",
@@ -83,8 +115,8 @@ export default function ExpressForecastClient({
     const isUrl = /^(https?:\/\/[^\s]+)$/i.test(userInput.trim())
 
     setError('')
-    setStep(skipSources ? 'analyzing' : 'searching')
-    setProgressMessage(skipSources ? 'Analyzing your input...' : isUrl ? 'Fetching article content...' : 'Searching for relevant articles...')
+    setStep('checking')
+    setProgressMessage('Checking content…')
     setArticlesFound(0)
     setSourcesSummary('')
     setPredictionPreview(null)
@@ -118,9 +150,12 @@ export default function ExpressForecastClient({
           try {
             const data = JSON.parse(line)
 
-            if (data.stage === 'searching') {
+            if (data.stage === 'checking') {
+              setStep('checking')
+              setProgressMessage(data.data?.message || 'Checking content…')
+            } else if (data.stage === 'searching') {
               setStep('searching')
-              setProgressMessage(data.data?.message || 'Searching...')
+              setProgressMessage(data.data?.message || 'Searching…')
             } else if (data.stage === 'found_articles') {
               setArticlesFound(data.data?.count || 0)
               setSourcesSummary(data.data?.sources || '')
@@ -405,7 +440,7 @@ export default function ExpressForecastClient({
       )}
 
       {/* Progress Steps */}
-      {(['searching', 'analyzing', 'generating'] as Step[]).includes(step) && (
+      {(['checking', 'searching', 'analyzing', 'generating'] as Step[]).includes(step) && (
         <div className="bg-navy-700 border border-navy-600 rounded-3xl p-8 shadow-sm">
           <div className="max-w-md mx-auto">
             <div className="flex items-center justify-center mb-6">
@@ -413,38 +448,65 @@ export default function ExpressForecastClient({
             </div>
 
             <div className="space-y-4">
-              {!skipSources && (
-              <div className={`flex items-center gap-3 ${step === 'searching' ? 'text-blue-600' : step === 'input' ? 'text-gray-400' : 'text-green-600'}`}>
-                <Search className="w-5 h-5" />
-                <div className="flex-1">
-                  <span className="font-medium">Searching / Fetching...</span>
-                  {articlesFound > 0 && (
-                    <span className="ml-2 text-sm text-gray-400">
-                      ({sourcesSummary || `${articlesFound} found`})
-                    </span>
-                  )}
-                </div>
-                {step !== 'searching' && step !== 'input' && <span className="ml-auto text-green-600">✓</span>}
+              {/* Step 1: Content check */}
+              <div className={`flex items-center gap-3 ${step === 'checking' ? 'text-blue-600' : 'text-green-600'}`}>
+                <ShieldCheck className="w-5 h-5" />
+                <span className="font-medium flex-1">Checking content</span>
+                {step !== 'checking' && <span className="text-green-600 text-sm">✓</span>}
               </div>
+
+              {/* Step 2: Searching (only when using sources) */}
+              {!skipSources && (
+                <div className={`flex items-center gap-3 ${
+                  step === 'checking' ? 'text-gray-500' :
+                  step === 'searching' ? 'text-blue-600' : 'text-green-600'
+                }`}>
+                  <Search className="w-5 h-5" />
+                  <div className="flex-1">
+                    <span className="font-medium">
+                      {step === 'checking' ? 'Searching for articles' : 'Searching for articles'}
+                    </span>
+                    {articlesFound > 0 && (
+                      <span className="ml-2 text-sm text-gray-400">
+                        ({sourcesSummary || `${articlesFound} found`})
+                      </span>
+                    )}
+                  </div>
+                  {!['checking', 'searching'].includes(step) && <span className="text-green-600 text-sm">✓</span>}
+                </div>
               )}
 
-              <div className={`flex items-center gap-3 ${step === 'analyzing' ? 'text-blue-600' : ['input', 'searching'].includes(step) ? 'text-gray-400' : 'text-green-600'}`}>
+              {/* Step 3: AI analysis */}
+              <div className={`flex items-center gap-3 ${
+                ['checking', 'searching'].includes(step) ? 'text-gray-500' :
+                step === 'analyzing' ? 'text-blue-600' : 'text-green-600'
+              }`}>
                 <FileText className="w-5 h-5" />
-                <span className="font-medium">Analyzing context...</span>
-                {step === 'generating' && <span className="ml-auto text-green-600">✓</span>}
+                <div className="flex-1">
+                  <span className="font-medium">AI analysis</span>
+                  {step === 'analyzing' && (
+                    <p className="text-xs text-gray-400 mt-0.5 animate-pulse">
+                      {ANALYZING_MESSAGES[analyzingMsgIdx]}
+                    </p>
+                  )}
+                </div>
+                {step === 'generating' && <span className="text-green-600 text-sm">✓</span>}
               </div>
 
-              <div className={`flex items-center gap-3 ${step === 'generating' ? 'text-blue-600' : 'text-gray-400'}`}>
+              {/* Step 4: Generating */}
+              <div className={`flex items-center gap-3 ${step === 'generating' ? 'text-blue-600' : 'text-gray-500'}`}>
                 <Sparkles className="w-5 h-5" />
-                <span className="font-medium">Generating forecast...</span>
+                <span className="font-medium">Building forecast</span>
               </div>
             </div>
 
-            {progressMessage && (
-              <p className="text-center text-sm text-gray-300 mt-4 font-medium">
-                {progressMessage}
-              </p>
-            )}
+            {/* Current status message + elapsed timer */}
+            <div className="mt-5 flex items-center justify-between text-xs text-gray-500">
+              <span className="italic">{progressMessage}</span>
+              {elapsedSeconds > 2 && (
+                <span className="tabular-nums">{elapsedSeconds}s</span>
+              )}
+            </div>
 
             {predictionPreview && (
               <div className="mt-6 p-4 bg-cobalt/10 border border-cobalt/30 rounded-xl">
