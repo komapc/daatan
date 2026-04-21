@@ -219,3 +219,86 @@ export async function createForecast(input: CreateForecastInput) {
     },
   })
 }
+
+// ── Similar forecasts ──────────────────────────────────────────────────────────
+
+const STOPWORDS = new Set([
+  'the','a','an','will','would','should','could','may','might','by','of','end',
+  'to','in','on','at','and','or','be','is','are','was','were','that','this',
+  'it','its','have','has','had','do','does','did','not','for','with','from',
+  'up','about','into','than','then','so','if','as','over','under','between',
+])
+
+function extractKeywords(text: string): string[] {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length > 2 && !STOPWORDS.has(w))
+}
+
+export interface SimilarForecast {
+  id: string
+  slug: string | null
+  claimText: string
+  status: string
+  resolveByDatetime: Date
+  author: { name: string | null; username: string | null }
+  score: number
+}
+
+export async function findSimilarForecasts({
+  claimText,
+  tags,
+  excludeId,
+  limit = 3,
+}: {
+  claimText: string
+  tags: string[]
+  excludeId?: string
+  limit?: number
+}): Promise<SimilarForecast[]> {
+  const keywords = extractKeywords(claimText)
+
+  // Fetch candidates: ACTIVE forecasts sharing at least 1 tag OR matching a keyword
+  const candidates = await prisma.prediction.findMany({
+    where: {
+      status: 'ACTIVE',
+      ...(excludeId ? { id: { not: excludeId } } : {}),
+      OR: [
+        ...(tags.length > 0 ? [{ tags: { some: { name: { in: tags } } } }] : []),
+        ...(keywords.length > 0 ? [{ claimText: { contains: keywords[0], mode: 'insensitive' as const } }] : []),
+      ],
+    },
+    select: {
+      id: true,
+      slug: true,
+      claimText: true,
+      status: true,
+      resolveByDatetime: true,
+      author: { select: { name: true, username: true } },
+      tags: { select: { name: true } },
+    },
+    take: 50,
+  })
+
+  // Score each candidate
+  const scored = candidates.map(c => {
+    const candidateTags = new Set(c.tags.map(t => t.name.toLowerCase()))
+    const sharedTags = tags.filter(t => candidateTags.has(t.toLowerCase())).length
+
+    const candidateKeywords = new Set(extractKeywords(c.claimText))
+    const sharedKeywords = keywords.filter(k => candidateKeywords.has(k)).length
+
+    return {
+      ...c,
+      score: sharedTags * 3 + sharedKeywords,
+    }
+  })
+
+  return scored
+    .filter(c => c.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map(({ tags: _, ...rest }) => rest)
+}

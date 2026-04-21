@@ -30,6 +30,7 @@ import { UserLink } from '@/components/UserLink'
 import { ForecastInfoPanel } from './_forecast/ForecastInfoPanel'
 import { ResolutionInfo } from './_forecast/ResolutionInfo'
 import { BotApprovalSection } from './_forecast/BotApprovalSection'
+import { SimilarForecasts } from './_forecast/SimilarForecasts'
 import { CommitmentsHistory } from './_forecast/CommitmentsHistory'
 import type { Prediction } from './_forecast/types'
 
@@ -385,6 +386,8 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
         newsAnchor={prediction.newsAnchor}
         onAiEstimate={setAiEstimate}
       />
+
+      <SimilarForecasts predictionId={prediction.id} />
 
       {/* Probability Display (Interactive Gauge) */}
       <div className="mb-12">

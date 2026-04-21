@@ -1,10 +1,18 @@
 import { useState, useEffect, useRef } from 'react'
-import { AlertCircle, Loader2 } from 'lucide-react'
+import Link from 'next/link'
+import { AlertCircle, Loader2, Copy } from 'lucide-react'
 import type { PredictionFormData } from '../ForecastWizard'
 import { TagSelector } from '@/components/ui/TagSelector'
 import { createClientLogger } from '@/lib/client-logger'
 
 const log = createClientLogger('StepPrediction')
+
+interface SimilarForecast {
+  id: string
+  slug: string | null
+  claimText: string
+  author: { name: string | null; username: string | null }
+}
 
 type Props = {
   formData: PredictionFormData
@@ -14,6 +22,8 @@ type Props = {
 export const StepPrediction = ({ formData, updateFormData }: Props) => {
   const [isSuggesting, setIsSuggesting] = useState(false)
   const lastSuggestedClaim = useRef('')
+  const [similarForecasts, setSimilarForecasts] = useState<SimilarForecast[]>([])
+  const lastSimilarQuery = useRef('')
 
   const claimLength = formData.claimText?.length || 0
   const detailsLength = formData.detailsText || '' ? String(formData.detailsText).length : 0
@@ -52,6 +62,30 @@ export const StepPrediction = ({ formData, updateFormData }: Props) => {
       return () => clearTimeout(timer)
     }
   }, [formData.claimText, formData.detailsText, formData.tags, updateFormData, isSuggesting])
+
+  // Check for similar forecasts when claim + tags are set
+  useEffect(() => {
+    const claim = formData.claimText?.trim() || ''
+    const tags = formData.tags || []
+    const queryKey = `${claim}|${tags.join(',')}`
+
+    if (claim.length < 20 || queryKey === lastSimilarQuery.current) return
+
+    const timer = setTimeout(async () => {
+      lastSimilarQuery.current = queryKey
+      try {
+        const params = new URLSearchParams({ q: claim, limit: '3' })
+        if (tags.length > 0) params.set('tags', tags.join(','))
+        const res = await fetch(`/api/forecasts/similar?${params}`)
+        if (res.ok) {
+          const data = await res.json()
+          setSimilarForecasts(data.similar ?? [])
+        }
+      } catch { }
+    }, 1000)
+
+    return () => clearTimeout(timer)
+  }, [formData.claimText, formData.tags])
 
   return (
     <div className="space-y-6">
@@ -131,6 +165,29 @@ export const StepPrediction = ({ formData, updateFormData }: Props) => {
           Tip: You can skip tags and proceed directly to the next step.
         </p>
       </div>
+
+      {/* Similar forecasts warning */}
+      {similarForecasts.length > 0 && (
+        <div className="p-4 bg-navy-800 border border-yellow-600/40 rounded-lg space-y-2">
+          <div className="flex items-center gap-2 text-yellow-500 text-sm font-semibold">
+            <Copy className="w-4 h-4" />
+            Similar forecasts already exist — is yours a duplicate?
+          </div>
+          <div className="space-y-1.5">
+            {similarForecasts.map(f => (
+              <Link
+                key={f.id}
+                href={`/forecasts/${f.slug || f.id}`}
+                target="_blank"
+                className="block text-xs text-gray-300 hover:text-white truncate hover:underline"
+              >
+                → {f.claimText}
+              </Link>
+            ))}
+          </div>
+          <p className="text-xs text-gray-500">You can still proceed if your forecast is different.</p>
+        </div>
+      )}
 
       {/* Tips */}
       <div className="p-4 bg-amber-900/20 border border-amber-700/40 rounded-lg">

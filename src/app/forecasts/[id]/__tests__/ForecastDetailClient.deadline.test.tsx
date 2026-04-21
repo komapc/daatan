@@ -17,6 +17,7 @@ vi.mock('@/components/forecasts/CommitmentDisplay', () => ({ default: () => null
 vi.mock('@/components/forecasts/CUBalanceIndicator', () => ({ default: () => null }))
 vi.mock('@/components/forecasts/ContextTimeline', () => ({ default: () => null }))
 vi.mock('../ModeratorResolutionSection', () => ({ ModeratorResolutionSection: () => null }))
+vi.mock('../_forecast/SimilarForecasts', () => ({ SimilarForecasts: () => null }))
 
 const RESOLVE_BY = '2026-04-16T23:59:59.000Z'
 

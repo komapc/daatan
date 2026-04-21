@@ -36,6 +36,7 @@ vi.mock('@/components/forecasts/CUBalanceIndicator', () => ({ default: () => nul
 vi.mock('@/components/forecasts/Speedometer', () => ({ default: () => null }))
 vi.mock('@/components/forecasts/ContextTimeline', () => ({ default: () => null }))
 vi.mock('../ModeratorResolutionSection', () => ({ ModeratorResolutionSection: () => null }))
+vi.mock('../_forecast/SimilarForecasts', () => ({ SimilarForecasts: () => null }))
 
 // Mock fetch
 const globalFetch = global.fetch

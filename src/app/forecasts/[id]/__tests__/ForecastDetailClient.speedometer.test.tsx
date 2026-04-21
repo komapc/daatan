@@ -20,6 +20,7 @@ vi.mock('@/components/forecasts/CommitmentDisplay', () => ({ default: () => null
 vi.mock('@/components/forecasts/CUBalanceIndicator', () => ({ default: () => null }))
 vi.mock('@/components/forecasts/ContextTimeline', () => ({ default: () => null }))
 vi.mock('../ModeratorResolutionSection', () => ({ ModeratorResolutionSection: () => null }))
+vi.mock('../_forecast/SimilarForecasts', () => ({ SimilarForecasts: () => null }))
 
 const globalFetch = global.fetch
 afterEach(() => { global.fetch = globalFetch })
