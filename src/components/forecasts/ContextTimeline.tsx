@@ -5,6 +5,7 @@ import { FileText, RefreshCw, Loader2, ChevronDown, ChevronUp, ExternalLink } fr
 import { toast } from 'react-hot-toast'
 import { useTranslations } from 'next-intl'
 import { createClientLogger } from '@/lib/client-logger'
+import { toError } from '@/lib/utils/error'
 
 const log = createClientLogger('ContextTimeline')
 
@@ -141,9 +142,9 @@ export default function ContextTimeline({
       onAiEstimate?.(toAiEstimate(timeline[0]))
       setIsContextOpen(true)
       toast.success(t('updated'), { id: 'analyze', duration: 3000 })
-    } catch (e: any) {
+    } catch (e) {
       log.error({ err: e }, 'Failed to analyze context')
-      toast.error(e.message || t('failed'), { id: 'analyze' })
+      toast.error(toError(e).message || t('failed'), { id: 'analyze' })
     } finally {
       setIsAnalyzing(false)
     }

@@ -8,6 +8,7 @@ import { checkContent } from '@/lib/services/moderation'
 import { translatePredictionToAllLocales } from '@/lib/services/translation'
 import { listForecasts, enrichPredictions, upsertNewsAnchor, verifyUserExists, createForecast } from '@/lib/services/forecast'
 import { createLogger } from '@/lib/logger'
+import { toError } from '@/lib/utils/error'
 
 const log = createLogger('api-forecasts')
 

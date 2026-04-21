@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     log.info({ email }, 'Password reset email sent')
 
     return NextResponse.json({ ok: true })
-  } catch (err: any) {
+  } catch (err) {
     log.error({ err }, 'forgot-password error')
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
   }
