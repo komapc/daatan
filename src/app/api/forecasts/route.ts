@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
       status: searchParams.get('status') || undefined,
       authorId: searchParams.get('authorId') || undefined,
       tags: searchParams.get('tags') || undefined,
+      q: searchParams.get('q') || undefined,
       page: searchParams.get('page') || 1,
       limit: searchParams.get('limit') || 20,
       sortBy: searchParams.get('sortBy') || 'newest',
@@ -62,6 +63,13 @@ export async function GET(request: NextRequest) {
       if (tagNames.length > 0) {
         where.tags = { some: { name: { in: tagNames } } }
       }
+    }
+
+    if (query.q) {
+      where.OR = [
+        { claimText: { contains: query.q, mode: 'insensitive' } },
+        { tags: { some: { name: { contains: query.q, mode: 'insensitive' } } } },
+      ]
     }
 
     if (!query.authorId && !query.status && !resolvedOnly) {

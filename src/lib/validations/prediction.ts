@@ -158,6 +158,7 @@ export const listPredictionsQuerySchema = z.object({
   status: z.enum(['DRAFT', 'ACTIVE', 'PENDING', 'PENDING_APPROVAL', 'RESOLVED_CORRECT', 'RESOLVED_WRONG', 'VOID', 'UNRESOLVABLE']).optional(),
   authorId: z.string().cuid().optional(),
   tags: z.string().max(500).optional(), // Comma-separated tag names for filtering
+  q: z.string().max(200).optional(), // Full-text search on claimText and tags
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
   sortBy: z.enum(['newest', 'deadline', 'cu']).default('newest'),

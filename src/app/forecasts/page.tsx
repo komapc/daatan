@@ -1,12 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import {
-  TrendingUp,
-  Plus,
-  Filter
-} from 'lucide-react'
+import { TrendingUp, Plus, Filter, Search, X } from 'lucide-react'
 import ForecastCard, { Prediction } from '@/components/forecasts/ForecastCard'
 import { ForecastCardSkeleton } from '@/components/forecasts/ForecastCardSkeleton'
 import EmptyState from '@/components/ui/EmptyState'
@@ -14,10 +11,24 @@ import EmptyState from '@/components/ui/EmptyState'
 type FilterStatus = 'ACTIVE' | 'PENDING' | 'RESOLVED' | 'CLOSING_SOON' | 'ALL'
 
 export default function PredictionsPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const initialQ = searchParams.get('q') ?? ''
+
   const [predictions, setPredictions] = useState<Prediction[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [filter, setFilter] = useState<FilterStatus>('ACTIVE')
+  const [searchInput, setSearchInput] = useState(initialQ)
+  const [activeQuery, setActiveQuery] = useState(initialQ)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
+  // Sync activeQuery when URL changes (e.g. sidebar search navigates here)
+  useEffect(() => {
+    const q = searchParams.get('q') ?? ''
+    setActiveQuery(q)
+    setSearchInput(q)
+  }, [searchParams])
 
   useEffect(() => {
     const fetchPredictions = async () => {
@@ -26,31 +37,23 @@ export default function PredictionsPage() {
       try {
         let url = '/api/forecasts?limit=50'
 
-        // Apply status filter
-        if (filter === 'ACTIVE') {
-          url += '&status=ACTIVE'
-        } else if (filter === 'PENDING') {
-          url += '&status=PENDING'
-        } else if (filter === 'RESOLVED') {
-          url += '&resolvedOnly=true'
-        } else if (filter === 'CLOSING_SOON') {
-          url += '&status=ACTIVE&closingSoon=true'
-        }
+        if (filter === 'ACTIVE') url += '&status=ACTIVE'
+        else if (filter === 'PENDING') url += '&status=PENDING'
+        else if (filter === 'RESOLVED') url += '&resolvedOnly=true'
+        else if (filter === 'CLOSING_SOON') url += '&status=ACTIVE&closingSoon=true'
+
+        if (activeQuery) url += `&q=${encodeURIComponent(activeQuery)}`
 
         const response = await fetch(url)
         if (response.ok) {
           const data = await response.json()
           setPredictions(data.predictions)
-
-          setPredictions(data.predictions)
         } else {
           const errData = await response.json().catch(() => ({}))
-          const errMsg = errData?.details?.[0]?.message || errData?.error || `Failed to load (${response.status})`
-          setFetchError(errMsg)
+          setFetchError(errData?.details?.[0]?.message || errData?.error || `Failed to load (${response.status})`)
           setPredictions([])
         }
       } catch (error) {
-        // Error logged by error boundary
         setFetchError(error instanceof Error ? error.message : 'Failed to load predictions')
         setPredictions([])
       } finally {
@@ -59,7 +62,30 @@ export default function PredictionsPage() {
     }
 
     fetchPredictions()
-  }, [filter])
+  }, [filter, activeQuery])
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    const q = searchInput.trim()
+    setActiveQuery(q)
+    const params = new URLSearchParams()
+    if (q) params.set('q', q)
+    router.replace(`/forecasts${params.size ? `?${params}` : ''}`)
+  }
+
+  const clearSearch = () => {
+    setSearchInput('')
+    setActiveQuery('')
+    router.replace('/forecasts')
+  }
+
+  const filterLabel = {
+    ACTIVE: 'Open Forecasts',
+    CLOSING_SOON: 'Closing Soon',
+    PENDING: 'Awaiting Resolution',
+    RESOLVED: 'Resolved Forecasts',
+    ALL: 'All Forecasts',
+  }[filter]
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -84,60 +110,49 @@ export default function PredictionsPage() {
         </div>
       )}
 
-      {/* Filters */}
-      <div className="mb-6 space-y-4">
-        {/* Status Filters */}
+      {/* Search + Filters */}
+      <div className="mb-6 space-y-3">
+        {/* Search bar */}
+        <form onSubmit={handleSearch} className="flex items-center gap-2">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            <input
+              ref={searchInputRef}
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
+              placeholder="Search forecasts…"
+              className="w-full bg-navy-700 text-white text-sm pl-9 pr-8 py-2 rounded-lg border border-navy-600 outline-none focus:border-blue-500 placeholder-gray-500"
+            />
+            {searchInput && (
+              <button type="button" onClick={clearSearch} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+          <button type="submit" className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors">
+            Search
+          </button>
+        </form>
+
+        {/* Status filter pills */}
         <div className="flex items-center gap-2 flex-wrap">
-          <Filter className="w-5 h-5 text-gray-400" />
-          <button
-            onClick={() => setFilter('ACTIVE')}
-            className={`px-4 py-2 rounded-lg font-medium transition-all ${filter === 'ACTIVE'
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'bg-navy-700 text-text-secondary hover:bg-navy-600'
+          <Filter className="w-4 h-4 text-gray-400 shrink-0" />
+          {(['ACTIVE', 'CLOSING_SOON', 'PENDING', 'RESOLVED', 'ALL'] as FilterStatus[]).map(f => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === f
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'bg-navy-700 text-text-secondary hover:bg-navy-600'
               }`}
-          >
-            Open
-          </button>
-          <button
-            onClick={() => setFilter('CLOSING_SOON')}
-            className={`px-4 py-2 rounded-lg font-medium transition-all ${filter === 'CLOSING_SOON'
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'bg-navy-700 text-text-secondary hover:bg-navy-600'
-              }`}
-          >
-            Closing Soon
-          </button>
-          <button
-            onClick={() => setFilter('PENDING')}
-            className={`px-4 py-2 rounded-lg font-medium transition-all ${filter === 'PENDING'
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'bg-navy-700 text-text-secondary hover:bg-navy-600'
-              }`}
-          >
-            Awaiting Resolution
-          </button>
-          <button
-            onClick={() => setFilter('RESOLVED')}
-            className={`px-4 py-2 rounded-lg font-medium transition-all ${filter === 'RESOLVED'
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'bg-navy-700 text-text-secondary hover:bg-navy-600'
-              }`}
-          >
-            Resolved
-          </button>
-          <button
-            onClick={() => setFilter('ALL')}
-            className={`px-4 py-2 rounded-lg font-medium transition-all ${filter === 'ALL'
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'bg-navy-700 text-text-secondary hover:bg-navy-600'
-              }`}
-          >
-            All
-          </button>
+            >
+              {f === 'ACTIVE' ? 'Open' : f === 'CLOSING_SOON' ? 'Closing Soon' : f === 'PENDING' ? 'Awaiting Resolution' : f === 'RESOLVED' ? 'Resolved' : 'All'}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Loading State */}
+      {/* Loading */}
       {isLoading ? (
         <div className="space-y-4">
           {[...Array(5)].map((_, i) => <ForecastCardSkeleton key={i} />)}
@@ -147,20 +162,24 @@ export default function PredictionsPage() {
           variant="dashed"
           icon={<TrendingUp className="w-8 h-8 text-gray-400" />}
           iconBgClass="bg-navy-700"
-          title="No forecasts yet"
-          description="Be the first to make a forecast!"
-          action={{ label: 'Create Forecast', href: '/predictions/new', icon: <Plus className="w-5 h-5" /> }}
+          title={activeQuery ? `No results for "${activeQuery}"` : 'No forecasts yet'}
+          description={activeQuery ? 'Try a different search term or clear the filter.' : 'Be the first to make a forecast!'}
+          action={activeQuery ? { label: 'Clear search', href: '/forecasts' } : { label: 'Create Forecast', href: '/predictions/new', icon: <Plus className="w-5 h-5" /> }}
         />
       ) : (
-        /* Predictions List */
         <div className="space-y-4">
           <div className="flex items-center justify-between px-2">
-            <h2 className="text-lg font-semibold text-text-secondary">
-              {filter === 'ACTIVE' && 'Open Forecasts'}
-              {filter === 'CLOSING_SOON' && 'Closing Soon'}
-              {filter === 'PENDING' && 'Awaiting Resolution'}
-              {filter === 'RESOLVED' && 'Resolved Forecasts'}
-              {filter === 'ALL' && 'All Forecasts'}
+            <h2 className="text-sm font-semibold text-text-secondary flex items-center gap-2">
+              {filterLabel}
+              {activeQuery && (
+                <span className="flex items-center gap-1 px-2 py-0.5 bg-blue-600/20 border border-blue-500/30 text-blue-400 rounded-full text-xs font-medium">
+                  <Search className="w-3 h-3" />
+                  {activeQuery}
+                  <button onClick={clearSearch} className="hover:text-white ml-0.5">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
             </h2>
             <span className="text-sm text-gray-500">{predictions.length} results</span>
           </div>
@@ -174,4 +193,3 @@ export default function PredictionsPage() {
     </div>
   )
 }
-
