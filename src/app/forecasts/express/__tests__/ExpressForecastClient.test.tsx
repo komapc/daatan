@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, act } from '@testing-library/react'
+import { NextIntlClientProvider } from 'next-intl'
 import ExpressForecastClient from '../ExpressForecastClient'
+import messages from '../../../../../messages/en.json'
 
 // Mock next/navigation
 const mockRouter = {
@@ -10,6 +12,9 @@ const mockRouter = {
 vi.mock('next/navigation', () => ({
   useRouter: () => mockRouter,
 }))
+
+const renderWithIntl = (ui: React.ReactElement) =>
+  render(<NextIntlClientProvider locale="en" messages={messages}>{ui}</NextIntlClientProvider>)
 
 interface GeneratedPrediction {
   claimText: string
@@ -30,13 +35,13 @@ describe('ExpressForecastClient', () => {
   })
 
   it('renders input form initially', () => {
-    render(<ExpressForecastClient userId="test-user" />)
+    renderWithIntl(<ExpressForecastClient userId="test-user" />)
     expect(screen.getByText('What do you want to forecast?')).toBeInTheDocument()
     expect(screen.getByPlaceholderText(/Describe your event OR paste/)).toBeInTheDocument()
   })
 
   it('shows error for input less than 5 characters', async () => {
-    render(<ExpressForecastClient userId="test-user" />)
+    renderWithIntl(<ExpressForecastClient userId="test-user" />)
 
     const input = screen.getByPlaceholderText(/Describe your event OR paste/)
     const button = screen.getByText('Generate Forecast')
@@ -48,14 +53,14 @@ describe('ExpressForecastClient', () => {
   })
 
   it('disables button when input is empty', () => {
-    render(<ExpressForecastClient userId="test-user" />)
+    renderWithIntl(<ExpressForecastClient userId="test-user" />)
 
     const button = screen.getByText('Generate Forecast')
     expect(button).toBeDisabled()
   })
 
   it('enables button when input is valid', () => {
-    render(<ExpressForecastClient userId="test-user" />)
+    renderWithIntl(<ExpressForecastClient userId="test-user" />)
 
     const input = screen.getByPlaceholderText(/Describe your event OR paste/)
     const button = screen.getByText('Generate Forecast')
@@ -66,7 +71,7 @@ describe('ExpressForecastClient', () => {
   })
 
   it('shows character count', () => {
-    render(<ExpressForecastClient userId="test-user" />)
+    renderWithIntl(<ExpressForecastClient userId="test-user" />)
 
     const input = screen.getByPlaceholderText(/Describe your event OR paste/)
 
@@ -76,14 +81,14 @@ describe('ExpressForecastClient', () => {
   })
 
   it('renders example predictions', () => {
-    render(<ExpressForecastClient userId="test-user" />)
+    renderWithIntl(<ExpressForecastClient userId="test-user" />)
 
     expect(screen.getByText('Examples:')).toBeInTheDocument()
     expect(screen.getByText(/Bitcoin will reach \$100k/)).toBeInTheDocument()
   })
 
   it('fills input when clicking example', () => {
-    render(<ExpressForecastClient userId="test-user" />)
+    renderWithIntl(<ExpressForecastClient userId="test-user" />)
 
     const example = screen.getByText(/Bitcoin will reach \$100k/)
     fireEvent.click(example)
@@ -97,7 +102,7 @@ describe('ExpressForecastClient', () => {
     it('shows checking step immediately on generate click', async () => {
       vi.spyOn(globalThis, 'fetch').mockReturnValueOnce(new Promise(() => {})) // never resolves
 
-      render(<ExpressForecastClient userId="test-user" />)
+      renderWithIntl(<ExpressForecastClient userId="test-user" />)
       const input = screen.getByPlaceholderText(/Describe your event OR paste/)
       fireEvent.change(input, { target: { value: 'Bitcoin will hit 100k' } })
 
@@ -119,7 +124,7 @@ describe('ExpressForecastClient', () => {
       })
       vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(stream, { status: 200 }))
 
-      render(<ExpressForecastClient userId="test-user" />)
+      renderWithIntl(<ExpressForecastClient userId="test-user" />)
       fireEvent.change(screen.getByPlaceholderText(/Describe your event OR paste/), { target: { value: 'Bitcoin will hit 100k' } })
 
       await act(async () => {
@@ -140,7 +145,7 @@ describe('ExpressForecastClient', () => {
       })
       vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(stream, { status: 200 }))
 
-      render(<ExpressForecastClient userId="test-user" />)
+      renderWithIntl(<ExpressForecastClient userId="test-user" />)
       fireEvent.change(screen.getByPlaceholderText(/Describe your event OR paste/), { target: { value: 'Bitcoin will hit 100k' } })
 
       await act(async () => {
@@ -167,7 +172,7 @@ describe('ExpressForecastClient', () => {
       })
       vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(stream, { status: 200 }))
 
-      render(<ExpressForecastClient userId="test-user" />)
+      renderWithIntl(<ExpressForecastClient userId="test-user" />)
       fireEvent.change(screen.getByPlaceholderText(/Describe your event OR paste/), { target: { value: 'Bitcoin will hit 100k' } })
 
       await act(async () => {
@@ -211,7 +216,7 @@ describe('ExpressForecastClient', () => {
         new Response(streamBody, { status: 200 })
       )
 
-      render(<ExpressForecastClient userId="test-user" />)
+      renderWithIntl(<ExpressForecastClient userId="test-user" />)
 
       const input = screen.getByPlaceholderText(/Describe your event OR paste/)
       fireEvent.change(input, { target: { value: 'Bitcoin will reach $100k this year' } })
