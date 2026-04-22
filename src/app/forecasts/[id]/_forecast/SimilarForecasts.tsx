@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Layers } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 interface SimilarForecast {
   id: string
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export function SimilarForecasts({ predictionId }: Props) {
+  const t = useTranslations('forecast')
   const [items, setItems] = useState<SimilarForecast[]>([])
 
   useEffect(() => {
@@ -32,7 +34,7 @@ export function SimilarForecasts({ predictionId }: Props) {
     <div className="mb-8">
       <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-2">
         <Layers className="w-4 h-4" />
-        See also
+        {t('seeAlso')}
       </h3>
       <div className="space-y-2">
         {items.map(item => (

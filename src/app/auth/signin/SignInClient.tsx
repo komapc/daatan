@@ -8,8 +8,10 @@ import Image from 'next/image'
 import { LogIn, Loader2, AlertCircle, Mail, Lock } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { analytics } from '@/lib/analytics'
+import { useTranslations } from 'next-intl'
 
 export default function SignInClient() {
+  const t = useTranslations('auth.signin')
   const sessionData = useSession()
   const status = sessionData?.status || 'unauthenticated'
   
@@ -50,14 +52,14 @@ export default function SignInClient() {
       })
 
       if (result?.error) {
-        setCredentialsError('Invalid email or password')
+        setCredentialsError(t('invalidCredentials'))
       } else {
         analytics.signIn({ method: 'credentials' })
         router.push(callbackUrl)
         router.refresh()
       }
     } catch (err) {
-      setCredentialsError('An unexpected error occurred')
+      setCredentialsError(t('unexpectedError'))
     } finally {
       setIsLoading(false)
     }
@@ -78,22 +80,20 @@ export default function SignInClient() {
           <Link href="/">
             <Image src="/logo-icon.svg" alt="DAATAN" width={64} height={64} className="mb-4" />
           </Link>
-          <h1 className="text-2xl font-bold text-white">Welcome back</h1>
-          <p className="text-gray-500 mt-2">
-            Sign in to track your predictions and build your reputation.
-          </p>
+          <h1 className="text-2xl font-bold text-white">{t('title')}</h1>
+          <p className="text-gray-500 mt-2">{t('description')}</p>
         </div>
 
         {(error || credentialsError) && (
           <div className="bg-red-900/20 border border-red-800/40 text-red-400 px-4 py-3 rounded-lg text-sm flex items-start gap-3">
             <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
             <div>
-              <p>{credentialsError || 'An error occurred during sign in.'}</p>
+              <p>{credentialsError || t('error')}</p>
               {error === 'OAuthSignin' && (
-                <p className="text-xs mt-1 text-red-500/80">Google OAuth failed. Please try again.</p>
+                <p className="text-xs mt-1 text-red-500/80">{t('googleFailed')}</p>
               )}
               {error === 'CredentialsSignin' && (
-                <p className="text-xs mt-1 text-red-500/80">Invalid credentials provided.</p>
+                <p className="text-xs mt-1 text-red-500/80">{t('invalidCreds')}</p>
               )}
             </div>
           </div>
@@ -102,7 +102,7 @@ export default function SignInClient() {
         <form onSubmit={handleCredentialsSignIn} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-text-secondary mb-1.5" htmlFor="email">
-              Email Address
+              {t('emailLabel')}
             </label>
             <div className="relative">
               <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
@@ -112,7 +112,7 @@ export default function SignInClient() {
                 required
                 disabled={isLoading}
                 className="w-full pl-10 pr-4 py-2.5 bg-navy-800 border border-navy-600 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all disabled:opacity-50"
-                placeholder="name@example.com"
+                placeholder={t('emailPlaceholder')}
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               />
@@ -122,10 +122,10 @@ export default function SignInClient() {
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-sm font-medium text-text-secondary" htmlFor="password">
-                Password
+                {t('passwordLabel')}
               </label>
               <Link href="/auth/forgot-password" className="text-xs text-blue-500 hover:text-blue-400 transition-colors">
-                Forgot password?
+                {t('forgotPassword')}
               </Link>
             </div>
             <div className="relative">
@@ -136,7 +136,7 @@ export default function SignInClient() {
                 required
                 disabled={isLoading}
                 className="w-full pl-10 pr-4 py-2.5 bg-navy-800 border border-navy-600 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all disabled:opacity-50"
-                placeholder="••••••••"
+                placeholder={t('passwordPlaceholder')}
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               />
@@ -149,7 +149,7 @@ export default function SignInClient() {
             disabled={isLoading}
             leftIcon={isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogIn className="w-5 h-5" />}
           >
-            {isLoading ? 'Signing in...' : 'Sign in'}
+            {isLoading ? t('submitting') : t('submit')}
           </Button>
         </form>
 
@@ -158,7 +158,7 @@ export default function SignInClient() {
             <div className="w-full border-t border-navy-600"></div>
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-navy-700 px-2 text-gray-500 tracking-wider font-medium">Or continue with</span>
+            <span className="bg-navy-700 px-2 text-gray-500 tracking-wider font-medium">{t('orContinueWith')}</span>
           </div>
         </div>
 
@@ -192,9 +192,9 @@ export default function SignInClient() {
 
         <div className="pt-2 text-center text-sm">
           <p className="text-gray-500">
-            Don&apos;t have an account?{' '}
+            {t('noAccount')}{' '}
             <Link href="/auth/signup" className="text-blue-500 hover:text-blue-400 font-medium transition-colors">
-              Sign up
+              {t('signUp')}
             </Link>
           </p>
         </div>
@@ -202,7 +202,7 @@ export default function SignInClient() {
       
       <div className="mt-8 flex items-center gap-2 text-gray-500">
         <LogIn className="w-4 h-4" />
-        <span className="text-sm">Secure Authentication</span>
+        <span className="text-sm">{t('secure')}</span>
       </div>
     </div>
   )

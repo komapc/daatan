@@ -8,8 +8,10 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { UserPlus, Loader2, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { useTranslations } from 'next-intl'
 
 export default function SignupClient() {
+  const t = useTranslations('auth.signup')
   const router = useRouter()
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get('callbackUrl') || '/'
@@ -67,10 +69,8 @@ export default function SignupClient() {
           <Link href="/">
             <Image src="/logo-icon.svg" alt="DAATAN" width={64} height={64} className="mb-4" />
           </Link>
-          <h1 className="text-2xl font-bold text-white">Create your account</h1>
-          <p className="text-gray-500 mt-2">
-            Join DAATAN to track forecasts and build your reputation.
-          </p>
+          <h1 className="text-2xl font-bold text-white">{t('title')}</h1>
+          <p className="text-gray-500 mt-2">{t('description')}</p>
         </div>
 
         {error && (
@@ -83,7 +83,7 @@ export default function SignupClient() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-text-secondary mb-1.5" htmlFor="name">
-              Full Name
+              {t('nameLabel')}
             </label>
             <input
               id="name"
@@ -91,7 +91,7 @@ export default function SignupClient() {
               required
               disabled={isLoading}
               className="w-full px-4 py-2.5 bg-navy-800 border border-navy-600 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all disabled:opacity-50"
-              placeholder="John Doe"
+              placeholder={t('namePlaceholder')}
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             />
@@ -99,7 +99,7 @@ export default function SignupClient() {
 
           <div>
             <label className="block text-sm font-medium text-text-secondary mb-1.5" htmlFor="email">
-              Email Address
+              {t('emailLabel')}
             </label>
             <input
               id="email"
@@ -107,7 +107,7 @@ export default function SignupClient() {
               required
               disabled={isLoading}
               className="w-full px-4 py-2.5 bg-navy-800 border border-navy-600 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all disabled:opacity-50"
-              placeholder="name@example.com"
+              placeholder={t('emailPlaceholder')}
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             />
@@ -115,7 +115,7 @@ export default function SignupClient() {
 
           <div>
             <label className="block text-sm font-medium text-text-secondary mb-1.5" htmlFor="password">
-              Password
+              {t('passwordLabel')}
             </label>
             <input
               id="password"
@@ -123,14 +123,12 @@ export default function SignupClient() {
               required
               disabled={isLoading}
               className="w-full px-4 py-2.5 bg-navy-800 border border-navy-600 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all disabled:opacity-50"
-              placeholder="••••••••"
+              placeholder={t('passwordPlaceholder')}
               minLength={8}
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
             />
-            <p className="mt-1.5 text-[11px] text-gray-500">
-              Must be at least 8 characters.
-            </p>
+            <p className="mt-1.5 text-[11px] text-gray-500">{t('passwordHint')}</p>
           </div>
 
           <Button
@@ -139,7 +137,7 @@ export default function SignupClient() {
             disabled={isLoading}
             leftIcon={isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <UserPlus className="w-5 h-5" />}
           >
-            {isLoading ? 'Creating account...' : 'Create account'}
+            {isLoading ? t('submitting') : t('submit')}
           </Button>
         </form>
 
@@ -148,7 +146,7 @@ export default function SignupClient() {
             <div className="w-full border-t border-navy-600"></div>
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-navy-700 px-2 text-gray-500 tracking-wider font-medium">Or continue with</span>
+            <span className="bg-navy-700 px-2 text-gray-500 tracking-wider font-medium">{t('orContinueWith')}</span>
           </div>
         </div>
 
@@ -177,14 +175,14 @@ export default function SignupClient() {
             </svg>
           }
         >
-          Google
+          {t('google')}
         </Button>
 
         <div className="pt-2 text-center text-sm">
           <p className="text-gray-500">
-            Already have an account?{' '}
+            {t('alreadyHaveAccount')}{' '}
             <Link href="/auth/signin" className="text-blue-500 hover:text-blue-400 font-medium transition-colors">
-              Sign in
+              {t('signIn')}
             </Link>
           </p>
         </div>

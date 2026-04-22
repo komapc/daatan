@@ -6,8 +6,10 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Mail, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { useTranslations } from 'next-intl'
 
 export default function ForgotPasswordPage() {
+  const t = useTranslations('auth.forgotPassword')
   const [email, setEmail] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -43,21 +45,22 @@ export default function ForgotPasswordPage() {
           <Link href="/">
             <Image src="/logo-icon.svg" alt="DAATAN" width={64} height={64} className="mb-4" />
           </Link>
-          <h1 className="text-2xl font-bold text-white">Forgot your password?</h1>
-          <p className="text-gray-500 mt-2">
-            Enter your email and we&apos;ll send you a reset link.
-          </p>
+          <h1 className="text-2xl font-bold text-white">{t('title')}</h1>
+          <p className="text-gray-500 mt-2">{t('description')}</p>
         </div>
 
         {sent ? (
           <div className="bg-teal/10 border border-teal/30 rounded-xl p-6 flex flex-col items-center gap-3 text-center">
             <CheckCircle2 className="w-8 h-8 text-teal" />
-            <p className="text-white font-semibold">Check your inbox</p>
+            <p className="text-white font-semibold">{t('sentTitle')}</p>
             <p className="text-gray-400 text-sm">
-              If an account exists for <span className="text-white">{email}</span>, you&apos;ll receive a reset link shortly.
+              {t.rich('sentDescription', {
+                email,
+                highlight: (chunks) => <span className="text-white">{chunks}</span>,
+              })}
             </p>
             <Link href="/auth/signin" className="mt-2 text-sm text-blue-500 hover:text-blue-400 transition-colors">
-              Back to sign in
+              {t('backToSignIn')}
             </Link>
           </div>
         ) : (
@@ -72,7 +75,7 @@ export default function ForgotPasswordPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-text-secondary mb-1.5" htmlFor="email">
-                  Email Address
+                  {t('emailLabel')}
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
@@ -82,7 +85,7 @@ export default function ForgotPasswordPage() {
                     required
                     disabled={isLoading}
                     className="w-full pl-10 pr-4 py-2.5 bg-navy-800 border border-navy-600 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all disabled:opacity-50"
-                    placeholder="name@example.com"
+                    placeholder={t('emailPlaceholder')}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   />
@@ -95,13 +98,13 @@ export default function ForgotPasswordPage() {
                 disabled={isLoading}
                 leftIcon={isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Mail className="w-5 h-5" />}
               >
-                {isLoading ? 'Sending…' : 'Send reset link'}
+                {isLoading ? t('submitting') : t('submit')}
               </Button>
             </form>
 
             <div className="text-center text-sm">
               <Link href="/auth/signin" className="text-blue-500 hover:text-blue-400 transition-colors">
-                Back to sign in
+                {t('backToSignIn')}
               </Link>
             </div>
           </>

@@ -4,8 +4,10 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { AlertCircle, ArrowLeft } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 export default function AuthErrorClient() {
+  const t = useTranslations('auth.error')
   const searchParams = useSearchParams()
   const error = searchParams.get('error')
   const callbackUrl = searchParams.get('callbackUrl') || '/'
@@ -21,11 +23,11 @@ export default function AuthErrorClient() {
         </div>
 
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold text-white">Authentication Error</h1>
+          <h1 className="text-2xl font-bold text-white">{t('title')}</h1>
           <p className="text-gray-500">
-            {error === 'Configuration' ? 'There is a problem with the server configuration.' :
-             error === 'AccessDenied' ? 'Access has been denied.' :
-             error === 'Verification' ? 'The verification link has expired or has already been used.' :
+            {error === 'Configuration' ? t('configuration') :
+             error === 'AccessDenied' ? t('accessDenied') :
+             error === 'Verification' ? t('verification') :
              error === 'OAuthSignin' ? (
                <>
                  Google sign-in failed. Add this to your Google OAuth client&apos;s Authorized redirect URIs in Google Cloud Console:{' '}
@@ -35,12 +37,8 @@ export default function AuthErrorClient() {
                  {' '}Also verify GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set on the server.
                </>
              ) :
-             error === 'OAuthCallback' ? (
-               <>
-                 Sign-in could not be completed (session or security check failed). Try again. If it keeps failing, clear this site&apos;s cookies and sign in again.
-               </>
-             ) :
-             (error || 'An unexpected error occurred during authentication.')}
+             error === 'OAuthCallback' ? t('oauthCallback') :
+             (error || t('unexpected'))}
           </p>
         </div>
 
@@ -50,7 +48,7 @@ export default function AuthErrorClient() {
             className="inline-flex items-center gap-2 text-blue-600 font-medium hover:text-cobalt-light transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Sign In
+            {t('backToSignIn')}
           </Link>
         </div>
 

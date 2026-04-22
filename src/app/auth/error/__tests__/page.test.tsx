@@ -1,12 +1,17 @@
 import { render, screen } from '@testing-library/react'
+import { NextIntlClientProvider } from 'next-intl'
 import AuthErrorClient from '../AuthErrorClient'
 import { useSearchParams } from 'next/navigation'
 import { vi, describe, it, expect, Mock } from 'vitest'
+import messages from '../../../../../messages/en.json'
 
 // Mock next/navigation
 vi.mock('next/navigation', () => ({
   useSearchParams: vi.fn(),
 }))
+
+const renderWithIntl = (ui: React.ReactElement) =>
+  render(<NextIntlClientProvider locale="en" messages={messages}>{ui}</NextIntlClientProvider>)
 
 describe('AuthErrorPage', () => {
   it('renders default error message when no error param is provided', () => {
@@ -14,7 +19,7 @@ describe('AuthErrorPage', () => {
       get: () => null,
     })
 
-    render(<AuthErrorClient />)
+    renderWithIntl(<AuthErrorClient />)
 
     expect(screen.getByText('Authentication Error')).toBeInTheDocument()
     expect(screen.getByText('An unexpected error occurred during authentication.')).toBeInTheDocument()
@@ -26,7 +31,7 @@ describe('AuthErrorPage', () => {
       get: () => 'Configuration',
     })
 
-    render(<AuthErrorClient />)
+    renderWithIntl(<AuthErrorClient />)
 
     expect(screen.getByText('There is a problem with the server configuration.')).toBeInTheDocument()
   })
@@ -36,7 +41,7 @@ describe('AuthErrorPage', () => {
       get: () => 'AccessDenied',
     })
 
-    render(<AuthErrorClient />)
+    renderWithIntl(<AuthErrorClient />)
 
     expect(screen.getByText('Access has been denied.')).toBeInTheDocument()
   })
@@ -46,7 +51,7 @@ describe('AuthErrorPage', () => {
       get: () => 'Verification',
     })
 
-    render(<AuthErrorClient />)
+    renderWithIntl(<AuthErrorClient />)
 
     expect(screen.getByText('The verification link has expired or has already been used.')).toBeInTheDocument()
   })
