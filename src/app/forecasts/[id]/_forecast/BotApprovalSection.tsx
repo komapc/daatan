@@ -1,5 +1,6 @@
 'use client'
 import { AlertCircle } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import type { Prediction } from './types'
 
 interface Props {
@@ -9,29 +10,28 @@ interface Props {
 }
 
 export function BotApprovalSection({ prediction, isApproving, onApprove }: Props) {
+  const t = useTranslations('forecast')
   return (
     <div className="mb-8 p-5 bg-amber-900/20 border border-amber-700/40 rounded-xl">
       <div className="flex items-center gap-2 mb-3">
         <AlertCircle className="w-5 h-5 text-amber-600" />
-        <h3 className="text-lg font-semibold text-amber-900">Pending Approval</h3>
+        <h3 className="text-lg font-semibold text-amber-900">{t('pendingApproval')}</h3>
       </div>
-      <p className="text-sm text-amber-400 mb-4">
-        This bot-generated forecast is awaiting human review before going live.
-      </p>
+      <p className="text-sm text-amber-400 mb-4">{t('botPendingDescription')}</p>
       <div className="flex items-center gap-3">
         <button
           onClick={() => onApprove('ACTIVE')}
           disabled={isApproving}
           className="flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
         >
-          {isApproving ? 'Approving…' : 'Approve'}
+          {isApproving ? t('approving') : t('approve')}
         </button>
         <button
           onClick={() => onApprove('VOID')}
           disabled={isApproving}
           className="flex items-center gap-1.5 px-4 py-2 bg-navy-700 border border-red-800/50 text-red-600 text-sm font-medium rounded-lg hover:bg-red-900/20 disabled:opacity-50 transition-colors"
         >
-          Reject
+          {t('reject')}
         </button>
       </div>
       {(prediction.sentiment || prediction.confidence != null || prediction.consensusLine) && (

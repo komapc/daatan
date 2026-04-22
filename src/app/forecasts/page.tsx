@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { TrendingUp, Plus, Filter, Search, X } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import ForecastCard, { Prediction } from '@/components/forecasts/ForecastCard'
 import { ForecastCardSkeleton } from '@/components/forecasts/ForecastCardSkeleton'
 import EmptyState from '@/components/ui/EmptyState'
@@ -11,6 +12,7 @@ import EmptyState from '@/components/ui/EmptyState'
 type FilterStatus = 'ACTIVE' | 'PENDING' | 'RESOLVED' | 'CLOSING_SOON' | 'ALL'
 
 export default function PredictionsPage() {
+  const t = useTranslations('forecastsFeed')
   const router = useRouter()
   const searchParams = useSearchParams()
   const initialQ = searchParams.get('q') ?? ''
@@ -80,11 +82,11 @@ export default function PredictionsPage() {
   }
 
   const filterLabel = {
-    ACTIVE: 'Open Forecasts',
-    CLOSING_SOON: 'Closing Soon',
-    PENDING: 'Awaiting Resolution',
-    RESOLVED: 'Resolved Forecasts',
-    ALL: 'All Forecasts',
+    ACTIVE: t('labelOpen'),
+    CLOSING_SOON: t('labelClosingSoon'),
+    PENDING: t('labelPending'),
+    RESOLVED: t('labelResolved'),
+    ALL: t('labelAll'),
   }[filter]
 
   return (
@@ -93,20 +95,20 @@ export default function PredictionsPage() {
       <div className="flex items-center justify-between mb-6 lg:mb-8">
         <div className="flex items-center gap-3">
           <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">Forecasts</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white">{t('title')}</h1>
         </div>
         <Link
           href="/predictions/new"
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
         >
           <Plus className="w-5 h-5" />
-          <span className="hidden sm:inline">New Forecast</span>
+          <span className="hidden sm:inline">{t('newForecast')}</span>
         </Link>
       </div>
 
       {fetchError && (
         <div className="mb-6 bg-red-900/20 border border-red-800/40 text-red-400 px-4 py-3 rounded-lg text-sm">
-          <strong>Error loading forecasts:</strong> {fetchError}
+          <strong>{t('errorLoading')}</strong> {fetchError}
         </div>
       )}
 
@@ -120,7 +122,7 @@ export default function PredictionsPage() {
               ref={searchInputRef}
               value={searchInput}
               onChange={e => setSearchInput(e.target.value)}
-              placeholder="Search forecasts…"
+              placeholder={t('searchPlaceholder')}
               className="w-full bg-navy-700 text-white text-sm pl-9 pr-8 py-2 rounded-lg border border-navy-600 outline-none focus:border-blue-500 placeholder-gray-500"
             />
             {searchInput && (
@@ -130,7 +132,7 @@ export default function PredictionsPage() {
             )}
           </div>
           <button type="submit" className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors">
-            Search
+            {t('search')}
           </button>
         </form>
 
@@ -146,7 +148,7 @@ export default function PredictionsPage() {
                 : 'bg-navy-700 text-text-secondary hover:bg-navy-600'
               }`}
             >
-              {f === 'ACTIVE' ? 'Open' : f === 'CLOSING_SOON' ? 'Closing Soon' : f === 'PENDING' ? 'Awaiting Resolution' : f === 'RESOLVED' ? 'Resolved' : 'All'}
+              {f === 'ACTIVE' ? t('filterOpen') : f === 'CLOSING_SOON' ? t('filterClosingSoon') : f === 'PENDING' ? t('filterPending') : f === 'RESOLVED' ? t('filterResolved') : t('filterAll')}
             </button>
           ))}
         </div>
@@ -162,9 +164,9 @@ export default function PredictionsPage() {
           variant="dashed"
           icon={<TrendingUp className="w-8 h-8 text-gray-400" />}
           iconBgClass="bg-navy-700"
-          title={activeQuery ? `No results for "${activeQuery}"` : 'No forecasts yet'}
-          description={activeQuery ? 'Try a different search term or clear the filter.' : 'Be the first to make a forecast!'}
-          action={activeQuery ? { label: 'Clear search', href: '/forecasts' } : { label: 'Create Forecast', href: '/predictions/new', icon: <Plus className="w-5 h-5" /> }}
+          title={activeQuery ? t('noResults', { query: activeQuery }) : t('empty')}
+          description={activeQuery ? t('noResultsHint') : t('emptyHint')}
+          action={activeQuery ? { label: t('clearSearch'), href: '/forecasts' } : { label: t('createForecast'), href: '/predictions/new', icon: <Plus className="w-5 h-5" /> }}
         />
       ) : (
         <div className="space-y-4">
@@ -181,7 +183,7 @@ export default function PredictionsPage() {
                 </span>
               )}
             </h2>
-            <span className="text-sm text-gray-500">{predictions.length} results</span>
+            <span className="text-sm text-gray-500">{t('resultsCount', { count: predictions.length })}</span>
           </div>
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
             {predictions.map((prediction) => (

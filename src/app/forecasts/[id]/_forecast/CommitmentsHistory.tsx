@@ -1,5 +1,6 @@
 'use client'
 import { Users } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { UserLink } from '@/components/UserLink'
 import type { Prediction } from './types'
 
@@ -8,12 +9,13 @@ interface Props {
 }
 
 export function CommitmentsHistory({ prediction }: Props) {
+  const t = useTranslations('forecast')
   if (prediction.commitments.length === 0) return null
   return (
     <div className="mt-12">
       <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
         <Users className="w-5 h-5" />
-        Forecasts History
+        {t('forecastsHistory')}
       </h2>
       <div className="border border-navy-600 rounded-lg divide-y divide-navy-600">
         {prediction.commitments.map((commitment) => (
@@ -30,7 +32,7 @@ export function CommitmentsHistory({ prediction }: Props) {
                 <div className="font-medium text-white">{commitment.user.name}</div>
                 <div className="text-sm text-gray-500">
                   {prediction.outcomeType === 'BINARY'
-                    ? (commitment.binaryChoice ? 'Will happen' : "Won't happen")
+                    ? (commitment.binaryChoice ? t('willHappen') : t('wontHappen'))
                     : commitment.option?.text}
                 </div>
               </div>
