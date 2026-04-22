@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Bell, Loader2, BellOff, BellRing } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useTranslations } from 'next-intl'
 import { usePushSubscription } from '@/lib/hooks/usePushSubscription'
 import type { NotificationType } from '@prisma/client'
 import { Button } from '@/components/ui/Button'
@@ -14,16 +15,17 @@ interface Preference {
   browserPush: boolean
 }
 
-const TYPE_LABELS: Record<NotificationType, string> = {
-  COMMITMENT_RESOLVED: 'Commitment resolved',
-  COMMENT_ON_FORECAST: 'Comment on your forecast',
-  REPLY_TO_COMMENT: 'Reply to your comment',
-  NEW_COMMITMENT: 'New commitment on your forecast',
-  MENTION: '@Mention',
-  SYSTEM: 'System announcements',
+const TYPE_LABEL_KEYS: Record<NotificationType, string> = {
+  COMMITMENT_RESOLVED: 'commitmentResolved',
+  COMMENT_ON_FORECAST: 'commentOnForecast',
+  REPLY_TO_COMMENT: 'replyToComment',
+  NEW_COMMITMENT: 'newCommitment',
+  MENTION: 'mention',
+  SYSTEM: 'systemAnnouncements',
 }
 
 export default function NotificationPreferences() {
+  const t = useTranslations('settings')
   const [preferences, setPreferences] = useState<Preference[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
@@ -37,14 +39,14 @@ export default function NotificationPreferences() {
         const data = await res.json()
         setPreferences(data.preferences)
       } else {
-        toast.error('Failed to load notification preferences')
+        toast.error(t('prefsLoadError'))
       }
     } catch {
-      toast.error('Failed to load notification preferences')
+      toast.error(t('prefsLoadError'))
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     fetchPreferences()
@@ -76,14 +78,14 @@ export default function NotificationPreferences() {
         setPreferences((prev) =>
           prev.map((p) => (p.type === type ? { ...p, [channel]: !newValue } : p)),
         )
-        toast.error('Failed to save preference')
+        toast.error(t('prefsSaveError'))
       }
     } catch {
       // Revert on network error
       setPreferences((prev) =>
         prev.map((p) => (p.type === type ? { ...p, [channel]: !newValue } : p)),
       )
-      toast.error('Failed to save preference')
+      toast.error(t('prefsSaveError'))
     } finally {
       setSaving(null)
     }
@@ -93,16 +95,16 @@ export default function NotificationPreferences() {
     setPushWorking(true)
     const ok = await subscribe()
     setPushWorking(false)
-    if (ok) toast.success('Push notifications enabled')
-    else if (Notification.permission === 'denied') toast.error('Permission denied — unblock notifications in your browser settings')
-    else toast.error('Could not enable push notifications')
+    if (ok) toast.success(t('pushEnableSuccess'))
+    else if (Notification.permission === 'denied') toast.error(t('pushPermissionDenied'))
+    else toast.error(t('pushEnableError'))
   }
 
   const handleDisconnectPush = async () => {
     setPushWorking(true)
     await unsubscribe()
     setPushWorking(false)
-    toast.success('Push notifications disabled')
+    toast.success(t('pushDisabled'))
   }
 
   if (loading) {
@@ -132,10 +134,10 @@ export default function NotificationPreferences() {
             )}
             <span>
               {isSubscribed
-                ? 'Browser push notifications are enabled on this device.'
+                ? t('pushEnabled')
                 : permission === 'denied'
-                ? 'Push notifications are blocked. Unblock them in your browser\u2019s site settings.'
-                : 'Enable browser push notifications to get alerts even when the tab is closed.'}
+                ? t('pushBlocked')
+                : t('enablePushDescription')}
             </span>
           </div>
           {isSubscribed ? (
@@ -146,7 +148,7 @@ export default function NotificationPreferences() {
               size="xs"
               className="ml-4 shrink-0 font-medium underline hover:no-underline"
             >
-              Disable
+              {t('disable')}
             </Button>
           ) : permission !== 'denied' ? (
             <Button
@@ -155,7 +157,7 @@ export default function NotificationPreferences() {
               size="xs"
               className="ml-4 shrink-0"
             >
-              Enable
+              {t('enable')}
             </Button>
           ) : null}
         </div>
@@ -165,12 +167,12 @@ export default function NotificationPreferences() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-navy-600">
-              <th className="text-left py-3 pr-4 font-medium text-text-secondary">Notification</th>
-              <th className="text-center py-3 px-4 font-medium text-text-secondary">In-app</th>
+              <th className="text-left py-3 pr-4 font-medium text-text-secondary">{t('notification')}</th>
+              <th className="text-center py-3 px-4 font-medium text-text-secondary">{t('inApp')}</th>
               <th className="text-center py-3 pl-4 font-medium text-text-secondary">
                 <div className="flex items-center justify-center gap-1">
                   <Bell className="w-4 h-4" />
-                  Push
+                  {t('push')}
                 </div>
               </th>
             </tr>
@@ -179,7 +181,7 @@ export default function NotificationPreferences() {
             {preferences.map((pref) => (
               <tr key={pref.type} className="border-b border-gray-50">
                 <td className="py-3 pr-4 text-white">
-                  {TYPE_LABELS[pref.type]}
+                  {t(TYPE_LABEL_KEYS[pref.type])}
                 </td>
                 <td className="py-3 px-4 text-center">
                   <button
@@ -222,10 +224,10 @@ export default function NotificationPreferences() {
                       size="xs"
                       className="text-blue-600 hover:text-cobalt-light hover:underline"
                     >
-                      Connect
+                      {t('enable')}
                     </Button>
                   ) : (
-                    <span className="text-xs text-gray-400">N/A</span>
+                    <span className="text-xs text-gray-400">{t('na')}</span>
                   )}
                 </td>
               </tr>

@@ -2,8 +2,9 @@
 
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { User, Globe, Twitter, Bell, Save, X, Upload, Loader2 } from 'lucide-react'
+import { User, Globe, Twitter, Bell, Save, X, Upload } from 'lucide-react'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { Avatar } from '@/components/Avatar'
 import { Button } from '@/components/ui/Button'
 import { toast } from 'react-hot-toast'
@@ -23,6 +24,8 @@ interface ProfileEditFormProps {
 }
 
 export default function ProfileEditForm({ user }: ProfileEditFormProps) {
+  const t = useTranslations('profile')
+  const tCommon = useTranslations('common')
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
@@ -44,12 +47,12 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
     if (!file) return
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('File size must be less than 5MB')
+      toast.error(t('fileTooLarge'))
       return
     }
 
     if (!file.type.startsWith('image/')) {
-      toast.error('File must be an image')
+      toast.error(t('fileMustBeImage'))
       return
     }
 
@@ -66,14 +69,14 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to upload avatar')
+        throw new Error(result.error || t('avatarError'))
       }
 
       setFormData(prev => ({ ...prev, avatarUrl: result.avatarUrl }))
-      toast.success('Avatar uploaded successfully. It will update everywhere shortly.')
+      toast.success(t('avatarSuccess'))
       router.refresh() // Tell Next.js to re-fetch data for the current page
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to upload avatar')
+      toast.error(err instanceof Error ? err.message : t('avatarError'))
     } finally {
       setUploadingAvatar(false)
       // Reset input so the same file can be selected again if needed
@@ -103,7 +106,7 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to update profile')
+        throw new Error(data.error || t('saveError'))
       }
 
       setSuccess(true)
@@ -112,7 +115,7 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
         router.refresh()
       }, 1500)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setError(err instanceof Error ? err.message : t('saveError'))
     } finally {
       setLoading(false)
     }
@@ -130,9 +133,9 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
             className="ring-4 ring-white shadow-sm"
           />
           <div className="space-y-2">
-            <h3 className="text-sm font-bold text-white">Profile Picture</h3>
+            <h3 className="text-sm font-bold text-white">{t('profilePicture')}</h3>
             <p className="text-xs text-gray-500 max-w-sm">
-              Upload a new avatar (JPG, PNG, WebP). Max size 5MB.
+              {t('uploadDescription')}
             </p>
             <div className="flex gap-2">
               <input
@@ -150,7 +153,7 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
                 loading={uploadingAvatar}
                 leftIcon={!uploadingAvatar && <Upload className="w-4 h-4" />}
               >
-                Change Picture
+                {t('changePicture')}
               </Button>
             </div>
           </div>
@@ -160,60 +163,60 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
         <div>
           <label htmlFor="name" className="flex items-center gap-2 text-sm font-bold text-text-secondary mb-2">
             <User className="w-4 h-4 text-gray-400" />
-            Display Name
+            {t('displayNameLabel')}
           </label>
           <input
             type="text"
             id="name"
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            placeholder="Your full name"
+            placeholder={t('displayNamePlaceholder')}
             className="w-full px-4 py-3 bg-navy-800 text-white placeholder:text-text-subtle border border-navy-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-cobalt focus:border-transparent"
             maxLength={60}
           />
-          <p className="text-xs text-gray-500 mt-1">Your name as shown on your profile</p>
+          <p className="text-xs text-gray-500 mt-1">{t('displayNameHelper')}</p>
         </div>
 
         {/* Username */}
         <div>
           <label htmlFor="username" className="flex items-center gap-2 text-sm font-bold text-text-secondary mb-2">
             <User className="w-4 h-4 text-gray-400" />
-            Username (Nickname)
+            {t('usernameLabel')}
           </label>
           <input
             type="text"
             id="username"
             value={formData.username}
             onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-            placeholder="your_username"
+            placeholder={t('usernamePlaceholder')}
             className="w-full px-4 py-3 bg-navy-800 text-white placeholder:text-text-subtle border border-navy-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-cobalt focus:border-transparent"
             maxLength={30}
           />
-          <p className="text-xs text-gray-500 mt-1">Your public display name (letters, numbers, underscore only)</p>
+          <p className="text-xs text-gray-500 mt-1">{t('usernameHelper')}</p>
         </div>
 
         {/* Website */}
         <div>
           <label htmlFor="website" className="flex items-center gap-2 text-sm font-bold text-text-secondary mb-2">
             <Globe className="w-4 h-4 text-gray-400" />
-            Website
+            {t('websiteLabel')}
           </label>
           <input
             type="url"
             id="website"
             value={formData.website}
             onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-            placeholder="https://yourwebsite.com"
+            placeholder={t('websitePlaceholder')}
             className="w-full px-4 py-3 bg-navy-800 text-white placeholder:text-text-subtle border border-navy-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-cobalt focus:border-transparent"
           />
-          <p className="text-xs text-gray-500 mt-1">Your personal website or blog</p>
+          <p className="text-xs text-gray-500 mt-1">{t('websiteHelper')}</p>
         </div>
 
         {/* Twitter Handle */}
         <div>
           <label htmlFor="twitterHandle" className="flex items-center gap-2 text-sm font-bold text-text-secondary mb-2">
             <Twitter className="w-4 h-4 text-gray-400" />
-            Twitter/X Handle
+            {t('twitterLabel')}
           </label>
           <div className="flex items-center">
             <span className="px-4 py-3 bg-navy-800 border border-r-0 border-navy-600 rounded-l-xl text-gray-500 font-medium">@</span>
@@ -222,12 +225,12 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
               id="twitterHandle"
               value={formData.twitterHandle}
               onChange={(e) => setFormData({ ...formData, twitterHandle: e.target.value.replace('@', '') })}
-              placeholder="username"
+              placeholder={t('twitterPlaceholder')}
               className="flex-1 px-4 py-3 border border-navy-600 rounded-r-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               maxLength={15}
             />
           </div>
-          <p className="text-xs text-gray-500 mt-1">Your Twitter/X username (without @)</p>
+          <p className="text-xs text-gray-500 mt-1">{t('twitterHelper')}</p>
         </div>
 
         {/* Email Notifications */}
@@ -241,10 +244,10 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
             />
             <div className="flex items-center gap-2">
               <Bell className="w-4 h-4 text-gray-400" />
-              <span className="text-sm font-bold text-text-secondary">Email Notifications</span>
+              <span className="text-sm font-bold text-text-secondary">{t('emailNotifications')}</span>
             </div>
           </label>
-          <p className="text-xs text-gray-500 mt-2 ml-8">Receive updates about your predictions and stakes</p>
+          <p className="text-xs text-gray-500 mt-2 ml-8">{t('emailNotificationsHelper')}</p>
         </div>
 
         {/* Error/Success Messages */}
@@ -256,7 +259,7 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
 
         {success && (
           <div className="bg-teal/10 border border-green-200 text-teal px-4 py-3 rounded-xl text-sm">
-            Profile updated successfully! Redirecting...
+            {t('savedSuccess')}
           </div>
         )}
 
@@ -268,14 +271,14 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
             className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <Save className="w-4 h-4" />
-            {loading ? 'Saving...' : 'Save Changes'}
+            {loading ? t('saving') : t('saveChanges')}
           </button>
           <Link
             href="/profile"
             className="flex items-center justify-center gap-2 bg-navy-700 text-text-secondary px-6 py-3 rounded-xl font-bold hover:bg-navy-600 transition-colors"
           >
             <X className="w-4 h-4" />
-            Cancel
+            {tCommon('cancel')}
           </Link>
         </div>
       </div>

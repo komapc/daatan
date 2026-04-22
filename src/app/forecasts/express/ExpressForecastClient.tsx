@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Sparkles, Search, FileText, Loader2, AlertCircle, Edit2, RotateCcw, ArrowLeft, X, Plus, List, Trash2, Eye, EyeOff, ShieldCheck } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/Button'
 import { createClientLogger } from '@/lib/client-logger'
 
@@ -38,21 +39,22 @@ interface GeneratedPrediction {
 
 type Step = 'input' | 'checking' | 'searching' | 'analyzing' | 'generating' | 'review' | 'error'
 
-const ANALYZING_MESSAGES = [
-  'Reading source articles…',
-  'Identifying key claims and context…',
-  'Drafting forecast language…',
-  'Calibrating resolution criteria…',
-  'Estimating probability…',
-  'Almost there…',
-]
-
 export default function ExpressForecastClient({
   userId,
   initialInput = '',
   onInputChange
 }: ExpressForecastClientProps) {
+  const t = useTranslations('expressForecast')
   const router = useRouter()
+
+  const ANALYZING_MESSAGES = useMemo(() => [
+    t('analyzingReading'),
+    t('analyzingIdentifying'),
+    t('analyzingDrafting'),
+    t('analyzingCalibrating'),
+    t('analyzingEstimating'),
+    t('analyzingAlmostThere'),
+  ], [t])
   const [userInput, setUserInput] = useState(initialInput)
   const [analyzingMsgIdx, setAnalyzingMsgIdx] = useState(0)
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
@@ -96,18 +98,18 @@ export default function ExpressForecastClient({
       }
     }, 4000)
     return () => clearInterval(timer)
-  }, [step])
+  }, [step, ANALYZING_MESSAGES.length])
 
   const examples = [
-    "Bitcoin will reach $100k this year",
-    "Who will win the next Champions League?",
-    "AI will pass the Turing test by 2027",
-    "Which country will host the 2036 Olympics?",
+    t('exampleBitcoin'),
+    t('exampleChampionsLeague'),
+    t('exampleTuringTest'),
+    t('exampleOlympics'),
   ]
 
   const handleGenerate = async () => {
     if (!userInput.trim() || userInput.length < 5) {
-      setError('Please enter at least 5 characters')
+      setError(t('minCharError'))
       return
     }
 
@@ -116,7 +118,7 @@ export default function ExpressForecastClient({
 
     setError('')
     setStep('checking')
-    setProgressMessage('Checking content…')
+    setProgressMessage(t('checkingMsg'))
     setArticlesFound(0)
     setSourcesSummary('')
     setPredictionPreview(null)
@@ -129,14 +131,14 @@ export default function ExpressForecastClient({
       })
 
       if (!response.ok) {
-        throw new Error('Failed to generate prediction')
+        throw new Error(t('failedGenerate'))
       }
 
       const reader = response.body?.getReader()
       const decoder = new TextDecoder()
 
       if (!reader) {
-        throw new Error('No response stream')
+        throw new Error(t('failedGenerate'))
       }
 
       while (true) {
@@ -152,40 +154,40 @@ export default function ExpressForecastClient({
 
             if (data.stage === 'checking') {
               setStep('checking')
-              setProgressMessage(data.data?.message || 'Checking content…')
+              setProgressMessage(data.data?.message || t('checkingMsg'))
             } else if (data.stage === 'searching') {
               setStep('searching')
-              setProgressMessage(data.data?.message || 'Searching…')
+              setProgressMessage(data.data?.message || t('searchingMsg'))
             } else if (data.stage === 'found_articles') {
               setArticlesFound(data.data?.count || 0)
               setSourcesSummary(data.data?.sources || '')
-              setProgressMessage(data.data?.message || `Found ${data.data?.count} sources`)
+              setProgressMessage(data.data?.message || t('foundSources', { count: data.data?.count ?? 0 }))
               setStep('analyzing')
             } else if (data.stage === 'analyzing') {
               setStep('analyzing')
-              setProgressMessage(data.data?.message || 'Analyzing context...')
+              setProgressMessage(data.data?.message || t('analyzingMsg'))
             } else if (data.stage === 'prediction_formed') {
               setStep('generating')
-              setProgressMessage(data.data?.message || 'Prediction formed')
+              setProgressMessage(data.data?.message || t('predictionFormed'))
               if (data.data?.preview) {
                 setPredictionPreview(data.data.preview)
               }
             } else if (data.stage === 'finalizing') {
-              setProgressMessage(data.data?.message || 'Finalizing...')
+              setProgressMessage(data.data?.message || t('finalizingMsg'))
             } else if (data.stage === 'complete') {
               setGenerated(data.data)
               setEditForm(data.data) // Initialize edit form
               setStep('review')
             } else if (data.stage === 'error') {
               if (data.error === 'NO_ARTICLES_FOUND') {
-                setError(data.message || "Couldn't find relevant articles. Try rephrasing.")
+                setError(data.message || t('noArticlesFound'))
               } else if (data.error === 'OFFENSIVE_INPUT') {
                 setError(data.message)
               } else if (data.message?.startsWith('OFFENSIVE_INPUT:')) {
                 const aiReason = data.message.split('OFFENSIVE_INPUT:')[1].trim()
-                setError(`Moderation: ${aiReason}`)
+                setError(t('moderationPrefix', { reason: aiReason }))
               } else {
-                setError(data.message || 'Failed to generate prediction')
+                setError(data.message || t('failedGenerate'))
               }
               setStep('error')
             }
@@ -195,7 +197,7 @@ export default function ExpressForecastClient({
         }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setError(err instanceof Error ? err.message : t('somethingWrong'))
       setStep('error')
     }
   }
@@ -245,7 +247,7 @@ export default function ExpressForecastClient({
         }),
       })
 
-      if (!response.ok) throw new Error('Failed to guess chances')
+      if (!response.ok) throw new Error(t('guessError'))
       const result = await response.json()
 
       setGenerated({
@@ -255,7 +257,7 @@ export default function ExpressForecastClient({
       })
     } catch (err) {
       log.error({ err }, 'Guess chances error')
-      setError('Failed to get probability suggestion')
+      setError(t('guessError'))
     } finally {
       setIsGuessing(false)
     }
@@ -266,7 +268,7 @@ export default function ExpressForecastClient({
     if (!finalData) return
 
     if (new Date(finalData.resolveByDatetime) <= new Date()) {
-      setError('Resolution date must be in the future')
+      setError(t('resolutionDateFutureError'))
       return
     }
 
@@ -296,7 +298,7 @@ export default function ExpressForecastClient({
 
       if (!createResponse.ok) {
         const errData = await createResponse.json()
-        throw new Error(errData.error || 'Failed to create forecast')
+        throw new Error(errData.error || t('createFailed'))
       }
 
       const prediction = await createResponse.json()
@@ -308,13 +310,13 @@ export default function ExpressForecastClient({
 
       if (!publishResponse.ok) {
         const errData = await publishResponse.json()
-        throw new Error(errData.error || 'Created as draft, but failed to publish')
+        throw new Error(errData.error || t('publishFailed'))
       }
 
       // Success: redirect to the new prediction page
       router.push(`/forecasts/${prediction.id}?newly_created=true`)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to publish prediction')
+      setError(err instanceof Error ? err.message : t('publishError'))
       setIsPublishing(false)
     }
   }
@@ -373,21 +375,21 @@ export default function ExpressForecastClient({
       {step === 'input' && (
         <div className="bg-navy-700 border border-navy-600 rounded-3xl p-6 sm:p-8 shadow-sm">
           <label htmlFor="prediction-input" className="block text-sm font-bold text-text-secondary mb-3">
-            What do you want to forecast?
+            {t('inputLabel')}
           </label>
           <textarea
             id="prediction-input"
             value={userInput}
             onChange={(e) => handleUserInputChange(e.target.value)}
-            placeholder="Describe your event OR paste a news article URL..."
+            placeholder={t('inputPlaceholder')}
             className="w-full px-4 py-3 bg-navy-800 text-white placeholder:text-text-subtle border border-navy-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-cobalt focus:border-transparent resize-none"
             rows={3}
             maxLength={1000} // Increased for URLs
           />
           <div className="flex justify-between items-center mt-2">
-            <span className="text-xs text-gray-500">{userInput.length}/1000 characters</span>
+            <span className="text-xs text-gray-500">{t('charCount', { count: userInput.length })}</span>
             {/^(https?:\/\/[^\s]+)$/i.test(userInput.trim()) && (
-              <span className="text-xs text-blue-600 font-medium">URL detected - will read article and find related sources</span>
+              <span className="text-xs text-blue-600 font-medium">{t('urlDetected')}</span>
             )}
           </div>
 
@@ -399,8 +401,8 @@ export default function ExpressForecastClient({
               className="w-4 h-4 rounded border-navy-500 bg-navy-800 accent-cobalt"
             />
             <span className="text-sm text-text-secondary">
-              Create without a news source
-              <span className="block text-xs text-gray-500 font-normal">AI generates from your input only — no web search</span>
+              {t('skipSources')}
+              <span className="block text-xs text-gray-500 font-normal">{t('skipSourcesHint')}</span>
             </span>
           </label>
 
@@ -419,11 +421,11 @@ export default function ExpressForecastClient({
             leftIcon={<Sparkles className="w-5 h-5" />}
             className="mt-6"
           >
-            Generate Forecast
+            {t('generate')}
           </Button>
 
           <div className="mt-8 pt-6 border-t border-navy-600">
-            <p className="text-sm font-bold text-text-secondary mb-3">Examples:</p>
+            <p className="text-sm font-bold text-text-secondary mb-3">{t('examplesLabel')}</p>
             <div className="space-y-2">
               {examples.map((example, i) => (
                 <button
@@ -451,7 +453,7 @@ export default function ExpressForecastClient({
               {/* Step 1: Content check */}
               <div className={`flex items-center gap-3 ${step === 'checking' ? 'text-blue-600' : 'text-green-600'}`}>
                 <ShieldCheck className="w-5 h-5" />
-                <span className="font-medium flex-1">Checking content</span>
+                <span className="font-medium flex-1">{t('checkingStep')}</span>
                 {step !== 'checking' && <span className="text-green-600 text-sm">✓</span>}
               </div>
 
@@ -463,12 +465,10 @@ export default function ExpressForecastClient({
                 }`}>
                   <Search className="w-5 h-5" />
                   <div className="flex-1">
-                    <span className="font-medium">
-                      {step === 'checking' ? 'Searching for articles' : 'Searching for articles'}
-                    </span>
+                    <span className="font-medium">{t('searchingStep')}</span>
                     {articlesFound > 0 && (
                       <span className="ml-2 text-sm text-gray-400">
-                        ({sourcesSummary || `${articlesFound} found`})
+                        ({sourcesSummary || t('sourcesFound', { count: articlesFound })})
                       </span>
                     )}
                   </div>
@@ -483,7 +483,7 @@ export default function ExpressForecastClient({
               }`}>
                 <FileText className="w-5 h-5" />
                 <div className="flex-1">
-                  <span className="font-medium">AI analysis</span>
+                  <span className="font-medium">{t('aiAnalysisStep')}</span>
                   {step === 'analyzing' && (
                     <p className="text-xs text-gray-400 mt-0.5 animate-pulse">
                       {ANALYZING_MESSAGES[analyzingMsgIdx]}
@@ -496,7 +496,7 @@ export default function ExpressForecastClient({
               {/* Step 4: Generating */}
               <div className={`flex items-center gap-3 ${step === 'generating' ? 'text-blue-600' : 'text-gray-500'}`}>
                 <Sparkles className="w-5 h-5" />
-                <span className="font-medium">Building forecast</span>
+                <span className="font-medium">{t('buildingStep')}</span>
               </div>
             </div>
 
@@ -510,10 +510,10 @@ export default function ExpressForecastClient({
 
             {predictionPreview && (
               <div className="mt-6 p-4 bg-cobalt/10 border border-cobalt/30 rounded-xl">
-                <p className="text-sm font-bold text-blue-900 mb-2">Preview:</p>
+                <p className="text-sm font-bold text-blue-900 mb-2">{t('previewLabel')}</p>
                 <p className="text-sm text-cobalt-light">{predictionPreview.claim}</p>
                 <p className="text-xs text-blue-600 mt-1">
-                  Resolves: {new Date(predictionPreview.resolveBy).toLocaleDateString()}
+                  {t('resolvesOn', { date: new Date(predictionPreview.resolveBy).toLocaleDateString() })}
                 </p>
               </div>
             )}
@@ -530,13 +530,13 @@ export default function ExpressForecastClient({
                 <AlertCircle className="w-8 h-8 text-red-600" />
               </div>
             </div>
-            <h3 className="text-lg font-bold text-white mb-2">Couldn&apos;t Generate Forecast</h3>
+            <h3 className="text-lg font-bold text-white mb-2">{t('errorTitle')}</h3>
             <p className="text-gray-300 mb-6">{error}</p>
             <button
               onClick={handleTryAgain}
               className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors"
             >
-              Try Again
+              {t('tryAgain')}
             </button>
           </div>
         </div>
@@ -547,9 +547,9 @@ export default function ExpressForecastClient({
         <div className="bg-navy-700 border border-navy-600 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
           <div className="flex justify-between items-start border-b border-navy-600 pb-4">
             <div>
-              <h2 className="text-xl font-bold text-white mb-1">Review Forecast</h2>
+              <h2 className="text-xl font-bold text-white mb-1">{t('reviewTitle')}</h2>
               <p className="text-sm text-gray-300">
-                Review and refine the generated forecast before publishing.
+                {t('reviewSubtitle')}
               </p>
             </div>
             <div className="flex gap-2">
@@ -557,17 +557,17 @@ export default function ExpressForecastClient({
                 <button
                   onClick={handleRegenerateFromEdit}
                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-purple-600 bg-purple-900/20 rounded-lg hover:bg-purple-100 transition-colors"
-                  title="Regenerate from this claim"
+                  title={t('regenerateFromClaimTooltip')}
                 >
                   <Sparkles className="w-4 h-4" />
-                  Regenerate
+                  {t('regenerate')}
                 </button>
               ) : (
                 <>
                   <button
                     onClick={handleGenerate}
                     className="p-2 text-gray-500 hover:text-blue-600 hover:bg-cobalt/10 rounded-lg transition-colors"
-                    title="Regenerate"
+                    title={t('regenerate')}
                   >
                     <RotateCcw className="w-5 h-5" />
                   </button>
@@ -576,7 +576,7 @@ export default function ExpressForecastClient({
                     className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-cobalt/10 rounded-lg hover:bg-blue-100 transition-colors"
                   >
                     <Edit2 className="w-4 h-4" />
-                    Edit
+                    {t('edit')}
                   </button>
                 </>
               )}
@@ -586,7 +586,7 @@ export default function ExpressForecastClient({
           <div className="space-y-6">
             {/* Claim */}
             <div>
-              <h3 className="text-sm font-bold text-text-secondary mb-2">Forecast Claim</h3>
+              <h3 className="text-sm font-bold text-text-secondary mb-2">{t('forecastClaim')}</h3>
               {isEditing ? (
                 <textarea
                   value={editForm?.claimText}
@@ -601,7 +601,7 @@ export default function ExpressForecastClient({
 
             {/* Resolution Date */}
             <div>
-              <h3 className="text-sm font-bold text-text-secondary mb-2">Resolution Date</h3>
+              <h3 className="text-sm font-bold text-text-secondary mb-2">{t('resolutionDate')}</h3>
               {isEditing ? (
                 <input
                   type="datetime-local"
@@ -622,7 +622,7 @@ export default function ExpressForecastClient({
 
             {/* Tags */}
             <div>
-              <h3 className="text-sm font-bold text-text-secondary mb-2">Tags</h3>
+              <h3 className="text-sm font-bold text-text-secondary mb-2">{t('tags')}</h3>
               <div className="flex flex-wrap gap-2">
                 {(isEditing ? editForm?.tags : generated.tags)?.map((tag: string, i: number) => (
                   <span key={i} className="inline-flex items-center gap-1 px-3 py-1 bg-navy-700 text-text-secondary rounded-full text-sm">
@@ -641,7 +641,7 @@ export default function ExpressForecastClient({
                       value={newTag}
                       onChange={e => setNewTag(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && addTag()}
-                      placeholder="Add tag..."
+                      placeholder={t('addTagPlaceholder')}
                       className="px-3 py-1 rounded-full text-sm w-32 border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     <button onClick={addTag} className="p-1 text-blue-600 hover:bg-cobalt/10 rounded-full">
@@ -654,22 +654,22 @@ export default function ExpressForecastClient({
 
             {/* Outcome Type & Options */}
             <div>
-              <h3 className="text-sm font-bold text-text-secondary mb-2">Outcome Type</h3>
+              <h3 className="text-sm font-bold text-text-secondary mb-2">{t('outcomeType')}</h3>
               <div className="flex items-center gap-2 mb-3">
                 {generated.outcomeType === 'MULTIPLE_CHOICE' ? (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
                     <List className="w-4 h-4" />
-                    Multiple Choice
+                    {t('multipleChoice')}
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-100 text-cobalt-light rounded-full text-sm font-medium">
-                    Binary (Yes / No)
+                    {t('binary')}
                   </span>
                 )}
               </div>
               {((isEditing ? editForm?.outcomeType : generated.outcomeType) === 'MULTIPLE_CHOICE') && (
                 <div>
-                  <h4 className="text-sm font-medium text-gray-300 mb-2">Options</h4>
+                  <h4 className="text-sm font-medium text-gray-300 mb-2">{t('options')}</h4>
                   {isEditing ? (
                     <div className="space-y-2">
                       {(editForm?.options || []).map((option: string, index: number) => (
@@ -681,7 +681,7 @@ export default function ExpressForecastClient({
                             type="text"
                             value={option}
                             onChange={(e) => handleOptionChange(index, e.target.value)}
-                            placeholder={`Option ${index + 1}`}
+                            placeholder={t('optionPlaceholder', { n: index + 1 })}
                             className="flex-1 px-3 py-2 rounded-lg text-sm border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             maxLength={500}
                           />
@@ -690,7 +690,7 @@ export default function ExpressForecastClient({
                               type="button"
                               onClick={() => removeOption(index)}
                               className="p-2 text-gray-400 hover:text-red-500 transition-colors"
-                              aria-label={`Remove option ${index + 1}`}
+                              aria-label={t('removeOptionLabel', { n: index + 1 })}
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -704,7 +704,7 @@ export default function ExpressForecastClient({
                           className="flex items-center gap-1.5 text-blue-600 hover:text-cobalt-light text-sm mt-1"
                         >
                           <Plus className="w-4 h-4" />
-                          Add Option
+                          {t('addOption')}
                         </button>
                       )}
                     </div>
@@ -726,7 +726,7 @@ export default function ExpressForecastClient({
 
             {/* Context */}
             <div>
-              <h3 className="text-sm font-bold text-text-secondary mb-2">Context</h3>
+              <h3 className="text-sm font-bold text-text-secondary mb-2">{t('context')}</h3>
               {isEditing ? (
                 <textarea
                   value={editForm?.detailsText}
@@ -741,7 +741,7 @@ export default function ExpressForecastClient({
 
             {/* Resolution Rules */}
             <div>
-              <h3 className="text-sm font-bold text-text-secondary mb-2">Resolution Rules</h3>
+              <h3 className="text-sm font-bold text-text-secondary mb-2">{t('resolutionRules')}</h3>
               {isEditing ? (
                 <textarea
                   value={editForm?.resolutionRules}
@@ -760,7 +760,7 @@ export default function ExpressForecastClient({
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm font-bold text-purple-900 flex items-center gap-2">
                     <Sparkles className="w-4 h-4" />
-                    AI Probability Guess
+                    {t('aiProbabilityGuess')}
                   </h3>
                   {!generated.probabilitySuggestion && (
                     <Button
@@ -770,7 +770,7 @@ export default function ExpressForecastClient({
                       variant="outline"
                       className="text-xs py-1 h-auto"
                     >
-                      Guess chances
+                      {t('guessChances')}
                     </Button>
                   )}
                 </div>
@@ -784,16 +784,16 @@ export default function ExpressForecastClient({
                         {generated.probabilityReasoning}
                       </div>
                     </div>
-                    <button 
+                    <button
                       onClick={handleGuessChances}
                       className="text-[10px] uppercase tracking-wider font-bold text-purple-400 hover:text-purple-600 transition-colors"
                     >
-                      Recalculate
+                      {t('recalculate')}
                     </button>
                   </div>
                 ) : !isGuessing && (
                   <p className="text-xs text-purple-600/70">
-                    Let AI analyze the gathered sources to suggest a starting probability.
+                    {t('probabilityHint')}
                   </p>
                 )}
               </div>
@@ -802,7 +802,7 @@ export default function ExpressForecastClient({
             {/* News Anchor */}
             {generated.newsAnchor ? (
               <div>
-                <h3 className="text-sm font-bold text-text-secondary mb-2">News Anchor</h3>
+                <h3 className="text-sm font-bold text-text-secondary mb-2">{t('newsAnchor')}</h3>
                 <a
                   href={generated.newsAnchor.url}
                   target="_blank"
@@ -817,10 +817,10 @@ export default function ExpressForecastClient({
               </div>
             ) : (
               <div>
-                <h3 className="text-sm font-bold text-text-secondary mb-2">Source</h3>
+                <h3 className="text-sm font-bold text-text-secondary mb-2">{t('sourceLabel')}</h3>
                 <div className="p-4 border border-purple-500/30 bg-purple-500/10 rounded-xl">
-                  <span className="inline-flex items-center gap-1 text-xs font-medium text-purple-400 px-2 py-0.5 bg-purple-500/20 rounded-full mb-1">Personal</span>
-                  <p className="text-sm text-gray-400">Generated from your input — no news source attached.</p>
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-purple-400 px-2 py-0.5 bg-purple-500/20 rounded-full mb-1">{t('personal')}</span>
+                  <p className="text-sm text-gray-400">{t('personalHint')}</p>
                 </div>
               </div>
             )}
@@ -838,7 +838,7 @@ export default function ExpressForecastClient({
                     : 'bg-navy-800 text-gray-400 border-navy-600 hover:bg-navy-700'
                 }`}
               >
-                <span>{isPublic ? 'Public — visible in the feed' : 'Unlisted — only people with the link'}</span>
+                <span>{isPublic ? t('visibilityPublic') : t('visibilityUnlisted')}</span>
                 {isPublic ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
               </button>
             )}
@@ -852,14 +852,14 @@ export default function ExpressForecastClient({
                     size="xl"
                     className="bg-green-600 hover:bg-green-700"
                   >
-                    Save Changes
+                    {t('saveChanges')}
                   </Button>
                   <Button
                     onClick={() => { setIsEditing(false); setEditForm(null) }}
                     variant="outline"
                     size="xl"
                   >
-                    Cancel
+                    {t('cancel')}
                   </Button>
                 </>
               ) : (
@@ -871,7 +871,7 @@ export default function ExpressForecastClient({
                     size="xl"
                     leftIcon={<Sparkles className="w-5 h-5" />}
                   >
-                    Confirm & Publish
+                    {t('confirmPublish')}
                   </Button>
                   <Button
                     onClick={handleTryAgain}
