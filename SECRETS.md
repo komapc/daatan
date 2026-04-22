@@ -84,18 +84,33 @@ ls -la ~/app/.env
 .env.production
 ```
 
-### 3. Rotate Secrets Regularly
+### 3. Rotate Secrets — and what NOT to rotate casually
 
 **Recommended schedule:**
-- `NEXTAUTH_SECRET`: Every 90 days
+- `NEXTAUTH_SECRET`: **Only rotate when compromised — never on a schedule.** See warning below.
 - `GOOGLE_CLIENT_SECRET`: When compromised or annually
 - `POSTGRES_PASSWORD`: Every 180 days
 - `GEMINI_API_KEY`: When compromised or annually
 
-**Rotation process:**
+> ⚠️ **`NEXTAUTH_SECRET` is a JWT signing key, not a password.**
+>
+> Every user session in the database is a JWT signed with this key. If you rotate it:
+> - All active sessions become **unverifiable overnight** — every logged-in user gets silently kicked out.
+> - The Edge middleware (`src/middleware.ts`) fails to decode the token → `req.auth = null` → users are redirected to `/` with no clear error.
+> - This is especially bad because the client-side `useSession()` still shows the user as "authenticated" (it trusts its cached cookie), creating a confusing bounce loop.
+>
+> **If you must rotate** (e.g. the key is compromised):
+> 1. Set `AUTH_SECRET_OLD=<old_secret>` alongside `NEXTAUTH_SECRET=<new_secret>` in Secrets Manager — NextAuth will accept both during transition.
+> 2. Deploy.
+> 3. Wait for all active sessions to expire naturally (30 days) or notify users to re-login.
+> 4. Remove `AUTH_SECRET_OLD` in a follow-up deploy.
+>
+> **When provisioning a new instance** (e.g. after an infra incident): copy `NEXTAUTH_SECRET` from the old Secrets Manager bundle — do NOT generate a new value. All existing user sessions must remain valid across the instance replacement.
+
+**Rotation process (for other secrets):**
 1. Generate new secret
-2. Update `.env` on server
-3. Restart affected containers
+2. Update Secrets Manager bundle (`daatan-env-prod` / `daatan-env-staging`)
+3. Redeploy — `fetch-secrets.sh` writes the new `.env` automatically
 4. Verify services work
 5. Update backup/documentation
 

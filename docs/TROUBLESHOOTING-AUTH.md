@@ -1,4 +1,22 @@
-# Troubleshooting: Sign-in (Google OAuth)
+# Troubleshooting: Auth & Sessions
+
+---
+
+## Symptom: clicking "Admin" shows the main feed instead of the admin panel
+
+**Root cause:** The NextAuth JWT signing key (`NEXTAUTH_SECRET`) changed between when the user last signed in and now. Every user session is a JWT signed with this key. When the key changes (e.g. after a new instance is provisioned), existing tokens can no longer be verified by the Edge middleware — `req.auth` returns `null` — and the user is silently redirected.
+
+The confusing part: the client-side `useSession()` still shows the user as authenticated (it trusts its cached cookie). So the "Admin" link appears in the sidebar, but navigating to `/admin` bounces the user back to `/`.
+
+**Fix:**
+1. **User:** sign out, then sign back in — the new JWT will be signed with the current key.
+2. **Infra:** When provisioning a replacement instance, copy `NEXTAUTH_SECRET` from the existing Secrets Manager bundle — never generate a new value. See [SECRETS.md](../SECRETS.md#3-rotate-secrets--and-what-not-to-rotate-casually) for the full rotation policy.
+
+**Historical incident:** April 2026 — new staging instance provisioned after the Gemini incident (`i-0286f62b47117b85c` → `i-0406d237ca5d92cdf`). A new `NEXTAUTH_SECRET` was generated for the new instance, invalidating all existing admin sessions.
+
+---
+
+## Symptom: Sign-in (Google OAuth) broken
 
 Use this when **Sign in** works on staging but fails on production (or vice versa).  
 See also: [SECRETS.md](../SECRETS.md) for where credentials live and how to rotate them.
