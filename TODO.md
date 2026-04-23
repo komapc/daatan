@@ -1,6 +1,6 @@
 # TODO.md — Task Queue
 
-*Last updated: April 22, 2026 · v1.10.28*
+*Last updated: April 23, 2026 · v1.10.29*
 
 ---
 
@@ -14,10 +14,6 @@
 
 ### i18n (untranslated components)
 The following `'use client'` files have hardcoded English strings and do not use `next-intl`. Wire up `useTranslations` and add keys to all four locale files (en/ru/eo/he).
-
-**User-facing (high priority):**
-- [ ] `src/app/forecasts/[id]/ForecastDetailClient.tsx` (partial — uses next-intl but ~8 strings remain hardcoded)
-- [ ] `src/components/Sidebar.tsx` (partial — search strings hardcoded)
 
 **Admin-only (lower priority):**
 - [ ] `src/app/admin/AdminClient.tsx`

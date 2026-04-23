@@ -110,6 +110,7 @@ const Sidebar = () => {
 
   const t = useTranslations('nav')
   const c = useTranslations('common')
+  const ff = useTranslations('forecastsFeed')
 
   const { count: unreadCount } = useUnreadCount()
 
@@ -160,7 +161,7 @@ const Sidebar = () => {
           <button
             onClick={() => { setSearchOpen(true); setIsMobileMenuOpen(true) }}
             className="p-2 rounded-lg hover:bg-navy-800 transition-colors"
-            aria-label="Search forecasts"
+            aria-label={c('search')}
           >
             <Search className="w-5 h-5 text-text-secondary" />
           </button>
@@ -223,7 +224,7 @@ const Sidebar = () => {
               <h1 className="text-xl font-bold text-white">DAATAN</h1>
               <span className="text-xs text-text-subtle font-mono">v{VERSION}</span>
             </div>
-            <p className="text-sm text-text-secondary">Forecast Tracking</p>
+            <p className="text-sm text-text-secondary">{t('tagline')}</p>
           </div>
         </Link>
 
@@ -241,7 +242,7 @@ const Sidebar = () => {
                     ref={searchInputRef}
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
-                    placeholder="Search forecasts…"
+                    placeholder={ff('searchPlaceholder')}
                     className="flex-1 bg-navy-800 text-white text-sm px-3 py-2 rounded-lg border border-navy-600 outline-none focus:border-blue-500 placeholder-gray-500"
                     onKeyDown={e => e.key === 'Escape' && setSearchOpen(false)}
                   />
@@ -255,7 +256,7 @@ const Sidebar = () => {
                   className="flex items-center gap-3 px-4 py-3 rounded-lg text-text-secondary hover:bg-navy-800 hover:text-white transition-colors w-full"
                 >
                   <Search className="w-5 h-5" />
-                  <span className="font-medium">Search</span>
+                  <span className="font-medium">{c('search')}</span>
                 </button>
               )}
             </li>
@@ -349,7 +350,7 @@ const Sidebar = () => {
               className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-cobalt hover:bg-navy-700 transition-colors"
             >
               <LogIn className="w-5 h-5" />
-              <span className="font-medium">Sign In</span>
+              <span className="font-medium">{c('signIn')}</span>
             </button>
           )}
         </div>

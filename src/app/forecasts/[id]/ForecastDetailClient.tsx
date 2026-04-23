@@ -86,13 +86,13 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
       try {
         const response = await fetch(`/api/forecasts/${id}`)
         if (!response.ok) {
-          if (response.status === 404) throw new Error('Prediction not found')
-          throw new Error('Failed to load prediction')
+          if (response.status === 404) throw new Error(t('predictionNotFound'))
+          throw new Error(t('failedToLoad'))
         }
         const data = await response.json()
         setPrediction(data)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Something went wrong')
+        setError(err instanceof Error ? err.message : t('somethingWentWrong'))
       } finally {
         setIsLoading(false)
       }
@@ -134,10 +134,10 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
       return
     }
     if (response.status === 404 && data.error === 'User not found') {
-      toast.error('Session expired — please sign out and sign back in')
+      toast.error(t('sessionExpired'))
       return
     }
-    toast.error(data.error || 'Failed to commit forecast')
+    toast.error(data.error || t('commitFailed'))
   }
 
   const handleCommitConfidence = async () => {
@@ -159,12 +159,12 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
 
       if (!response.ok) { await handleCommitError(response); return }
 
-      toast.success('Forecast recorded!')
+      toast.success(t('forecastRecorded'))
       const updated = await fetch(`/api/forecasts/${id}`).then(r => r.json())
       setPrediction(updated)
       router.refresh()
     } catch {
-      toast.error('Failed to commit forecast')
+      toast.error(t('commitFailed'))
     } finally {
       setIsSubmitting(false)
     }
@@ -189,16 +189,16 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
         body: JSON.stringify({ status }),
       })
       if (response.ok) {
-        toast.success(status === 'ACTIVE' ? 'Approved successfully' : 'Rejected successfully')
+        toast.success(status === 'ACTIVE' ? t('approvedSuccess') : t('rejectedSuccess'))
         const updated = await fetch(`/api/forecasts/${id}`).then(r => r.json())
         setPrediction(updated)
         router.refresh()
       } else {
-        toast.error('Operation failed')
+        toast.error(t('operationFailed'))
       }
     } catch (error) {
       log.error({ err: error }, 'Approval error')
-      toast.error('An error occurred')
+      toast.error(t('errorOccurred'))
     } finally {
       setIsApproving(false)
     }
@@ -232,7 +232,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
         <div className="text-center py-12">
           <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-white mb-2">
-            {error || 'Prediction not found'}
+            {error || t('predictionNotFound')}
           </h2>
           <button
             onClick={() => router.back()}
@@ -298,12 +298,12 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
             {prediction.isPublic === false && (
               <span className="flex items-center gap-1 px-3 py-1 bg-navy-700 text-gray-400 text-sm font-medium rounded-full">
                 <EyeOff className="w-4 h-4" />
-                Unlisted
+                {t('unlistedBadge')}
               </span>
             )}
             {!prediction.newsAnchor && prediction.source === 'manual' && (
               <span className="inline-flex items-center gap-1 px-3 py-1 text-sm font-medium text-purple-400 bg-purple-400/10 rounded-full border border-purple-400/20">
-                Personal
+                {t('personalBadge')}
               </span>
             )}
             {locale !== 'en' && (
@@ -330,7 +330,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
               <Link
                 href={`/forecasts/${prediction.slug || prediction.id}/edit`}
                 className="p-2 text-gray-400 hover:text-blue-600 hover:bg-cobalt/10 rounded-lg transition-colors"
-                title="Edit forecast"
+                title={t('editForecastTitle')}
               >
                 <Edit2 className="w-5 h-5" />
               </Link>
@@ -368,11 +368,11 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
           className="flex items-center gap-1.5 text-sm font-medium text-gray-400 hover:text-text-secondary transition-colors"
         >
           {showRules ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          Resolution Rules
+          {t('resolutionRulesTitle')}
         </button>
         {showRules && (
           <div className="mt-2 p-3 bg-navy-800 border border-navy-600 rounded-lg text-sm text-text-secondary whitespace-pre-wrap">
-            {prediction.resolutionRules ?? 'No resolution rules specified.'}
+            {prediction.resolutionRules ?? t('noResolutionRules')}
           </div>
         )}
       </div>
@@ -421,16 +421,16 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
                 <div className="flex justify-center gap-6 mt-10 text-[10px] font-bold uppercase tracking-widest border-t border-navy-600 pt-8 w-full">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-1 bg-[#A0AEC0] rounded-full" />
-                    <span className="text-gray-400">Community</span>
+                    <span className="text-gray-400">{t('legendCommunity')}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-1.5 bg-[#3B82F6] rounded-full" />
-                    <span className="text-blue-400">You</span>
+                    <span className="text-blue-400">{t('legendYou')}</span>
                   </div>
                   {(aiEstimate?.probability ?? prediction.confidence) != null && (
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-1 bg-[#FBBF24] rounded-full" />
-                      <span className="text-amber-400">AI</span>
+                      <span className="text-amber-400">{t('legendAI')}</span>
                     </div>
                   )}
                 </div>
@@ -452,7 +452,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
                       onClick={() => signIn()}
                       className="w-full py-4 rounded-xl font-bold text-sm uppercase tracking-widest bg-blue-600 text-white hover:bg-blue-500 shadow-lg shadow-blue-900/20 active:scale-[0.98] border border-blue-400/30 transition-all duration-200"
                     >
-                      Sign in to vote
+                      {t('signInToVote')}
                     </button>
                   )}
                 </div>
@@ -487,12 +487,12 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
 
               if (!response.ok) { await handleCommitError(response); return }
 
-              toast.success('Forecast recorded!')
+              toast.success(t('forecastRecorded'))
               const updated = await fetch(`/api/forecasts/${id}`).then(r => r.json())
               setPrediction(updated)
               router.refresh()
             } catch {
-              toast.error('Failed to commit forecast')
+              toast.error(t('commitFailed'))
             } finally {
               setIsSubmitting(false)
             }
@@ -504,7 +504,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
                 {/* Background glow */}
                 <div className="absolute inset-0 bg-gradient-to-b from-blue-500/5 to-transparent pointer-events-none" />
                 
-                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-8 text-center">Market Distribution</h3>
+                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-8 text-center">{t('marketDistribution')}</h3>
                 
                 <div className="space-y-4 mb-10">
                   {optionsWithStats.map((option) => {
@@ -550,9 +550,9 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
                         {isSelected && isActive && (
                           <div className="px-4 pb-4 space-y-2">
                             <div className="flex justify-between text-[10px] uppercase tracking-widest font-bold text-gray-500">
-                              <span>Low</span>
-                              <span className="text-blue-400 font-bold">Confidence: {mcConfidence}%</span>
-                              <span className="text-teal">High</span>
+                              <span>{t('low')}</span>
+                              <span className="text-blue-400 font-bold">{t('confidencePercent', { value: mcConfidence })}</span>
+                              <span className="text-teal">{t('high')}</span>
                             </div>
                             <input
                               type="range"
@@ -570,7 +570,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
                         {/* Your indicator */}
                         {userOptionId === option.id && (
                           <div className="absolute -right-2 -top-2 bg-blue-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg transform rotate-12 uppercase tracking-tighter z-20">
-                            Your Choice
+                            {t('yourChoice')}
                           </div>
                         )}
                       </div>
@@ -587,7 +587,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
                   </button>
                 ) : prediction.status === 'ACTIVE' && prediction.userCommitment && selectedOptionId === userOptionId && mcConfidence === Math.max(1, Math.abs(prediction.userCommitment.cuCommitted ?? 70)) ? (
                   <div className="flex items-center justify-center gap-2 py-4 px-4 bg-teal/10 border border-teal/30 rounded-xl">
-                    <span className="text-sm font-bold text-teal uppercase tracking-widest">Your forecast is committed</span>
+                    <span className="text-sm font-bold text-teal uppercase tracking-widest">{t('yourForecastCommitted')}</span>
                   </div>
                 ) : (
                   <button
@@ -599,7 +599,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
                         : 'bg-blue-600 text-white hover:bg-blue-500 shadow-lg shadow-blue-900/20 active:scale-[0.98] border border-blue-400/30'
                     }`}
                   >
-                    {isSubmitting ? 'Submitting...' : 'Commit Forecast'}
+                    {isSubmitting ? t('submitting') : t('commitForecastButton')}
                   </button>
                 )}
               </div>
@@ -649,7 +649,7 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
                   <RoleBadge role={prediction.author.role} size="sm" />
                 )}
               </div>
-              <div className="text-sm text-gray-500">Forecaster · Reputation: {prediction.author.rs.toFixed(0)}</div>
+              <div className="text-sm text-gray-500">{t('forecasterLabel')} · {t('reputationShort')}: {prediction.author.rs.toFixed(0)}</div>
             </div>
           </UserLink>
         </div>
