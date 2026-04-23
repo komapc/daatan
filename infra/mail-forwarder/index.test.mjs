@@ -81,6 +81,23 @@ test("Sender: and Resent-* headers (which SES checks) are removed", () => {
   assert.ok(out.includes("Subject: x"));
 });
 
+test("duplicate Return-Path headers (common in Marketo/Google Cloud) are all removed", () => {
+  const raw = [
+    "Return-Path: <bounce1@example.com>",
+    "From: a@b.com",
+    "Return-Path: <bounce2@example.com>",
+    "Subject: x",
+    "",
+    "body",
+  ].join("\r\n");
+
+  let out = raw;
+  out = removeAllHeaders(out, "Return-Path");
+
+  const matches = out.match(/^Return-Path:/gmi);
+  assert.equal(matches, null, "All Return-Path headers should be gone");
+});
+
 test("multiple DKIM-Signature headers are all stripped (SES rejects duplicates)", () => {
   const raw = [
     "DKIM-Signature: v=1; a=rsa-sha256; d=sender.example; s=sel1;",
