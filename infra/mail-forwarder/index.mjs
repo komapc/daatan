@@ -120,7 +120,7 @@ export const handler = async (event) => {
   // a leading blank line fools RFC 2822 parsers into treating the rest of the
   // headers as body text in Gmail.
   for (const name of ["Return-Path", "Sender", "Resent-From", "Resent-Sender", "Resent-Return-Path"]) {
-    rawEmail = removeHeader(rawEmail, name);
+    rawEmail = removeAllHeaders(rawEmail, name);
   }
 
   // DKIM-Signature and ARC-* headers are invalidated when we rewrite From/To.
