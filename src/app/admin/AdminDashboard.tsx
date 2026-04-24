@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useSession } from 'next-auth/react'
+import { useTranslations } from 'next-intl'
 import ForecastsTable from './ForecastsTable'
 import UsersTable from './UsersTable'
 import CommentsTable from './CommentsTable'
@@ -10,6 +11,7 @@ type Tab = 'forecasts' | 'users' | 'comments' | 'bots'
 
 export default function AdminDashboard() {
   const { data: session } = useSession()
+  const t = useTranslations('admin')
   const [activeTab, setActiveTab] = useState<Tab>('forecasts')
 
   const isAdmin = session?.user?.role === 'ADMIN'
@@ -30,10 +32,10 @@ export default function AdminDashboard() {
   return (
     <div>
       <div className="flex gap-4 border-b mb-6">
-        {tab('forecasts', 'Forecasts')}
-        {tab('users', 'Users', true)}
-        {tab('comments', 'Comments')}
-        {tab('bots', 'Bots', true)}
+        {tab('forecasts', t('tabForecasts'))}
+        {tab('users', t('tabUsers'), true)}
+        {tab('comments', t('tabComments'))}
+        {tab('bots', t('tabBots'), true)}
       </div>
 
       {activeTab === 'forecasts' && <ForecastsTable />}

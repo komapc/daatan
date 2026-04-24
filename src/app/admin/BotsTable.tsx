@@ -1,12 +1,14 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { Loader2, Play, FlaskConical, Power, ChevronDown, ChevronUp, Plus, Pencil, X } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { CreateBotForm } from './_bots/CreateBotForm'
 import { EditBotModal } from './_bots/EditBotModal'
 import { formatInterval, relativeTime, actionBadge } from './_bots/helpers'
 import type { Bot, BotLog, BotRunSummary } from './_bots/types'
 
 export default function BotsTable() {
+  const t = useTranslations('admin')
   const [bots, setBots] = useState<Bot[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [runningBots, setRunningBots] = useState<Set<string>>(new Set())
@@ -63,16 +65,16 @@ export default function BotsTable() {
         const s = data.summary
         flash(
           dryRun
-            ? `Dry run complete: ${s.forecastsCreated} simulated, ${s.skipped} skipped, ${s.errors} errors`
-            : `Run complete: ${s.forecastsCreated} forecasts, ${s.votes} votes, ${s.errors} errors`,
+            ? t('dryRunComplete', { simulated: s.forecastsCreated, skipped: s.skipped, errors: s.errors })
+            : t('runComplete', { forecasts: s.forecastsCreated, votes: s.votes, errors: s.errors }),
         )
         fetchBots()
         if (expandedLogs.has(botId)) fetchLogs(botId)
       } else {
-        flash(`Error: ${data.details?.[0]?.message ?? data.error}`)
+        flash(t('errorPrefix', { msg: data.details?.[0]?.message ?? data.error }))
       }
     } catch {
-      flash('Request failed')
+      flash(t('requestFailed'))
     } finally {
       setRunningBots((s) => { const n = new Set(s); n.delete(botId); return n })
     }
@@ -124,10 +126,10 @@ export default function BotsTable() {
     if (res.ok) {
       fetchBots()
       setEditingBot(null)
-      flash('Bot updated')
+      flash(t('botUpdated'))
     } else {
       const data = await res.json()
-      flash(`Error: ${data.error}`)
+      flash(t('errorPrefix', { msg: data.error }))
     }
   }
 
@@ -142,12 +144,12 @@ export default function BotsTable() {
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-semibold text-mist">Bots ({bots.length})</h2>
+        <h2 className="text-lg font-semibold text-mist">{t('botsTitle', { count: bots.length })}</h2>
         <button
           onClick={() => setShowCreateForm(true)}
           className="flex items-center gap-2 bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-blue-700 transition-colors"
         >
-          <Plus className="w-4 h-4" /> New bot
+          <Plus className="w-4 h-4" /> {t('newBot')}
         </button>
       </div>
 
@@ -176,27 +178,27 @@ export default function BotsTable() {
       {runResult && (
         <div className="mb-6 border-2 border-cobalt/30 bg-cobalt/10 rounded-xl overflow-hidden shadow-sm">
           <div className="bg-blue-600 px-4 py-2 flex justify-between items-center">
-            <h3 className="text-sm font-bold text-white uppercase tracking-wider">Run Summary: {runResult.botName}</h3>
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider">{t('runSummary', { name: runResult.botName })}</h3>
             <button onClick={() => setRunResult(null)} className="text-blue-100 hover:text-white">
               <X className="w-4 h-4" />
             </button>
           </div>
           <div className="p-4">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
-              <Stat label="Created" value={runResult.forecastsCreated} color="text-teal" />
-              <Stat label="Votes" value={runResult.votes} color="text-cobalt-light" />
-              <Stat label="Skipped" value={runResult.skipped} color="text-gray-400" />
-              <Stat label="Errors" value={runResult.errors} color="text-red-400" />
+              <Stat label={t('statCreated')} value={runResult.forecastsCreated} color="text-teal" />
+              <Stat label={t('statVotes')} value={runResult.votes} color="text-cobalt-light" />
+              <Stat label={t('statSkipped')} value={runResult.skipped} color="text-gray-400" />
+              <Stat label={t('statErrors')} value={runResult.errors} color="text-red-400" />
             </div>
 
             {runResult.hotTopics && runResult.hotTopics.length > 0 ? (
               <div className="space-y-3">
-                <p className="text-xs font-bold text-gray-500 uppercase">Detection results ({runResult.hotTopics.length} topics found)</p>
+                <p className="text-xs font-bold text-gray-500 uppercase">{t('detectionResults', { count: runResult.hotTopics.length })}</p>
                 <div className="max-h-60 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
                   {runResult.hotTopics.map((topic, i) => (
                     <div key={i} className="bg-navy-700 border rounded-lg p-3 text-sm shadow-sm group hover:border-blue-300 transition-colors">
                       <div className="font-semibold text-white group-hover:text-cobalt-light">{topic.title}</div>
-                      <div className="text-[10px] text-gray-400 mt-0.5">Appears in {topic.sourceCount} sources</div>
+                      <div className="text-[10px] text-gray-400 mt-0.5">{t('appearsInSources', { count: topic.sourceCount })}</div>
                       <div className="mt-2 space-y-1">
                         {topic.items.slice(0, 3).map((item, j) => (
                           <a key={j} href={item.url} target="_blank" rel="noopener noreferrer"
@@ -205,7 +207,7 @@ export default function BotsTable() {
                           </a>
                         ))}
                         {topic.items.length > 3 && (
-                          <div className="text-[10px] text-gray-400 pl-3">...and {topic.items.length - 3} more</div>
+                          <div className="text-[10px] text-gray-400 pl-3">{t('andMore', { count: topic.items.length - 3 })}</div>
                         )}
                       </div>
                     </div>
@@ -215,22 +217,22 @@ export default function BotsTable() {
             ) : (
               <div className="space-y-4">
                 <div className="text-center py-4 text-sm text-gray-500 italic border-b border-dashed pb-4">
-                  No hot topics detected in configured sources.
+                  {t('noHotTopics')}
                 </div>
                 {runResult.fetchedCount !== undefined && (
                   <div className="space-y-2">
                     <p className="text-xs font-bold text-gray-500 uppercase">
-                      Debug: Fetched headlines ({runResult.fetchedCount} total)
+                      {t('debugHeadlines', { count: runResult.fetchedCount })}
                     </p>
                     <div className="bg-navy-700 border rounded-lg p-3 text-xs text-gray-300 space-y-1 overflow-y-auto max-h-40">
                       {(runResult.sampleItems ?? []).map((title, i) => (
                         <div key={i} className="truncate">• {title}</div>
                       ))}
                       {runResult.fetchedCount > (runResult.sampleItems?.length ?? 0) && (
-                        <div className="text-[10px] text-gray-400 italic">...and {runResult.fetchedCount - (runResult.sampleItems?.length ?? 0)} more</div>
+                        <div className="text-[10px] text-gray-400 italic">{t('andMore', { count: runResult.fetchedCount - (runResult.sampleItems?.length ?? 0) })}</div>
                       )}
                       {runResult.fetchedCount === 0 && (
-                        <div className="text-red-500">Warning: No items could be fetched from the news sources. Check your URLs.</div>
+                        <div className="text-red-500">{t('noItemsFetched')}</div>
                       )}
                     </div>
                   </div>
@@ -257,61 +259,61 @@ export default function BotsTable() {
                       <span className="font-semibold text-white">{bot.user.name}</span>
                       <span className="text-xs font-mono text-gray-500">@{bot.user.username}</span>
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${bot.isActive ? 'bg-green-100 text-teal' : 'bg-navy-700 text-gray-500'}`}>
-                        {bot.isActive ? 'Active' : 'Disabled'}
+                        {bot.isActive ? t('botActive') : t('botDisabled')}
                       </span>
                       {bot.autoApprove && (
                         <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-emerald-100 text-emerald-700">
-                          Auto-approve
+                          {t('botAutoApprove')}
                         </span>
                       )}
                     </div>
 
                     <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-gray-300">
                       <div>
-                        <span className="text-gray-400">Interval</span>
+                        <span className="text-gray-400">{t('botInterval')}</span>
                         <div className="font-medium">{formatInterval(bot.intervalMinutes)}</div>
                       </div>
                       <div>
-                        <span className="text-gray-400">Today</span>
+                        <span className="text-gray-400">{t('botToday')}</span>
                         <div className="font-medium">
                           {bot.forecastsToday}/{bot.maxForecastsPerDay} forecasts · {bot.votesToday}/{bot.maxVotesPerDay} votes
                         </div>
                       </div>
                       <div>
-                        <span className="text-gray-400">Last run</span>
-                        <div className="font-medium">{bot.lastRunAt ? relativeTime(bot.lastRunAt) : 'Never'}</div>
+                        <span className="text-gray-400">{t('botLastRun')}</span>
+                        <div className="font-medium">{bot.lastRunAt ? relativeTime(bot.lastRunAt) : t('botNever')}</div>
                       </div>
                       <div>
-                        <span className="text-gray-400">Next run</span>
+                        <span className="text-gray-400">{t('botNextRun')}</span>
                         <div className="font-medium">{bot.nextRunAt ? relativeTime(bot.nextRunAt) : '—'}</div>
                       </div>
                     </div>
 
                     <div className="mt-1 text-xs text-gray-500">
-                      Sources: {bot.newsSources.length} · Model: {bot.modelPreference}
+                      {t('botSources', { count: bot.newsSources.length, model: bot.modelPreference })}
                     </div>
 
                     {bot.lastLog?.error && (
-                      <div className="mt-1 text-xs text-red-600">Last error: {bot.lastLog.error.slice(0, 100)}</div>
+                      <div className="mt-1 text-xs text-red-600">{t('botLastError', { error: bot.lastLog.error.slice(0, 100) })}</div>
                     )}
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
-                    <button onClick={() => setEditingBot(bot)} title="Edit config"
+                    <button onClick={() => setEditingBot(bot)} title={t('editConfig')}
                       className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-cobalt/10 rounded transition-colors">
                       <Pencil className="w-4 h-4" />
                     </button>
-                    <button onClick={() => runBot(bot.id, true)} disabled={isRunning} title="Test (dry run)"
+                    <button onClick={() => runBot(bot.id, true)} disabled={isRunning} title={t('testDryRun')}
                       className="flex items-center gap-1 text-xs px-2 py-1.5 border border-amber-300 text-amber-400 bg-amber-900/20 hover:bg-amber-100 rounded transition-colors disabled:opacity-50">
                       {isRunning ? <Loader2 className="w-3 h-3 animate-spin" /> : <FlaskConical className="w-3 h-3" />}
-                      Test
+                      {t('test')}
                     </button>
-                    <button onClick={() => runBot(bot.id, false)} disabled={isRunning} title="Run now"
+                    <button onClick={() => runBot(bot.id, false)} disabled={isRunning} title={t('runNow')}
                       className="flex items-center gap-1 text-xs px-2 py-1.5 border border-green-300 text-teal bg-teal/10 hover:bg-green-100 rounded transition-colors disabled:opacity-50">
                       {isRunning ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
-                      Run
+                      {t('run')}
                     </button>
-                    <button onClick={() => toggleActive(bot)} title={bot.isActive ? 'Disable' : 'Enable'}
+                    <button onClick={() => toggleActive(bot)} title={bot.isActive ? t('disable') : t('enable')}
                       className={`p-1.5 rounded transition-colors ${bot.isActive ? 'text-green-600 hover:bg-red-900/20 hover:text-red-600' : 'text-gray-400 hover:bg-teal/10 hover:text-green-600'}`}>
                       <Power className="w-4 h-4" />
                     </button>
@@ -321,7 +323,7 @@ export default function BotsTable() {
 
               <button onClick={() => toggleLogs(bot.id)}
                 className="w-full flex items-center justify-between px-4 py-2 bg-navy-800 border-t text-xs text-gray-500 hover:bg-navy-700 transition-colors">
-                <span>Run log</span>
+                <span>{t('runLog')}</span>
                 {logsExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
               </button>
 
@@ -332,7 +334,7 @@ export default function BotsTable() {
                       <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
                     </div>
                   ) : botLogs.length === 0 ? (
-                    <div className="px-4 py-3 text-xs text-gray-400">No log entries yet</div>
+                    <div className="px-4 py-3 text-xs text-gray-400">{t('noLogEntries')}</div>
                   ) : (
                     <div className="divide-y">
                       {botLogs.map((log) => (
@@ -344,11 +346,11 @@ export default function BotsTable() {
                             <span className="text-gray-400">{relativeTime(log.runAt)}</span>
                           </div>
                           {log.triggerNews?.title && (
-                            <div className="mt-1 text-xs text-gray-300">News: {log.triggerNews.title}</div>
+                            <div className="mt-1 text-xs text-gray-300">{t('logNews', { title: log.triggerNews.title })}</div>
                           )}
                           {log.generatedText && (
                             <details className="mt-1">
-                              <summary className="text-xs text-blue-600 cursor-pointer">Generated text</summary>
+                              <summary className="text-xs text-blue-600 cursor-pointer">{t('generatedText')}</summary>
                               <pre className="mt-1 text-xs text-text-secondary whitespace-pre-wrap bg-navy-800 p-2 rounded max-h-40 overflow-y-auto">
                                 {log.generatedText}
                               </pre>
@@ -367,7 +369,7 @@ export default function BotsTable() {
 
         {bots.length === 0 && !showCreateForm && (
           <div className="text-center py-12 text-gray-400">
-            No bots yet. Create one to get started.
+            {t('noBotsYet')}
           </div>
         )}
       </div>

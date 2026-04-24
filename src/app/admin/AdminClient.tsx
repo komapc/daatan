@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import {
   Shield,
   Users,
@@ -13,7 +14,6 @@ import {
   Search,
   Loader2,
   ShieldCheck,
-  ShieldAlert,
   Crown,
   Trash2,
   ExternalLink,
@@ -68,9 +68,9 @@ type Tab = 'users' | 'forecasts' | 'comments'
 export default function AdminClient() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const t = useTranslations('admin')
   const [activeTab, setActiveTab] = useState<Tab>('forecasts')
 
-  // Redirect non-admin/moderator users
   useEffect(() => {
     if (status === 'authenticated' && session?.user?.role !== 'ADMIN' && session?.user?.role !== 'RESOLVER' && session?.user?.role !== 'APPROVER') {
       router.push('/')
@@ -91,9 +91,9 @@ export default function AdminClient() {
 
   const isAdmin = session.user.role === 'ADMIN'
   const tabs: { key: Tab; label: string; icon: React.ComponentType<{ className?: string }>; adminOnly?: boolean }[] = [
-    { key: 'forecasts', label: 'Forecasts', icon: TrendingUp },
-    { key: 'comments', label: 'Comments', icon: MessageSquare },
-    { key: 'users', label: 'Users', icon: Users, adminOnly: true },
+    { key: 'forecasts', label: t('tabForecasts'), icon: TrendingUp },
+    { key: 'comments', label: t('tabComments'), icon: MessageSquare },
+    { key: 'users', label: t('tabUsers'), icon: Users, adminOnly: true },
   ]
 
   const visibleTabs = tabs.filter((t) => !t.adminOnly || isAdmin)
@@ -106,9 +106,9 @@ export default function AdminClient() {
           <Shield className="w-8 h-8 text-red-600" />
         </div>
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">Admin Panel</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white">{t('panel')}</h1>
           <p className="text-sm text-gray-500">
-            {isAdmin ? 'Full admin access' : 'Moderator access'}
+            {isAdmin ? t('fullAccess') : t('moderatorAccess')}
           </p>
         </div>
       </div>
@@ -145,6 +145,7 @@ export default function AdminClient() {
 // ─── Forecasts Tab ───────────────────────────────────────────────────
 
 function ForecastsTab() {
+  const t = useTranslations('admin')
   const [predictions, setPredictions] = useState<AdminPrediction[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -195,7 +196,7 @@ function ForecastsTab() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Search forecasts..."
+            placeholder={t('searchForecasts')}
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1) }}
             className="w-full pl-10 pr-4 py-2 border border-navy-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -205,9 +206,9 @@ function ForecastsTab() {
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value); setPage(1) }}
           className="px-3 py-2 border border-navy-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          aria-label="Filter by status"
+          aria-label={t('colStatus')}
         >
-          <option value="">All Statuses</option>
+          <option value="">{t('allStatuses')}</option>
           <option value="DRAFT">Draft</option>
           <option value="ACTIVE">Active</option>
           <option value="PENDING">Pending</option>
@@ -223,7 +224,7 @@ function ForecastsTab() {
           <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
         </div>
       ) : predictions.length === 0 ? (
-        <p className="text-center text-gray-500 py-12">No forecasts found.</p>
+        <p className="text-center text-gray-500 py-12">{t('noForecastsFound')}</p>
       ) : (
         <>
           <div className="bg-navy-700 border border-navy-600 rounded-xl overflow-hidden shadow-sm">
@@ -231,13 +232,13 @@ function ForecastsTab() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-navy-800 border-b border-navy-600">
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Forecast</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Author</th>
-                    <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Status</th>
-                    <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Stakes</th>
-                    <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Comments</th>
-                    <th className="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase">Resolve By</th>
-                    <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Actions</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">{t('colForecast')}</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">{t('colAuthor')}</th>
+                    <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">{t('colStatus')}</th>
+                    <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">{t('colStakes')}</th>
+                    <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">{t('colComments')}</th>
+                    <th className="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase">{t('colResolveBy')}</th>
+                    <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">{t('colActions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -276,7 +277,7 @@ function ForecastsTab() {
                           className="inline-flex items-center gap-1 text-blue-600 hover:text-cobalt-light text-xs font-medium"
                         >
                           <ExternalLink className="w-3 h-3" />
-                          View
+                          {t('view')}
                         </Link>
                       </td>
                     </tr>
@@ -286,7 +287,6 @@ function ForecastsTab() {
             </div>
           </div>
 
-          {/* Pagination */}
           <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
         </>
       )}
@@ -297,6 +297,7 @@ function ForecastsTab() {
 // ─── Comments Tab ────────────────────────────────────────────────────
 
 function CommentsTab() {
+  const t = useTranslations('admin')
   const [comments, setComments] = useState<AdminComment[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -350,7 +351,7 @@ function CommentsTab() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Search comments..."
+            placeholder={t('searchComments')}
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1) }}
             className="w-full pl-10 pr-4 py-2 border border-navy-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -363,7 +364,7 @@ function CommentsTab() {
             onChange={(e) => { setShowDeleted(e.target.checked); setPage(1) }}
             className="rounded border-gray-300"
           />
-          Show deleted
+          {t('showDeleted')}
         </label>
       </div>
 
@@ -372,7 +373,7 @@ function CommentsTab() {
           <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
         </div>
       ) : comments.length === 0 ? (
-        <p className="text-center text-gray-500 py-12">No comments found.</p>
+        <p className="text-center text-gray-500 py-12">{t('noCommentsFound')}</p>
       ) : (
         <>
           <div className="space-y-3">
@@ -403,7 +404,7 @@ function CommentsTab() {
                           {new Date(c.createdAt).toLocaleDateString()}
                         </span>
                         {c.deletedAt && (
-                          <span className="text-xs text-red-500 font-medium">Deleted</span>
+                          <span className="text-xs text-red-500 font-medium">{t('deleted')}</span>
                         )}
                       </div>
                       <p className="text-sm text-text-secondary line-clamp-2">{c.text}</p>
@@ -413,8 +414,8 @@ function CommentsTab() {
                         </Link>
                       )}
                       <div className="flex gap-3 mt-1 text-xs text-gray-400">
-                        <span>{c._count.replies} replies</span>
-                        <span>{c._count.reactions} reactions</span>
+                        <span>{c._count.replies} {t('replies')}</span>
+                        <span>{c._count.reactions} {t('reactions')}</span>
                       </div>
                     </div>
                     {!c.deletedAt && (
@@ -422,7 +423,7 @@ function CommentsTab() {
                         onClick={() => handleDelete(c.id)}
                         disabled={deletingId === c.id}
                         className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-900/20 rounded-lg transition-colors"
-                        title="Delete comment"
+                        title={t('deleteComment')}
                       >
                         {deletingId === c.id ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
@@ -447,6 +448,7 @@ function CommentsTab() {
 // ─── Users Tab ───────────────────────────────────────────────────────
 
 function UsersTab() {
+  const t = useTranslations('admin')
   const [users, setUsers] = useState<AdminUser[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -504,7 +506,7 @@ function UsersTab() {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
         <input
           type="text"
-          placeholder="Search by name, email, or username..."
+          placeholder={t('searchUsers')}
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1) }}
           className="w-full pl-10 pr-4 py-2 border border-navy-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -516,7 +518,7 @@ function UsersTab() {
           <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
         </div>
       ) : users.length === 0 ? (
-        <p className="text-center text-gray-500 py-12">No users found.</p>
+        <p className="text-center text-gray-500 py-12">{t('noUsersFound')}</p>
       ) : (
         <>
           <div className="bg-navy-700 border border-navy-600 rounded-xl overflow-hidden shadow-sm">
@@ -524,13 +526,13 @@ function UsersTab() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-navy-800 border-b border-navy-600">
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">User</th>
-                    <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Roles</th>
-                    <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">RS</th>
-                    <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Confidence</th>
-                    <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Activity</th>
-                    <th className="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase">Joined</th>
-                    <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Actions</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">{t('colUser')}</th>
+                    <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">{t('colRoles')}</th>
+                    <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">{t('colRS')}</th>
+                    <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">{t('colConfidence')}</th>
+                    <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">{t('colActivity')}</th>
+                    <th className="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase">{t('colJoined')}</th>
+                    <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">{t('colActions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -546,7 +548,7 @@ function UsersTab() {
                             </div>
                           )}
                           <div className="min-w-0">
-                            <p className="font-medium text-white truncate text-sm">{u.name || 'Anonymous'}</p>
+                            <p className="font-medium text-white truncate text-sm">{u.name || t('anonymous')}</p>
                             <p className="text-xs text-gray-400 truncate">{u.email}</p>
                           </div>
                         </div>
@@ -555,20 +557,20 @@ function UsersTab() {
                         <div className="flex items-center justify-center gap-1">
                           {u.role === 'ADMIN' && (
                             <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-400">
-                              <Crown className="w-3 h-3" /> Admin
+                              <Crown className="w-3 h-3" /> {t('roleAdmin')}
                             </span>
                           )}
                           {u.role === 'RESOLVER' && (
                             <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-cobalt-light">
-                              <ShieldCheck className="w-3 h-3" /> Resolver
+                              <ShieldCheck className="w-3 h-3" /> {t('roleResolver')}
                             </span>
                           )}
                           {u.role === 'USER' && (
-                            <span className="text-xs text-gray-400">User</span>
+                            <span className="text-xs text-gray-400">{t('roleUser')}</span>
                           )}
                           {u.role === 'APPROVER' && (
                             <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
-                              <ShieldCheck className="w-3 h-3" /> Approver
+                              <ShieldCheck className="w-3 h-3" /> {t('roleApprover')}
                             </span>
                           )}
                         </div>
@@ -592,10 +594,10 @@ function UsersTab() {
                           disabled={updatingId === u.id}
                           className="text-xs border border-navy-600 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                         >
-                          <option value="USER">User</option>
-                          <option value="RESOLVER">Resolver</option>
-                          <option value="APPROVER">Approver</option>
-                          <option value="ADMIN">Admin</option>
+                          <option value="USER">{t('roleUser')}</option>
+                          <option value="RESOLVER">{t('roleResolver')}</option>
+                          <option value="APPROVER">{t('roleApprover')}</option>
+                          <option value="ADMIN">{t('roleAdmin')}</option>
                         </select>
                       </td>
                     </tr>
@@ -620,11 +622,13 @@ function Pagination({ page, totalPages, total, onPageChange }: {
   total: number
   onPageChange: (p: number) => void
 }) {
+  const t = useTranslations('admin')
+
   if (totalPages <= 1) return null
 
   return (
     <div className="flex items-center justify-between mt-4 px-1">
-      <span className="text-xs text-gray-500">{total} total</span>
+      <span className="text-xs text-gray-500">{t('paginationTotal', { total })}</span>
       <div className="flex items-center gap-2">
         <button
           onClick={() => onPageChange(page - 1)}
