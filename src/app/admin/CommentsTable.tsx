@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { Loader2, Search, Trash2 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { createClientLogger } from '@/lib/client-logger'
 import { toast } from 'react-hot-toast'
 
@@ -17,6 +18,7 @@ type AdminComment = {
 }
 
 export default function CommentsTable() {
+  const t = useTranslations('admin')
   const [comments, setComments] = useState<AdminComment[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -42,7 +44,7 @@ export default function CommentsTable() {
   }, [fetchComments])
 
   const deleteComment = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this comment?')) return
+    if (!confirm(t('deleteCommentConfirm'))) return
 
     try {
       const res = await fetch(`/api/admin/comments/${id}`, {
@@ -50,13 +52,13 @@ export default function CommentsTable() {
       })
       if (res.ok) {
         setComments(comments.filter(c => c.id !== id))
-        toast.success('Comment deleted successfully')
+        toast.success(t('deleteCommentSuccess'))
       } else {
-        toast.error('Failed to delete comment')
+        toast.error(t('deleteCommentFailed'))
       }
     } catch (err) {
       log.error({ err }, 'Error loading comments')
-      toast.error('Error deleting comment')
+      toast.error(t('deleteCommentError'))
     }
   }
 
@@ -76,12 +78,12 @@ export default function CommentsTable() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search comments..."
+              placeholder={t('searchComments')}
               className="pl-10 pr-4 py-2 border rounded-lg w-full focus:ring-2 focus:ring-blue-500 outline-none"
             />
           </div>
           <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-            Search
+            {t('view')}
           </button>
         </form>
       </div>
@@ -96,11 +98,11 @@ export default function CommentsTable() {
             <table className="w-full border-collapse bg-navy-700">
               <thead className="bg-navy-800 text-text-secondary text-sm font-semibold uppercase tracking-wider">
                 <tr>
-                  <th className="p-3 border-b text-left">Content</th>
-                  <th className="p-3 border-b text-left">Author</th>
-                  <th className="p-3 border-b text-left">Forecast</th>
-                  <th className="p-3 border-b text-right">Created</th>
-                  <th className="p-3 border-b text-right">Actions</th>
+                  <th className="p-3 border-b text-left">{t('colContent')}</th>
+                  <th className="p-3 border-b text-left">{t('colAuthor')}</th>
+                  <th className="p-3 border-b text-left">{t('colForecast')}</th>
+                  <th className="p-3 border-b text-right">{t('colJoined')}</th>
+                  <th className="p-3 border-b text-right">{t('colActions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -115,12 +117,12 @@ export default function CommentsTable() {
                         <button
                           onClick={() => deleteComment(c.id)}
                           className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-900/20"
-                          title="Delete Comment"
+                          title={t('deleteComment')}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
                       )}
-                      {c.deletedAt && <span className="text-xs text-red-500 italic">Deleted</span>}
+                      {c.deletedAt && <span className="text-xs text-red-500 italic">{t('deleted')}</span>}
                     </td>
                   </tr>
                 ))}
@@ -129,21 +131,21 @@ export default function CommentsTable() {
           </div>
 
           <div className="mt-4 flex justify-between items-center text-sm text-gray-600">
-            <div>Page {page} of {totalPages}</div>
+            <div>{t('pageOf', { page, total: totalPages })}</div>
             <div className="flex gap-2">
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
                 className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-navy-800"
               >
-                Previous
+                {t('previous')}
               </button>
               <button
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
                 className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-navy-800"
               >
-                Next
+                {t('next')}
               </button>
             </div>
           </div>

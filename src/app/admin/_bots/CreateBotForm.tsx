@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { Loader2, Check, X } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 interface Props {
   onCreated: () => void
@@ -8,6 +9,7 @@ interface Props {
 }
 
 export function CreateBotForm({ onCreated, onCancel }: Props) {
+  const t = useTranslations('admin')
   const [name, setName] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -26,7 +28,7 @@ export function CreateBotForm({ onCreated, onCancel }: Props) {
       if (res.ok) {
         onCreated()
       } else {
-        setError(data.error ?? 'Failed to create bot')
+        setError(data.error ?? t('failedToCreateBot'))
       }
     } finally {
       setSaving(false)
@@ -35,19 +37,19 @@ export function CreateBotForm({ onCreated, onCancel }: Props) {
 
   return (
     <div className="border rounded-lg p-4 mb-4 bg-cobalt/10 border-cobalt/30">
-      <h3 className="font-semibold text-mist mb-3">New bot</h3>
+      <h3 className="font-semibold text-mist mb-3">{t('newBotTitle')}</h3>
       <form onSubmit={submit} className="flex gap-2 items-end flex-wrap">
         <div>
-          <label className="block text-xs text-gray-400 mb-1">Display name</label>
+          <label className="block text-xs text-gray-400 mb-1">{t('displayName')}</label>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Dave"
+            placeholder={t('displayNamePlaceholder')}
             className="border rounded px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
             required
             minLength={2}
           />
-          <div className="text-xs text-gray-400 mt-0.5">Username will be: {name.toLowerCase().replace(/\s+/g, '_')}_b</div>
+          <div className="text-xs text-gray-400 mt-0.5">{t('usernameWillBe', { username: `${name.toLowerCase().replace(/\s+/g, '_')}_b` })}</div>
         </div>
         <div className="flex gap-2">
           <button
@@ -56,7 +58,7 @@ export function CreateBotForm({ onCreated, onCancel }: Props) {
             className="flex items-center gap-1 bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700 disabled:opacity-50"
           >
             {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-            Create
+            {t('create')}
           </button>
           <button type="button" onClick={onCancel} className="p-1.5 text-gray-500 hover:text-text-secondary">
             <X className="w-4 h-4" />
@@ -65,7 +67,7 @@ export function CreateBotForm({ onCreated, onCancel }: Props) {
       </form>
       {error && <div className="mt-2 text-xs text-red-600">{error}</div>}
       <p className="mt-2 text-xs text-gray-500">
-        After creating, open the edit dialog to configure prompts, RSS sources, and schedule.
+        {t('createBotHint')}
       </p>
     </div>
   )

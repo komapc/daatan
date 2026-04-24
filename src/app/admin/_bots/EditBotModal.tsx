@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { Loader2, Check, X } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { STANDARD_TAGS } from '@/lib/constants'
 import { slugify } from '@/lib/utils/slugify'
 import type { Bot } from './types'
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export function EditBotModal({ bot, allTags, onSave, onClose }: Props) {
+  const t = useTranslations('admin')
   const [form, setForm] = useState({
     personaPrompt: bot.personaPrompt,
     forecastPrompt: bot.forecastPrompt,
@@ -109,14 +111,14 @@ export function EditBotModal({ bot, allTags, onSave, onClose }: Props) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="bg-navy-700 rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
         <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-navy-700 z-10">
-          <h3 className="font-semibold text-white">Edit bot: {bot.user.name}</h3>
+          <h3 className="font-semibold text-white">{t('editBotTitle', { name: bot.user.name ?? '' })}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <form onSubmit={submit} className="p-4 space-y-4">
-          <Field label="Persona prompt" hint="Character description for the bot">
+          <Field label={t('personaPrompt')} hint={t('personaPromptHint')}>
             <textarea
               value={form.personaPrompt}
               onChange={(e) => setForm({ ...form, personaPrompt: e.target.value })}
@@ -126,7 +128,7 @@ export function EditBotModal({ bot, allTags, onSave, onClose }: Props) {
             />
           </Field>
 
-          <Field label="Forecast creation prompt" hint="Instructions for generating a forecast from a news topic">
+          <Field label={t('forecastCreationPrompt')} hint={t('forecastCreationPromptHint')}>
             <textarea
               value={form.forecastPrompt}
               onChange={(e) => setForm({ ...form, forecastPrompt: e.target.value })}
@@ -136,7 +138,7 @@ export function EditBotModal({ bot, allTags, onSave, onClose }: Props) {
             />
           </Field>
 
-          <Field label="Vote decision prompt" hint="Instructions for deciding whether/how to vote on existing forecasts">
+          <Field label={t('voteDecisionPrompt')} hint={t('voteDecisionPromptHint')}>
             <textarea
               value={form.votePrompt}
               onChange={(e) => setForm({ ...form, votePrompt: e.target.value })}
@@ -146,9 +148,9 @@ export function EditBotModal({ bot, allTags, onSave, onClose }: Props) {
             />
           </Field>
 
-          <Field label="News sources" hint="One URL per line. RSS preferred, but standard news URLs also supported via scraping.">
+          <Field label={t('newsSources')} hint={t('newsSourcesHint')}>
             <div className="text-[10px] text-blue-600 mb-1 font-medium">
-              Tip: Use &quot;Search: bitcoin&quot; to fetch from Google News search.
+              {t('newsSourcesTip')}
             </div>
             <textarea
               value={form.newsSources}
@@ -159,7 +161,7 @@ export function EditBotModal({ bot, allTags, onSave, onClose }: Props) {
             />
           </Field>
 
-          <Field label="LLM model" hint="OpenRouter model ID (e.g. google/gemini-2.5-flash-preview:free)">
+          <Field label={t('llmModel')} hint={t('llmModelHint')}>
             <input
               value={form.modelPreference}
               onChange={(e) => setForm({ ...form, modelPreference: e.target.value })}
@@ -168,45 +170,45 @@ export function EditBotModal({ bot, allTags, onSave, onClose }: Props) {
           </Field>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            <NumberField label="Interval (min)" value={form.intervalMinutes} min={5}
+            <NumberField label={t('intervalMin')} value={form.intervalMinutes} min={5}
               onChange={(v) => setForm({ ...form, intervalMinutes: v })} />
-            <NumberField label="Max forecasts/day" value={form.maxForecastsPerDay} min={0}
+            <NumberField label={t('maxForecastsDay')} value={form.maxForecastsPerDay} min={0}
               onChange={(v) => setForm({ ...form, maxForecastsPerDay: v })} />
-            <NumberField label="Max votes/day" value={form.maxVotesPerDay} min={0}
+            <NumberField label={t('maxVotesDay')} value={form.maxVotesPerDay} min={0}
               onChange={(v) => setForm({ ...form, maxVotesPerDay: v })} />
-            <NumberField label="Stake min (Confidence)" value={form.stakeMin} min={1}
+            <NumberField label={t('stakeMin')} value={form.stakeMin} min={1}
               onChange={(v) => setForm({ ...form, stakeMin: v })} />
-            <NumberField label="Stake max (Confidence)" value={form.stakeMax} min={1}
+            <NumberField label={t('stakeMax')} value={form.stakeMax} min={1}
               onChange={(v) => setForm({ ...form, stakeMax: v })} />
-            <NumberField label="Min sources (hotness)" value={form.hotnessMinSources} min={1}
+            <NumberField label={t('minSources')} value={form.hotnessMinSources} min={1}
               onChange={(v) => setForm({ ...form, hotnessMinSources: v })} />
-            <NumberField label="Hotness window (h)" value={form.hotnessWindowHours} min={1}
+            <NumberField label={t('hotnessWindow')} value={form.hotnessWindowHours} min={1}
               onChange={(v) => setForm({ ...form, hotnessWindowHours: v })} />
-            <NumberField label="Max forecasts/hour" value={form.maxForecastsPerHour} min={0}
+            <NumberField label={t('maxForecastsHour')} value={form.maxForecastsPerHour} min={0}
               onChange={(v) => setForm({ ...form, maxForecastsPerHour: v })} />
           </div>
 
           <div className="border rounded-lg p-3 space-y-3 bg-navy-800">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions &amp; Bias</p>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{t('actionsBias')}</p>
             <div className="flex flex-wrap gap-4">
               <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
                 <input type="checkbox" checked={form.canCreateForecasts}
                   onChange={(e) => setForm({ ...form, canCreateForecasts: e.target.checked })}
                   className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-                Create forecasts
+                {t('canCreateForecasts')}
               </label>
               <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
                 <input type="checkbox" checked={form.canVote}
                   onChange={(e) => setForm({ ...form, canVote: e.target.checked })}
                   className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-                Vote on forecasts
+                {t('canVote')}
               </label>
               <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
                 <input type="checkbox" checked={form.autoApprove}
                   onChange={(e) => setForm({ ...form, autoApprove: e.target.checked })}
                   className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
-                Auto-approve forecasts
-                <span className="text-xs text-gray-400 font-normal">(skip approval queue)</span>
+                {t('autoApproveForecasts')}
+                <span className="text-xs text-gray-400 font-normal">{t('skipApprovalQueue')}</span>
               </label>
             </div>
             <div className="flex flex-wrap gap-4 pt-2 border-t border-navy-600">
@@ -214,47 +216,47 @@ export function EditBotModal({ bot, allTags, onSave, onClose }: Props) {
                 <input type="checkbox" checked={form.requireApprovalForForecasts}
                   onChange={(e) => setForm({ ...form, requireApprovalForForecasts: e.target.checked })}
                   className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-                Require approval for forecasts
+                {t('requireApproval')}
               </label>
               <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
                 <input type="checkbox" checked={form.enableSentimentExtraction}
                   onChange={(e) => setForm({ ...form, enableSentimentExtraction: e.target.checked })}
                   className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-                Enable sentiment extraction
+                {t('enableSentiment')}
               </label>
               <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
                 <input type="checkbox" checked={form.enableRejectionTracking}
                   onChange={(e) => setForm({ ...form, enableRejectionTracking: e.target.checked })}
                   className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-                Enable rejection tracking
+                {t('enableRejection')}
               </label>
               <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
                 <input type="checkbox" checked={form.showMetadataOnForecast}
                   onChange={(e) => setForm({ ...form, showMetadataOnForecast: e.target.checked })}
                   className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-                Show metadata on forecast
+                {t('showMetadata')}
               </label>
             </div>
             <div className="max-w-xs">
               <label className="block text-xs font-medium text-gray-400 mb-1">
-                Vote bias: {form.voteBias} / 100
+                {t('voteBias', { bias: form.voteBias })}
                 <span className="ml-2 text-gray-400 font-normal">
-                  ({form.voteBias < 40 ? 'leans NO' : form.voteBias > 60 ? 'leans YES' : 'neutral'})
+                  ({form.voteBias < 40 ? t('leansNo') : form.voteBias > 60 ? t('leansYes') : t('neutral')})
                 </span>
               </label>
               <input type="range" min={0} max={100} value={form.voteBias}
                 onChange={(e) => setForm({ ...form, voteBias: parseInt(e.target.value) })}
                 className="w-full accent-blue-600" />
               <div className="flex justify-between text-xs text-gray-400 mt-0.5">
-                <span>0 NO</span>
-                <span>50 neutral</span>
-                <span>100 YES</span>
+                <span>{t('biasNo')}</span>
+                <span>{t('biasNeutral')}</span>
+                <span>{t('biasYes')}</span>
               </div>
             </div>
           </div>
 
           <div className="border rounded-lg p-3 space-y-3 bg-navy-800">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Active Window (UTC)</p>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{t('activeWindow')}</p>
             <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
               <input type="checkbox" checked={form.activeHoursStart == null}
                 onChange={(e) => setForm({
@@ -263,38 +265,38 @@ export function EditBotModal({ bot, allTags, onSave, onClose }: Props) {
                   activeHoursEnd: e.target.checked ? null : 22,
                 })}
                 className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-              Always active (no time restriction)
+              {t('alwaysActive')}
             </label>
             {form.activeHoursStart != null && (
               <div className="grid grid-cols-2 gap-4">
-                <NumberField label="Start hour (0–23 UTC)" value={form.activeHoursStart} min={0} max={23}
+                <NumberField label={t('startHour')} value={form.activeHoursStart} min={0} max={23}
                   onChange={(v) => setForm({ ...form, activeHoursStart: v })} />
-                <NumberField label="End hour (0–23 UTC, exclusive)" value={form.activeHoursEnd ?? 22} min={0} max={23}
+                <NumberField label={t('endHour')} value={form.activeHoursEnd ?? 22} min={0} max={23}
                   onChange={(v) => setForm({ ...form, activeHoursEnd: v })} />
                 <p className="col-span-2 text-xs text-gray-400">
-                  Overnight ranges work — e.g. start&nbsp;22 &rarr; end&nbsp;06 means 10&nbsp;pm–6&nbsp;am UTC.
+                  {t('overnightHint')}
                 </p>
               </div>
             )}
           </div>
 
           <div className="border rounded-lg p-3 space-y-3 bg-navy-800">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Confidence Auto-Refill</p>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{t('confidenceRefill')}</p>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <NumberField label="Refill threshold" value={form.cuRefillAt} min={0}
+                <NumberField label={t('refillThreshold')} value={form.cuRefillAt} min={0}
                   onChange={(v) => setForm({ ...form, cuRefillAt: v })} />
-                {form.cuRefillAt === 0 && <p className="text-xs text-gray-400 mt-1">0 = disabled</p>}
+                {form.cuRefillAt === 0 && <p className="text-xs text-gray-400 mt-1">{t('refillDisabled')}</p>}
               </div>
-              <NumberField label="Refill amount" value={form.cuRefillAmount} min={1}
+              <NumberField label={t('refillAmount')} value={form.cuRefillAmount} min={1}
                 onChange={(v) => setForm({ ...form, cuRefillAmount: v })} />
             </div>
             <p className="text-xs text-gray-400">
-              When bot&apos;s Confidence points drop to or below the threshold, grant the refill amount automatically before the next stake.
+              {t('refillHint')}
             </p>
           </div>
 
-          <Field label="Tag filter" hint="Bot only acts on forecasts with these tags. Leave empty for all tags.">
+          <Field label={t('tagFilter')} hint={t('tagFilterHint')}>
             <div className="mt-2 space-y-2">
               <div className="flex flex-wrap gap-1.5 min-h-8 p-2 border rounded bg-navy-700">
                 {form.tagFilter.map(slug => (
@@ -305,13 +307,13 @@ export function EditBotModal({ bot, allTags, onSave, onClose }: Props) {
                     </button>
                   </span>
                 ))}
-                {form.tagFilter.length === 0 && <span className="text-gray-400 text-xs italic">All tags enabled</span>}
+                {form.tagFilter.length === 0 && <span className="text-gray-400 text-xs italic">{t('allTagsEnabled')}</span>}
               </div>
               <div className="relative">
                 <input type="text" value={tagInput}
                   onChange={(e) => { setTagInput(e.target.value); setShowTagSuggestions(true) }}
                   onFocus={() => setShowTagSuggestions(true)}
-                  placeholder="Search tags to add..."
+                  placeholder={t('searchTags')}
                   className="w-full border rounded px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
@@ -336,7 +338,7 @@ export function EditBotModal({ bot, allTags, onSave, onClose }: Props) {
                     ))}
                     {filteredTags.length === 0 && (
                       <div className="px-3 py-2 text-xs text-gray-500">
-                        No matches. Press Enter to add &quot;{tagInput}&quot;
+                        {t('noMatchesAddTag', { tag: tagInput })}
                       </div>
                     )}
                   </div>
@@ -347,12 +349,12 @@ export function EditBotModal({ bot, allTags, onSave, onClose }: Props) {
 
           <div className="flex justify-end gap-2 pt-2 pb-4">
             <button type="button" onClick={onClose} className="px-4 py-2 text-sm border rounded hover:bg-navy-800">
-              Cancel
+              {t('cancel')}
             </button>
             <button type="submit" disabled={saving}
               className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50">
               {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-              Save
+              {t('save')}
             </button>
           </div>
         </form>
