@@ -74,6 +74,8 @@
   "forecast": {
     "create": "Nova Antaŭdiro",
     "createTitle": "Krei Prognozon",
+    "similarWarningTitle": "Similaj prognozoj jam ekzistas — ĉu la via estas duobligaĵo?",
+    "similarWarningHint": "Vi ankoraŭ povas daŭrigi se via prognozo estas malsama.",
     "createSubtitle": "Uzu Rapida por rapida kreado kun AI-helpo, aŭ Mana por plena kontrolo",
     "draft": "Skizo",
     "active": "Aktiva",
