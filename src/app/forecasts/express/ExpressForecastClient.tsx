@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Sparkles, Search, FileText, Loader2, AlertCircle, Edit2, RotateCcw, ArrowLeft, X, Plus, List, Trash2, Eye, EyeOff, ShieldCheck } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/Button'
+import { SimilarForecastsWarning } from '@/components/forecasts/SimilarForecastsWarning'
 import { createClientLogger } from '@/lib/client-logger'
 
 const log = createClientLogger('ExpressForecast')
@@ -598,6 +599,10 @@ export default function ExpressForecastClient({
                 <p className="text-lg text-white">{generated.claimText}</p>
               )}
             </div>
+
+            {!isEditing && (
+              <SimilarForecastsWarning claimText={generated.claimText} tags={generated.tags} />
+            )}
 
             {/* Resolution Date */}
             <div>

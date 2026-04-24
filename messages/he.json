@@ -74,6 +74,8 @@
   "forecast": {
     "create": "תחזית חדשה",
     "createTitle": "יצירת תחזית",
+    "similarWarningTitle": "תחזיות דומות כבר קיימות — האם שלך היא כפולה?",
+    "similarWarningHint": "אתה עדיין יכול להמשיך אם התחזית שלך שונה.",
     "createSubtitle": "השתמש ב-Express ליצירה מהירה בעזרת AI, או ב-Manual לשליטה מלאה",
     "draft": "טיוטה",
     "active": "פעיל",

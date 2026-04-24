@@ -12,6 +12,11 @@ vi.mock('next/navigation', () => ({
 // Mock analytics to avoid noise
 vi.mock('@/lib/analytics', () => ({ analytics: { forecastCreated: vi.fn() } }))
 
+// Mock next-intl to avoid NextIntlClientProvider requirement
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => key,
+}))
+
 /** Render the wizard with step 4 active and controllable formData via sessionStorage. */
 async function renderAtStep4(overrides: Record<string, unknown> = {}) {
   const tomorrow = new Date()

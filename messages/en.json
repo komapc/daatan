@@ -74,6 +74,8 @@
   "forecast": {
     "create": "New Forecast",
     "createTitle": "Create Forecast",
+    "similarWarningTitle": "Similar forecasts already exist — is yours a duplicate?",
+    "similarWarningHint": "You can still proceed if your forecast is different.",
     "createSubtitle": "Use Express for quick AI-assisted creation, or Manual for full control",
     "draft": "Draft",
     "active": "Active",
