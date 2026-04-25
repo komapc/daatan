@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-middleware'
-import { prisma } from '@/lib/prisma'
 import { handleRouteError, apiError } from '@/lib/api-error'
+import { updateAvatar } from '@/lib/services/user'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import sharp from 'sharp'
 import { createLogger } from '@/lib/logger'
@@ -81,10 +81,7 @@ export const POST = withAuth(async (request: NextRequest, user) => {
     const avatarUrl = `https://${bucket}.s3.${REGION}.amazonaws.com/${key}`
 
     // Update database
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { avatarUrl },
-    })
+    await updateAvatar(user.id, avatarUrl)
 
     log.info({ userId: user.id, avatarUrl }, 'Avatar updated successfully')
 
