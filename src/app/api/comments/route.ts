@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createCommentSchema, listCommentsQuerySchema } from '@/lib/validations/comment'
 import { apiError, handleRouteError } from '@/lib/api-error'
 import { withAuth } from '@/lib/api-middleware'
-import { prisma } from '@/lib/prisma'
 import { notifyNewComment } from '@/lib/services/telegram'
 import { createNotification } from '@/lib/services/notification'
 import { checkContent } from '@/lib/services/moderation'
@@ -12,6 +11,7 @@ import {
   findCommentParent,
   findMentionedUsers,
 } from '@/lib/services/comment'
+import { getPredictionBasicInfo } from '@/lib/services/forecast'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,10 +47,7 @@ export const POST = withAuth(async (request, user) => {
   const body = await request.json()
   const data = createCommentSchema.parse(body)
 
-  const prediction = await prisma.prediction.findUnique({
-    where: { id: data.predictionId },
-    select: { id: true, claimText: true, authorId: true, slug: true },
-  })
+  const prediction = await getPredictionBasicInfo(data.predictionId)
   if (!prediction) return apiError('Prediction not found', 404)
 
   let parentComment: { id: string; authorId: string; deletedAt: Date | null } | null = null

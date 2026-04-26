@@ -58,6 +58,20 @@ export async function deleteVerificationToken(identifier: string, token: string)
   })
 }
 
+export async function resetUserPassword(email: string, token: string, hashedPassword: string): Promise<boolean> {
+  const identifier = `reset:${email}`
+  const record = await prisma.verificationToken.findUnique({
+    where: { identifier_token: { identifier, token } },
+  })
+
+  if (!record || record.expires < new Date()) return false
+
+  await prisma.user.update({ where: { email }, data: { password: hashedPassword } })
+  await deleteVerificationToken(identifier, token)
+
+  return true
+}
+
 // ---------------------------------------------------------------------------
 // Email senders
 // ---------------------------------------------------------------------------

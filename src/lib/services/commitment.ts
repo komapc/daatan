@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import type { Prisma, PredictionOption } from '@prisma/client'
+import type { Prisma, PredictionOption, PredictionStatus } from '@prisma/client'
 import { notifyNewCommitment } from '@/lib/services/telegram'
 import { createNotification } from '@/lib/services/notification'
 import { createLogger } from '@/lib/logger'
@@ -268,4 +268,54 @@ export async function updateCommitment(
   })
 
   return { ok: true, data: updated, status: 200 }
+}
+
+export async function getRecentActivity(limit: number) {
+  return prisma.commitment.findMany({
+    where: {
+      user: { isPublic: true },
+      prediction: { isPublic: true },
+    },
+    include: {
+      user: { select: { id: true, name: true, username: true, image: true, rs: true } },
+      prediction: { select: { id: true, slug: true, claimText: true, status: true, outcomeType: true } },
+      option: { select: { id: true, text: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+  })
+}
+
+export interface ListUserCommitmentsQuery {
+  userId: string
+  predictionId?: string
+  status?: string
+  page: number
+  limit: number
+}
+
+export async function listUserCommitments({ userId, predictionId, status, page, limit }: ListUserCommitmentsQuery) {
+  const where: Prisma.CommitmentWhereInput = {
+    userId,
+    ...(predictionId && { predictionId }),
+    ...(status && { prediction: { status: status as PredictionStatus } }),
+  }
+
+  const [commitments, total] = await Promise.all([
+    prisma.commitment.findMany({
+      where,
+      include: {
+        prediction: {
+          select: { id: true, claimText: true, status: true, resolveByDatetime: true, outcomeType: true },
+        },
+        option: { select: { id: true, text: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.commitment.count({ where }),
+  ])
+
+  return { commitments, total }
 }

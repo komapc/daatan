@@ -34,6 +34,7 @@ vi.mock('@/lib/services/commitment', () => ({
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     prediction: {
+      findFirst: vi.fn(),
       findUnique: vi.fn(),
       update: vi.fn(),
     },
@@ -128,7 +129,7 @@ describe('POST /api/forecasts/[id]/approve', () => {
     const { POST } = await import('@/app/api/forecasts/[id]/approve/route')
     const { prisma } = await import('@/lib/prisma')
     mockAuth.mockResolvedValue(APPROVER_SESSION)
-    vi.mocked(prisma.prediction.findUnique).mockResolvedValue(null)
+    vi.mocked(prisma.prediction.findFirst).mockResolvedValue(null)
 
     const req = new NextRequest('http://localhost/api/forecasts/nonexistent/approve', { method: 'POST' })
     const res = await POST(req, { params: Promise.resolve({ id: 'nonexistent' }) })
@@ -145,7 +146,7 @@ describe('POST /api/forecasts/[id]/approve', () => {
     const humanPrediction = makeBotPrediction({
       author: { ...BOT_AUTHOR, isBot: false },
     })
-    vi.mocked(prisma.prediction.findUnique).mockResolvedValue(humanPrediction as any)
+    vi.mocked(prisma.prediction.findFirst).mockResolvedValue(humanPrediction as any)
 
     const req = new NextRequest('http://localhost/api/forecasts/pred-1/approve', { method: 'POST' })
     const res = await POST(req, { params: Promise.resolve({ id: 'pred-1' }) })
@@ -160,7 +161,7 @@ describe('POST /api/forecasts/[id]/approve', () => {
     mockAuth.mockResolvedValue(APPROVER_SESSION)
 
     const activePrediction = makeBotPrediction({ status: 'ACTIVE' })
-    vi.mocked(prisma.prediction.findUnique).mockResolvedValueOnce(activePrediction as any)
+    vi.mocked(prisma.prediction.findFirst).mockResolvedValueOnce(activePrediction as any)
 
     const req = new NextRequest('http://localhost/api/forecasts/pred-1/approve', { method: 'POST' })
     const res = await POST(req, { params: Promise.resolve({ id: 'pred-1' }) })
@@ -177,7 +178,7 @@ describe('POST /api/forecasts/[id]/approve', () => {
     const pending = makeBotPrediction()
     const approved = { ...pending, status: 'ACTIVE', publishedAt: new Date() }
 
-    vi.mocked(prisma.prediction.findUnique)
+    vi.mocked(prisma.prediction.findFirst)
       .mockResolvedValueOnce(pending as any)
       .mockResolvedValueOnce(approved as any)
     vi.mocked(prisma.prediction.update).mockResolvedValue(approved as any)
@@ -232,7 +233,7 @@ describe('POST /api/forecasts/[id]/reject', () => {
     const humanPrediction = makeBotPrediction({
       author: { ...BOT_AUTHOR, isBot: false },
     })
-    vi.mocked(prisma.prediction.findUnique).mockResolvedValue(humanPrediction as any)
+    vi.mocked(prisma.prediction.findFirst).mockResolvedValue(humanPrediction as any)
 
     const req = new NextRequest('http://localhost/api/forecasts/pred-1/reject', {
       method: 'POST',
@@ -256,7 +257,7 @@ describe('POST /api/forecasts/[id]/reject', () => {
     const pending = makeBotPrediction()
     const rejected = { ...pending, status: 'VOID', resolutionOutcome: 'void' }
 
-    vi.mocked(prisma.prediction.findUnique).mockResolvedValueOnce(pending as any)
+    vi.mocked(prisma.prediction.findFirst).mockResolvedValueOnce(pending as any)
     vi.mocked(prisma.prediction.update).mockResolvedValue(rejected as any)
     vi.mocked(prisma.botConfig.findUnique).mockResolvedValue(null)
     vi.mocked(prisma.user.findUnique).mockResolvedValue(APPROVER_USER as any)

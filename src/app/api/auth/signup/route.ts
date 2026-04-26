@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
-import { prisma } from '@/lib/prisma'
 import { registerSchema } from '@/lib/validations/auth'
 import { apiError, handleRouteError } from '@/lib/api-error'
 import { slugify } from '@/lib/utils/slugify'
 import { createLogger } from '@/lib/logger'
 import { notifyNewUserRegistered } from '@/lib/services/telegram'
+import { findUserByEmail, findUsernameCollisions, registerUser } from '@/lib/services/user'
 
 const log = createLogger('api-auth-signup')
 
@@ -15,33 +15,17 @@ export async function POST(req: NextRequest) {
     const validatedData = registerSchema.parse(body)
     const { name, email, password } = validatedData
 
-    // 1. Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-      select: { id: true },
-    })
-
+    const existingUser = await findUserByEmail(email)
     if (existingUser) {
       return apiError('User with this email already exists', 400)
     }
 
-    // 2. Hash password
     const hashedPassword = await bcrypt.hash(password, 12)
 
-    // 3. Generate unique username and slug
     const baseUsername = slugify(name).replace(/-/g, '_')
     const baseSlug = slugify(name)
-    
-    // Find collisions
-    const collisions = await prisma.user.findMany({
-      where: {
-        OR: [
-          { username: { startsWith: baseUsername } },
-          { slug: { startsWith: baseSlug } }
-        ]
-      },
-      select: { username: true, slug: true }
-    })
+
+    const collisions = await findUsernameCollisions(baseUsername, baseSlug)
 
     const existingUsernames = collisions.map(c => c.username).filter((u): u is string => !!u)
     const existingSlugs = collisions.map(c => c.slug).filter((s): s is string => !!s)
@@ -61,35 +45,10 @@ export async function POST(req: NextRequest) {
       counter++
     }
 
-    // 4. Create user and initial grant in a transaction
-    const newUser = await prisma.$transaction(async (tx) => {
-      const user = await tx.user.create({
-        data: {
-          name,
-          email,
-          password: hashedPassword,
-          username,
-          slug,
-          cuAvailable: 100, // Initial grant
-        },
-      })
-
-      await tx.cuTransaction.create({
-        data: {
-          userId: user.id,
-          type: 'INITIAL_GRANT',
-          amount: 100,
-          balanceAfter: 100,
-          note: 'Welcome bonus',
-        },
-      })
-
-      return user
-    })
+    const newUser = await registerUser({ name, email, hashedPassword, username, slug })
 
     log.info({ userId: newUser.id, email: newUser.email }, 'User registered successfully')
 
-    // Notify Telegram about new user registration
     notifyNewUserRegistered({
       email: newUser.email!,
       name: newUser.name,

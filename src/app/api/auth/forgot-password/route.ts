@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import { forgotPasswordSchema } from '@/lib/validations/auth'
 import { createVerificationToken, sendPasswordResetEmail } from '@/lib/services/auth-email'
+import { findUserByEmail } from '@/lib/services/user'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('forgot-password')
@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { email } = forgotPasswordSchema.parse(body)
 
-    const user = await prisma.user.findUnique({ where: { email }, select: { id: true, email: true } })
+    const user = await findUserByEmail(email)
 
     // Always respond 200 to avoid email enumeration
     if (!user) {

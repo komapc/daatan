@@ -302,3 +302,219 @@ export async function findSimilarForecasts({
     .slice(0, limit)
     .map(({ tags: _, ...rest }) => rest)
 }
+
+// ── Single forecast ───────────────────────────────────────────────────────────
+
+export async function getForecastById(idOrSlug: string) {
+  return prisma.prediction.findFirst({
+    where: { OR: [{ id: idOrSlug }, { slug: idOrSlug }] },
+    include: {
+      author: { select: { id: true, name: true, username: true, image: true, rs: true, role: true, isBot: true } },
+      newsAnchor: true,
+      options: { orderBy: { displayOrder: 'asc' } },
+      commitments: {
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: { select: { id: true, name: true, username: true, image: true } },
+          option: { select: { id: true, text: true } },
+        },
+      },
+      _count: { select: { commitments: true } },
+    },
+  })
+}
+
+export async function getPredictionOwnershipInfo(id: string) {
+  return prisma.prediction.findUnique({
+    where: { id },
+    select: { authorId: true, status: true, lockedAt: true },
+  })
+}
+
+export async function getPredictionBasicInfo(id: string) {
+  return prisma.prediction.findUnique({
+    where: { id },
+    select: { id: true, claimText: true, authorId: true, slug: true },
+  })
+}
+
+export async function getPredictionWithTags(id: string) {
+  return prisma.prediction.findUnique({
+    where: { id },
+    select: { claimText: true, tags: { select: { name: true } } },
+  })
+}
+
+export async function getUserCommitment(predictionId: string, userId: string) {
+  return prisma.commitment.findFirst({
+    where: { predictionId, userId },
+    select: { id: true, cuCommitted: true, binaryChoice: true, optionId: true, createdAt: true },
+  })
+}
+
+export interface UpdateForecastData {
+  claimText?: string
+  detailsText?: string | null
+  resolutionRules?: string | null
+  resolveByDatetime?: string
+  isPublic?: boolean
+  options?: string[]
+}
+
+export async function updateForecast(id: string, data: UpdateForecastData) {
+  const translatableFieldsChanged =
+    data.claimText || data.detailsText !== undefined || data.resolutionRules !== undefined
+  if (translatableFieldsChanged) {
+    await prisma.predictionTranslation.deleteMany({ where: { predictionId: id } })
+  }
+
+  return prisma.$transaction(async (tx) => {
+    if (data.options) {
+      await tx.predictionOption.deleteMany({ where: { predictionId: id } })
+      await tx.predictionOption.createMany({
+        data: data.options.map((text, index) => ({ predictionId: id, text, displayOrder: index })),
+      })
+    }
+
+    return tx.prediction.update({
+      where: { id },
+      data: {
+        claimText: data.claimText,
+        detailsText: data.detailsText,
+        resolutionRules: data.resolutionRules,
+        resolveByDatetime: data.resolveByDatetime ? new Date(data.resolveByDatetime) : undefined,
+        isPublic: data.isPublic,
+      },
+      include: {
+        author: { select: { id: true, name: true, username: true, image: true } },
+        newsAnchor: true,
+        options: { orderBy: { displayOrder: 'asc' } },
+      },
+    })
+  })
+}
+
+export async function deleteForecast(id: string) {
+  return prisma.prediction.delete({ where: { id } })
+}
+
+export async function publishForecast(id: string) {
+  const now = new Date()
+  return prisma.prediction.update({
+    where: { id },
+    data: { status: 'ACTIVE', publishedAt: now },
+    include: {
+      author: { select: { id: true, name: true, username: true, image: true } },
+      newsAnchor: true,
+      options: { orderBy: { displayOrder: 'asc' } },
+    },
+  })
+}
+
+export async function approveForecast(predictionId: string) {
+  const now = new Date()
+  return prisma.prediction.update({
+    where: { id: predictionId },
+    data: { status: 'ACTIVE', publishedAt: now },
+    include: {
+      author: { select: { id: true, name: true, username: true, image: true, isBot: true } },
+      options: { orderBy: { displayOrder: 'asc' } },
+    },
+  })
+}
+
+export interface RejectForecastOptions {
+  keywords: string[]
+  description: string
+  rejectorId: string
+  authorId: string
+}
+
+export async function rejectForecast(predictionId: string, opts: RejectForecastOptions) {
+  const now = new Date()
+  const updated = await prisma.prediction.update({
+    where: { id: predictionId },
+    data: {
+      status: 'VOID',
+      resolutionOutcome: 'void',
+      resolvedAt: now,
+      resolutionNote: 'Rejected during approval workflow',
+    },
+    include: { author: { select: { id: true, name: true, username: true } } },
+  })
+
+  const botConfig = await prisma.botConfig.findUnique({ where: { userId: opts.authorId } })
+  if (botConfig) {
+    await prisma.botRejectedTopic.create({
+      data: {
+        botId: botConfig.id,
+        keywords: opts.keywords,
+        description: opts.description,
+        rejectedById: opts.rejectorId,
+      },
+    })
+  }
+
+  return updated
+}
+
+export async function updateForecastStatus(id: string, status: string) {
+  return prisma.prediction.update({
+    where: { id },
+    data: { status: status as 'DRAFT' | 'ACTIVE' | 'PENDING' | 'PENDING_APPROVAL' | 'RESOLVED_CORRECT' | 'RESOLVED_WRONG' | 'VOID' | 'UNRESOLVABLE' },
+  })
+}
+
+// ── Admin queries ─────────────────────────────────────────────────────────────
+
+export interface AdminForecastsQuery {
+  search?: string
+  page: number
+  limit: number
+}
+
+export async function listAdminForecasts({ search, page, limit }: AdminForecastsQuery) {
+  const where: Record<string, unknown> = {}
+  if (search) {
+    where.OR = [
+      { claimText: { contains: search, mode: 'insensitive' } },
+      { author: { name: { contains: search, mode: 'insensitive' } } },
+      { author: { email: { contains: search, mode: 'insensitive' } } },
+    ]
+  }
+
+  const [predictions, total] = await Promise.all([
+    prisma.prediction.findMany({
+      where,
+      include: {
+        author: { select: { name: true, email: true } },
+        _count: { select: { commitments: true, comments: true } },
+      },
+      skip: (page - 1) * limit,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.prediction.count({ where }),
+  ])
+
+  return { predictions, total, pages: Math.ceil(total / limit) }
+}
+
+export async function listPendingApprovals({ page, limit }: { page: number; limit: number }) {
+  const where = { status: 'PENDING_APPROVAL' as const }
+  const [predictions, total] = await Promise.all([
+    prisma.prediction.findMany({
+      where,
+      include: {
+        author: { select: { id: true, name: true, username: true, email: true, image: true, isBot: true } },
+        _count: { select: { commitments: true, comments: true } },
+      },
+      skip: (page - 1) * limit,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.prediction.count({ where }),
+  ])
+
+  return { predictions, total, pages: Math.ceil(total / limit) }
+}

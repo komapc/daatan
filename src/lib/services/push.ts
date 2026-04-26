@@ -84,3 +84,25 @@ export async function dispatchBrowserPush(
     log.warn({ userId, total: subscriptions.length, failed }, 'Some push notifications failed')
   }
 }
+
+export async function upsertPushSubscription(
+  userId: string,
+  endpoint: string,
+  p256dh: string,
+  auth: string,
+  userAgent?: string,
+) {
+  await prisma.pushSubscription.deleteMany({
+    where: { endpoint, userId: { not: userId } },
+  })
+
+  await prisma.pushSubscription.upsert({
+    where: { endpoint },
+    create: { userId, endpoint, p256dh, auth, userAgent },
+    update: { p256dh, auth, userAgent },
+  })
+}
+
+export async function deletePushSubscription(userId: string, endpoint: string) {
+  await prisma.pushSubscription.deleteMany({ where: { endpoint, userId } })
+}

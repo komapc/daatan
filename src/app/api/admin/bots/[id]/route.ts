@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-middleware'
-import { prisma } from '@/lib/prisma'
 import { handleRouteError, apiError } from '@/lib/api-error'
 import { z } from 'zod'
+import { getBotById, updateBot, disableBot } from '@/lib/services/bot'
 
 export const dynamic = 'force-dynamic'
 
@@ -39,7 +39,6 @@ const updateBotSchema = z
     (d) => {
       const startSet = d.activeHoursStart != null
       const endSet = d.activeHoursEnd != null
-      // Allow partial update only if neither or both are provided
       return startSet === endSet || (d.activeHoursStart === null && d.activeHoursEnd === null)
     },
     {
@@ -55,21 +54,16 @@ export const PATCH = withAuth(
       const body = await request.json()
       const data = updateBotSchema.parse(body)
 
-      const bot = await prisma.botConfig.findUnique({ where: { id: params.id } })
+      const bot = await getBotById(params.id)
       if (!bot) return apiError('Bot not found', 404)
 
-      // Validate stake range if both provided
       const newMin = data.stakeMin ?? bot.stakeMin
       const newMax = data.stakeMax ?? bot.stakeMax
       if (newMin > newMax) {
         return NextResponse.json({ error: 'stakeMin must be ≤ stakeMax' }, { status: 400 })
       }
 
-      const updated = await prisma.botConfig.update({
-        where: { id: params.id },
-        data,
-        include: { user: { select: { id: true, name: true, username: true } } },
-      })
+      const updated = await updateBot(params.id, data)
 
       return NextResponse.json({ bot: updated })
     } catch (err) {
@@ -83,13 +77,10 @@ export const PATCH = withAuth(
 export const DELETE = withAuth(
   async (_request: NextRequest, _user, { params }) => {
     try {
-      const bot = await prisma.botConfig.findUnique({ where: { id: params.id } })
+      const bot = await getBotById(params.id)
       if (!bot) return apiError('Bot not found', 404)
 
-      await prisma.botConfig.update({
-        where: { id: params.id },
-        data: { isActive: false },
-      })
+      await disableBot(params.id)
 
       return NextResponse.json({ ok: true })
     } catch (err) {

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-middleware'
 import { runBotById } from '@/lib/services/bots'
 import { apiError, handleRouteError } from '@/lib/api-error'
-import { prisma } from '@/lib/prisma'
+import { getBotById } from '@/lib/services/bot'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
@@ -11,7 +11,7 @@ export const maxDuration = 300
 export const POST = withAuth(
   async (request: NextRequest, _user, { params }) => {
     try {
-      const bot = await prisma.botConfig.findUnique({ where: { id: params.id } })
+      const bot = await getBotById(params.id)
       if (!bot) return apiError('Bot not found', 404)
 
       const dryRun = new URL(request.url).searchParams.get('dry') === 'true'
