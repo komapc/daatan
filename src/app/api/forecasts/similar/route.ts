@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { handleRouteError } from '@/lib/api-error'
-import { prisma } from '@/lib/prisma'
-import { findSimilarForecasts } from '@/lib/services/forecast'
+import { getPredictionWithTags, findSimilarForecasts } from '@/lib/services/forecast'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,13 +18,7 @@ export async function GET(request: NextRequest) {
     let tags: string[] = tagsParam ? tagsParam.split(',').map(t => t.trim()).filter(Boolean) : []
 
     if (id) {
-      const forecast = await prisma.prediction.findUnique({
-        where: { id },
-        select: {
-          claimText: true,
-          tags: { select: { name: true } },
-        },
-      })
+      const forecast = await getPredictionWithTags(id)
       if (!forecast) return NextResponse.json({ similar: [] })
       claimText = forecast.claimText
       tags = forecast.tags.map(t => t.name)

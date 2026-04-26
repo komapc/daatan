@@ -1,6 +1,6 @@
 # TODO.md — Task Queue
 
-*Last updated: April 23, 2026 · v1.10.29*
+*Last updated: April 26, 2026 · v1.10.34*
 
 ---
 
@@ -10,18 +10,10 @@
 - [ ] **Pluggable Push Notification Architecture** — refactor current Web Push logic into an adapter-based system to prepare for future Firebase Cloud Messaging (FCM) / Mobile integration. (Add an implementation plan under `docs/` when you start.)
 
 ### Code Quality & Architecture
-- [ ] **Service layer for API routes** — ~105 direct `prisma.*` calls remaining across 47 files in `src/app/api/`. Pass 1 done (forecast + comment routes, PR #663). Continue extracting business logic into `src/lib/services/`.
+- [ ] **Service layer for API routes** — 13 direct `prisma.*` calls remaining in 6 files (context, research, health, backfill-rules, stats, commit/preview — all LLM-intertwined or trivial). Pass 1 done (forecast + comment routes, PR #663). Pass 2 done (notifications, user/profile, leaderboard, tags, PR #680). Pass 3 done (forecast CRUD, approve/reject/publish, comment CRUD+reactions, bot admin, user admin, push subscriptions, news anchors, auth signup/reset, commitments — v1.10.34).
 
 ### i18n (untranslated components)
-The following `'use client'` files have hardcoded English strings and do not use `next-intl`. Wire up `useTranslations` and add keys to all four locale files (en/ru/eo/he).
-
-**Admin-only (lower priority):**
-- [ ] `src/app/admin/AdminClient.tsx`
-- [ ] `src/app/admin/AdminNav.tsx`
-- [ ] `src/app/admin/BotsTable.tsx`
-- [ ] `src/app/admin/_bots/CreateBotForm.tsx`
-- [ ] `src/app/admin/_bots/EditBotModal.tsx`
-- [ ] `src/app/admin/CommentsTable.tsx`
+~~Admin components — done in PR #679 (v1.10.32)~~
 
 ### Features & UX
 - [ ] **Microservice for predictions** — defer until a concrete driver appears (independent scaling, separate deploy cadence, or team ownership split). Until then the operational cost (two deployables, auth, data sync, and failure modes) usually outweighs the benefit for a single-app codebase.

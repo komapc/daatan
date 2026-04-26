@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import { withAuth } from '@/lib/api-middleware'
+import { deleteAccount } from '@/lib/services/user'
 
 export const DELETE = withAuth(async (_request, user) => {
-  await prisma.user.delete({ where: { id: user.id } })
+  await deleteAccount(user.id)
   return NextResponse.json({ ok: true })
 })

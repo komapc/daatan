@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-middleware'
-import { prisma } from '@/lib/prisma'
-import { type Prisma } from '@prisma/client'
+import { listAdminForecasts } from '@/lib/services/forecast'
 
 export const GET = withAuth(async (req) => {
   const { searchParams } = new URL(req.url)
@@ -10,28 +9,7 @@ export const GET = withAuth(async (req) => {
   const limit = Math.min(100, Math.max(1, rawLimit))
   const search = searchParams.get('search') || ''
 
-  const where: Prisma.PredictionWhereInput = {}
-  if (search) {
-    where.OR = [
-      { claimText: { contains: search, mode: 'insensitive' } },
-      { author: { name: { contains: search, mode: 'insensitive' } } },
-      { author: { email: { contains: search, mode: 'insensitive' } } },
-    ]
-  }
+  const result = await listAdminForecasts({ search: search || undefined, page, limit })
 
-  const [predictions, total] = await Promise.all([
-    prisma.prediction.findMany({
-      where,
-      include: {
-        author: { select: { name: true, email: true } },
-        _count: { select: { commitments: true, comments: true } }
-      },
-      skip: (page - 1) * limit,
-      take: limit,
-      orderBy: { createdAt: 'desc' }
-    }),
-    prisma.prediction.count({ where })
-  ])
-
-  return NextResponse.json({ predictions, total, pages: Math.ceil(total / limit) })
+  return NextResponse.json(result)
 }, { roles: ['ADMIN', 'RESOLVER'] })

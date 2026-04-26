@@ -1,15 +1,11 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-middleware'
-import { prisma } from '@/lib/prisma'
+import { softDeleteComment } from '@/lib/services/comment'
 
 export const DELETE = withAuth(async (_req, _user, { params }) => {
   const { id } = params
-  
-  // Soft delete
-  await prisma.comment.update({
-    where: { id },
-    data: { deletedAt: new Date() }
-  })
-  
+
+  await softDeleteComment(id)
+
   return NextResponse.json({ success: true })
 }, { roles: ['ADMIN', 'RESOLVER'] })

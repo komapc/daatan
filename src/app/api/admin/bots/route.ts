@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-middleware'
-import { prisma } from '@/lib/prisma'
 import { handleRouteError } from '@/lib/api-error'
 import { z } from 'zod'
 import { createBotLLMService } from '@/lib/llm'
@@ -8,6 +7,7 @@ import { getPromptTemplate, fillPrompt } from '@/lib/llm/bedrock-prompts'
 import { botConfigGenerationSchema } from '@/lib/llm/schemas'
 import { createLogger } from '@/lib/logger'
 import { env } from '@/env'
+import { listBots, getBotCount, findBotUserByUsername, createBotInDb } from '@/lib/services/bot'
 
 const log = createLogger('admin-bots')
 
@@ -55,115 +55,8 @@ const createBotSchema = z
 export const GET = withAuth(
   async () => {
     try {
-      const bots = await prisma.botConfig.findMany({
-        select: {
-          id: true,
-          userId: true,
-          personaPrompt: true,
-          forecastPrompt: true,
-          votePrompt: true,
-          newsSources: true,
-          intervalMinutes: true,
-          maxForecastsPerDay: true,
-          maxVotesPerDay: true,
-          stakeMin: true,
-          stakeMax: true,
-          modelPreference: true,
-          hotnessMinSources: true,
-          hotnessWindowHours: true,
-          activeHoursStart: true,
-          activeHoursEnd: true,
-          tagFilter: true,
-          voteBias: true,
-          cuRefillAt: true,
-          cuRefillAmount: true,
-          canCreateForecasts: true,
-          canVote: true,
-          autoApprove: true,
-          requireApprovalForForecasts: true,
-          enableSentimentExtraction: true,
-          enableRejectionTracking: true,
-          showMetadataOnForecast: true,
-          maxForecastsPerHour: true,
-          isActive: true,
-          lastRunAt: true,
-          createdAt: true,
-          user: { select: { id: true, name: true, username: true, image: true } },
-          runLogs: { orderBy: { runAt: 'desc' }, take: 1, select: { runAt: true, action: true, error: true } },
-        },
-        orderBy: { createdAt: 'asc' },
-      })
-
-      // Attach today's action counts — single groupBy instead of 2×N count queries
-      const startOfDay = new Date()
-      startOfDay.setHours(0, 0, 0, 0)
-
-      const botIds = bots.map(b => b.id)
-      const todayCounts = await prisma.botRunLog.groupBy({
-        by: ['botId', 'action'],
-        where: {
-          botId: { in: botIds },
-          action: { in: ['CREATED_FORECAST', 'VOTED'] },
-          isDryRun: false,
-          runAt: { gte: startOfDay },
-        },
-        _count: { _all: true },
-      })
-
-      const countsByBot = new Map<string, { forecastsToday: number; votesToday: number }>()
-      for (const row of todayCounts) {
-        const entry = countsByBot.get(row.botId) ?? { forecastsToday: 0, votesToday: 0 }
-        if (row.action === 'CREATED_FORECAST') entry.forecastsToday = row._count._all
-        if (row.action === 'VOTED') entry.votesToday = row._count._all
-        countsByBot.set(row.botId, entry)
-      }
-
-      const enriched = bots.map((bot) => {
-          const { forecastsToday, votesToday } = countsByBot.get(bot.id) ?? { forecastsToday: 0, votesToday: 0 }
-
-          const nextRunAt = bot.lastRunAt
-            ? new Date(bot.lastRunAt.getTime() + bot.intervalMinutes * 60 * 1000)
-            : null
-
-          return {
-            id: bot.id,
-            isActive: bot.isActive,
-            intervalMinutes: bot.intervalMinutes,
-            maxForecastsPerDay: bot.maxForecastsPerDay,
-            maxVotesPerDay: bot.maxVotesPerDay,
-            stakeMin: bot.stakeMin,
-            stakeMax: bot.stakeMax,
-            modelPreference: bot.modelPreference,
-            hotnessMinSources: bot.hotnessMinSources,
-            hotnessWindowHours: bot.hotnessWindowHours,
-            personaPrompt: bot.personaPrompt,
-            forecastPrompt: bot.forecastPrompt,
-            votePrompt: bot.votePrompt,
-            newsSources: bot.newsSources,
-            activeHoursStart: bot.activeHoursStart,
-            activeHoursEnd: bot.activeHoursEnd,
-            tagFilter: bot.tagFilter,
-            voteBias: bot.voteBias,
-            cuRefillAt: bot.cuRefillAt,
-            cuRefillAmount: bot.cuRefillAmount,
-            canCreateForecasts: bot.canCreateForecasts,
-            canVote: bot.canVote,
-            autoApprove: bot.autoApprove,
-            requireApprovalForForecasts: bot.requireApprovalForForecasts,
-            enableSentimentExtraction: bot.enableSentimentExtraction,
-            enableRejectionTracking: bot.enableRejectionTracking,
-            showMetadataOnForecast: bot.showMetadataOnForecast,
-            maxForecastsPerHour: bot.maxForecastsPerHour,
-            lastRunAt: bot.lastRunAt,
-            nextRunAt,
-            forecastsToday,
-            votesToday,
-            lastLog: bot.runLogs[0] || null,
-            user: bot.user,
-          }
-        })
-
-      return NextResponse.json({ bots: enriched })
+      const bots = await listBots()
+      return NextResponse.json({ bots })
     } catch (err) {
       return handleRouteError(err, 'Failed to list bots')
     }
@@ -178,29 +71,24 @@ export const POST = withAuth(
       const body = await request.json()
       const data = createBotSchema.parse(body)
 
-      // Enforce MAX_BOTS limit
-      const botCount = await prisma.botConfig.count()
+      const botCount = await getBotCount()
       if (botCount >= env.MAX_BOTS) {
-        return NextResponse.json({ 
-          error: `Bot limit reached (${env.MAX_BOTS}). Delete existing bots to create new ones.` 
+        return NextResponse.json({
+          error: `Bot limit reached (${env.MAX_BOTS}). Delete existing bots to create new ones.`
         }, { status: 400 })
       }
 
-      // Validate stakeMin <= stakeMax
       if (data.stakeMin > data.stakeMax) {
         return NextResponse.json({ error: 'stakeMin must be ≤ stakeMax' }, { status: 400 })
       }
 
-      // Build username with _b suffix
       const username = `${data.name.toLowerCase().replace(/\s+/g, '_')}_b`
 
-      // Check username uniqueness
-      const existing = await prisma.user.findUnique({ where: { username } })
+      const existing = await findBotUserByUsername(username)
       if (existing) {
         return NextResponse.json({ error: `Username ${username} is already taken` }, { status: 400 })
       }
 
-      // If prompts are default, dynamically generate them based on the bot's name
       if (data.personaPrompt === DEFAULT_PERSONA) {
         try {
           const llm = createBotLLMService(data.modelPreference)
@@ -229,56 +117,7 @@ export const POST = withAuth(
         }
       }
 
-      // Create bot user + config in a transaction
-      const result = await prisma.$transaction(async (tx) => {
-        const user = await tx.user.create({
-          data: {
-            email: `${username}@daatan.internal`,
-            name: data.name,
-            username,
-            slug: username,
-            isBot: true,
-            emailNotifications: false,
-            isPublic: true,
-            // Same starting balance as regular users (100 CU from initial grant)
-            cuAvailable: 100,
-          },
-        })
-
-        const botConfig = await tx.botConfig.create({
-          data: {
-            userId: user.id,
-            personaPrompt: data.personaPrompt,
-            forecastPrompt: data.forecastPrompt,
-            votePrompt: data.votePrompt,
-            newsSources: data.newsSources,
-            intervalMinutes: data.intervalMinutes,
-            maxForecastsPerDay: data.maxForecastsPerDay,
-            maxVotesPerDay: data.maxVotesPerDay,
-            stakeMin: data.stakeMin,
-            stakeMax: data.stakeMax,
-            modelPreference: data.modelPreference,
-            hotnessMinSources: data.hotnessMinSources,
-            hotnessWindowHours: data.hotnessWindowHours,
-            activeHoursStart: data.activeHoursStart,
-            activeHoursEnd: data.activeHoursEnd,
-            tagFilter: data.tagFilter,
-            voteBias: data.voteBias,
-            cuRefillAt: data.cuRefillAt,
-            cuRefillAmount: data.cuRefillAmount,
-            canCreateForecasts: data.canCreateForecasts,
-            canVote: data.canVote,
-            requireApprovalForForecasts: data.requireApprovalForForecasts,
-            enableSentimentExtraction: data.enableSentimentExtraction,
-            enableRejectionTracking: data.enableRejectionTracking,
-            showMetadataOnForecast: data.showMetadataOnForecast,
-            maxForecastsPerHour: data.maxForecastsPerHour,
-          },
-          include: { user: true },
-        })
-
-        return botConfig
-      })
+      const result = await createBotInDb({ ...data, username })
 
       return NextResponse.json({ bot: result }, { status: 201 })
     } catch (err) {

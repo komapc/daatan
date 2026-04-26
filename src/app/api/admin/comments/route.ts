@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-middleware'
-import { prisma } from '@/lib/prisma'
-import { type Prisma } from '@prisma/client'
+import { listAdminComments } from '@/lib/services/comment'
 
 export const GET = withAuth(async (req) => {
   const { searchParams } = new URL(req.url)
@@ -10,27 +9,7 @@ export const GET = withAuth(async (req) => {
   const limit = Math.min(100, Math.max(1, rawLimit))
   const search = searchParams.get('search') || ''
 
-  const where: Prisma.CommentWhereInput = {}
-  if (search) {
-    where.OR = [
-      { text: { contains: search, mode: 'insensitive' } },
-      { author: { name: { contains: search, mode: 'insensitive' } } },
-    ]
-  }
+  const result = await listAdminComments({ search: search || undefined, page, limit })
 
-  const [comments, total] = await Promise.all([
-    prisma.comment.findMany({
-      where,
-      include: {
-        author: { select: { name: true, email: true } },
-        prediction: { select: { claimText: true } },
-      },
-      skip: (page - 1) * limit,
-      take: limit,
-      orderBy: { createdAt: 'desc' }
-    }),
-    prisma.comment.count({ where })
-  ])
-
-  return NextResponse.json({ comments, total, pages: Math.ceil(total / limit) })
+  return NextResponse.json(result)
 }, { roles: ['ADMIN', 'RESOLVER'] })

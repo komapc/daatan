@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-middleware'
-import { prisma } from '@/lib/prisma'
 import { apiError, handleRouteError } from '@/lib/api-error'
+import { getBotById, listBotLogs } from '@/lib/services/bot'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,22 +9,14 @@ export const dynamic = 'force-dynamic'
 export const GET = withAuth(
   async (request: NextRequest, _user, { params }) => {
     try {
-      const bot = await prisma.botConfig.findUnique({ where: { id: params.id } })
+      const bot = await getBotById(params.id)
       if (!bot) return apiError('Bot not found', 404)
 
       const { searchParams } = new URL(request.url)
       const page = Math.max(1, parseInt(searchParams.get('page') ?? '1'))
       const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') ?? '20')))
 
-      const [logs, total] = await Promise.all([
-        prisma.botRunLog.findMany({
-          where: { botId: params.id },
-          orderBy: { runAt: 'desc' },
-          skip: (page - 1) * limit,
-          take: limit,
-        }),
-        prisma.botRunLog.count({ where: { botId: params.id } }),
-      ])
+      const { logs, total } = await listBotLogs(params.id, page, limit)
 
       return NextResponse.json({
         logs,

@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-middleware'
-import { prisma } from '@/lib/prisma'
-import { type Prisma } from '@prisma/client'
+import { listAdminUsers } from '@/lib/services/user'
 
 export const GET = withAuth(async (req) => {
   const { searchParams } = new URL(req.url)
@@ -10,29 +9,7 @@ export const GET = withAuth(async (req) => {
   const limit = Math.min(100, Math.max(1, rawLimit))
   const search = searchParams.get('search') || ''
 
-  const where: Prisma.UserWhereInput = {}
-  if (search) {
-    where.OR = [
-      { name: { contains: search, mode: 'insensitive' } },
-      { email: { contains: search, mode: 'insensitive' } },
-      { username: { contains: search, mode: 'insensitive' } },
-    ]
-  }
+  const result = await listAdminUsers({ search: search || undefined, page, limit })
 
-  const [users, total] = await Promise.all([
-    prisma.user.findMany({
-      where,
-      select: {
-        id: true, name: true, email: true, role: true,
-        cuAvailable: true, rs: true, createdAt: true,
-        _count: { select: { predictions: true, commitments: true } }
-      },
-      skip: (page - 1) * limit,
-      take: limit,
-      orderBy: { createdAt: 'desc' }
-    }),
-    prisma.user.count({ where })
-  ])
-
-  return NextResponse.json({ users, total, pages: Math.ceil(total / limit) })
+  return NextResponse.json(result)
 }, { roles: ['ADMIN'] })

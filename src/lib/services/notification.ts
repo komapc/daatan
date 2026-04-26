@@ -158,6 +158,105 @@ export const cleanupOldNotifications = async (olderThanDays = 90): Promise<numbe
   return result.count
 }
 
+export interface ListNotificationsOptions {
+  page?: number
+  limit?: number
+  unreadOnly?: boolean
+}
+
+export interface ListNotificationsResult {
+  notifications: Array<{
+    id: string
+    userId: string
+    type: NotificationType
+    title: string
+    message: string
+    link: string | null
+    predictionId: string | null
+    commentId: string | null
+    actorId: string | null
+    read: boolean
+    readAt: Date | null
+    createdAt: Date
+    actor: { id: string; name: string | null; username: string | null; image: string | null; avatarUrl: string | null } | null
+  }>
+  unreadCount: number
+  pagination: { page: number; limit: number; total: number; totalPages: number }
+}
+
+export const listNotifications = async (
+  userId: string,
+  options: ListNotificationsOptions = {}
+): Promise<ListNotificationsResult> => {
+  const page = options.page ?? 1
+  const limit = Math.min(100, Math.max(1, options.limit ?? 20))
+  const where = {
+    userId,
+    ...(options.unreadOnly && { read: false }),
+  }
+
+  const [notifications, total, unreadCount] = await Promise.all([
+    prisma.notification.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.notification.count({ where }),
+    prisma.notification.count({ where: { userId, read: false } }),
+  ])
+
+  const actorIds = [...new Set(notifications.map(n => n.actorId).filter(Boolean) as string[])]
+  const actors = actorIds.length > 0
+    ? await prisma.user.findMany({
+        where: { id: { in: actorIds } },
+        select: { id: true, name: true, username: true, image: true, avatarUrl: true },
+      })
+    : []
+  const actorMap = Object.fromEntries(actors.map(a => [a.id, a]))
+
+  return {
+    notifications: notifications.map(n => ({
+      ...n,
+      actor: n.actorId ? (actorMap[n.actorId] ?? null) : null,
+    })),
+    unreadCount,
+    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+  }
+}
+
+export const getNotificationPreferences = async (userId: string) => {
+  const stored = await prisma.notificationPreference.findMany({ where: { userId } })
+  const storedMap = new Map(stored.map(p => [p.type, p]))
+  return Object.entries(NOTIFICATION_TYPE_DEFAULTS).map(([type, defaults]) => {
+    const pref = storedMap.get(type as NotificationType)
+    return {
+      type: type as NotificationType,
+      inApp: pref ? pref.inApp : defaults.inApp,
+      email: pref ? pref.email : defaults.email,
+      browserPush: pref ? pref.browserPush : defaults.browserPush,
+    }
+  })
+}
+
+export const upsertNotificationPreference = async (
+  userId: string,
+  type: NotificationType,
+  data: { inApp?: boolean; email?: boolean; browserPush?: boolean }
+) => {
+  const defaults = NOTIFICATION_TYPE_DEFAULTS[type]
+  const upsertData = {
+    inApp: data.inApp ?? defaults.inApp,
+    email: data.email ?? defaults.email,
+    browserPush: data.browserPush ?? defaults.browserPush,
+  }
+  return prisma.notificationPreference.upsert({
+    where: { userId_type: { userId, type } },
+    create: { userId, type, ...upsertData },
+    update: upsertData,
+  })
+}
+
 /**
  * Default notification preferences for each type.
  */

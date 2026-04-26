@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-middleware'
-import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { getForecastById, updateForecastStatus, deleteForecast } from '@/lib/services/forecast'
 
 const updateStatusSchema = z.object({
   status: z.enum(['DRAFT', 'ACTIVE', 'PENDING', 'PENDING_APPROVAL', 'RESOLVED_CORRECT', 'RESOLVED_WRONG', 'VOID', 'UNRESOLVABLE']),
@@ -16,9 +16,8 @@ export const PATCH = withAuth(async (req, user, { params }) => {
     return NextResponse.json({ error: result.error }, { status: 400 })
   }
 
-  // Approvers can only transition PENDING_APPROVAL → ACTIVE
   if (user.role === 'APPROVER') {
-    const prediction = await prisma.prediction.findUnique({ where: { id }, select: { status: true } })
+    const prediction = await getForecastById(id)
     if (!prediction) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
@@ -27,10 +26,7 @@ export const PATCH = withAuth(async (req, user, { params }) => {
     }
   }
 
-  const prediction = await prisma.prediction.update({
-    where: { id },
-    data: { status: result.data.status }
-  })
+  const prediction = await updateForecastStatus(id, result.data.status)
 
   return NextResponse.json(prediction)
 }, { roles: ['ADMIN', 'RESOLVER', 'APPROVER'] })
@@ -39,9 +35,7 @@ export const PATCH = withAuth(async (req, user, { params }) => {
 export const DELETE = withAuth(async (_req, _user, { params }) => {
   const { id } = params
 
-  await prisma.prediction.delete({
-    where: { id },
-  })
+  await deleteForecast(id)
 
   return NextResponse.json({ success: true })
 }, { roles: ['ADMIN'] })

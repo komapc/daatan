@@ -26,6 +26,7 @@ vi.mock('@/lib/prisma', () => ({
 vi.mock('@/lib/services/notification', () => ({
   markAllNotificationsRead: vi.fn(),
   markNotificationRead: vi.fn().mockResolvedValue({ count: 1 }),
+  listNotifications: vi.fn(),
 }))
 
 describe('Notifications API', () => {
@@ -48,18 +49,16 @@ describe('Notifications API', () => {
         user: { id: 'user1', email: 'test@example.com', role: 'USER' },
       })
 
-      const { prisma } = await import('@/lib/prisma')
-
-      const mockNotifications = [
-        { id: 'n1', type: 'COMMENT_ON_FORECAST', title: 'New comment', read: false },
-        { id: 'n2', type: 'COMMITMENT_RESOLVED', title: 'Resolved', read: true },
-      ]
-
-      vi.mocked(prisma.notification.findMany).mockResolvedValue(mockNotifications as any)
-      vi.mocked(prisma.notification.count)
-        .mockResolvedValueOnce(2) // total
-        .mockResolvedValueOnce(1) // unread
-      vi.mocked(prisma.user.findMany).mockResolvedValue([])
+      const { listNotifications } = await import('@/lib/services/notification')
+      const mockResult = {
+        notifications: [
+          { id: 'n1', type: 'COMMENT_ON_FORECAST', title: 'New comment', read: false, actor: null },
+          { id: 'n2', type: 'COMMITMENT_RESOLVED', title: 'Resolved', read: true, actor: null },
+        ],
+        unreadCount: 1,
+        pagination: { page: 1, limit: 20, total: 2, totalPages: 1 },
+      }
+      vi.mocked(listNotifications).mockResolvedValue(mockResult as any)
 
       const request = new NextRequest('http://localhost/api/notifications?page=1&limit=20')
       const response = await GET(request, { params: Promise.resolve({}) } as any)
@@ -68,12 +67,8 @@ describe('Notifications API', () => {
       expect(response.status).toBe(200)
       expect(data.notifications).toHaveLength(2)
       expect(data.unreadCount).toBe(1)
-      expect(data.pagination).toEqual({
-        page: 1,
-        limit: 20,
-        total: 2,
-        totalPages: 1,
-      })
+      expect(data.pagination).toEqual({ page: 1, limit: 20, total: 2, totalPages: 1 })
+      expect(listNotifications).toHaveBeenCalledWith('user1', { page: 1, limit: 20, unreadOnly: false })
     })
 
     it('filters by unreadOnly when requested', async () => {
@@ -81,20 +76,18 @@ describe('Notifications API', () => {
         user: { id: 'user1', email: 'test@example.com', role: 'USER' },
       })
 
-      const { prisma } = await import('@/lib/prisma')
-
-      vi.mocked(prisma.notification.findMany).mockResolvedValue([])
-      vi.mocked(prisma.notification.count).mockResolvedValue(0)
+      const { listNotifications } = await import('@/lib/services/notification')
+      vi.mocked(listNotifications).mockResolvedValue({
+        notifications: [],
+        unreadCount: 0,
+        pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
+      } as any)
 
       const request = new NextRequest('http://localhost/api/notifications?unreadOnly=true')
       const response = await GET(request, { params: Promise.resolve({}) } as any)
 
       expect(response.status).toBe(200)
-      expect(prisma.notification.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { userId: 'user1', read: false },
-        })
-      )
+      expect(listNotifications).toHaveBeenCalledWith('user1', expect.objectContaining({ unreadOnly: true }))
     })
   })
 
