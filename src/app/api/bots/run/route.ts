@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createHash, timingSafeEqual } from 'crypto'
 import { runDueBots } from '@/lib/services/bots'
 import { createLogger } from '@/lib/logger'
+import { env } from '@/env'
 
 const log = createLogger('api/bots/run')
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300 // 5 minutes — RSS + LLM calls can be slow
+
+function secretsMatch(provided: string, expected: string): boolean {
+  const a = createHash('sha256').update(provided).digest()
+  const b = createHash('sha256').update(expected).digest()
+  return timingSafeEqual(a, b)
+}
 
 /**
  * POST /api/bots/run
@@ -14,8 +22,9 @@ export const maxDuration = 300 // 5 minutes — RSS + LLM calls can be slow
  */
 export async function POST(request: NextRequest) {
   const secret = request.headers.get('x-bot-runner-secret')
+  const expected = env.BOT_RUNNER_SECRET
 
-  if (!process.env.BOT_RUNNER_SECRET || secret !== process.env.BOT_RUNNER_SECRET) {
+  if (!expected || !secret || !secretsMatch(secret, expected)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
