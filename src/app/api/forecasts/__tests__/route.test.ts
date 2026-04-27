@@ -1,8 +1,9 @@
 import { vi } from 'vitest'
 
-const { mockAuth, mockCheckContent } = vi.hoisted(() => ({
+const { mockAuth, mockCheckContent, mockTranslate } = vi.hoisted(() => ({
     mockAuth: vi.fn(),
     mockCheckContent: vi.fn().mockResolvedValue({ isOffensive: false, reason: '' }),
+    mockTranslate: vi.fn().mockResolvedValue(undefined),
 }))
 
 vi.mock('@/auth', () => ({
@@ -11,6 +12,10 @@ vi.mock('@/auth', () => ({
 
 vi.mock('@/lib/services/moderation', () => ({
     checkContent: mockCheckContent,
+}))
+
+vi.mock('@/lib/services/translation', () => ({
+    translatePredictionToAllLocales: mockTranslate,
 }))
 
 import { describe, it, expect, beforeEach } from 'vitest'
@@ -338,6 +343,40 @@ describe('/api/forecasts', () => {
             expect(data.tags).toHaveLength(2)
             expect(data.tags[0].name).toBe('AI')
             expect(data.tags[1].name).toBe('Technology')
+        })
+
+        // TEST-5: background translation failure path
+        it('returns 201 and the created forecast even when background translation throws', async () => {
+            const { prisma } = await import('@/lib/prisma')
+
+            mockAuth.mockResolvedValue({
+                user: { id: 'user1', email: 'user@example.com', role: 'USER' },
+            } as any)
+            vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'user1', rs: 100 } as any)
+
+            const newForecast = { id: 'fc-1', claimText: 'Forecast with failing translation', status: 'DRAFT' }
+            vi.mocked(prisma.prediction.create).mockResolvedValue(newForecast as any)
+            vi.mocked(prisma.prediction.findUnique).mockResolvedValue(newForecast as any)
+            vi.mocked(prisma.prediction.findMany).mockResolvedValue([])
+
+            // Translation rejects — the route should swallow this via .catch() and still return 201
+            mockTranslate.mockRejectedValue(new Error('Translation service unavailable'))
+
+            const request = new NextRequest('http://localhost/api/forecasts', {
+                method: 'POST',
+                body: JSON.stringify({
+                    claimText: 'Forecast with failing translation',
+                    resolveByDatetime: '2026-12-31T23:59:59Z',
+                    outcomeType: 'BINARY',
+                    resolutionRules: 'Resolves YES if the event occurs.',
+                }),
+            })
+
+            const response = await POST(request, { params: {} } as any)
+
+            expect(response.status).toBe(201)
+            // Translation was attempted (fire-and-forget)
+            expect(mockTranslate).toHaveBeenCalledWith('fc-1')
         })
     })
 })
