@@ -292,4 +292,24 @@ describe('POST /api/forecasts/[id]/research', () => {
     const response = await POST(makeRequest(), { params: Promise.resolve({ id: 'pred-1' }) })
     expect(response.status).toBe(200)
   })
+
+  it('returns 200 with LLM result when all three initial searches fail', async () => {
+    // TEST-3: all three parallel .catch(() => []) searches reject simultaneously.
+    // The route should still call the LLM with empty context and return 200.
+    vi.mocked(prisma.prediction.findUnique).mockResolvedValue(basePrediction as never)
+    vi.mocked(searchArticles).mockRejectedValue(new Error('Search provider down'))
+
+    generateContentMock.mockResolvedValue({
+      text: JSON.stringify({
+        outcome: 'unresolvable',
+        reasoning: 'No search results available',
+        evidenceLinks: [],
+      }),
+    })
+
+    const response = await POST(makeRequest(), { params: Promise.resolve({ id: 'pred-1' }) })
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    expect(body.outcome).toBe('unresolvable')
+  })
 })

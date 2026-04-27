@@ -22,8 +22,8 @@
 ### Testing — Critical gaps
 
 - [x] **[TEST-1] Glicko-2 algorithm has zero tests** — 15 tests in `src/lib/services/__tests__/expertise.test.ts` covering: σ shrinks after first game, rating direction for score=0/1, baseline score≈0.5 near-zero delta, sigma convergence after 20 wins, volatility bounds, expert vs fresh-user gain comparison, NaN/Inf edge cases, and all `applyGlicko2Update` DB call invariants.
-- [ ] **[TEST-2] Commitment `lockedAt` unverified** — `src/lib/services/commitment.ts` sets `lockedAt` on the first commitment; no test asserts this. If it regresses, users can edit locked forecasts without detection.
-- [ ] **[TEST-3] Research route error paths untested** — `api/forecasts/[id]/research/route.ts` runs three parallel searches each with `.catch(() => [])`. No test verifies behaviour when all three fail simultaneously.
+- [x] **[TEST-2] Commitment `lockedAt` unverified** — 3 tests in `__tests__/services/commitment-lockedat.test.ts`: sets lockedAt on first commit, does NOT update on subsequent commits, returns 400 for non-ACTIVE prediction.
+- [x] **[TEST-3] Research route error paths untested** — added "all three initial searches fail" test to research route test suite; verifies 200 with LLM fallback result even when every search rejects.
 
 ### Testing — Medium gaps
 
