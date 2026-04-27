@@ -6,12 +6,6 @@
 
 ## Open Tasks
 
-### Code Quality & Type Safety
-
-- [ ] **[QA-1] Auth `as any` / `as unknown` casts** — `src/auth.ts` and `src/auth.config.ts` use ~7 unsafe casts in JWT/session callbacks. Define proper `declare module 'next-auth'` augmentations for `Session` and `JWT` so role assignment is type-checked.
-- [ ] **[QA-2] `any` in forecast service** — `src/lib/services/forecast.ts:84-85` (`(pred as any).options`) and line 165 (`outcomeType as any`). Replace with proper typed includes and a typed enum cast.
-- [ ] **[QA-3] `schema?: any` in bot runner** — `src/lib/services/bots/runner.ts:74`. Replace with a proper `ZodTypeAny` or `z.ZodType<unknown>` bound so callers can't pass arbitrary values.
-- [ ] **[QA-4] `$executeRawUnsafe` in test helper** — `src/test/integration-helper.ts:52` uses string interpolation in a TRUNCATE call. Refactor to a static allow-list of table names to prevent copy-paste into production.
 
 ### Reliability
 
