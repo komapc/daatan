@@ -26,6 +26,7 @@ import { createLogger } from '@/lib/logger'
 import { slugify, generateUniqueSlug } from '@/lib/utils/slugify'
 import { BotAction } from '@prisma/client'
 import { forecastBatchSchema, voteDecisionSchema } from '@/lib/llm/schemas'
+import type { Schema } from '@google/generative-ai'
 
 const log = createLogger('bot-runner')
 
@@ -71,7 +72,7 @@ const LLM_RETRY_DELAY_MS = 1000 // 1 second delay before retry
 interface LLMCallOptions {
   prompt: string
   temperature?: number
-  schema?: any
+  schema?: Schema
   timeoutMs?: number
   maxAttempts?: number
 }

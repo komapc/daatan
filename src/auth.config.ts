@@ -23,9 +23,9 @@ export default {
     async session({ session, token }) {
       if (session.user && token.sub) {
         session.user.id = token.sub
-        session.user.role = (token.role as any) ?? 'USER'
-        session.user.username = token.username as string | undefined
-        session.user.rs = token.rs as number | undefined
+        session.user.role = token.role ?? 'USER'
+        session.user.username = token.username ?? undefined
+        session.user.rs = token.rs
         if (token.name) session.user.name = token.name
         if (token.picture) session.user.image = token.picture as string
       }
@@ -33,9 +33,10 @@ export default {
     },
     async jwt({ token, user }) {
       if (user) {
-        token.role = (user as any).role
-        token.username = (user as any).username
-        token.rs = (user as any).rs
+        // user is NextAuth User — augmented to include role, username, rs
+        token.role = user.role
+        token.username = user.username
+        token.rs = user.rs
       }
       return token
     },

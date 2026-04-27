@@ -1,4 +1,5 @@
 import crypto from 'crypto'
+import type { OutcomeType } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { slugify, generateUniqueSlug } from '@/lib/utils/slugify'
 import { hashUrl } from '@/lib/utils/hash'
@@ -81,12 +82,12 @@ export function enrichPredictions(
         .reduce((sum, c) => sum + Math.abs(c.cuCommitted), 0)
     }
 
-    const options = (pred as any).options?.map((opt: any) => ({
+    const options = pred.options?.map((opt) => ({
       ...opt,
       commitmentsCount: commitments
         ? commitments.filter((c) => c.optionId === opt.id).length
         : 0,
-    })) || []
+    })) ?? []
 
     return { ...pred, totalCuCommitted, userHasCommitted, yesCount, noCount, options }
   })
@@ -162,7 +163,7 @@ export async function createForecast(input: CreateForecastInput) {
           claimText: input.claimText,
           slug: uniqueSlug,
           detailsText: input.detailsText,
-          outcomeType: input.outcomeType as any,
+          outcomeType: input.outcomeType as OutcomeType,
           outcomePayload: (input.outcomePayload ?? {}) as object,
           resolutionRules: input.resolutionRules,
           resolveByDatetime: new Date(input.resolveByDatetime),

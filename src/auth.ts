@@ -1,6 +1,7 @@
 import NextAuth from "next-auth"
-import type { Session } from "next-auth"
+import type { Session, User } from "next-auth"
 import type { JWT } from "next-auth/jwt"
+import type { UserRole } from "@prisma/client"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
 import { createLogger } from "@/lib/logger"
@@ -57,7 +58,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           id: user.id,
           email: user.email,
           name: user.name,
-          role: user.role as any,
+          role: user.role,
           username: user.username,
           rs: user.rs,
         }
@@ -76,13 +77,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           const user = await prisma.user.upsert({
             where: { id: credentials.userId as string },
-            update: { role: (credentials.role as any) || 'USER' },
+            update: { role: (credentials.role as UserRole) || 'USER' },
             create: {
               id: credentials.userId as string,
               email: `${credentials.userId}@test.daatan.com`,
               name: `Test User ${credentials.userId}`,
               username: `testuser_${credentials.userId}`,
-              role: (credentials.role as any) || 'USER',
+              role: (credentials.role as UserRole) || 'USER',
             }
           })
 
@@ -91,7 +92,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             email: user.email,
             name: user.name,
             image: user.image,
-            role: user.role as any,
+            role: user.role,
             username: user.username,
             rs: user.rs,
           }
@@ -102,24 +103,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     ...authConfig.callbacks,
     async session({ session, token }: { session: Session; token: JWT }) {
-      // First call base session callback
+      // First call base session callback.
+      // NextAuth's session callback is overloaded (JWT vs database strategy), so we
+      // narrow to the JWT-strategy signature used by this app before calling.
       if (authConfig.callbacks?.session) {
-        session = await (authConfig.callbacks.session as any)({ session, token })
+        type JwtSessionFn = (p: { session: Session; token: JWT }) => Promise<Session>
+        session = await (authConfig.callbacks.session as unknown as JwtSessionFn)({ session, token })
       }
 
       if (session.user && token.sub) {
         if (token.userDeleted) {
           log.warn({ userId: token.sub }, 'Session user not found in DB — invalidating session')
-          session.expires = new Date(0).toISOString() as any
+          session.expires = new Date(0).toISOString()
           return session
         }
       }
       return session
     },
     async jwt({ token, user, trigger, session, account, profile }) {
-      // First call base jwt callback
+      // First call base jwt callback.
+      // NextAuth's jwt callback params type is broad; narrow to the shape we pass here.
       if (authConfig.callbacks?.jwt) {
-        token = await (authConfig.callbacks.jwt as any)({ token, user, trigger, session, account, profile })
+        type JwtFn = (p: Parameters<typeof authConfig.callbacks.jwt>[0]) => Promise<JWT>
+        token = await (authConfig.callbacks.jwt as unknown as JwtFn)({ token, user, trigger, session, account, profile })
       }
 
       const TTL = 5 * 60 * 1000 // 5 minutes
@@ -139,7 +145,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             return token
           }
 
-          token.role = dbUser.role as any
+          token.role = dbUser.role
           token.username = dbUser.username
           token.name = dbUser.name ?? token.name
           token.picture = dbUser.avatarUrl || dbUser.image || token.picture

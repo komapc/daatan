@@ -37,22 +37,29 @@ export async function setupTestDatabase() {
   console.log('✅ Test database ready')
 }
 
+// Static allow-list of tables that may be truncated in tests.
+// Adding tables here is intentional — prevents accidental use of $executeRawUnsafe
+// with dynamic/interpolated names that could be copy-pasted into production code.
+const TRUNCATABLE_TABLES = [
+  'users', 'predictions', 'prediction_options', 'prediction_translations',
+  'commitments', 'cu_transactions', 'comments', 'comment_reactions', 'comment_translations',
+  'notifications', 'notification_preferences', 'push_subscriptions',
+  'tags', 'bot_config', 'bot_run_logs', 'bot_rejected_topics',
+  'news_anchors', 'leaderboard_cache', 'resolution_contexts',
+] as const
+
 /**
- * Cleans up all tables in the database.
+ * Cleans up all known tables in the test database.
+ * Uses a static allow-list to prevent $executeRawUnsafe with interpolated names.
  * Use this between test cases to ensure isolation.
  */
 export async function truncateDatabase() {
-  const tablenames = await prisma.$queryRaw<Array<{ tablename: string }>>`
-    SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename != '_prisma_migrations'
-  `
-
-  for (const { tablename } of tablenames) {
-    if (tablename !== '_prisma_migrations') {
-      try {
-        await prisma.$executeRawUnsafe(`TRUNCATE TABLE "${tablename}" CASCADE;`)
-      } catch (error) {
-        console.log({ error })
-      }
+  for (const table of TRUNCATABLE_TABLES) {
+    try {
+      // Table names come from the static allow-list above, not from user input.
+      await prisma.$executeRawUnsafe(`TRUNCATE TABLE "${table}" CASCADE;`)
+    } catch {
+      // Table may not exist yet (e.g. new migration not applied) — ignore
     }
   }
 }
