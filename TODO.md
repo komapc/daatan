@@ -7,10 +7,6 @@
 ## Open Tasks
 
 
-### Reliability
-
-- [ ] **[REL-1] Retry/circuit-breaker for background tasks** — both the post-creation translation (`api/forecasts/route.ts:177`) and push notification dispatch (`services/notification.ts:90-98`) are fully fire-and-forget with no retry. Add a lightweight retry wrapper (e.g. 3 attempts with exponential backoff) or a job queue entry so failures are recoverable.
-
 ---
 
 ### Reliability & Infrastructure

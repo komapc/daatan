@@ -87,14 +87,14 @@ export const createNotification = async (input: CreateNotificationInput) => {
       log.debug({ userId: input.userId, type: input.type }, 'In-app notification disabled by user preference')
     }
 
-    // Dispatch browser push (fire-and-forget)
+    // Dispatch browser push (fire-and-forget; dispatchBrowserPush retries internally)
     if (browserPushEnabled) {
       dispatchBrowserPush(input.userId, {
         title: input.title,
         message: input.message,
         link: input.link,
         type: input.type,
-      })
+      }).catch(err => log.warn({ err, userId: input.userId }, 'Browser push dispatch failed'))
     }
 
     // Dispatch email (fire-and-forget)
