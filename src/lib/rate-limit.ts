@@ -63,3 +63,8 @@ export function clientIp(request: NextRequest): string {
     'unknown'
   )
 }
+
+/** Clear all rate-limit state. For use in tests only. */
+export function resetRateLimitStore(): void {
+  store.clear()
+}

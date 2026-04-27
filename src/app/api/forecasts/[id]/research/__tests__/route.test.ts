@@ -3,6 +3,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
+import { resetRateLimitStore } from '@/lib/rate-limit'
 
 // ---------------------------------------------------------------------------
 // Mocks — must be declared before any import that transitively uses them
@@ -85,6 +86,7 @@ const makeRequest = (id = 'pred-1') =>
 describe('POST /api/forecasts/[id]/research', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    resetRateLimitStore()
     // Default: three parallel searches all return relevant shekel articles
     vi.mocked(searchArticles).mockResolvedValue([
       makeArticle('Shekel hits 30-year high', 'timesofisrael.com'),
