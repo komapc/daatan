@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
+import { applyGlicko2Update } from '@/lib/services/expertise'
 
 const log = createLogger('prediction-resolution')
 
@@ -34,7 +35,19 @@ export async function resolvePrediction(predictionId: string, options: Resolutio
     include: {
       options: true,
       commitments: {
-        include: { user: { select: { id: true, rs: true } } },
+        include: {
+          user: {
+            select: {
+              id: true,
+              rs: true,
+              mu: true,
+              sigma: true,
+              volatility: true,
+              totalPredictions: true,
+              correctPredictions: true,
+            },
+          },
+        },
       },
     },
   })
@@ -122,6 +135,11 @@ export async function resolvePrediction(predictionId: string, options: Resolutio
         where: { id: commitment.userId },
         data: { rs: newRs },
       })
+
+      if (brierScore !== null) {
+        const isCorrect = rsChange > 0
+        await applyGlicko2Update(tx, commitment.userId, commitment.user, brierScore, isCorrect)
+      }
     }
 
     return updatedPrediction

@@ -149,6 +149,11 @@ export async function UserProfileView({
                 <span className="text-xs font-bold uppercase tracking-widest text-gray-400">{t('reputation')}</span>
               </div>
               <p className="text-3xl font-black">{user.rs.toFixed(1)} <span className="text-xl font-medium">RS</span></p>
+              {user.mu != null && user.sigma != null && (
+                <p className="text-xs text-gray-400 mt-1" title="Glicko-2 skill estimate ± uncertainty. Rank = μ − 3σ (volume-adjusted).">
+                  μ {Math.round(user.mu)} ± {Math.round(user.sigma)}
+                </p>
+              )}
             </div>
           </div>
         </div>

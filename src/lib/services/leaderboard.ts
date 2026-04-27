@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
 
-type SortBy = 'rs' | 'accuracy' | 'totalCorrect' | 'cuCommitted' | 'brierScore' | 'roi' | 'truthScore'
+type SortBy = 'rs' | 'accuracy' | 'totalCorrect' | 'cuCommitted' | 'brierScore' | 'roi' | 'truthScore' | 'glicko'
 
 export const getLeaderboard = async (limit: number, sortBy: SortBy) => {
   const users = await prisma.user.findMany({
@@ -12,6 +12,10 @@ export const getLeaderboard = async (limit: number, sortBy: SortBy) => {
       image: true,
       rs: true,
       cuAvailable: true,
+      mu: true,
+      sigma: true,
+      totalPredictions: true,
+      correctPredictions: true,
       _count: { select: { predictions: true, commitments: true } },
     },
   })
@@ -69,6 +73,9 @@ export const getLeaderboard = async (limit: number, sortBy: SortBy) => {
       ? Math.round(brier.avg * 1000) / 1000
       : null
 
+    // μ - 3σ: lower bound of skill estimate; prevents one-hit wonders from topping the board
+    const glickoRank = user.mu - 3 * user.sigma
+
     return {
       id: user.id,
       name: user.name,
@@ -76,10 +83,14 @@ export const getLeaderboard = async (limit: number, sortBy: SortBy) => {
       image: user.image,
       rs: user.rs,
       cuAvailable: user.cuAvailable,
+      mu: user.mu,
+      sigma: user.sigma,
+      glickoRank,
+      totalPredictions: user.totalPredictions,
+      correctPredictions: user.correctPredictions,
       totalCommitments: user._count.commitments,
-      totalPredictions: user._count.predictions,
-      totalCorrect: resolved.correct,
       totalResolved: resolved.total,
+      totalCorrect: resolved.correct,
       accuracy,
       totalCuCommitted: cuByUser.get(user.id) ?? 0,
       totalRsGained: Math.round((rsGainByUser.get(user.id) ?? 0) * 100) / 100,
@@ -103,6 +114,7 @@ export const getLeaderboard = async (limit: number, sortBy: SortBy) => {
     },
     roi: (a, b) => (b.roi ?? -Infinity) - (a.roi ?? -Infinity),
     truthScore: (a, b) => (b.truthScore ?? -Infinity) - (a.truthScore ?? -Infinity),
+    glicko: (a, b) => b.glickoRank - a.glickoRank,
   }
 
   leaderboard.sort(sortFns[sortBy] ?? sortFns.rs)
