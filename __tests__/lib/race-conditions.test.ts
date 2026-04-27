@@ -14,7 +14,7 @@ vi.mock('@/lib/prisma', () => ({
       update: vi.fn(),
     },
     commitment: {
-      count: vi.fn(),
+      findMany: vi.fn(),
       create: vi.fn(),
       findUnique: vi.fn(),
     },
@@ -27,6 +27,7 @@ vi.mock('@/lib/prisma', () => ({
 
 vi.mock('@/lib/services/telegram', () => ({ notifyNewCommitment: vi.fn(), notifyServerError: vi.fn() }))
 vi.mock('@/lib/services/notification', () => ({ createNotification: vi.fn() }))
+vi.mock('@/lib/services/ai-estimate', () => ({ triggerAiProbabilityEstimate: vi.fn() }))
 vi.mock('@/lib/logger', () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),
 }))
@@ -59,8 +60,8 @@ describe('Race Conditions', () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser as any)
       vi.mocked(prisma.commitment.findUnique).mockResolvedValue(null) // No existing commitment
       
-      // Simulate that count is 0 (first commitment)
-      vi.mocked(prisma.commitment.count).mockResolvedValue(0)
+      // Simulate no prior commitments (first commitment)
+      vi.mocked(prisma.commitment.findMany).mockResolvedValue([])
       vi.mocked(prisma.commitment.create).mockResolvedValue({
         id: 'commit-1',
         user: { name: 'Test' },

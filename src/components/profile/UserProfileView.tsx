@@ -29,6 +29,11 @@ interface UserProfileViewProps {
   userTags: { name: string; slug: string }[]
   selectedTag: string | null
   rsTagDelta?: number | null
+  peerScoreSum?: number | null
+  peerScoreCount?: number
+  aiScoreSum?: number | null
+  aiScoreCount?: number
+  eloRating?: number
 }
 
 export async function UserProfileView({
@@ -41,6 +46,11 @@ export async function UserProfileView({
   userTags,
   selectedTag,
   rsTagDelta = null,
+  peerScoreSum = null,
+  peerScoreCount = 0,
+  aiScoreSum = null,
+  aiScoreCount = 0,
+  eloRating,
 }: UserProfileViewProps) {
   const t = await getTranslations('profile')
 
@@ -136,6 +146,31 @@ export async function UserProfileView({
                 <div className="px-4 py-2 bg-navy-800 rounded-xl border border-navy-600">
                   <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block">RS · {userTags.find(tg => tg.slug === selectedTag)?.name ?? selectedTag}</span>
                   <span className={`text-sm font-bold ${rsTagDelta >= 0 ? 'text-teal' : 'text-red-400'}`}>{rsTagDelta >= 0 ? '+' : ''}{rsTagDelta.toFixed(1)}</span>
+                </div>
+              )}
+              {peerScoreSum !== null && (
+                <div className="px-4 py-2 bg-navy-800 rounded-xl border border-navy-600" title="Peer Score = how much better you were than the community consensus at commit time. Positive = beat the crowd.">
+                  <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block">
+                    Peer Score{selectedTag ? ` · ${userTags.find(tg => tg.slug === selectedTag)?.name ?? selectedTag}` : ''}
+                  </span>
+                  <span className={`text-sm font-bold ${peerScoreSum >= 0 ? 'text-teal' : 'text-red-400'}`}>{peerScoreSum >= 0 ? '+' : ''}{peerScoreSum.toFixed(2)}</span>
+                  <span className="text-[10px] text-gray-400 block">{peerScoreCount} scored</span>
+                </div>
+              )}
+              {aiScoreSum !== null && (
+                <div className="px-4 py-2 bg-navy-800 rounded-xl border border-navy-600" title="AI Score = how much better you were than the AI estimate at commit time. Positive = beat the AI.">
+                  <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block">
+                    AI Score{selectedTag ? ` · ${userTags.find(tg => tg.slug === selectedTag)?.name ?? selectedTag}` : ''}
+                  </span>
+                  <span className={`text-sm font-bold ${aiScoreSum >= 0 ? 'text-teal' : 'text-red-400'}`}>{aiScoreSum >= 0 ? '+' : ''}{aiScoreSum.toFixed(2)}</span>
+                  <span className="text-[10px] text-gray-400 block">{aiScoreCount} scored</span>
+                </div>
+              )}
+              {eloRating !== undefined && (
+                <div className="px-4 py-2 bg-navy-800 rounded-xl border border-navy-600" title="ELO head-to-head rating. Updated each time a prediction resolves and you are compared against other committers.">
+                  <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block">ELO Rating</span>
+                  <span className="text-sm font-bold text-blue-400">{Math.round(eloRating)}</span>
+                  <span className="text-[10px] text-gray-400 block">global</span>
                 </div>
               )}
             </div>

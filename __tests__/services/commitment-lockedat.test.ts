@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 vi.mock('@/lib/prisma', () => {
   const txClient = {
     commitment: {
-      count: vi.fn(),
+      findMany: vi.fn(),
       create: vi.fn(),
     },
     prediction: { update: vi.fn() },
@@ -28,6 +28,7 @@ vi.mock('@/lib/prisma', () => {
 
 vi.mock('@/lib/services/telegram', () => ({ notifyNewCommitment: vi.fn(), notifyServerError: vi.fn() }))
 vi.mock('@/lib/services/notification', () => ({ createNotification: vi.fn() }))
+vi.mock('@/lib/services/ai-estimate', () => ({ triggerAiProbabilityEstimate: vi.fn() }))
 vi.mock('@/lib/logger', () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),
 }))
@@ -75,7 +76,7 @@ describe('createCommitment — lockedAt behaviour', () => {
     vi.mocked(prisma.prediction.findUnique).mockResolvedValue(makePrediction() as any)
 
     const tx = (prisma as any)._txClient
-    vi.mocked(tx.commitment.count).mockResolvedValue(0)         // no prior commitments
+    vi.mocked(tx.commitment.findMany).mockResolvedValue([])      // no prior commitments
     vi.mocked(tx.commitment.create).mockResolvedValue(makeCreatedCommitment() as any)
     vi.mocked(tx.prediction.update).mockResolvedValue({})
 
@@ -100,7 +101,7 @@ describe('createCommitment — lockedAt behaviour', () => {
     )
 
     const tx = (prisma as any)._txClient
-    vi.mocked(tx.commitment.count).mockResolvedValue(1)          // already has commitments
+    vi.mocked(tx.commitment.findMany).mockResolvedValue([{ cuCommitted: 50 }]) // already has commitments
     vi.mocked(tx.commitment.create).mockResolvedValue(makeCreatedCommitment() as any)
     vi.mocked(tx.prediction.update).mockResolvedValue({})
 
