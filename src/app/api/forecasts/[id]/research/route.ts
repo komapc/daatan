@@ -7,8 +7,14 @@ import { llmService } from '@/lib/llm'
 import { getPromptTemplate, fillPrompt } from '@/lib/llm/bedrock-prompts'
 import { queryGenerationSchema, researchSchema } from '@/lib/llm/schemas'
 import { extractKeyTerms, dedup, hasRelevantResults } from './helpers'
+import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 
-export const POST = withAuth(async (request: NextRequest, _user, { params }) => {
+const RESEARCH_LIMIT = 10
+const RESEARCH_WINDOW = 60 * 60_000 // 1 hour
+
+export const POST = withAuth(async (request: NextRequest, user, { params }) => {
+    const rl = checkRateLimit(`research:${user.id}`, RESEARCH_LIMIT, RESEARCH_WINDOW)
+    if (!rl.allowed) return rateLimitResponse(rl.resetAt)
     try {
         const prediction = await prisma.prediction.findUnique({
             where: { id: params.id },
