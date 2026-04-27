@@ -519,3 +519,28 @@ export async function listPendingApprovals({ page, limit }: { page: number; limi
 
   return { predictions, total, pages: Math.ceil(total / limit) }
 }
+
+/** Fetch a prediction with its options — for the research route. */
+export async function getForecastForResearch(id: string) {
+  return prisma.prediction.findUnique({
+    where: { id },
+    include: { options: true },
+  })
+}
+
+/** Find predictions that are missing resolution rules — for the backfill-rules admin route. */
+export async function findPredictionsWithoutRules() {
+  return prisma.prediction.findMany({
+    where: { resolutionRules: null },
+    select: { id: true, claimText: true, detailsText: true, outcomeType: true },
+    orderBy: { createdAt: 'asc' },
+  })
+}
+
+/** Set resolution rules on a single prediction — for the backfill-rules admin route. */
+export async function updateForecastResolutionRules(id: string, rules: string) {
+  return prisma.prediction.update({
+    where: { id },
+    data: { resolutionRules: rules },
+  })
+}

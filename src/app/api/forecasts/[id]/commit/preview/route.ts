@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import { apiError } from '@/lib/api-error'
 import { withAuth } from '@/lib/api-middleware'
+import { getCommitmentForPreview } from '@/lib/services/commitment'
 
 /**
  * GET /api/forecasts/[id]/commit/preview
@@ -11,16 +11,7 @@ import { withAuth } from '@/lib/api-middleware'
  * Read-only — no side effects.
  */
 export const GET = withAuth(async (_request, user, { params }) => {
-  const predictionId = params.id
-
-  const commitment = await prisma.commitment.findUnique({
-    where: { userId_predictionId: { userId: user.id, predictionId } },
-    select: {
-      cuCommitted: true,
-      optionId: true,
-      prediction: { select: { outcomeType: true } },
-    },
-  })
+  const commitment = await getCommitmentForPreview(user.id, params.id)
 
   if (!commitment) {
     return apiError('No commitment found', 404)

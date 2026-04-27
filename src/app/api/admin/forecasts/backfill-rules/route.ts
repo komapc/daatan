@@ -1,8 +1,8 @@
 import { withAuth } from '@/lib/api-middleware'
-import { prisma } from '@/lib/prisma'
 import { llmService } from '@/lib/llm'
 import { SchemaType } from '@google/generative-ai'
 import type { Schema } from '@google/generative-ai'
+import { findPredictionsWithoutRules, updateForecastResolutionRules } from '@/lib/services/forecast'
 
 export const maxDuration = 300
 
@@ -36,16 +36,7 @@ Write 1-3 sentences specifying exactly what evidence or conditions would cause t
 }
 
 export const POST = withAuth(async (_req) => {
-  const predictions = await prisma.prediction.findMany({
-    where: { resolutionRules: null },
-    select: {
-      id: true,
-      claimText: true,
-      detailsText: true,
-      outcomeType: true,
-    },
-    orderBy: { createdAt: 'asc' },
-  })
+  const predictions = await findPredictionsWithoutRules()
 
   if (predictions.length === 0) {
     return Response.json({ updated: 0, message: 'No predictions need backfilling' })
@@ -58,10 +49,7 @@ export const POST = withAuth(async (_req) => {
   for (const prediction of predictions) {
     try {
       const rules = await generateRules(prediction.claimText, prediction.detailsText, prediction.outcomeType)
-      await prisma.prediction.update({
-        where: { id: prediction.id },
-        data: { resolutionRules: rules },
-      })
+      await updateForecastResolutionRules(prediction.id, rules)
       updated++
     } catch (err) {
       failed++

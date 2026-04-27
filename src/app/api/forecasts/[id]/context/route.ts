@@ -2,13 +2,19 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { apiError, handleRouteError } from '@/lib/api-error'
 import { withAuth, type RouteContext } from '@/lib/api-middleware'
-import { prisma } from '@/lib/prisma'
 import { getPromptTemplate, fillPrompt } from '@/lib/llm/bedrock-prompts'
 import { llmService } from '@/lib/llm'
 import { searchArticles, type SearchResult } from '@/lib/utils/webSearch'
 import { guessChances } from '@/lib/llm/expressPrediction'
 import { getOracleForecast, type OracleSource } from '@/lib/services/oracle'
 import { createLogger } from '@/lib/logger'
+import {
+  getContextTimeline,
+  getForecastForContextUpdate,
+  countUserContextUpdates,
+  saveContextUpdate,
+  listContextSnapshots,
+} from '@/lib/services/context'
 
 const log = createLogger('forecast-context')
 
@@ -26,17 +32,7 @@ type RawRouteContext = {
 export async function GET(request: NextRequest, { params }: RawRouteContext) {
     try {
         const { id } = await params
-        const prediction = await prisma.prediction.findFirst({
-            where: { OR: [{ id }, { slug: id }] },
-            select: {
-                id: true,
-                detailsText: true,
-                contextUpdatedAt: true,
-                contextSnapshots: {
-                    orderBy: { createdAt: 'desc' },
-                },
-            },
-        })
+        const prediction = await getContextTimeline(id)
 
         if (!prediction) {
             return apiError('Prediction not found', 404)
@@ -56,10 +52,7 @@ export async function GET(request: NextRequest, { params }: RawRouteContext) {
 export const POST = withAuth(async (request: NextRequest, user, { params }: RouteContext) => {
     try {
         const { id } = params
-        const prediction = await prisma.prediction.findFirst({
-            where: { OR: [{ id }, { slug: id }] },
-            include: { newsAnchor: true }
-        })
+        const prediction = await getForecastForContextUpdate(id)
 
         if (!prediction) {
             return apiError('Prediction not found', 404)
@@ -85,12 +78,7 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
 
         // Rate Limiting: max 10 context updates per user per day across all forecasts
         const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000)
-        const dailyUserCount = await prisma.prediction.count({
-            where: {
-                authorId: user.id,
-                contextUpdatedAt: { gte: cutoff },
-            },
-        })
+        const dailyUserCount = await countUserContextUpdates(user.id, cutoff)
         if (dailyUserCount >= 10) {
             return apiError('Daily context update limit reached (10 per day). Please try again tomorrow.', 429)
         }
@@ -240,36 +228,22 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
             }
         }
 
-        // 4. Create snapshot + update prediction in a transaction
-        const [snapshot] = await prisma.$transaction([
-            prisma.contextSnapshot.create({
-                data: {
-                    predictionId: prediction.id,
-                    summary: newContextSummary,
-                    sources,
-                    externalProbability,
-                    externalReasoning,
-                    oracleSnapshot: oracleSnapshotData ?? undefined,
-                },
-            }),
-            prisma.prediction.update({
-                where: { id: prediction.id },
-                data: {
-                    detailsText: newContextSummary,
-                    contextUpdatedAt: now,
-                    ...(externalProbability !== null && { confidence: externalProbability }),
-                    // Clear stale CI if this run took the LLM-fallback path after a prior Oracle run
-                    aiCiLow: predictionCiLow,
-                    aiCiHigh: predictionCiHigh,
-                },
-            }),
-        ])
+        // 4. Persist snapshot + update prediction
+        const snapshot = await saveContextUpdate({
+            predictionId: prediction.id,
+            summary: newContextSummary,
+            sources,
+            externalProbability,
+            externalReasoning,
+            oracleSnapshot: oracleSnapshotData,
+            confidence: externalProbability,
+            aiCiLow: predictionCiLow,
+            aiCiHigh: predictionCiHigh,
+            now,
+        })
 
         // Fetch full timeline
-        const snapshots = await prisma.contextSnapshot.findMany({
-            where: { predictionId: prediction.id },
-            orderBy: { createdAt: 'desc' },
-        })
+        const snapshots = await listContextSnapshots(prediction.id)
 
         return NextResponse.json({
             success: true,
