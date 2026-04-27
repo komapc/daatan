@@ -66,7 +66,7 @@ The `/api/bots/run` route is **not authenticated via NextAuth**. Instead it requ
 x-bot-runner-secret: <BOT_RUNNER_SECRET>
 ```
 
-Set `BOT_RUNNER_SECRET` in your environment (see `SECRETS.md`). Missing or wrong secrets return `401 Unauthorized`.
+Set `BOT_RUNNER_SECRET` in your environment (see `SECRETS.md`). The secret is validated at startup via `src/env.ts`; a missing value is caught before the server accepts requests. The comparison uses `crypto.timingSafeEqual()` to prevent timing-based enumeration. Missing or wrong secrets return `401 Unauthorized`.
 
 ### Active Hours Gate
 

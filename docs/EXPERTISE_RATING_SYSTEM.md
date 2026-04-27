@@ -78,13 +78,13 @@ The system version-controls votes rather than overwriting them (already the case
 
 ## Implementation Roadmap
 
-### Phase 1 — Glicko-2 Core (prioritised)
+### Phase 1 — Glicko-2 Core ✅ done in v1.10.35 (PR #681)
 
-- [ ] Add `mu`, `sigma`, `volatility`, `totalPredictions`, `correctPredictions` to `User`
-- [ ] Write Glicko-2 update function in `src/lib/services/expertise.ts`
-- [ ] Call it from the prediction resolution flow
-- [ ] Update leaderboard query to sort by `mu - 3 * sigma`
-- [ ] Display `μ ± σ` on user profile
+- [x] Add `mu`, `sigma`, `volatility`, `totalPredictions`, `correctPredictions` to `User`
+- [x] Write Glicko-2 update function in `src/lib/services/expertise.ts`
+- [x] Call it from the prediction resolution flow
+- [x] Update leaderboard query to sort by `mu - 3 * sigma` (`GET /api/leaderboard?sortBy=glicko`)
+- [x] Display `μ ± σ` on user profile
 
 ### Phase 2 — Market Baseline (later)
 
