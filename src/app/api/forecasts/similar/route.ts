@@ -10,12 +10,14 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id') || undefined
-    const q = searchParams.get('q') || ''
+    const q = (searchParams.get('q') || '').slice(0, 200)
     const tagsParam = searchParams.get('tags') || ''
     const limit = Math.min(parseInt(searchParams.get('limit') || '3'), 10)
 
     let claimText = q
-    let tags: string[] = tagsParam ? tagsParam.split(',').map(t => t.trim()).filter(Boolean) : []
+    let tags: string[] = tagsParam
+      ? tagsParam.split(',').map(t => t.trim().slice(0, 50)).filter(Boolean).slice(0, 10)
+      : []
 
     if (id) {
       const forecast = await getPredictionWithTags(id)
