@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { VERSION } from '@/lib/version'
-import { prisma } from '@/lib/prisma'
+import { checkDatabaseHealth } from '@/lib/services/health'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -10,14 +10,7 @@ export async function GET() {
   const commitShort = gitCommit.substring(0, 7)
   const timestamp = new Date().toISOString()
 
-  let db = false
-  try {
-    await prisma.$queryRaw`SELECT 1`
-    db = true
-  } catch {
-    db = false
-  }
-
+  const db = await checkDatabaseHealth()
   const status = db ? 'ok' : 'degraded'
 
   return NextResponse.json(

@@ -1,6 +1,6 @@
 # TODO.md — Task Queue
 
-*Last updated: April 27, 2026 · v1.10.42*
+*Last updated: April 27, 2026 · v1.10.46*
 
 ---
 
@@ -13,7 +13,7 @@
 - [ ] **Pluggable Push Notification Architecture** — refactor current Web Push logic into an adapter-based system to prepare for future Firebase Cloud Messaging (FCM) / Mobile integration. (Add an implementation plan under `docs/` when you start.)
 
 ### Code Quality & Architecture
-- [ ] **Service layer for API routes** — 13 direct `prisma.*` calls remaining in 6 files (context, research, health, backfill-rules, stats, commit/preview — all LLM-intertwined or trivial). Pass 1 done (forecast + comment routes, PR #663). Pass 2 done (notifications, user/profile, leaderboard, tags, PR #680). Pass 3 done (forecast CRUD, approve/reject/publish, comment CRUD+reactions, bot admin, user admin, push subscriptions, news anchors, auth signup/reset, commitments — v1.10.34).
+- [ ] **Service layer for API routes** — ✅ Complete. Pass 1 (forecast + comment, PR #663). Pass 2 (notifications, user/profile, leaderboard, tags, PR #680). Pass 3 (forecast CRUD, approve/reject/publish, comment CRUD+reactions, bot admin, user admin, push subscriptions, news anchors, auth signup/reset, commitments — v1.10.34). Pass 4 (context, research, health, backfill-rules, stats, commit/preview — v1.10.46). Zero direct `prisma.*` calls remain in API routes.
 
 ### Features & UX
 - [ ] **Microservice for predictions** — defer until a concrete driver appears (independent scaling, separate deploy cadence, or team ownership split). Until then the operational cost (two deployables, auth, data sync, and failure modes) usually outweighs the benefit for a single-app codebase.

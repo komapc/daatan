@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-middleware'
-import { prisma } from '@/lib/prisma'
 import { apiError, handleRouteError } from '@/lib/api-error'
+import { getForecastForResearch } from '@/lib/services/forecast'
 import { searchArticles, SearchResult } from '@/lib/utils/webSearch'
 import { llmService } from '@/lib/llm'
 import { getPromptTemplate, fillPrompt } from '@/lib/llm/bedrock-prompts'
@@ -16,10 +16,7 @@ export const POST = withAuth(async (request: NextRequest, user, { params }) => {
     const rl = checkRateLimit(`research:${user.id}`, RESEARCH_LIMIT, RESEARCH_WINDOW)
     if (!rl.allowed) return rateLimitResponse(rl.resetAt)
     try {
-        const prediction = await prisma.prediction.findUnique({
-            where: { id: params.id },
-            include: { options: true }
-        })
+        const prediction = await getForecastForResearch(params.id)
 
         if (!prediction) return apiError('Prediction not found', 404)
 

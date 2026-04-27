@@ -319,3 +319,63 @@ export async function listUserCommitments({ userId, predictionId, status, page, 
 
   return { commitments, total }
 }
+
+/** Fetch a commitment's confidence and outcomeType for the Brier ΔRS preview. */
+export async function getCommitmentForPreview(userId: string, predictionId: string) {
+  return prisma.commitment.findUnique({
+    where: { userId_predictionId: { userId, predictionId } },
+    select: {
+      cuCommitted: true,
+      optionId: true,
+      prediction: { select: { outcomeType: true } },
+    },
+  })
+}
+
+/** Aggregate commitment stats for a user across all their predictions. */
+export async function getCommitmentStats(userId: string) {
+  const commitments = await prisma.commitment.findMany({
+    where: { userId },
+    include: {
+      prediction: { select: { status: true } },
+    },
+  })
+
+  const total = commitments.length
+  const totalCuCommitted = commitments.reduce((sum, c) => sum + c.cuCommitted, 0)
+  const totalCuReturned = commitments.reduce((sum, c) => sum + (c.cuReturned ?? 0), 0)
+  const totalRsChange = commitments.reduce((sum, c) => sum + (c.rsChange ?? 0), 0)
+
+  const resolved = commitments.filter(
+    (c) => c.prediction.status === 'RESOLVED_CORRECT' || c.prediction.status === 'RESOLVED_WRONG',
+  )
+  const correct = resolved.filter((c) => (c.cuReturned ?? 0) > c.cuCommitted)
+  const wrong = resolved.filter((c) => (c.cuReturned ?? 0) === 0)
+  const pending = commitments.filter(
+    (c) => c.prediction.status === 'ACTIVE' || c.prediction.status === 'PENDING',
+  )
+
+  const accuracy = resolved.length > 0 ? Math.round((correct.length / resolved.length) * 100) : null
+  const netCu = totalCuReturned - totalCuCommitted
+
+  const brierScored = commitments.filter((c) => c.brierScore != null)
+  const avgBrierScore =
+    brierScored.length > 0
+      ? Math.round((brierScored.reduce((sum, c) => sum + c.brierScore!, 0) / brierScored.length) * 1000) / 1000
+      : null
+
+  return {
+    total,
+    resolved: resolved.length,
+    correct: correct.length,
+    wrong: wrong.length,
+    pending: pending.length,
+    accuracy,
+    totalCuCommitted,
+    totalCuReturned,
+    netCu,
+    totalRsChange: Math.round(totalRsChange * 100) / 100,
+    avgBrierScore,
+    brierCount: brierScored.length,
+  }
+}
