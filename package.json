@@ -80,7 +80,7 @@
     "typescript": "^5",
     "vitest": "^4.0.17"
   },
-  "version": "1.10.38",
+  "version": "1.10.40",
   "overrides": {
     "magicast": "^0.3.5"
   }
