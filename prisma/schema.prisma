@@ -54,6 +54,9 @@ model User {
   totalPredictions   Int   @default(0)
   correctPredictions Int   @default(0)
 
+  // ELO head-to-head rating
+  eloRating Float @default(1500) @map("elo_rating")
+
   // Bot flag
   isBot Boolean @default(false)
 
@@ -360,6 +363,13 @@ model Commitment {
   cuReturned Int? // CU returned after resolution
   rsChange   Float? // RS delta after resolution
   brierScore Float? // (probability - outcome)² computed at resolution
+
+  // Competitive scoring fields (snapshotted at commit, computed at resolution)
+  communityProbabilityAtCommit Float?  @map("community_probability_at_commit")
+  aiProbabilityAtCommit        Float?  @map("ai_probability_at_commit")
+  peerScore                    Float?  @map("peer_score")
+  aiScore                      Float?  @map("ai_score")
+  eloChange                    Int?    @map("elo_change")
 
   // Each user can only commit once per prediction
   @@unique([userId, predictionId])

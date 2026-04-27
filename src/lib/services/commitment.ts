@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import type { Prisma, PredictionOption, PredictionStatus } from '@prisma/client'
 import { notifyNewCommitment } from '@/lib/services/telegram'
 import { createNotification } from '@/lib/services/notification'
+import { triggerAiProbabilityEstimate } from '@/lib/services/ai-estimate'
 import { createLogger } from '@/lib/logger'
 import type { ServiceResult } from '@/lib/types/service'
 
@@ -91,12 +92,30 @@ type CommitmentRow = Prisma.CommitmentGetPayload<{ include: typeof commitmentInc
 const writeCommitmentInTx = async (
   tx: Prisma.TransactionClient,
   predictionId: string,
-  prediction: CommitmentPrediction,
+  prediction: CommitmentPrediction & { confidence: number | null },
   user: { id: string; rs: number },
   userId: string,
   data: CreateCommitmentData,
 ): Promise<CommitmentRow> => {
-  const isFirstCommitment = (await tx.commitment.count({ where: { predictionId } })) === 0
+  const priorCommitments = await tx.commitment.findMany({
+    where: { predictionId },
+    select: { cuCommitted: true },
+  })
+  const isFirstCommitment = priorCommitments.length === 0
+
+  const communityProbabilityAtCommit: number | null =
+    priorCommitments.length === 0
+      ? null
+      : priorCommitments.reduce((sum, c) => {
+          const p =
+            prediction.outcomeType === 'BINARY'
+              ? (c.cuCommitted + 100) / 200
+              : c.cuCommitted / 100
+          return sum + p
+        }, 0) / priorCommitments.length
+
+  const aiProbabilityAtCommit: number | null =
+    prediction.confidence != null ? prediction.confidence / 100 : null
 
   const created = await tx.commitment.create({
     data: {
@@ -106,6 +125,8 @@ const writeCommitmentInTx = async (
       binaryChoice: deriveBinaryChoice(prediction.outcomeType, data.confidence),
       cuCommitted: data.confidence,
       rsSnapshot: user.rs,
+      communityProbabilityAtCommit,
+      aiProbabilityAtCommit,
     },
     include: commitmentInclude,
   })
@@ -162,6 +183,7 @@ export async function createCommitment(
     db.prediction.findUnique({
       where: { id: predictionId },
       include: { options: true },
+      // confidence needed for aiProbabilityAtCommit snapshot
     }),
     db.user.findUnique({
       where: { id: userId },
@@ -191,6 +213,10 @@ export async function createCommitment(
       writeCommitmentInTx(tx, predictionId, prediction, user, userId, data),
     )
     emitCreateCommitmentSideEffects(prediction, commitment, data)
+
+    if (commitment.aiProbabilityAtCommit == null) {
+      void triggerAiProbabilityEstimate(commitment.id, prediction.claimText)
+    }
   }
 
   return { ok: true, data: commitment, status: 201 }

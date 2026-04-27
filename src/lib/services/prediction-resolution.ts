@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
 import { applyGlicko2Update } from '@/lib/services/expertise'
+import { calculateEloUpdates } from '@/lib/services/elo'
 
 const log = createLogger('prediction-resolution')
 
@@ -21,7 +22,8 @@ interface ResolutionOptions {
  * BINARY:          p = (confidence + 100) / 200
  * MULTIPLE_CHOICE: p = confidence / 100
  *
- * Void/unresolvable outcomes produce no RS change.
+ * Also computes peerScore, aiScore, and ELO deltas per commitment.
+ * Void/unresolvable outcomes produce no RS/score changes.
  *
  * Returns the updated prediction record.
  * Throws if the prediction is not found, not in a resolvable state, or if
@@ -45,6 +47,7 @@ export async function resolvePrediction(predictionId: string, options: Resolutio
               volatility: true,
               totalPredictions: true,
               correctPredictions: true,
+              eloRating: true,
             },
           },
         },
@@ -100,12 +103,16 @@ export async function resolvePrediction(predictionId: string, options: Resolutio
       }
     }
 
+    // Per-commitment: Brier, RS, peer score, AI score
+    const eloInputs: { userId: string; brierScore: number; eloRating: number }[] = []
+
     for (const commitment of prediction.commitments) {
       let rsChange = 0
       let brierScore: number | null = null
+      let peerScore: number | null = null
+      let aiScore: number | null = null
 
       if (!isVoidOutcome) {
-        // cuCommitted stores the confidence value: -100..100 for BINARY, 0..100 for MULTIPLE_CHOICE
         const confidence = commitment.cuCommitted
         let p: number
         let outcomeNumeric: number
@@ -120,6 +127,21 @@ export async function resolvePrediction(predictionId: string, options: Resolutio
 
         brierScore = Math.pow(p - outcomeNumeric, 2)
         rsChange = Math.round((0.25 - brierScore) * 100)
+
+        if (commitment.communityProbabilityAtCommit != null) {
+          peerScore =
+            Math.pow(commitment.communityProbabilityAtCommit - outcomeNumeric, 2) - brierScore
+        }
+        if (commitment.aiProbabilityAtCommit != null) {
+          aiScore =
+            Math.pow(commitment.aiProbabilityAtCommit - outcomeNumeric, 2) - brierScore
+        }
+
+        eloInputs.push({
+          userId: commitment.userId,
+          brierScore,
+          eloRating: commitment.user.eloRating,
+        })
       }
 
       await tx.commitment.update({
@@ -127,6 +149,8 @@ export async function resolvePrediction(predictionId: string, options: Resolutio
         data: {
           rsChange,
           ...(brierScore !== null && { brierScore }),
+          ...(peerScore !== null && { peerScore }),
+          ...(aiScore !== null && { aiScore }),
         },
       })
 
@@ -137,8 +161,30 @@ export async function resolvePrediction(predictionId: string, options: Resolutio
       })
 
       if (brierScore !== null) {
-        const isCorrect = rsChange > 0
+        const isCorrect = brierScore < 0.25
         await applyGlicko2Update(tx, commitment.userId, commitment.user, brierScore, isCorrect)
+      }
+    }
+
+    // ELO: pairwise updates for all commitments with a brierScore
+    if (eloInputs.length >= 2) {
+      const eloDeltas = calculateEloUpdates(eloInputs)
+
+      for (const [userId, delta] of eloDeltas) {
+        await tx.user.update({
+          where: { id: userId },
+          data: { eloRating: { increment: delta } },
+        })
+      }
+
+      for (const commitment of prediction.commitments) {
+        const delta = eloDeltas.get(commitment.userId)
+        if (delta !== undefined) {
+          await tx.commitment.update({
+            where: { id: commitment.id },
+            data: { eloChange: delta },
+          })
+        }
       }
     }
 

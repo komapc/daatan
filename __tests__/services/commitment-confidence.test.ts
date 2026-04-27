@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 vi.mock('@/lib/prisma', () => {
   const txClient = {
     commitment: {
-      count: vi.fn(),
+      findMany: vi.fn(),
       create: vi.fn(),
       findUnique: vi.fn(),
     },
@@ -31,6 +31,7 @@ vi.mock('@/lib/prisma', () => {
 
 vi.mock('@/lib/services/telegram', () => ({ notifyNewCommitment: vi.fn(), notifyServerError: vi.fn() }))
 vi.mock('@/lib/services/notification', () => ({ createNotification: vi.fn() }))
+vi.mock('@/lib/services/ai-estimate', () => ({ triggerAiProbabilityEstimate: vi.fn() }))
 vi.mock('@/lib/logger', () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),
 }))
@@ -79,7 +80,7 @@ describe('createCommitment — BINARY confidence boundary values', () => {
     vi.mocked(prisma.commitment.findUnique).mockResolvedValue(null)
 
     const tx = (prisma as any)._txClient
-    vi.mocked(tx.commitment.count).mockResolvedValue(0)
+    vi.mocked(tx.commitment.findMany).mockResolvedValue([])
     vi.mocked(tx.commitment.create).mockResolvedValue(makeCreatedCommitment(confidence) as any)
     vi.mocked(tx.prediction.update).mockResolvedValue({})
 
@@ -110,7 +111,7 @@ describe('createCommitment — BINARY confidence boundary values', () => {
     vi.mocked(prisma.commitment.findUnique).mockResolvedValue(null)
 
     const tx = (prisma as any)._txClient
-    vi.mocked(tx.commitment.count).mockResolvedValue(0)
+    vi.mocked(tx.commitment.findMany).mockResolvedValue([])
     vi.mocked(tx.commitment.create).mockResolvedValue(makeCreatedCommitment(75) as any)
     vi.mocked(tx.prediction.update).mockResolvedValue({})
 
@@ -132,7 +133,7 @@ describe('createCommitment — BINARY confidence boundary values', () => {
     vi.mocked(prisma.commitment.findUnique).mockResolvedValue(null)
 
     const tx = (prisma as any)._txClient
-    vi.mocked(tx.commitment.count).mockResolvedValue(0)
+    vi.mocked(tx.commitment.findMany).mockResolvedValue([])
     vi.mocked(tx.commitment.create).mockResolvedValue(makeCreatedCommitment(-75) as any)
     vi.mocked(tx.prediction.update).mockResolvedValue({})
 
@@ -163,7 +164,7 @@ describe('createCommitment — MULTIPLE_CHOICE confidence boundary values', () =
     vi.mocked(prisma.commitment.findUnique).mockResolvedValue(null)
 
     const tx = (prisma as any)._txClient
-    vi.mocked(tx.commitment.count).mockResolvedValue(0)
+    vi.mocked(tx.commitment.findMany).mockResolvedValue([])
     vi.mocked(tx.commitment.create).mockResolvedValue(makeCreatedCommitment(confidence) as any)
     vi.mocked(tx.prediction.update).mockResolvedValue({})
 

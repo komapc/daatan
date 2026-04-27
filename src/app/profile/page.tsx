@@ -52,6 +52,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
         rs: true,
         cuAvailable: true,
         cuLocked: true,
+        eloRating: true,
         createdAt: true,
         _count: {
           select: {
@@ -79,22 +80,38 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
     const tagFilter = selectedTag ? { prediction: { tags: { some: { slug: selectedTag } } } } : {}
 
-    // Fetch Brier score stats (filtered by tag if selected)
-    const brierStats = await prisma.commitment.aggregate({
-      where: { userId: user.id, brierScore: { not: null as null }, ...tagFilter },
-      _avg: { brierScore: true },
-      _count: { brierScore: true },
-    })
+    // Fetch Brier, peer, and AI score stats (all filtered by tag if selected)
+    const [brierStats, rsTagStats, peerScoreStats, aiScoreStats] = await Promise.all([
+      prisma.commitment.aggregate({
+        where: { userId: user.id, brierScore: { not: null as null }, ...tagFilter },
+        _avg: { brierScore: true },
+        _count: { brierScore: true },
+      }),
+      prisma.commitment.aggregate({
+        where: { userId: user.id, rsChange: { not: null as null }, ...tagFilter },
+        _sum: { rsChange: true },
+      }),
+      prisma.commitment.aggregate({
+        where: { userId: user.id, peerScore: { not: null as null }, ...tagFilter },
+        _sum: { peerScore: true },
+        _count: { peerScore: true },
+      }),
+      prisma.commitment.aggregate({
+        where: { userId: user.id, aiScore: { not: null as null }, ...tagFilter },
+        _sum: { aiScore: true },
+        _count: { aiScore: true },
+      }),
+    ])
+
     const avgBrierScore = brierStats._count.brierScore > 0 && brierStats._avg.brierScore != null
       ? Math.round(brierStats._avg.brierScore * 1000) / 1000
       : null
 
     // Fetch per-tag RS delta (sum of rsChange for commitments in selected tag)
-    const rsTagStats = await prisma.commitment.aggregate({
-      where: { userId: user.id, rsChange: { not: null as null }, ...tagFilter },
-      _sum: { rsChange: true },
-    })
     const rsTagDelta = selectedTag ? (rsTagStats._sum.rsChange ?? null) : null
+
+    const peerScoreSum = peerScoreStats._count.peerScore > 0 ? (peerScoreStats._sum.peerScore ?? null) : null
+    const aiScoreSum = aiScoreStats._count.aiScore > 0 ? (aiScoreStats._sum.aiScore ?? null) : null
 
     // Fetch recent commitments (stakes), filtered by tag if selected
     const commitments = await prisma.commitment.findMany({
@@ -239,6 +256,29 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
                     <span className={`text-sm font-bold ${rsTagDelta >= 0 ? 'text-teal' : 'text-red-400'}`}>{rsTagDelta >= 0 ? '+' : ''}{rsTagDelta.toFixed(1)}</span>
                   </div>
                 )}
+                {peerScoreSum !== null && (
+                  <div className="px-4 py-2 bg-navy-800 rounded-xl border border-navy-600" title="Peer Score = how much better you were than the community consensus at commit time. Positive = beat the crowd.">
+                    <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block">
+                      Peer Score{selectedTag ? ` · ${userTags.find(tag => tag.slug === selectedTag)?.name ?? selectedTag}` : ''}
+                    </span>
+                    <span className={`text-sm font-bold ${peerScoreSum >= 0 ? 'text-teal' : 'text-red-400'}`}>{peerScoreSum >= 0 ? '+' : ''}{peerScoreSum.toFixed(2)}</span>
+                    <span className="text-[10px] text-gray-400 block">{peerScoreStats._count.peerScore} scored</span>
+                  </div>
+                )}
+                {aiScoreSum !== null && (
+                  <div className="px-4 py-2 bg-navy-800 rounded-xl border border-navy-600" title="AI Score = how much better you were than the AI estimate at commit time. Positive = beat the AI.">
+                    <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block">
+                      AI Score{selectedTag ? ` · ${userTags.find(tag => tag.slug === selectedTag)?.name ?? selectedTag}` : ''}
+                    </span>
+                    <span className={`text-sm font-bold ${aiScoreSum >= 0 ? 'text-teal' : 'text-red-400'}`}>{aiScoreSum >= 0 ? '+' : ''}{aiScoreSum.toFixed(2)}</span>
+                    <span className="text-[10px] text-gray-400 block">{aiScoreStats._count.aiScore} scored</span>
+                  </div>
+                )}
+                <div className="px-4 py-2 bg-navy-800 rounded-xl border border-navy-600" title="ELO head-to-head rating. Updated each time a prediction resolves and you are compared against other committers.">
+                  <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block">ELO Rating</span>
+                  <span className="text-sm font-bold text-blue-400">{Math.round(user.eloRating)}</span>
+                  <span className="text-[10px] text-gray-400 block">global</span>
+                </div>
               </div>
               <TagFilter tags={userTags} selectedTag={selectedTag} />
             </div>

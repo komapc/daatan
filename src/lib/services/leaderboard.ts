@@ -1,8 +1,20 @@
 import { prisma } from '@/lib/prisma'
+import type { Prisma } from '@prisma/client'
 
-type SortBy = 'rs' | 'accuracy' | 'totalCorrect' | 'cuCommitted' | 'brierScore' | 'roi' | 'truthScore' | 'glicko'
+type SortBy =
+  | 'rs'
+  | 'accuracy'
+  | 'totalCorrect'
+  | 'cuCommitted'
+  | 'brierScore'
+  | 'roi'
+  | 'truthScore'
+  | 'glicko'
+  | 'peerScore'
+  | 'aiScore'
+  | 'elo'
 
-export const getLeaderboard = async (limit: number, sortBy: SortBy) => {
+export const getLeaderboard = async (limit: number, sortBy: SortBy, tagSlug?: string) => {
   const users = await prisma.user.findMany({
     where: { isPublic: true },
     select: {
@@ -14,6 +26,7 @@ export const getLeaderboard = async (limit: number, sortBy: SortBy) => {
       cuAvailable: true,
       mu: true,
       sigma: true,
+      eloRating: true,
       totalPredictions: true,
       correctPredictions: true,
       _count: { select: { predictions: true, commitments: true } },
@@ -22,35 +35,60 @@ export const getLeaderboard = async (limit: number, sortBy: SortBy) => {
 
   const userIds = users.map(u => u.id)
 
-  const [cuSums, rsGainSums, resolvedCommitments, brierScoreSums] = await Promise.all([
+  const tagFilter: Prisma.CommitmentWhereInput =
+    tagSlug ? { prediction: { tags: { some: { slug: tagSlug } } } } : {}
+
+  const [
+    cuSums,
+    rsGainSums,
+    resolvedCommitments,
+    brierScoreSums,
+    peerScoreSums,
+    aiScoreSums,
+  ] = await Promise.all([
     prisma.commitment.groupBy({
       by: ['userId'],
-      where: { userId: { in: userIds } },
+      where: { userId: { in: userIds }, ...tagFilter },
       _sum: { cuCommitted: true },
     }),
     prisma.commitment.groupBy({
       by: ['userId'],
-      where: { userId: { in: userIds }, rsChange: { gt: 0 } },
+      where: { userId: { in: userIds }, rsChange: { gt: 0 }, ...tagFilter },
       _sum: { rsChange: true },
     }),
     prisma.commitment.findMany({
       where: {
         userId: { in: userIds },
-        prediction: { status: { in: ['RESOLVED_CORRECT', 'RESOLVED_WRONG'] } },
+        prediction: {
+          status: { in: ['RESOLVED_CORRECT', 'RESOLVED_WRONG'] },
+          ...(tagSlug ? { tags: { some: { slug: tagSlug } } } : {}),
+        },
         rsChange: { not: null },
       },
       select: { userId: true, rsChange: true },
     }),
     prisma.commitment.groupBy({
       by: ['userId'],
-      where: { userId: { in: userIds }, brierScore: { not: null } },
+      where: { userId: { in: userIds }, brierScore: { not: null }, ...tagFilter },
       _avg: { brierScore: true },
       _count: { brierScore: true },
+    }),
+    prisma.commitment.groupBy({
+      by: ['userId'],
+      where: { userId: { in: userIds }, peerScore: { not: null }, ...tagFilter },
+      _sum: { peerScore: true },
+    }),
+    prisma.commitment.groupBy({
+      by: ['userId'],
+      where: { userId: { in: userIds }, aiScore: { not: null }, ...tagFilter },
+      _sum: { aiScore: true },
     }),
   ])
 
   const cuByUser = new Map(cuSums.map(s => [s.userId, s._sum.cuCommitted ?? 0]))
   const rsGainByUser = new Map(rsGainSums.map(s => [s.userId, s._sum.rsChange ?? 0]))
+  const peerScoreByUser = new Map(peerScoreSums.map(s => [s.userId, s._sum.peerScore ?? null]))
+  const aiScoreByUser = new Map(aiScoreSums.map(s => [s.userId, s._sum.aiScore ?? null]))
 
   const resolvedByUser = new Map<string, { total: number; correct: number }>()
   for (const c of resolvedCommitments) {
@@ -86,6 +124,7 @@ export const getLeaderboard = async (limit: number, sortBy: SortBy) => {
       mu: user.mu,
       sigma: user.sigma,
       glickoRank,
+      eloRating: user.eloRating,
       totalPredictions: user.totalPredictions,
       correctPredictions: user.correctPredictions,
       totalCommitments: user._count.commitments,
@@ -96,6 +135,8 @@ export const getLeaderboard = async (limit: number, sortBy: SortBy) => {
       totalRsGained: Math.round((rsGainByUser.get(user.id) ?? 0) * 100) / 100,
       avgBrierScore,
       brierCount: brier?.count ?? 0,
+      peerScoreSum: peerScoreByUser.get(user.id) ?? null,
+      aiScoreSum: aiScoreByUser.get(user.id) ?? null,
       roi: null as number | null,
       truthScore: null as number | null,
     }
@@ -115,6 +156,9 @@ export const getLeaderboard = async (limit: number, sortBy: SortBy) => {
     roi: (a, b) => (b.roi ?? -Infinity) - (a.roi ?? -Infinity),
     truthScore: (a, b) => (b.truthScore ?? -Infinity) - (a.truthScore ?? -Infinity),
     glicko: (a, b) => b.glickoRank - a.glickoRank,
+    peerScore: (a, b) => (b.peerScoreSum ?? -Infinity) - (a.peerScoreSum ?? -Infinity),
+    aiScore: (a, b) => (b.aiScoreSum ?? -Infinity) - (a.aiScoreSum ?? -Infinity),
+    elo: (a, b) => b.eloRating - a.eloRating,
   }
 
   leaderboard.sort(sortFns[sortBy] ?? sortFns.rs)
