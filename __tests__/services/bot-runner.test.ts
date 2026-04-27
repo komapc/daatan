@@ -1374,3 +1374,118 @@ describe('runDueBots — tagFilter sanitization', () => {
     expect(prompt).toContain('does not match')
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TEST-4: LLM response parsing — schema drift guard
+// These tests pass a canned JSON string through the real parsing code (no mock
+// of JSON.parse or field extraction) to catch schema drift between what the LLM
+// actually returns and what the bot runner expects to find.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('LLM response parsing — schema drift guard', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-02-20T12:00:00Z'))
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('correctly parses a markdown-wrapped OpenRouter response and filters null/empty tags', async () => {
+    const { prisma } = await import('@/lib/prisma')
+    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/bots/rss')
+    const { createCommitment } = await import('@/lib/services/commitment')
+    const { runDueBots } = await import('@/lib/services/bots')
+
+    const bot = makeBot({ autoApprove: false, maxVotesPerDay: 0 })
+    vi.mocked(prisma.botConfig.findMany).mockResolvedValue([bot] as any)
+    vi.mocked(prisma.botRunLog.count).mockResolvedValue(0)
+    vi.mocked(fetchRssFeeds).mockResolvedValue([])
+    vi.mocked(detectHotTopics).mockReturnValue([
+      { title: 'Oil market disruption', items: [], sourceCount: 3 },
+    ] as any)
+
+    // Simulate a realistic OpenRouter response: JSON embedded in markdown fences with preamble text.
+    // null and empty-string tags test the filter at the LLM boundary.
+    const cannedResponse = `Here is the structured forecast:\n\`\`\`json\n${JSON.stringify({
+      claimText: '🤖 Brent crude will exceed $90/barrel by Q3 2026',
+      detailsText: 'OPEC+ supply cuts and recovering demand support this outlook.',
+      outcomeType: 'BINARY',
+      resolveByDatetime: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+      resolutionRules: 'Resolves YES if Brent crude spot price exceeds $90 on resolution date.',
+      tags: ['energy', 'oil', null, '', 'commodities'],
+    })}\n\`\`\`\nLet me know if you need adjustments.`
+
+    mockGenerateContent
+      .mockResolvedValueOnce({ text: 'no' })           // dedup check
+      .mockResolvedValueOnce({ text: cannedResponse })  // forecast generation
+      .mockResolvedValueOnce({ text: QUALITY_PASS_JSON }) // quality gate
+
+    vi.mocked(prisma.prediction.findMany).mockResolvedValue([])
+    vi.mocked(prisma.prediction.create).mockResolvedValue({ id: 'pred-oil' } as any)
+    vi.mocked(prisma.prediction.update).mockResolvedValue({} as any)
+    vi.mocked(createCommitment).mockResolvedValue({ ok: true } as any)
+    vi.mocked(prisma.botRunLog.create).mockResolvedValue({} as any)
+    vi.mocked(prisma.botConfig.update).mockResolvedValue({} as any)
+
+    await runDueBots()
+
+    expect(prisma.prediction.create).toHaveBeenCalledOnce()
+    const createCall = vi.mocked(prisma.prediction.create).mock.calls[0][0] as any
+    expect(createCall.data.claimText).toBe('🤖 Brent crude will exceed $90/barrel by Q3 2026')
+    expect(createCall.data.outcomeType).toBe('BINARY')
+
+    // null and '' must be filtered; only ['energy', 'oil', 'commodities'] survive
+    const tagNames: string[] = createCall.data.tags?.connectOrCreate?.map((t: any) => t.create.name)
+    expect(tagNames).toEqual(['energy', 'oil', 'commodities'])
+  })
+
+  it('correctly parses a plain JSON vote-decision response (no markdown)', async () => {
+    const { prisma } = await import('@/lib/prisma')
+    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/bots/rss')
+    const { createCommitment } = await import('@/lib/services/commitment')
+    const { runDueBots } = await import('@/lib/services/bots')
+
+    const bot = makeBot({ canCreateForecasts: false, canVote: true, maxVotesPerDay: 5 })
+    vi.mocked(prisma.botConfig.findMany).mockResolvedValue([bot] as any)
+    vi.mocked(prisma.botRunLog.count).mockResolvedValue(0)
+    vi.mocked(fetchRssFeeds).mockResolvedValue([])
+    vi.mocked(detectHotTopics).mockReturnValue([])
+
+    // Canned vote-decision response — plain JSON with all required fields
+    const cannedVoteResponse = JSON.stringify({
+      shouldVote: true,
+      binaryChoice: false,
+      reason: 'Fundamental analysis suggests the market will decline.',
+    })
+    mockGenerateContent.mockResolvedValueOnce({ text: cannedVoteResponse })
+
+    const activeForecasts = [
+      {
+        id: 'pred-vote-1',
+        claimText: '🤖 S&P500 will exceed 6000 by year end',
+        outcomeType: 'BINARY',
+        status: 'ACTIVE',
+        authorId: 'author-1',
+        slug: 'sp500-6000',
+        options: [],
+      },
+    ]
+    vi.mocked(prisma.prediction.findMany).mockResolvedValue(activeForecasts as any)
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: bot.userId, cuAvailable: 100, rs: 1500 } as any)
+    vi.mocked(createCommitment).mockResolvedValue({ ok: true, data: { id: 'c1' } } as any)
+    vi.mocked(prisma.botRunLog.create).mockResolvedValue({} as any)
+    vi.mocked(prisma.botConfig.update).mockResolvedValue({} as any)
+
+    await runDueBots()
+
+    // The bot runner parsed shouldVote=true + binaryChoice=false → commits with negative confidence
+    expect(createCommitment).toHaveBeenCalledOnce()
+    const commitCall = vi.mocked(createCommitment).mock.calls[0]
+    expect(commitCall[2]).toMatchObject({ confidence: expect.any(Number) })
+    // binaryChoice=false → negative confidence
+    expect((commitCall[2] as any).confidence).toBeLessThan(0)
+  })
+})

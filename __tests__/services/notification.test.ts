@@ -263,4 +263,74 @@ describe('Notification Service', () => {
       })
     })
   })
+
+  // TEST-8: dedup time-window boundary tests
+  describe('createNotification — dedup 1-hour time-window boundary', () => {
+    const baseInput = {
+      userId: 'user-1',
+      type: 'COMMENT_ON_FORECAST' as const,
+      title: 'New comment',
+      message: 'Someone commented on your forecast',
+      actorId: 'user-2',
+      predictionId: 'pred-1',
+    }
+
+    beforeEach(() => {
+      vi.useFakeTimers()
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+      vi.clearAllMocks()
+    })
+
+    it('deduplicates (update) when an existing notification is within 59 minutes', async () => {
+      vi.setSystemTime(new Date('2026-06-15T12:00:00.000Z'))
+      const { prisma } = await import('@/lib/prisma')
+      const { createNotification } = await import('@/lib/services/notification')
+
+      vi.mocked(prisma.notificationPreference.findUnique).mockResolvedValue(null)
+      // findFirst returns an existing notification (simulating one from 59 min ago — within window)
+      vi.mocked(prisma.notification.findFirst).mockResolvedValue({ id: 'existing-notif' } as any)
+      vi.mocked(prisma.notification.update).mockResolvedValue({ id: 'existing-notif' } as any)
+
+      await createNotification(baseInput)
+
+      expect(prisma.notification.update).toHaveBeenCalled()
+      expect(prisma.notification.create).not.toHaveBeenCalled()
+    })
+
+    it('creates new notification when no existing one is within 61 minutes (outside window)', async () => {
+      vi.setSystemTime(new Date('2026-06-15T12:00:00.000Z'))
+      const { prisma } = await import('@/lib/prisma')
+      const { createNotification } = await import('@/lib/services/notification')
+
+      vi.mocked(prisma.notificationPreference.findUnique).mockResolvedValue(null)
+      // findFirst returns null (simulating that the only match is 61 min ago — outside window)
+      vi.mocked(prisma.notification.findFirst).mockResolvedValue(null)
+      vi.mocked(prisma.notification.create).mockResolvedValue({ id: 'new-notif' } as any)
+
+      await createNotification(baseInput)
+
+      expect(prisma.notification.create).toHaveBeenCalled()
+      expect(prisma.notification.update).not.toHaveBeenCalled()
+    })
+
+    it('passes exactly 1-hour-ago as the createdAt lower bound in the dedup query', async () => {
+      const now = new Date('2026-06-15T12:00:00.000Z')
+      vi.setSystemTime(now)
+      const { prisma } = await import('@/lib/prisma')
+      const { createNotification } = await import('@/lib/services/notification')
+
+      vi.mocked(prisma.notificationPreference.findUnique).mockResolvedValue(null)
+      vi.mocked(prisma.notification.findFirst).mockResolvedValue(null)
+      vi.mocked(prisma.notification.create).mockResolvedValue({ id: 'n1' } as any)
+
+      await createNotification(baseInput)
+
+      const findFirstArg = vi.mocked(prisma.notification.findFirst).mock.calls[0][0] as any
+      const expectedCutoff = new Date(now.getTime() - 60 * 60 * 1000)
+      expect(findFirstArg.where.createdAt.gte).toEqual(expectedCutoff)
+    })
+  })
 })
