@@ -238,6 +238,22 @@ function extractKeywords(text: string): string[] {
     .filter(w => w.length > 2 && !STOPWORDS.has(w))
 }
 
+/**
+ * Jaccard similarity between two keyword sets: |A∩B| / |A∪B|.
+ * Returns 0 when both sets are empty.
+ */
+function jaccard(a: Set<string>, b: Set<string>): number {
+  if (a.size === 0 && b.size === 0) return 0
+  let intersection = 0
+  for (const w of a) if (b.has(w)) intersection++
+  const union = a.size + b.size - intersection
+  return intersection / union
+}
+
+// Minimum Jaccard similarity to be considered "similar".
+// 0.15 means roughly 1 shared keyword out of 5–7 total unique keywords.
+const JACCARD_THRESHOLD = 0.15
+
 export interface SimilarForecast {
   id: string
   slug: string | null
@@ -260,16 +276,22 @@ export async function findSimilarForecasts({
   limit?: number
 }): Promise<SimilarForecast[]> {
   const keywords = extractKeywords(claimText)
+  if (keywords.length === 0 && tags.length === 0) return []
 
-  // Fetch candidates: ACTIVE forecasts sharing at least 1 tag OR matching a keyword
+  // Fetch candidates: require at least 1 shared tag when tags are available,
+  // otherwise fall back to a multi-keyword OR search. This prunes the candidate
+  // set at the DB level so Jaccard only runs on topically adjacent forecasts.
   const candidates = await prisma.prediction.findMany({
     where: {
-      status: 'ACTIVE',
+      status: { in: ['ACTIVE', 'PENDING_APPROVAL'] },
       ...(excludeId ? { id: { not: excludeId } } : {}),
-      OR: [
-        ...(tags.length > 0 ? [{ tags: { some: { name: { in: tags } } } }] : []),
-        ...(keywords.length > 0 ? [{ claimText: { contains: keywords[0], mode: 'insensitive' as const } }] : []),
-      ],
+      ...(tags.length > 0
+        ? { tags: { some: { name: { in: tags } } } }
+        : {
+            OR: keywords.slice(0, 5).map(k => ({
+              claimText: { contains: k, mode: 'insensitive' as const },
+            })),
+          }),
     },
     select: {
       id: true,
@@ -280,28 +302,35 @@ export async function findSimilarForecasts({
       author: { select: { name: true, username: true } },
       tags: { select: { name: true } },
     },
-    take: 50,
+    take: 100,
   })
 
-  // Score each candidate
-  const scored = candidates.map(c => {
-    const candidateTags = new Set(c.tags.map(t => t.name.toLowerCase()))
-    const sharedTags = tags.filter(t => candidateTags.has(t.toLowerCase())).length
+  const queryKws = new Set(keywords)
 
-    const candidateKeywords = new Set(extractKeywords(c.claimText))
-    const sharedKeywords = keywords.filter(k => candidateKeywords.has(k)).length
+  return candidates
+    .map(c => {
+      const candidateKws = new Set(extractKeywords(c.claimText))
+      const similarity = jaccard(queryKws, candidateKws)
 
-    return {
-      ...c,
-      score: sharedTags * 3 + sharedKeywords,
-    }
-  })
+      // Shared tag count used only as a tiebreaker, not to inflate score
+      const candidateTags = new Set(c.tags.map((t: { name: string }) => t.name.toLowerCase()))
+      const sharedTags = tags.filter(t => candidateTags.has(t.toLowerCase())).length
 
-  return scored
-    .filter(c => c.score > 0)
-    .sort((a, b) => b.score - a.score)
+      return {
+        id: c.id,
+        slug: c.slug,
+        claimText: c.claimText,
+        status: c.status,
+        resolveByDatetime: c.resolveByDatetime,
+        author: c.author,
+        score: similarity,
+        sharedTags,
+      }
+    })
+    .filter(c => c.score >= JACCARD_THRESHOLD)
+    .sort((a, b) => b.score - a.score || b.sharedTags - a.sharedTags)
     .slice(0, limit)
-    .map(({ tags: _, ...rest }) => rest)
+    .map(({ sharedTags: _, ...rest }) => rest)
 }
 
 // ── Single forecast ───────────────────────────────────────────────────────────
