@@ -85,6 +85,10 @@ export default async function PublicProfilePage({ params, searchParams }: Profil
         website: true,
         twitterHandle: true,
         rs: true,
+        mu: true,
+        sigma: true,
+        totalPredictions: true,
+        correctPredictions: true,
         createdAt: true,
         _count: {
           select: {

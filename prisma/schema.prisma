@@ -47,6 +47,13 @@ model User {
   cuAvailable Int   @default(100) // Confidence Units available to commit
   cuLocked    Int   @default(0) // Confidence Units locked in active predictions
 
+  // Glicko-2 expertise rating
+  mu                 Float @default(1500) // skill estimate (Glicko-1 scale)
+  sigma              Float @default(350)  // rating deviation — high = uncertain
+  volatility         Float @default(0.06) // erraticism of skill changes
+  totalPredictions   Int   @default(0)
+  correctPredictions Int   @default(0)
+
   // Bot flag
   isBot Boolean @default(false)
 
