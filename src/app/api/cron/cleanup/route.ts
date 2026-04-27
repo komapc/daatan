@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createHash, timingSafeEqual } from 'crypto'
 import { cleanupOldNotifications } from '@/lib/services/notification'
 import { createLogger } from '@/lib/logger'
+import { env } from '@/env'
 
 const log = createLogger('cron-cleanup')
+
+function secretsMatch(provided: string, expected: string): boolean {
+  const a = createHash('sha256').update(provided).digest()
+  const b = createHash('sha256').update(expected).digest()
+  return timingSafeEqual(a, b)
+}
 
 /**
  * GET /api/cron/cleanup
@@ -14,8 +22,9 @@ const log = createLogger('cron-cleanup')
  */
 export async function GET(request: NextRequest) {
   const secret = request.headers.get('x-cron-secret')
+  const expected = env.BOT_RUNNER_SECRET
 
-  if (!process.env.BOT_RUNNER_SECRET || secret !== process.env.BOT_RUNNER_SECRET) {
+  if (!expected || !secret || !secretsMatch(secret, expected)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

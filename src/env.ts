@@ -46,6 +46,9 @@ export const env = createEnv({
     // Web Push (VAPID)
     VAPID_PRIVATE_KEY: z.string().min(1).optional(),
 
+    // Bot runner / cron shared secret
+    BOT_RUNNER_SECRET: z.string().min(1).optional(),
+
     // Bot system limits
     MAX_BOTS: z.coerce.number().default(50),
 
@@ -75,6 +78,7 @@ export const env = createEnv({
     TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
     TELEGRAM_CHAT_ID: process.env.TELEGRAM_CHAT_ID,
     VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY,
+    BOT_RUNNER_SECRET: process.env.BOT_RUNNER_SECRET,
     MAX_BOTS: process.env.MAX_BOTS,
     ORACLE_URL: process.env.ORACLE_URL,
     ORACLE_API_KEY: process.env.ORACLE_API_KEY,
