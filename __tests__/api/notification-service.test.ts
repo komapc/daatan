@@ -17,7 +17,7 @@ vi.mock('@/lib/prisma', () => ({
 }))
 
 vi.mock('@/lib/services/push', () => ({
-  dispatchBrowserPush: vi.fn(),
+  dispatchBrowserPush: vi.fn().mockResolvedValue(undefined),
 }))
 
 // Mock the logger to suppress output in tests

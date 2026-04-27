@@ -17,7 +17,7 @@ vi.mock('@/lib/prisma', () => ({
 }))
 
 vi.mock('@/lib/services/push', () => ({
-  dispatchBrowserPush: vi.fn(),
+  dispatchBrowserPush: vi.fn().mockResolvedValue(undefined),
 }))
 
 // Must mock after prisma since the module imports prisma at load time

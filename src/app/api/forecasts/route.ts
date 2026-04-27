@@ -9,6 +9,7 @@ import { translatePredictionToAllLocales } from '@/lib/services/translation'
 import { listForecasts, enrichPredictions, upsertNewsAnchor, verifyUserExists, createForecast } from '@/lib/services/forecast'
 import { createLogger } from '@/lib/logger'
 import { toError } from '@/lib/utils/error'
+import { withRetry } from '@/lib/utils/retry'
 
 const log = createLogger('api-forecasts')
 
@@ -174,9 +175,13 @@ export const POST = withAuth(async (request, user) => {
       tags: data.tags,
     })
 
-    translatePredictionToAllLocales(prediction!.id).catch(err => {
-      log.error({ err, predictionId: prediction!.id }, 'Background translation failed')
-    })
+    withRetry(() => translatePredictionToAllLocales(prediction!.id), {
+      attempts: 3,
+      onError: (err, attempt, attemptsLeft) =>
+        log.warn({ err, predictionId: prediction!.id, attempt, attemptsLeft }, 'Background translation failed, retrying'),
+    }).catch(err =>
+      log.error({ err, predictionId: prediction!.id }, 'Background translation failed after all retries'),
+    )
 
     return NextResponse.json(prediction, { status: 201 })
   } catch (err: unknown) {
