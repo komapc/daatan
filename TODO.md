@@ -15,7 +15,7 @@
 
 ### Security — Short Term
 
-- [ ] **[SEC-5] No rate limiting on LLM-backed endpoints** — add per-user rate limiting to `api/forecasts/[id]/research`, `api/forecasts/[id]/translate`, and `api/admin/bots/[id]/run`. No `rateLimit` helper exists in the codebase yet; add one (upstash/ratelimit or a simple in-memory sliding window for low traffic).
+- [x] **[SEC-5] No rate limiting on LLM-backed endpoints** — added `src/lib/rate-limit.ts` (in-memory sliding window, no external deps). `research`: 10/hour per user; `translate`: 20/hour per IP; `admin/bots/[id]/run`: 5/hour per user. All return `429` with `Retry-After` header on violation.
 - [ ] **[SEC-6] Unbounded input on public search** — cap the `q` parameter in `api/forecasts/similar/route.ts:13` (e.g. max 200 chars) before it hits the DB.
 - [ ] **[SEC-7] Notification IDOR — explicit ownership check** — add an explicit `userId` ownership assertion in `api/notifications/[id]/route.ts` before calling the service, rather than relying on the service's implicit filter. Defense-in-depth.
 
