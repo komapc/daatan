@@ -128,7 +128,7 @@
     "forecastsHistory": "Forecasts History",
     "botPendingDescription": "This bot-generated forecast is awaiting human review before going live.",
     "approving": "Approving…",
-    "seeAlso": "See also",
+    "seeAlso": "Related forecasts",
     "sessionExpired": "Session expired — please sign out and sign back in",
     "commitFailed": "Failed to commit forecast",
     "forecastRecorded": "Forecast recorded!",
@@ -504,7 +504,7 @@
     "createForecast": "Create Forecast"
   },
   "expressForecast": {
-    "inputLabel": "What do you want to forecast?",
+    "inputLabel": "Create a forecast",
     "inputPlaceholder": "Describe your event OR paste a news article URL...",
     "charCount": "{count}/1000 characters",
     "urlDetected": "URL detected - will read article and find related sources",

@@ -128,7 +128,7 @@
     "forecastsHistory": "Historio de prognozoj",
     "botPendingDescription": "Ĉi tiu prognoza generita de roboto atendas homan revizon.",
     "approving": "Aprobante…",
-    "seeAlso": "Vidu ankaŭ",
+    "seeAlso": "Rilataj prognozoj",
     "sessionExpired": "Seanco eksvalidiĝis — bonvolu elsaluti kaj resaluti",
     "commitFailed": "Malsukcesis engaĝi prognozon",
     "forecastRecorded": "Prognozo registrita!",
@@ -504,7 +504,7 @@
     "createForecast": "Krei prognozon"
   },
   "expressForecast": {
-    "inputLabel": "Kion vi volas prognozi?",
+    "inputLabel": "Krei prognozon",
     "inputPlaceholder": "Priskribu vian okazaĵon AŬ algluu novaĵartikolan URL...",
     "charCount": "{count}/1000 signoj",
     "urlDetected": "URL detektita — artikolo estos legata kaj rilataj fontoj trovataj",

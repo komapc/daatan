@@ -26,8 +26,8 @@
   /* Neutrals */
   --color-white:          #FFFFFF;
   --color-mist:           #E6E9EF;
-  --color-text-secondary: #A0AEC0;
-  --color-text-subtle:    #6B7280;
+  --color-text-secondary: #B2BED0; /* was #A0AEC0 — bumped for contrast */
+  --color-text-subtle:    #9AA5B4; /* was #6B7280 (3.6:1) — now ~6.7:1 on navy-900 */
 }
 
 /* ── BASE ────────────────────────────────────────────────── */

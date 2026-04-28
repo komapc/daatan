@@ -39,6 +39,23 @@ module.exports = {
         'text-secondary': 'var(--color-text-secondary)',
         'text-subtle':    'var(--color-text-subtle)',
 
+        // WCAG AA override: Tailwind's default gray-500 (#6B7280) and gray-600 (#4B5563)
+        // fail contrast on the dark navy backgrounds used throughout this app.
+        // Remapped to values that achieve ≥4.5:1 on navy-900 (#0B1F33).
+        gray: {
+          50:  '#F9FAFB',
+          100: '#F3F4F6',
+          200: '#E5E7EB',
+          300: '#D1D5DB',
+          400: '#9CA3AF', // unchanged — already passes (~6.8:1)
+          500: '#9AA5B4', // was #6B7280 (3.6:1) → now ~6.7:1 ✅
+          600: '#7D8FA3', // was #4B5563 (2.3:1) → now ~5.1:1 ✅
+          700: '#374151',
+          800: '#1F2937',
+          900: '#111827',
+          950: '#030712',
+        },
+
         // Legacy alias kept for backward compat
         primary: 'var(--color-cobalt)',
         sidebar: {
