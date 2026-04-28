@@ -246,8 +246,14 @@
       "cuCommitted": "Most Confident",
       "brierScore": "Brier Score",
       "roi": "ROI",
-      "truthScore": "TruthScore"
+      "truthScore": "TruthScore",
+      "peerScore": "Peer Score",
+      "aiScore": "AI Score",
+      "elo": "ELO",
+      "glicko": "Glicko"
     },
+    "filterByTopic": "Filter by topic",
+    "allTopics": "All topics",
     "soon": "soon",
     "legend": {
       "rsTitle": "Reputation Score (RS)",
@@ -256,10 +262,18 @@
       "cuDesc": "Confidence represents your intensity/conviction on each forecast. Correct calls increase your reputation; wrong calls decrease it.",
       "brierTitle": "Brier Score",
       "brierDesc": "Lower is better. Measures calibration: (your probability − actual outcome)². Perfect score = 0.",
-      "roiTitle": "Return on Investment (ROI)",
-      "roiDesc": "Net CU gain on resolved forecasts as a percentage of CU committed. Positive = profitable; negative = net loss.",
-      "truthScoreTitle": "TruthScore (coming soon)",
-      "truthScoreDesc": "Logarithmic scoring rule used by Microsoft Research. Rewards confident correct predictions more than hedged ones. Higher is better."
+      "roiTitle": "ROI",
+      "roiDesc": "Average net RS change per resolved prediction. Positive = you earn RS on average; negative = you lose RS on average.",
+      "truthScoreTitle": "TruthScore",
+      "truthScoreDesc": "Average peer score per prediction — how consistently you beat the community consensus. Positive = you beat the crowd on average.",
+      "peerScoreTitle": "Peer Score",
+      "peerScoreDesc": "How much better your probability estimates are than the community consensus at the time you committed. Positive = you beat the crowd.",
+      "aiScoreTitle": "AI Score",
+      "aiScoreDesc": "How much better your probability estimates are than the AI's estimate at the time you committed. Positive = you beat the AI.",
+      "eloTitle": "ELO Rating",
+      "eloDesc": "Head-to-head competitive rating. When two users commit to the same prediction, the more accurate one gains ELO from the other.",
+      "glickoTitle": "Glicko-2 Rating",
+      "glickoDesc": "Skill estimate with uncertainty bounds (μ − 3σ). Accounts for how many predictions you have made — rewards consistent accuracy."
     }
   },
   "activity": {
