@@ -340,6 +340,8 @@
     "joined": "Joined",
     "predictions": "Forecasts",
     "created": "created",
+    "participated": "participated",
+    "topicBreakdown": "By topic",
     "brierScore": "Brier Score",
     "scored": "scored",
     "balance": "Balance",

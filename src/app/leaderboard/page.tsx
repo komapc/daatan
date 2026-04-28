@@ -139,7 +139,7 @@ export default function LeaderboardPage() {
       case 'truthScore':   return t('sortBy.truthScore')
       case 'peerScore':    return t('sortBy.peerScore')
       case 'aiScore':      return t('sortBy.aiScore')
-      case 'elo':          return t('sortBy.elo')
+      case 'elo':          return selectedTag ? `${t('sortBy.elo')} · ${selectedTag}` : t('sortBy.elo')
       case 'glicko':       return t('sortBy.glicko')
       default:             return t('sortBy.reputation')
     }

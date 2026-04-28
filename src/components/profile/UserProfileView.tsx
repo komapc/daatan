@@ -19,6 +19,13 @@ import EmptyState from '@/components/ui/EmptyState'
 import { RoleBadge } from '@/components/RoleBadge'
 import { TagFilter } from '@/components/profile/TagFilter'
 
+interface TopicStat {
+  name: string
+  slug: string
+  count: number
+  peerScoreAvg: number
+}
+
 interface UserProfileViewProps {
   user: any
   commitments: any[]
@@ -34,6 +41,9 @@ interface UserProfileViewProps {
   aiScoreSum?: number | null
   aiScoreCount?: number
   eloRating?: number
+  truthScore?: number | null
+  roi?: number | null
+  topicBreakdown?: TopicStat[]
 }
 
 export async function UserProfileView({
@@ -51,6 +61,9 @@ export async function UserProfileView({
   aiScoreSum = null,
   aiScoreCount = 0,
   eloRating,
+  truthScore = null,
+  roi = null,
+  topicBreakdown = [],
 }: UserProfileViewProps) {
   const t = await getTranslations('profile')
 
@@ -132,6 +145,7 @@ export async function UserProfileView({
               <div className="px-4 py-2 bg-navy-800 rounded-xl border border-navy-600">
                 <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block">{t('predictions')}</span>
                 <span className="text-sm font-bold text-text-secondary">{user._count.predictions} {t('created')}</span>
+                <span className="text-[10px] text-gray-400 block">{user._count.commitments} {t('participated')}</span>
               </div>
               {avgBrierScore !== null && (
                 <div className="px-4 py-2 bg-navy-800 rounded-xl border border-navy-600" title="Brier Score = (probability − outcome)². Lower is better. Only computed when you enter a % yes estimate at stake time.">
@@ -173,7 +187,40 @@ export async function UserProfileView({
                   <span className="text-[10px] text-gray-400 block">global</span>
                 </div>
               )}
+              {truthScore !== null && (
+                <div className="px-4 py-2 bg-navy-800 rounded-xl border border-navy-600" title="TruthScore = average peer score per prediction. How consistently you beat the community consensus.">
+                  <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block">TruthScore</span>
+                  <span className={`text-sm font-bold ${truthScore >= 0 ? 'text-teal' : 'text-red-400'}`}>{truthScore >= 0 ? '+' : ''}{truthScore.toFixed(4)}</span>
+                  <span className="text-[10px] text-gray-400 block">avg / prediction</span>
+                </div>
+              )}
+              {roi !== null && (
+                <div className="px-4 py-2 bg-navy-800 rounded-xl border border-navy-600" title="ROI = average net RS change per resolved prediction.">
+                  <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block">ROI</span>
+                  <span className={`text-sm font-bold ${roi >= 0 ? 'text-teal' : 'text-red-400'}`}>{roi >= 0 ? '+' : ''}{roi.toFixed(2)}</span>
+                  <span className="text-[10px] text-gray-400 block">RS / prediction</span>
+                </div>
+              )}
             </div>
+
+            {/* Per-topic peer score breakdown */}
+            {topicBreakdown.length > 0 && !selectedTag && (
+              <div className="mt-4">
+                <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-2">{t('topicBreakdown')}</p>
+                <div className="flex flex-wrap gap-2">
+                  {topicBreakdown.map(topic => (
+                    <div key={topic.slug} className="flex items-center gap-1.5 px-3 py-1.5 bg-navy-800 rounded-lg border border-navy-600 text-xs">
+                      <span className="text-gray-300 font-medium">{topic.name}</span>
+                      <span className={`font-bold ${topic.peerScoreAvg >= 0 ? 'text-teal' : 'text-red-400'}`}>
+                        {topic.peerScoreAvg >= 0 ? '+' : ''}{topic.peerScoreAvg.toFixed(3)}
+                      </span>
+                      <span className="text-gray-500">({topic.count})</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <TagFilter tags={userTags} selectedTag={selectedTag} />
           </div>
 
