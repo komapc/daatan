@@ -92,6 +92,19 @@ export function notifyAllSearchProvidersFailed(query?: string): void {
   sendChannelNotification(msg)
 }
 
+export function notifyOracleSearchUnavailable(query?: string): void {
+  if (isDevEnv()) return
+  if (!canNotify('oracle-search-unavailable')) return
+
+  const msg = [
+    `⚠️ <b>Oracle /search unavailable</b>`,
+    query ? `Query: <code>${truncate(query, 100)}</code>` : '',
+    `Falling back to local search providers`,
+  ].filter(Boolean).join('\n')
+
+  sendChannelNotification(msg)
+}
+
 export function notifySearchCreditsLow(provider: string, remaining: number): void {
   if (isDevEnv()) return
   if (!canNotify(`search-credits-low:${provider}`)) return

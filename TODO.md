@@ -1,11 +1,21 @@
 # TODO.md — Task Queue
 
-*Last updated: April 28, 2026 · v1.10.53*
+*Last updated: April 28, 2026 · v1.10.54*
 
 ---
 
 ## Open Tasks
 
+### Oracle / Search Unification
+
+> Routes daatan's article search through oracle so both services share one provider fallback chain.
+> ORACLE_URL + ORACLE_API_KEY must be set (key in AWS Secrets Manager: `openclaw/oracle-api-key`).
+
+- [x] `src/lib/services/oracleSearch.ts` — thin client for `POST ${ORACLE_URL}/search` (v1.10.54, PR #699)
+- [x] `context/route.ts` + `research/route.ts` — try oracle first, fall back to local `searchArticles` (v1.10.54, PR #699)
+- [x] `notifyOracleSearchUnavailable()` in `telegram.ts` — 5-min cooldown alert on oracle failure (v1.10.54, PR #699)
+- [ ] **Health route** — once oracle exposes `/search/health`, delegate per-provider credit checks there
+- [ ] **Hourly cron** — `GET /api/cron/search-health` polls oracle `/search/health`, fires `notifySearchCreditsLow` per exhausted provider
 
 ---
 
