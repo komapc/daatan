@@ -36,7 +36,7 @@ describe('ExpressForecastClient', () => {
 
   it('renders input form initially', () => {
     renderWithIntl(<ExpressForecastClient userId="test-user" />)
-    expect(screen.getByText('What do you want to forecast?')).toBeInTheDocument()
+    expect(screen.getByText('Create a forecast')).toBeInTheDocument()
     expect(screen.getByPlaceholderText(/Describe your event OR paste/)).toBeInTheDocument()
   })
 

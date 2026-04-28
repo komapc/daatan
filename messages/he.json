@@ -128,7 +128,7 @@
     "forecastsHistory": "היסטוריית תחזיות",
     "botPendingDescription": "תחזית זו נוצרה על ידי בוט וממתינה לבדיקה אנושית.",
     "approving": "מאשר…",
-    "seeAlso": "ראו גם",
+    "seeAlso": "תחזיות קשורות",
     "sessionExpired": "ההפעלה פגה — התנתקו והתחברו מחדש",
     "commitFailed": "שליחת התחזית נכשלה",
     "forecastRecorded": "התחזית נרשמה!",
@@ -504,7 +504,7 @@
     "createForecast": "יצירת תחזית"
   },
   "expressForecast": {
-    "inputLabel": "מה תרצו לחזות?",
+    "inputLabel": "צור תחזית",
     "inputPlaceholder": "תארו את האירוע או הדביקו כתובת URL של מאמר חדשותי...",
     "charCount": "{count}/1000 תווים",
     "urlDetected": "כתובת URL זוהתה — המאמר ייקרא ומקורות קשורים יימצאו",
