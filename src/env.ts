@@ -37,6 +37,8 @@ export const env = createEnv({
     SERPER_API_KEY: z.string().min(1).optional(),
     SERPAPI_API_KEY: z.string().min(1).optional(),
     SCRAPINGBEE_API_KEY: z.string().min(1).optional(),
+    BRIGHTDATA_API_KEY: z.string().min(1).optional(),
+    NIMBLEWAY_API_KEY: z.string().min(1).optional(),
     GA_MEASUREMENT_ID: z.string().startsWith('G-').optional(),
 
     // Telegram notifications
@@ -74,6 +76,8 @@ export const env = createEnv({
     SERPER_API_KEY: process.env.SERPER_API_KEY,
     SERPAPI_API_KEY: process.env.SERPAPI_API_KEY,
     SCRAPINGBEE_API_KEY: process.env.SCRAPINGBEE_API_KEY,
+    BRIGHTDATA_API_KEY: process.env.BRIGHTDATA_API_KEY,
+    NIMBLEWAY_API_KEY: process.env.NIMBLEWAY_API_KEY,
     GA_MEASUREMENT_ID: process.env.GA_MEASUREMENT_ID,
     TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
     TELEGRAM_CHAT_ID: process.env.TELEGRAM_CHAT_ID,

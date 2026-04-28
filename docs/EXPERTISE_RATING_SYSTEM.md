@@ -93,11 +93,16 @@ The system version-controls votes rather than overwriting them (already the case
 - [ ] Compute KL-divergence vs market at resolution
 - [ ] Compute lead-lag delta
 
-### Phase 3 — Leaderboard & UI (after Phase 1)
+### Phase 3 — Leaderboard & UI ✅ done in v1.10.53
 
-- [ ] Leaderboard page sorted by `μ - 3σ`
+- [x] Leaderboard page sortable by Glicko-2 (`μ − 3σ`) — global and per-tag
+- [x] Per-tag Glicko-2 replay via `replayGlicko2History(tagSlug)` in `expertise.ts`
+- [x] Multi-system leaderboard: ELO, Brier, Peer Score, AI Score, TruthScore, ROI, Weighted Peer Score
+- [x] ScoringSystem registry in `src/lib/services/scoring-systems.ts` — adding new systems requires no core changes
 - [ ] User profile: skill history chart over time
 - [ ] "Signal vs Noise" indicator per user
+
+See `docs/SCORING_SYSTEMS.md` for the full scoring system reference and architecture guide.
 
 ---
 

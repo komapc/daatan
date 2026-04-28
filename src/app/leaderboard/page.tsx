@@ -10,7 +10,7 @@ import { useTranslations } from 'next-intl'
 
 const log = createClientLogger('Leaderboard')
 
-type SortBy = 'rs' | 'accuracy' | 'totalCorrect' | 'cuCommitted' | 'brierScore' | 'roi' | 'truthScore' | 'peerScore' | 'aiScore' | 'elo' | 'glicko'
+type SortBy = 'rs' | 'accuracy' | 'totalCorrect' | 'cuCommitted' | 'brierScore' | 'roi' | 'truthScore' | 'peerScore' | 'aiScore' | 'elo' | 'glicko' | 'weightedPeerScore'
 
 type LeaderboardUser = {
   id: string
@@ -36,6 +36,7 @@ type LeaderboardUser = {
   aiScoreSum: number | null
   roi: number | null
   truthScore: number | null
+  weightedPeerScore: number | null
 }
 
 type TagOption = { name: string; slug: string }
@@ -64,6 +65,7 @@ export default function LeaderboardPage() {
     { value: 'glicko', label: t('sortBy.glicko'), icon: Activity },
     { value: 'roi', label: t('sortBy.roi'), icon: Zap },
     { value: 'truthScore', label: t('sortBy.truthScore'), icon: Target },
+    { value: 'weightedPeerScore', label: t('sortBy.weightedPeerScore'), icon: TrendingUp },
   ]
 
   const fetchLeaderboard = useCallback(async () => {
@@ -123,9 +125,10 @@ export default function LeaderboardPage() {
       case 'truthScore':   return user.truthScore !== null ? `${user.truthScore > 0 ? '+' : ''}${user.truthScore.toFixed(4)}` : '—'
       case 'peerScore':    return user.peerScoreSum !== null ? `${user.peerScoreSum > 0 ? '+' : ''}${user.peerScoreSum.toFixed(2)}` : '—'
       case 'aiScore':      return user.aiScoreSum !== null ? `${user.aiScoreSum > 0 ? '+' : ''}${user.aiScoreSum.toFixed(2)}` : '—'
-      case 'elo':          return `${Math.round(user.eloRating)}`
-      case 'glicko':       return `${Math.round(user.glickoRank)}`
-      default:             return user.rs.toFixed(1)
+      case 'elo':               return `${Math.round(user.eloRating)}`
+      case 'glicko':            return `${Math.round(user.glickoRank)}`
+      case 'weightedPeerScore': return user.weightedPeerScore !== null ? `${user.weightedPeerScore > 0 ? '+' : ''}${user.weightedPeerScore.toFixed(4)}` : '—'
+      default:                  return user.rs.toFixed(1)
     }
   }
 
@@ -139,8 +142,9 @@ export default function LeaderboardPage() {
       case 'truthScore':   return t('sortBy.truthScore')
       case 'peerScore':    return t('sortBy.peerScore')
       case 'aiScore':      return t('sortBy.aiScore')
-      case 'elo':          return selectedTag ? `${t('sortBy.elo')} · ${selectedTag}` : t('sortBy.elo')
-      case 'glicko':       return t('sortBy.glicko')
+      case 'elo':               return selectedTag ? `${t('sortBy.elo')} · ${selectedTag}` : t('sortBy.elo')
+      case 'glicko':            return selectedTag ? `${t('sortBy.glicko')} · ${selectedTag}` : t('sortBy.glicko')
+      case 'weightedPeerScore': return selectedTag ? `${t('sortBy.weightedPeerScore')} · ${selectedTag}` : t('sortBy.weightedPeerScore')
       default:             return t('sortBy.reputation')
     }
   }
@@ -150,6 +154,7 @@ export default function LeaderboardPage() {
       : sortBy === 'truthScore' ? user.truthScore
       : sortBy === 'peerScore' ? user.peerScoreSum
       : sortBy === 'aiScore' ? user.aiScoreSum
+      : sortBy === 'weightedPeerScore' ? user.weightedPeerScore
       : null
     if (val !== null && val !== undefined) {
       return val > 0 ? 'text-green-400' : val < 0 ? 'text-red-400' : 'text-white'
@@ -359,6 +364,13 @@ export default function LeaderboardPage() {
             {t('legend.truthScoreTitle')}
           </h3>
           <p className="text-xs text-gray-500 leading-relaxed">{t('legend.truthScoreDesc')}</p>
+        </div>
+        <div className="p-4 bg-navy-800 rounded-xl border border-navy-600">
+          <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-cyan-400" />
+            {t('legend.weightedPeerScoreTitle')}
+          </h3>
+          <p className="text-xs text-gray-500 leading-relaxed">{t('legend.weightedPeerScoreDesc')}</p>
         </div>
       </div>
     </div>

@@ -250,7 +250,8 @@
       "peerScore": "Peer Score",
       "aiScore": "AI Score",
       "elo": "ELO",
-      "glicko": "Glicko"
+      "glicko": "Glicko",
+      "weightedPeerScore": "Weighted Peer"
     },
     "filterByTopic": "Filter by topic",
     "allTopics": "All topics",
@@ -273,7 +274,9 @@
       "eloTitle": "ELO Rating",
       "eloDesc": "Head-to-head competitive rating. When two users commit to the same prediction, the more accurate one gains ELO from the other.",
       "glickoTitle": "Glicko-2 Rating",
-      "glickoDesc": "Skill estimate with uncertainty bounds (μ − 3σ). Accounts for how many predictions you have made — rewards consistent accuracy."
+      "glickoDesc": "Skill estimate with uncertainty bounds (μ − 3σ). Accounts for how many predictions you have made — rewards consistent accuracy.",
+      "weightedPeerScoreTitle": "Weighted Peer Score",
+      "weightedPeerScoreDesc": "Metaculus-style time-weighted peer score. Recent predictions count more than older ones (exponential decay, half-weight every ~14 months). Positive = consistently beat the crowd."
     }
   },
   "activity": {

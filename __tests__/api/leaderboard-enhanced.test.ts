@@ -14,6 +14,17 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
+// Mock replay functions so tests don't depend on DB-level ELO/Glicko replay
+vi.mock('@/lib/services/elo', () => ({
+  replayEloHistory: vi.fn().mockResolvedValue(new Map()),
+}))
+
+vi.mock('@/lib/services/expertise', () => ({
+  replayGlicko2History: vi.fn().mockResolvedValue(null),
+  glicko2Update: vi.fn().mockReturnValue({ mu: 1500, phi: 350, volatility: 0.06 }),
+  applyGlicko2Update: vi.fn(),
+}))
+
 const mockUsers = [
   {
     id: 'u1',
@@ -22,6 +33,11 @@ const mockUsers = [
     image: null,
     rs: 120,
     cuAvailable: 50,
+    mu: 1500,
+    sigma: 350,
+    eloRating: 1500,
+    totalPredictions: 2,
+    correctPredictions: 1,
     _count: { predictions: 5, commitments: 2 },
   },
   {
@@ -31,6 +47,11 @@ const mockUsers = [
     image: null,
     rs: 100,
     cuAvailable: 100,
+    mu: 1520,
+    sigma: 300,
+    eloRating: 1520,
+    totalPredictions: 4,
+    correctPredictions: 2,
     _count: { predictions: 3, commitments: 3 },
   },
 ]
@@ -55,12 +76,18 @@ describe('GET /api/leaderboard (enhanced)', () => {
   beforeEach(async () => {
     vi.clearAllMocks()
     const { prisma } = await import('@/lib/prisma')
-    // Default: groupBy called three times (cuSums, rsGainSums, brierScoreSums) + findMany for resolved
+    // groupBy order: cuSums, rsGainSums, brierScoreSums, peerScoreSums, aiScoreSums, rsChangeSums
     vi.mocked(prisma.commitment.groupBy)
       .mockResolvedValueOnce(mockCuSums as any)
       .mockResolvedValueOnce(mockRsGainSums as any)
-      .mockResolvedValue([] as any) // brierScoreSums — no brier data by default
-    vi.mocked(prisma.commitment.findMany).mockResolvedValue(mockResolvedCommitments as any)
+      .mockResolvedValue([] as any)
+    // findMany order: resolvedCommitments, then weightedPeerRows (empty)
+    vi.mocked(prisma.commitment.findMany)
+      .mockResolvedValueOnce(mockResolvedCommitments as any)
+      .mockResolvedValue([] as any)
+
+    const { replayEloHistory } = await import('@/lib/services/elo')
+    vi.mocked(replayEloHistory).mockResolvedValue(new Map())
   })
 
   it('returns leaderboard sorted by RS (default)', async () => {

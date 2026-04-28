@@ -250,7 +250,8 @@
       "peerScore": "Samularo-Poentaro",
       "aiScore": "AI-Poentaro",
       "elo": "ELO",
-      "glicko": "Glicko"
+      "glicko": "Glicko",
+      "weightedPeerScore": "Pez. Samularo"
     },
     "filterByTopic": "Filtri laŭ temo",
     "allTopics": "Ĉiuj temoj",
@@ -273,7 +274,9 @@
       "eloTitle": "ELO-Takso",
       "eloDesc": "Konkursa unu-kontraŭ-unu takso bazita sur paraj komparoj inter uzantoj samprognozaj.",
       "glickoTitle": "Glicko-2-Takso",
-      "glickoDesc": "Lerteco-takso kun necertec-limoj (μ − 3σ). Rekompensas konsekvan precizecon."
+      "glickoDesc": "Lerteco-takso kun necertec-limoj (μ − 3σ). Rekompensas konsekvan precizecon.",
+      "weightedPeerScoreTitle": "Pezigita Samulara Poentaro",
+      "weightedPeerScoreDesc": "Samulara poentaro kun eksponenta malfortiĝo laŭ tempo (laŭ Metaculus). Lastaj prognozoj pezas pli ol malnovaj. Pozitiva = vi konsekve superas la homaron."
     }
   },
   "activity": {
