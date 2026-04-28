@@ -118,7 +118,7 @@ export default async function PublicProfilePage({ params, searchParams }: Profil
     const tagFilter = selectedTag ? { prediction: { tags: { some: { slug: selectedTag } } } } : {}
 
     // Fetch Brier, peer, AI, and RS-net stats (all filtered by tag if selected)
-    const [brierStats, rsTagStats, peerScoreStats, aiScoreStats, rsNetStats, topicStats] = await Promise.all([
+    const [brierStats, rsTagStats, peerScoreStats, aiScoreStats, rsNetStats, topicStats, createdCount, participatedCount] = await Promise.all([
       prisma.commitment.aggregate({
         where: { userId: user.id, brierScore: { not: null as null }, ...tagFilter },
         _avg: { brierScore: true },
@@ -161,6 +161,12 @@ export default async function PublicProfilePage({ params, searchParams }: Profil
           },
         },
         take: 8,
+      }),
+      prisma.prediction.count({
+        where: { authorId: user.id, isPublic: true, ...(selectedTag ? { tags: { some: { slug: selectedTag } } } : {}) },
+      }),
+      prisma.commitment.count({
+        where: { userId: user.id, prediction: { isPublic: true, ...(selectedTag ? { tags: { some: { slug: selectedTag } } } : {}) } },
       }),
     ])
 
@@ -284,6 +290,8 @@ export default async function PublicProfilePage({ params, searchParams }: Profil
           truthScore={truthScore}
           roi={roi}
           topicBreakdown={topicBreakdown}
+          createdCount={createdCount}
+          participatedCount={participatedCount}
         />
       </>
     )

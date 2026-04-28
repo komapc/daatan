@@ -44,6 +44,8 @@ interface UserProfileViewProps {
   truthScore?: number | null
   roi?: number | null
   topicBreakdown?: TopicStat[]
+  createdCount?: number
+  participatedCount?: number
 }
 
 export async function UserProfileView({
@@ -64,6 +66,8 @@ export async function UserProfileView({
   truthScore = null,
   roi = null,
   topicBreakdown = [],
+  createdCount,
+  participatedCount,
 }: UserProfileViewProps) {
   const t = await getTranslations('profile')
 
@@ -144,8 +148,8 @@ export async function UserProfileView({
               </div>
               <div className="px-4 py-2 bg-navy-800 rounded-xl border border-navy-600">
                 <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block">{t('predictions')}</span>
-                <span className="text-sm font-bold text-text-secondary">{user._count.predictions} {t('created')}</span>
-                <span className="text-[10px] text-gray-400 block">{user._count.commitments} {t('participated')}</span>
+                <span className="text-sm font-bold text-text-secondary">{createdCount ?? user._count.predictions} {t('created')}</span>
+                <span className="text-[10px] text-gray-400 block">{participatedCount ?? user._count.commitments} {t('participated')}</span>
               </div>
               {avgBrierScore !== null && (
                 <div className="px-4 py-2 bg-navy-800 rounded-xl border border-navy-600" title="Brier Score = (probability − outcome)². Lower is better. Only computed when you enter a % yes estimate at stake time.">
