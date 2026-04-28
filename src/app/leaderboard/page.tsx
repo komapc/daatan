@@ -1,16 +1,16 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
-import { Trophy, Loader2, Medal, TrendingUp, Wallet, Target, BarChart3, TrendingDown, Zap } from 'lucide-react'
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
+import { Trophy, Loader2, Medal, TrendingUp, Wallet, Target, BarChart3, TrendingDown, Zap, Users, Brain, Swords, Activity } from 'lucide-react'
 import EmptyState from '@/components/ui/EmptyState'
 import { createClientLogger } from '@/lib/client-logger'
 import { useTranslations } from 'next-intl'
 
 const log = createClientLogger('Leaderboard')
 
-type SortBy = 'rs' | 'accuracy' | 'totalCorrect' | 'cuCommitted' | 'brierScore' | 'roi' | 'truthScore'
+type SortBy = 'rs' | 'accuracy' | 'totalCorrect' | 'cuCommitted' | 'brierScore' | 'roi' | 'truthScore' | 'peerScore' | 'aiScore' | 'elo' | 'glicko'
 
 type LeaderboardUser = {
   id: string
@@ -19,6 +19,10 @@ type LeaderboardUser = {
   image: string | null
   rs: number
   cuAvailable: number
+  mu: number
+  sigma: number
+  glickoRank: number
+  eloRating: number
   totalCommitments: number
   totalPredictions: number
   totalCorrect: number
@@ -28,16 +32,25 @@ type LeaderboardUser = {
   totalRsGained: number
   avgBrierScore: number | null
   brierCount: number
+  peerScoreSum: number | null
+  aiScoreSum: number | null
   roi: number | null
   truthScore: number | null
 }
 
+type TagOption = { name: string; slug: string }
+
 export default function LeaderboardPage() {
   const t = useTranslations('leaderboard')
   const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+
   const [users, setUsers] = useState<LeaderboardUser[]>([])
+  const [tags, setTags] = useState<TagOption[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [sortBy, setSortBy] = useState<SortBy>('rs')
+  const [selectedTag, setSelectedTag] = useState<string | null>(searchParams.get('tag'))
 
   const SORT_OPTIONS: { value: SortBy; label: string; icon: typeof TrendingUp; soon?: boolean }[] = [
     { value: 'rs', label: t('sortBy.reputation'), icon: TrendingUp },
@@ -45,28 +58,51 @@ export default function LeaderboardPage() {
     { value: 'totalCorrect', label: t('sortBy.mostCorrect'), icon: BarChart3 },
     { value: 'cuCommitted', label: t('sortBy.cuCommitted'), icon: Wallet },
     { value: 'brierScore', label: t('sortBy.brierScore'), icon: TrendingDown },
+    { value: 'peerScore', label: t('sortBy.peerScore'), icon: Users },
+    { value: 'aiScore', label: t('sortBy.aiScore'), icon: Brain },
+    { value: 'elo', label: t('sortBy.elo'), icon: Swords },
+    { value: 'glicko', label: t('sortBy.glicko'), icon: Activity },
     { value: 'roi', label: t('sortBy.roi'), icon: Zap },
-    { value: 'truthScore', label: t('sortBy.truthScore'), icon: Target, soon: true },
+    { value: 'truthScore', label: t('sortBy.truthScore'), icon: Target },
   ]
 
-  useEffect(() => {
-    const fetchLeaderboard = async () => {
-      setIsLoading(true)
-      try {
-        const response = await fetch(`/api/leaderboard?limit=50&sortBy=${sortBy}`)
-        if (response.ok) {
-          const data = await response.json()
-          setUsers(data.leaderboard)
-        }
-      } catch (error) {
-        log.error({ err: error }, 'Error fetching leaderboard')
-      } finally {
-        setIsLoading(false)
+  const fetchLeaderboard = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const params = new URLSearchParams({ limit: '50', sortBy })
+      if (selectedTag) params.set('tag', selectedTag)
+      const response = await fetch(`/api/leaderboard?${params}`)
+      if (response.ok) {
+        const data = await response.json()
+        setUsers(data.leaderboard)
       }
+    } catch (error) {
+      log.error({ err: error }, 'Error fetching leaderboard')
+    } finally {
+      setIsLoading(false)
     }
+  }, [sortBy, selectedTag])
 
+  useEffect(() => {
     fetchLeaderboard()
-  }, [sortBy])
+  }, [fetchLeaderboard])
+
+  // Fetch available tags once
+  useEffect(() => {
+    fetch('/api/tags?limit=20')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data?.tags) setTags(data.tags) })
+      .catch(() => {})
+  }, [])
+
+  // Sync tag to URL
+  const handleTagChange = (slug: string | null) => {
+    setSelectedTag(slug)
+    const params = new URLSearchParams(searchParams.toString())
+    if (slug) params.set('tag', slug)
+    else params.delete('tag')
+    router.replace(`${pathname}?${params}`)
+  }
 
   const getRankIcon = (index: number) => {
     switch (index) {
@@ -83,8 +119,12 @@ export default function LeaderboardPage() {
       case 'totalCorrect': return `${user.totalCorrect}`
       case 'cuCommitted':  return `${user.totalCuCommitted}`
       case 'brierScore':   return user.avgBrierScore !== null ? user.avgBrierScore.toFixed(3) : '—'
-      case 'roi':          return user.roi !== null ? `${user.roi > 0 ? '+' : ''}${user.roi.toFixed(1)}%` : '—'
-      case 'truthScore':   return user.truthScore !== null ? user.truthScore.toFixed(3) : '—'
+      case 'roi':          return user.roi !== null ? `${user.roi > 0 ? '+' : ''}${user.roi.toFixed(2)}` : '—'
+      case 'truthScore':   return user.truthScore !== null ? `${user.truthScore > 0 ? '+' : ''}${user.truthScore.toFixed(4)}` : '—'
+      case 'peerScore':    return user.peerScoreSum !== null ? `${user.peerScoreSum > 0 ? '+' : ''}${user.peerScoreSum.toFixed(2)}` : '—'
+      case 'aiScore':      return user.aiScoreSum !== null ? `${user.aiScoreSum > 0 ? '+' : ''}${user.aiScoreSum.toFixed(2)}` : '—'
+      case 'elo':          return `${Math.round(user.eloRating)}`
+      case 'glicko':       return `${Math.round(user.glickoRank)}`
       default:             return user.rs.toFixed(1)
     }
   }
@@ -97,13 +137,22 @@ export default function LeaderboardPage() {
       case 'brierScore':   return `${t('sortBy.brierScore')} ↓`
       case 'roi':          return t('sortBy.roi')
       case 'truthScore':   return t('sortBy.truthScore')
+      case 'peerScore':    return t('sortBy.peerScore')
+      case 'aiScore':      return t('sortBy.aiScore')
+      case 'elo':          return t('sortBy.elo')
+      case 'glicko':       return t('sortBy.glicko')
       default:             return t('sortBy.reputation')
     }
   }
 
   const getHighlightColor = (user: LeaderboardUser) => {
-    if (sortBy === 'roi' && user.roi !== null) {
-      return user.roi > 0 ? 'text-green-400' : user.roi < 0 ? 'text-red-400' : 'text-white'
+    const val = sortBy === 'roi' ? user.roi
+      : sortBy === 'truthScore' ? user.truthScore
+      : sortBy === 'peerScore' ? user.peerScoreSum
+      : sortBy === 'aiScore' ? user.aiScoreSum
+      : null
+    if (val !== null && val !== undefined) {
+      return val > 0 ? 'text-green-400' : val < 0 ? 'text-red-400' : 'text-white'
     }
     return 'text-white'
   }
@@ -119,8 +168,8 @@ export default function LeaderboardPage() {
         <p className="text-gray-500 max-w-md">{t('subtitle')}</p>
       </div>
 
-      {/* Sort Tabs — scrollable on mobile */}
-      <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-1 scrollbar-hide">
+      {/* Sort Tabs */}
+      <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1 scrollbar-hide">
         {SORT_OPTIONS.map(({ value, label, icon: Icon, soon }) => (
           <button
             key={value}
@@ -145,6 +194,32 @@ export default function LeaderboardPage() {
           </button>
         ))}
       </div>
+
+      {/* Tag Filter */}
+      {tags.length > 0 && (
+        <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-1 scrollbar-hide">
+          <span className="text-xs text-gray-500 whitespace-nowrap flex-shrink-0">{t('filterByTopic')}:</span>
+          <button
+            onClick={() => handleTagChange(null)}
+            className={`px-3 py-1 rounded-full text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
+              !selectedTag ? 'bg-blue-600 text-white' : 'bg-navy-700 text-gray-400 hover:bg-navy-600'
+            }`}
+          >
+            {t('allTopics')}
+          </button>
+          {tags.map(tag => (
+            <button
+              key={tag.slug}
+              onClick={() => handleTagChange(selectedTag === tag.slug ? null : tag.slug)}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
+                selectedTag === tag.slug ? 'bg-blue-600 text-white' : 'bg-navy-700 text-gray-400 hover:bg-navy-600'
+              }`}
+            >
+              {tag.name}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Leaderboard Table */}
       {isLoading ? (
@@ -202,7 +277,6 @@ export default function LeaderboardPage() {
                         <p className="font-bold text-white truncate text-sm sm:text-base">
                           {user.name || user.username || 'Anonymous'}
                         </p>
-                        {/* On mobile: show key stats inline since table columns are hidden */}
                         <p className="text-xs text-gray-500 truncate">
                           {user.username ? `@${user.username}` : ''}
                           <span className="md:hidden">
@@ -253,13 +327,6 @@ export default function LeaderboardPage() {
         </div>
         <div className="p-4 bg-navy-800 rounded-xl border border-navy-600">
           <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
-            <Wallet className="w-4 h-4 text-blue-500" />
-            {t('legend.cuTitle')}
-          </h3>
-          <p className="text-xs text-gray-500 leading-relaxed">{t('legend.cuDesc')}</p>
-        </div>
-        <div className="p-4 bg-navy-800 rounded-xl border border-navy-600">
-          <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
             <Target className="w-4 h-4 text-purple-500" />
             {t('legend.brierTitle')}
           </h3>
@@ -267,12 +334,26 @@ export default function LeaderboardPage() {
         </div>
         <div className="p-4 bg-navy-800 rounded-xl border border-navy-600">
           <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
-            <Zap className="w-4 h-4 text-yellow-500" />
-            {t('legend.roiTitle')}
+            <Users className="w-4 h-4 text-teal-400" />
+            {t('legend.peerScoreTitle')}
           </h3>
-          <p className="text-xs text-gray-500 leading-relaxed">{t('legend.roiDesc')}</p>
+          <p className="text-xs text-gray-500 leading-relaxed">{t('legend.peerScoreDesc')}</p>
         </div>
-        <div className="p-4 bg-navy-800 rounded-xl border border-navy-600 opacity-60">
+        <div className="p-4 bg-navy-800 rounded-xl border border-navy-600">
+          <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
+            <Brain className="w-4 h-4 text-violet-400" />
+            {t('legend.aiScoreTitle')}
+          </h3>
+          <p className="text-xs text-gray-500 leading-relaxed">{t('legend.aiScoreDesc')}</p>
+        </div>
+        <div className="p-4 bg-navy-800 rounded-xl border border-navy-600">
+          <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
+            <Swords className="w-4 h-4 text-orange-400" />
+            {t('legend.eloTitle')}
+          </h3>
+          <p className="text-xs text-gray-500 leading-relaxed">{t('legend.eloDesc')}</p>
+        </div>
+        <div className="p-4 bg-navy-800 rounded-xl border border-navy-600">
           <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
             <Target className="w-4 h-4 text-sky-400" />
             {t('legend.truthScoreTitle')}

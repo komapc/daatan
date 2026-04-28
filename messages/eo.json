@@ -246,8 +246,14 @@
       "cuCommitted": "Plej Engaĝita KU",
       "brierScore": "Brier-Poentaro",
       "roi": "Rendimento",
-      "truthScore": "TruthScore"
+      "truthScore": "TruthScore",
+      "peerScore": "Samularo-Poentaro",
+      "aiScore": "AI-Poentaro",
+      "elo": "ELO",
+      "glicko": "Glicko"
     },
+    "filterByTopic": "Filtri laŭ temo",
+    "allTopics": "Ĉiuj temoj",
     "soon": "baldaŭ",
     "legend": {
       "rsTitle": "Reputaci-Poentaro (RS)",
@@ -256,10 +262,18 @@
       "cuDesc": "Konfido reprezentas la profundon de via engaĝiĝo en ĉiu prognozo. Ĝustaj vokoj pliigas vian reputacion; malĝustaj malpliigas ĝin.",
       "brierTitle": "Brier-Poentaro",
       "brierDesc": "Malpli estas pli bone. Mezuras kalibron: (via probablo − reala rezulto)². Perfekta poentaro = 0.",
-      "roiTitle": "Rendimento sur Investo (ROI)",
-      "roiDesc": "Neta KU-gajno en solvitaj prognozoj kiel procento de investita KU. Pozitiva = profita; negativa = perda.",
-      "truthScoreTitle": "TruthScore (baldaŭ)",
-      "truthScoreDesc": "Logaritma poentad-regulo uzata de Microsoft Research. Rekompensas fidindajn ĝustajn prognozojn. Pli alta estas pli bone."
+      "roiTitle": "Rendimento (ROI)",
+      "roiDesc": "Meza neta RS-ŝanĝo por prognozo. Pozitiva = vi gajnas RS meze; negativa = vi perdas.",
+      "truthScoreTitle": "TruthScore",
+      "truthScoreDesc": "Meza samulara poentaro por prognozo — kiom konsekve vi superas la komunuman konsenson.",
+      "peerScoreTitle": "Samularo-Poentaro",
+      "peerScoreDesc": "Kiom viaj probablo-taksoj estas pli bonaj ol la komunuma konsento ĉe via engaĝiĝo. Pozitiva = vi venkis la homaron.",
+      "aiScoreTitle": "AI-Poentaro",
+      "aiScoreDesc": "Kiom viaj probablo-taksoj estas pli bonaj ol la AI-takso ĉe via engaĝiĝo. Pozitiva = vi venkis la AI-on.",
+      "eloTitle": "ELO-Takso",
+      "eloDesc": "Konkursa unu-kontraŭ-unu takso bazita sur paraj komparoj inter uzantoj samprognozaj.",
+      "glickoTitle": "Glicko-2-Takso",
+      "glickoDesc": "Lerteco-takso kun necertec-limoj (μ − 3σ). Rekompensas konsekvan precizecon."
     }
   },
   "activity": {

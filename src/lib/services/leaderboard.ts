@@ -45,6 +45,7 @@ export const getLeaderboard = async (limit: number, sortBy: SortBy, tagSlug?: st
     brierScoreSums,
     peerScoreSums,
     aiScoreSums,
+    rsChangeSums,
   ] = await Promise.all([
     prisma.commitment.groupBy({
       by: ['userId'],
@@ -77,18 +78,33 @@ export const getLeaderboard = async (limit: number, sortBy: SortBy, tagSlug?: st
       by: ['userId'],
       where: { userId: { in: userIds }, peerScore: { not: null }, ...tagFilter },
       _sum: { peerScore: true },
+      _count: { peerScore: true },
     }),
     prisma.commitment.groupBy({
       by: ['userId'],
       where: { userId: { in: userIds }, aiScore: { not: null }, ...tagFilter },
       _sum: { aiScore: true },
     }),
+    // Net RS change (all resolved, positive + negative) — used for ROI metric
+    prisma.commitment.groupBy({
+      by: ['userId'],
+      where: { userId: { in: userIds }, rsChange: { not: null }, ...tagFilter },
+      _sum: { rsChange: true },
+      _count: { rsChange: true },
+    }),
   ])
 
   const cuByUser = new Map(cuSums.map(s => [s.userId, s._sum.cuCommitted ?? 0]))
   const rsGainByUser = new Map(rsGainSums.map(s => [s.userId, s._sum.rsChange ?? 0]))
-  const peerScoreByUser = new Map(peerScoreSums.map(s => [s.userId, s._sum.peerScore ?? null]))
+  const peerScoreByUser = new Map(peerScoreSums.map(s => [s.userId, {
+    sum: s._sum.peerScore ?? null,
+    count: s._count.peerScore,
+  }]))
   const aiScoreByUser = new Map(aiScoreSums.map(s => [s.userId, s._sum.aiScore ?? null]))
+  const rsChangeByUser = new Map(rsChangeSums.map(s => [s.userId, {
+    sum: s._sum.rsChange ?? 0,
+    count: s._count.rsChange,
+  }]))
 
   const resolvedByUser = new Map<string, { total: number; correct: number }>()
   for (const c of resolvedCommitments) {
@@ -135,10 +151,20 @@ export const getLeaderboard = async (limit: number, sortBy: SortBy, tagSlug?: st
       totalRsGained: Math.round((rsGainByUser.get(user.id) ?? 0) * 100) / 100,
       avgBrierScore,
       brierCount: brier?.count ?? 0,
-      peerScoreSum: peerScoreByUser.get(user.id) ?? null,
+      peerScoreSum: peerScoreByUser.get(user.id)?.sum ?? null,
       aiScoreSum: aiScoreByUser.get(user.id) ?? null,
-      roi: null as number | null,
-      truthScore: null as number | null,
+      // ROI: average net RS change per resolved prediction (positive = net gain)
+      roi: (() => {
+        const rs = rsChangeByUser.get(user.id)
+        if (!rs || rs.count < 3) return null
+        return Math.round((rs.sum / rs.count) * 100) / 100
+      })(),
+      // truthScore: average peer score per prediction (how consistently you beat the crowd)
+      truthScore: (() => {
+        const ps = peerScoreByUser.get(user.id)
+        if (!ps || ps.count < 3 || ps.sum === null) return null
+        return Math.round((ps.sum / ps.count) * 10000) / 10000
+      })(),
     }
   })
 
