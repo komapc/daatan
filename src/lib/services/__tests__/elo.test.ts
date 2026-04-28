@@ -1,5 +1,15 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { calculateEloUpdates } from '../elo'
+
+vi.mock('@/lib/prisma', () => ({
+  prisma: {
+    commitment: { findMany: vi.fn() },
+  },
+}))
+
+vi.mock('@/lib/logger', () => ({
+  createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),
+}))
 
 describe('calculateEloUpdates', () => {
   it('returns empty map for fewer than 2 commitments', () => {
@@ -61,5 +71,66 @@ describe('calculateEloUpdates', () => {
     expect(deltas.get('winner')!).toBeGreaterThan(deltas.get('second')!)
     // last place should lose
     expect(deltas.get('fourth')).toBeLessThan(0)
+  })
+})
+
+describe('replayEloHistory', () => {
+  it('returns empty map when no resolved commitments exist', async () => {
+    const { prisma } = await import('@/lib/prisma')
+    const { replayEloHistory } = await import('../elo')
+
+    vi.mocked(prisma.commitment.findMany).mockResolvedValue([])
+
+    const result = await replayEloHistory()
+    expect(result.size).toBe(0)
+  })
+
+  it('returns empty map when all predictions have only 1 committer', async () => {
+    const { prisma } = await import('@/lib/prisma')
+    const { replayEloHistory } = await import('../elo')
+
+    vi.mocked(prisma.commitment.findMany).mockResolvedValue([
+      { userId: 'solo', brierScore: 0.1, prediction: { id: 'p1', resolvedAt: new Date() } } as any,
+    ])
+
+    const result = await replayEloHistory()
+    expect(result.size).toBe(0)
+  })
+
+  it('correctly replays two predictions in chronological order', async () => {
+    const { prisma } = await import('@/lib/prisma')
+    const { replayEloHistory } = await import('../elo')
+
+    // Prediction 1 (earlier): A wins over B
+    // Prediction 2 (later): B wins over A — but B's ELO is now lower after pred 1
+    vi.mocked(prisma.commitment.findMany).mockResolvedValue([
+      { userId: 'a', brierScore: 0.05, prediction: { id: 'p1', resolvedAt: new Date('2026-01-01') } } as any,
+      { userId: 'b', brierScore: 0.40, prediction: { id: 'p1', resolvedAt: new Date('2026-01-01') } } as any,
+      { userId: 'b', brierScore: 0.05, prediction: { id: 'p2', resolvedAt: new Date('2026-02-01') } } as any,
+      { userId: 'a', brierScore: 0.40, prediction: { id: 'p2', resolvedAt: new Date('2026-02-01') } } as any,
+    ])
+
+    const result = await replayEloHistory()
+    // Both played 2 matches: 1 win + 1 loss each — should be close to 1500 but not identical
+    expect(result.has('a')).toBe(true)
+    expect(result.has('b')).toBe(true)
+    // Both started at 1500; A won first, B won second — should roughly cancel
+    expect(result.get('a')!).toBeGreaterThan(1400)
+    expect(result.get('a')!).toBeLessThan(1600)
+  })
+
+  it('filters by tagSlug when provided — passes tag into prediction filter', async () => {
+    const { prisma } = await import('@/lib/prisma')
+    const { replayEloHistory } = await import('../elo')
+
+    vi.mocked(prisma.commitment.findMany).mockResolvedValue([])
+
+    await replayEloHistory('crypto')
+
+    const calls = vi.mocked(prisma.commitment.findMany).mock.calls
+    expect(calls.length).toBeGreaterThan(0)
+    const whereArg = calls[calls.length - 1][0]?.where as any
+    // The tag filter is nested under prediction
+    expect(JSON.stringify(whereArg)).toContain('crypto')
   })
 })

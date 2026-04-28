@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import type { Prisma } from '@prisma/client'
+import { replayEloHistory } from '@/lib/services/elo'
 
 type SortBy =
   | 'rs'
@@ -119,6 +120,10 @@ export const getLeaderboard = async (limit: number, sortBy: SortBy, tagSlug?: st
     count: s._count.brierScore,
   }]))
 
+  // Per-tag ELO: replay history filtered to this tag instead of reading stored global value.
+  // For global (no tag), read the stored eloRating which is updated incrementally on resolution.
+  const tagEloByUser = tagSlug ? await replayEloHistory(tagSlug) : null
+
   const leaderboard = users.map(user => {
     const resolved = resolvedByUser.get(user.id) ?? { total: 0, correct: 0 }
     const accuracy = resolved.total > 0 ? Math.round((resolved.correct / resolved.total) * 100) : null
@@ -130,6 +135,9 @@ export const getLeaderboard = async (limit: number, sortBy: SortBy, tagSlug?: st
     // μ - 3σ: lower bound of skill estimate; prevents one-hit wonders from topping the board
     const glickoRank = user.mu - 3 * user.sigma
 
+    // Use per-tag replayed ELO when a tag is selected; otherwise use stored global value
+    const eloRating = tagEloByUser ? (tagEloByUser.get(user.id) ?? 1500) : user.eloRating
+
     return {
       id: user.id,
       name: user.name,
@@ -140,7 +148,7 @@ export const getLeaderboard = async (limit: number, sortBy: SortBy, tagSlug?: st
       mu: user.mu,
       sigma: user.sigma,
       glickoRank,
-      eloRating: user.eloRating,
+      eloRating,
       totalPredictions: user.totalPredictions,
       correctPredictions: user.correctPredictions,
       totalCommitments: user._count.commitments,
