@@ -3,6 +3,7 @@ import { withAuth } from '@/lib/api-middleware'
 import { apiError, handleRouteError } from '@/lib/api-error'
 import { getForecastForResearch } from '@/lib/services/forecast'
 import { searchArticles, SearchResult } from '@/lib/utils/webSearch'
+import { oracleSearch } from '@/lib/services/oracleSearch'
 import { llmService } from '@/lib/llm'
 import { getPromptTemplate, fillPrompt } from '@/lib/llm/bedrock-prompts'
 import { queryGenerationSchema, researchSchema } from '@/lib/llm/schemas'
@@ -31,20 +32,33 @@ export const POST = withAuth(async (request: NextRequest, user, { params }) => {
         // even when the raw claim text uses future-tense phrasing that news won't use.
         const simplifiedQuery = extractKeyTerms(prediction.claimText, forecastEnd)
 
-        // 1. Three parallel searches:
-        //    a) Date-scoped with raw claim text
-        //    b) Broad (no date) with raw claim text — catches older or wider coverage
-        //    c) Date-scoped with simplified key-term query — targets the actual topic
-        const [dated, broad, simplified] = await Promise.all([
-            searchArticles(prediction.claimText, 6, { dateFrom: forecastStart, dateTo: searchDateTo })
-                .catch(() => [] as SearchResult[]),
-            searchArticles(prediction.claimText, 4)
-                .catch(() => [] as SearchResult[]),
-            searchArticles(simplifiedQuery, 6, { dateFrom: forecastStart, dateTo: searchDateTo })
-                .catch(() => [] as SearchResult[]),
-        ])
+        // 1. Try oracle first (shares provider fallback chain + quota with oracle forecasts).
+        //    If oracle returns ≥ 3 results, skip the 3-way local parallel search.
+        const oracleResults = await oracleSearch(prediction.claimText, 12, {
+            dateFrom: forecastStart,
+            dateTo: searchDateTo,
+        })
 
-        let results = dedup([...simplified, ...dated, ...broad]).slice(0, 12)
+        let results: SearchResult[]
+        if (oracleResults && oracleResults.length >= 3) {
+            results = oracleResults
+        } else {
+            // Fallback: three parallel local searches
+            //    a) Date-scoped with raw claim text
+            //    b) Broad (no date) with raw claim text — catches older or wider coverage
+            //    c) Date-scoped with simplified key-term query — targets the actual topic
+            const [dated, broad, simplified] = await Promise.all([
+                searchArticles(prediction.claimText, 6, { dateFrom: forecastStart, dateTo: searchDateTo })
+                    .catch(() => [] as SearchResult[]),
+                searchArticles(prediction.claimText, 4)
+                    .catch(() => [] as SearchResult[]),
+                searchArticles(simplifiedQuery, 6, { dateFrom: forecastStart, dateTo: searchDateTo })
+                    .catch(() => [] as SearchResult[]),
+            ])
+            results = dedup([...simplified, ...dated, ...broad])
+        }
+
+        results = results.slice(0, 12)
 
         // Extract meaningful nouns from the claim to check result relevance
         const claimNouns = prediction.claimText

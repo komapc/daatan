@@ -5,6 +5,7 @@ import { withAuth, type RouteContext } from '@/lib/api-middleware'
 import { getPromptTemplate, fillPrompt } from '@/lib/llm/bedrock-prompts'
 import { llmService } from '@/lib/llm'
 import { searchArticles, type SearchResult } from '@/lib/utils/webSearch'
+import { oracleSearch } from '@/lib/services/oracleSearch'
 import { guessChances } from '@/lib/llm/expressPrediction'
 import { getOracleForecast, type OracleSource } from '@/lib/services/oracle'
 import { createLogger } from '@/lib/logger'
@@ -92,7 +93,7 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
         // unconfigured). Convert that into a clean 503 instead of leaking a 500 to the client.
         let searchResults: SearchResult[]
         try {
-            searchResults = await searchArticles(searchQuery, 4)
+            searchResults = await oracleSearch(searchQuery, 4) ?? await searchArticles(searchQuery, 4)
         } catch (err) {
             log.warn(
                 { predictionId: prediction.id, searchQuery, err },
