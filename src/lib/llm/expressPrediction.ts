@@ -2,6 +2,7 @@ import { SchemaType, type Schema } from '@google/generative-ai'
 import { getPromptTemplate, fillPrompt } from './bedrock-prompts'
 import { llmService } from './index'
 import { searchArticles, type SearchResult } from '../utils/webSearch'
+import { oracleSearch } from '../services/oracleSearch'
 import { fetchUrlContent } from '../utils/scraper'
 import { hashUrl } from '../utils/hash'
 import { createLogger } from '@/lib/logger'
@@ -217,7 +218,7 @@ export async function generateExpressPrediction(
     if (!articleContent) {
       // Fallback: use the URL as a search query
       onProgress?.('searching', { message: 'Searching for relevant articles...' })
-      searchResults = await searchArticles(url, 5)
+      searchResults = await oracleSearch(url, 5) ?? await searchArticles(url, 5)
       if (searchResults.length === 0) throw new Error('NO_ARTICLES_FOUND')
     } else {
       // Extract topic from article content using LLM
@@ -254,7 +255,7 @@ export async function generateExpressPrediction(
       onProgress?.('searching', { message: `Finding related articles for: "${topic}"` })
 
       try {
-        searchResults = await searchArticles(topic, 5)
+        searchResults = await oracleSearch(topic, 5) ?? await searchArticles(topic, 5)
       } catch {
         searchResults = []
       }
@@ -268,7 +269,7 @@ export async function generateExpressPrediction(
   } else {
     // Normal text flow: search for articles
     onProgress?.('searching', { message: 'Searching for relevant articles...' })
-    searchResults = await searchArticles(userInput, 5)
+    searchResults = await oracleSearch(userInput, 5) ?? await searchArticles(userInput, 5)
 
     if (searchResults.length === 0) {
       throw new Error('NO_ARTICLES_FOUND')
