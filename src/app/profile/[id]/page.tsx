@@ -117,8 +117,8 @@ export default async function PublicProfilePage({ params, searchParams }: Profil
 
     const tagFilter = selectedTag ? { prediction: { tags: { some: { slug: selectedTag } } } } : {}
 
-    // Fetch Brier, peer, and AI score stats (all filtered by tag if selected)
-    const [brierStats, rsTagStats, peerScoreStats, aiScoreStats] = await Promise.all([
+    // Fetch Brier, peer, AI, and RS-net stats (all filtered by tag if selected)
+    const [brierStats, rsTagStats, peerScoreStats, aiScoreStats, rsNetStats, topicStats] = await Promise.all([
       prisma.commitment.aggregate({
         where: { userId: user.id, brierScore: { not: null as null }, ...tagFilter },
         _avg: { brierScore: true },
@@ -138,6 +138,30 @@ export default async function PublicProfilePage({ params, searchParams }: Profil
         _sum: { aiScore: true },
         _count: { aiScore: true },
       }),
+      // For ROI: net RS change across all resolved predictions
+      prisma.commitment.aggregate({
+        where: { userId: user.id, rsChange: { not: null as null }, ...tagFilter },
+        _sum: { rsChange: true },
+        _count: { rsChange: true },
+      }),
+      // Per-topic breakdown: peer score per tag (top 8 tags by prediction count)
+      prisma.tag.findMany({
+        where: { predictions: { some: { commitments: { some: { userId: user.id, peerScore: { not: null } } } } } },
+        select: {
+          name: true,
+          slug: true,
+          predictions: {
+            where: { commitments: { some: { userId: user.id, peerScore: { not: null } } } },
+            select: {
+              commitments: {
+                where: { userId: user.id, peerScore: { not: null } },
+                select: { peerScore: true },
+              },
+            },
+          },
+        },
+        take: 8,
+      }),
     ])
 
     const avgBrierScore = brierStats._count.brierScore > 0 && brierStats._avg.brierScore != null
@@ -149,6 +173,28 @@ export default async function PublicProfilePage({ params, searchParams }: Profil
 
     const peerScoreSum = peerScoreStats._count.peerScore > 0 ? (peerScoreStats._sum.peerScore ?? null) : null
     const aiScoreSum = aiScoreStats._count.aiScore > 0 ? (aiScoreStats._sum.aiScore ?? null) : null
+
+    // truthScore: average peer score per prediction (min 3)
+    const truthScore = peerScoreStats._count.peerScore >= 3 && peerScoreSum !== null
+      ? Math.round((peerScoreSum / peerScoreStats._count.peerScore) * 10000) / 10000
+      : null
+
+    // ROI: average net RS change per resolved prediction (min 3)
+    const roi = rsNetStats._count.rsChange >= 3
+      ? Math.round(((rsNetStats._sum.rsChange ?? 0) / rsNetStats._count.rsChange) * 100) / 100
+      : null
+
+    // Per-topic peer score summary
+    const topicBreakdown = topicStats.map(tag => {
+      const allScores = tag.predictions.flatMap(p => p.commitments.map(c => c.peerScore!))
+      const sum = allScores.reduce((a, b) => a + b, 0)
+      return {
+        name: tag.name,
+        slug: tag.slug,
+        count: allScores.length,
+        peerScoreAvg: allScores.length > 0 ? Math.round((sum / allScores.length) * 10000) / 10000 : 0,
+      }
+    }).sort((a, b) => b.count - a.count)
 
     // Fetch recent commitments (stakes) - only public ones, filtered by tag if selected
     const commitments = await prisma.commitment.findMany({
@@ -235,6 +281,9 @@ export default async function PublicProfilePage({ params, searchParams }: Profil
           aiScoreSum={aiScoreSum}
           aiScoreCount={aiScoreStats._count.aiScore}
           eloRating={user.eloRating}
+          truthScore={truthScore}
+          roi={roi}
+          topicBreakdown={topicBreakdown}
         />
       </>
     )

@@ -80,8 +80,8 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
     const tagFilter = selectedTag ? { prediction: { tags: { some: { slug: selectedTag } } } } : {}
 
-    // Fetch Brier, peer, and AI score stats (all filtered by tag if selected)
-    const [brierStats, rsTagStats, peerScoreStats, aiScoreStats] = await Promise.all([
+    // Fetch Brier, peer, AI, and RS-net stats (all filtered by tag if selected)
+    const [brierStats, rsTagStats, peerScoreStats, aiScoreStats, rsNetStats, topicStats] = await Promise.all([
       prisma.commitment.aggregate({
         where: { userId: user.id, brierScore: { not: null as null }, ...tagFilter },
         _avg: { brierScore: true },
@@ -101,17 +101,56 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
         _sum: { aiScore: true },
         _count: { aiScore: true },
       }),
+      prisma.commitment.aggregate({
+        where: { userId: user.id, rsChange: { not: null as null }, ...tagFilter },
+        _sum: { rsChange: true },
+        _count: { rsChange: true },
+      }),
+      prisma.tag.findMany({
+        where: { predictions: { some: { commitments: { some: { userId: user.id, peerScore: { not: null } } } } } },
+        select: {
+          name: true,
+          slug: true,
+          predictions: {
+            where: { commitments: { some: { userId: user.id, peerScore: { not: null } } } },
+            select: {
+              commitments: {
+                where: { userId: user.id, peerScore: { not: null } },
+                select: { peerScore: true },
+              },
+            },
+          },
+        },
+        take: 8,
+      }),
     ])
 
     const avgBrierScore = brierStats._count.brierScore > 0 && brierStats._avg.brierScore != null
       ? Math.round(brierStats._avg.brierScore * 1000) / 1000
       : null
 
-    // Fetch per-tag RS delta (sum of rsChange for commitments in selected tag)
     const rsTagDelta = selectedTag ? (rsTagStats._sum.rsChange ?? null) : null
-
     const peerScoreSum = peerScoreStats._count.peerScore > 0 ? (peerScoreStats._sum.peerScore ?? null) : null
     const aiScoreSum = aiScoreStats._count.aiScore > 0 ? (aiScoreStats._sum.aiScore ?? null) : null
+
+    const truthScore = peerScoreStats._count.peerScore >= 3 && peerScoreSum !== null
+      ? Math.round((peerScoreSum / peerScoreStats._count.peerScore) * 10000) / 10000
+      : null
+
+    const roi = rsNetStats._count.rsChange >= 3
+      ? Math.round(((rsNetStats._sum.rsChange ?? 0) / rsNetStats._count.rsChange) * 100) / 100
+      : null
+
+    const topicBreakdown = topicStats.map(tag => {
+      const allScores = tag.predictions.flatMap(p => p.commitments.map(c => c.peerScore!))
+      const sum = allScores.reduce((a, b) => a + b, 0)
+      return {
+        name: tag.name,
+        slug: tag.slug,
+        count: allScores.length,
+        peerScoreAvg: allScores.length > 0 ? Math.round((sum / allScores.length) * 10000) / 10000 : 0,
+      }
+    }).sort((a, b) => b.count - a.count)
 
     // Fetch recent commitments (stakes), filtered by tag if selected
     const commitments = await prisma.commitment.findMany({
@@ -240,6 +279,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
                 <div className="px-4 py-2 bg-navy-800 rounded-xl border border-navy-600">
                   <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block">{t('predictions')}</span>
                   <span className="text-sm font-bold text-text-secondary">{user._count.predictions} {t('created')}</span>
+                  <span className="text-[10px] text-gray-400 block">{user._count.commitments} {t('participated')}</span>
                 </div>
                 {avgBrierScore !== null && (
                   <div className="px-4 py-2 bg-navy-800 rounded-xl border border-navy-600" title="Brier Score = (probability − outcome)². Lower is better. Only computed when you enter a % yes estimate at stake time.">
@@ -279,7 +319,40 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
                   <span className="text-sm font-bold text-blue-400">{Math.round(user.eloRating)}</span>
                   <span className="text-[10px] text-gray-400 block">global</span>
                 </div>
+                {truthScore !== null && (
+                  <div className="px-4 py-2 bg-navy-800 rounded-xl border border-navy-600" title="TruthScore = average peer score per prediction. How consistently you beat the community consensus.">
+                    <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block">TruthScore</span>
+                    <span className={`text-sm font-bold ${truthScore >= 0 ? 'text-teal' : 'text-red-400'}`}>{truthScore >= 0 ? '+' : ''}{truthScore.toFixed(4)}</span>
+                    <span className="text-[10px] text-gray-400 block">avg / prediction</span>
+                  </div>
+                )}
+                {roi !== null && (
+                  <div className="px-4 py-2 bg-navy-800 rounded-xl border border-navy-600" title="ROI = average net RS change per resolved prediction.">
+                    <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block">ROI</span>
+                    <span className={`text-sm font-bold ${roi >= 0 ? 'text-teal' : 'text-red-400'}`}>{roi >= 0 ? '+' : ''}{roi.toFixed(2)}</span>
+                    <span className="text-[10px] text-gray-400 block">RS / prediction</span>
+                  </div>
+                )}
               </div>
+
+              {/* Per-topic breakdown */}
+              {topicBreakdown.length > 0 && !selectedTag && (
+                <div className="mt-4">
+                  <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-2">{t('topicBreakdown')}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {topicBreakdown.map(topic => (
+                      <div key={topic.slug} className="flex items-center gap-1.5 px-3 py-1.5 bg-navy-800 rounded-lg border border-navy-600 text-xs">
+                        <span className="text-gray-300 font-medium">{topic.name}</span>
+                        <span className={`font-bold ${topic.peerScoreAvg >= 0 ? 'text-teal' : 'text-red-400'}`}>
+                          {topic.peerScoreAvg >= 0 ? '+' : ''}{topic.peerScoreAvg.toFixed(3)}
+                        </span>
+                        <span className="text-gray-500">({topic.count})</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <TagFilter tags={userTags} selectedTag={selectedTag} />
             </div>
 
