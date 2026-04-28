@@ -81,7 +81,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
     const tagFilter = selectedTag ? { prediction: { tags: { some: { slug: selectedTag } } } } : {}
 
     // Fetch Brier, peer, AI, and RS-net stats (all filtered by tag if selected)
-    const [brierStats, rsTagStats, peerScoreStats, aiScoreStats, rsNetStats, topicStats] = await Promise.all([
+    const [brierStats, rsTagStats, peerScoreStats, aiScoreStats, rsNetStats, topicStats, createdCount, participatedCount] = await Promise.all([
       prisma.commitment.aggregate({
         where: { userId: user.id, brierScore: { not: null as null }, ...tagFilter },
         _avg: { brierScore: true },
@@ -122,6 +122,12 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
           },
         },
         take: 8,
+      }),
+      prisma.prediction.count({
+        where: { authorId: user.id, ...(selectedTag ? { tags: { some: { slug: selectedTag } } } : {}) },
+      }),
+      prisma.commitment.count({
+        where: { userId: user.id, ...(selectedTag ? { prediction: { tags: { some: { slug: selectedTag } } } } : {}) },
       }),
     ])
 
@@ -278,8 +284,8 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
                 </div>
                 <div className="px-4 py-2 bg-navy-800 rounded-xl border border-navy-600">
                   <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block">{t('predictions')}</span>
-                  <span className="text-sm font-bold text-text-secondary">{user._count.predictions} {t('created')}</span>
-                  <span className="text-[10px] text-gray-400 block">{user._count.commitments} {t('participated')}</span>
+                  <span className="text-sm font-bold text-text-secondary">{createdCount} {t('created')}</span>
+                  <span className="text-[10px] text-gray-400 block">{participatedCount} {t('participated')}</span>
                 </div>
                 {avgBrierScore !== null && (
                   <div className="px-4 py-2 bg-navy-800 rounded-xl border border-navy-600" title="Brier Score = (probability − outcome)². Lower is better. Only computed when you enter a % yes estimate at stake time.">
