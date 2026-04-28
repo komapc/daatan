@@ -1,19 +1,14 @@
 import { prisma } from '@/lib/prisma'
 import type { Prisma } from '@prisma/client'
 import { replayEloHistory } from '@/lib/services/elo'
+import { replayGlicko2History } from '@/lib/services/expertise'
+import { SCORING_SYSTEMS, type SortBy, type ScoringContext } from '@/lib/services/scoring-systems'
 
-type SortBy =
-  | 'rs'
-  | 'accuracy'
-  | 'totalCorrect'
-  | 'cuCommitted'
-  | 'brierScore'
-  | 'roi'
-  | 'truthScore'
-  | 'glicko'
-  | 'peerScore'
-  | 'aiScore'
-  | 'elo'
+export type { SortBy }
+
+// Metaculus-style exponential decay: weight = 0.95^(days/30).
+// A prediction resolved 30 days ago counts as 95% of one resolved today.
+const DECAY = 0.95
 
 export const getLeaderboard = async (limit: number, sortBy: SortBy, tagSlug?: string) => {
   const users = await prisma.user.findMany({
@@ -35,9 +30,9 @@ export const getLeaderboard = async (limit: number, sortBy: SortBy, tagSlug?: st
   })
 
   const userIds = users.map(u => u.id)
-
   const tagFilter: Prisma.CommitmentWhereInput =
     tagSlug ? { prediction: { tags: { some: { slug: tagSlug } } } } : {}
+  const now = Date.now()
 
   const [
     cuSums,
@@ -47,6 +42,9 @@ export const getLeaderboard = async (limit: number, sortBy: SortBy, tagSlug?: st
     peerScoreSums,
     aiScoreSums,
     rsChangeSums,
+    weightedPeerRows,
+    tagEloByUser,
+    tagGlickoByUser,
   ] = await Promise.all([
     prisma.commitment.groupBy({
       by: ['userId'],
@@ -86,26 +84,39 @@ export const getLeaderboard = async (limit: number, sortBy: SortBy, tagSlug?: st
       where: { userId: { in: userIds }, aiScore: { not: null }, ...tagFilter },
       _sum: { aiScore: true },
     }),
-    // Net RS change (all resolved, positive + negative) — used for ROI metric
+    // Net RS change (all resolved, positive + negative) — used for ROI
     prisma.commitment.groupBy({
       by: ['userId'],
       where: { userId: { in: userIds }, rsChange: { not: null }, ...tagFilter },
       _sum: { rsChange: true },
       _count: { rsChange: true },
     }),
+    // Individual rows for time-weighted peer score (need resolvedAt for decay)
+    prisma.commitment.findMany({
+      where: {
+        userId: { in: userIds },
+        peerScore: { not: null },
+        prediction: {
+          resolvedAt: { not: null },
+          ...(tagSlug ? { tags: { some: { slug: tagSlug } } } : {}),
+        },
+      },
+      select: {
+        userId: true,
+        peerScore: true,
+        prediction: { select: { resolvedAt: true } },
+      },
+    }),
+    // Per-tag ELO replay — when no tag, replay full history (same as stored incremental)
+    replayEloHistory(tagSlug),
+    // Per-tag Glicko-2 replay — only when tag is selected; uses stored values otherwise
+    tagSlug ? replayGlicko2History(tagSlug) : Promise.resolve(null as null),
   ])
+
+  // --- Build lookup maps ---
 
   const cuByUser = new Map(cuSums.map(s => [s.userId, s._sum.cuCommitted ?? 0]))
   const rsGainByUser = new Map(rsGainSums.map(s => [s.userId, s._sum.rsChange ?? 0]))
-  const peerScoreByUser = new Map(peerScoreSums.map(s => [s.userId, {
-    sum: s._sum.peerScore ?? null,
-    count: s._count.peerScore,
-  }]))
-  const aiScoreByUser = new Map(aiScoreSums.map(s => [s.userId, s._sum.aiScore ?? null]))
-  const rsChangeByUser = new Map(rsChangeSums.map(s => [s.userId, {
-    sum: s._sum.rsChange ?? 0,
-    count: s._count.rsChange,
-  }]))
 
   const resolvedByUser = new Map<string, { total: number; correct: number }>()
   for (const c of resolvedCommitments) {
@@ -120,23 +131,64 @@ export const getLeaderboard = async (limit: number, sortBy: SortBy, tagSlug?: st
     count: s._count.brierScore,
   }]))
 
-  // Per-tag ELO: replay history filtered to this tag instead of reading stored global value.
-  // For global (no tag), read the stored eloRating which is updated incrementally on resolution.
-  const tagEloByUser = tagSlug ? await replayEloHistory(tagSlug) : null
+  const peerScoreByUser = new Map(peerScoreSums.map(s => [s.userId, {
+    sum: s._sum.peerScore ?? null,
+    count: s._count.peerScore,
+  }]))
+
+  const aiScoreByUser = new Map(aiScoreSums.map(s => [s.userId, s._sum.aiScore ?? null]))
+
+  const rsChangeByUser = new Map(rsChangeSums.map(s => [s.userId, {
+    sum: s._sum.rsChange ?? 0,
+    count: s._count.rsChange,
+  }]))
+
+  // Metaculus-style time-weighted peer score: Σ(score × decay^(days/30)) / Σ(decay^(days/30))
+  const wpAccum = new Map<string, { wSum: number; wTotal: number; count: number }>()
+  for (const row of weightedPeerRows) {
+    if (!row.prediction.resolvedAt) continue
+    const days = (now - row.prediction.resolvedAt.getTime()) / 86_400_000
+    const w = DECAY ** (days / 30)
+    const entry = wpAccum.get(row.userId) ?? { wSum: 0, wTotal: 0, count: 0 }
+    entry.wSum += row.peerScore! * w
+    entry.wTotal += w
+    entry.count++
+    wpAccum.set(row.userId, entry)
+  }
+  const weightedPeerScoreByUser = new Map<string, number | null>()
+  for (const [userId, { wSum, wTotal, count }] of wpAccum) {
+    weightedPeerScoreByUser.set(userId, count >= 3 ? wSum / wTotal : null)
+  }
+
+  // ELO: per-tag replay when tag selected; stored global value otherwise
+  const eloByUser: Map<string, number> = tagEloByUser ??
+    new Map(users.map(u => [u.id, u.eloRating]))
+
+  // Glicko-2: per-tag replay when tag selected; stored global values otherwise
+  const glickoByUser: Map<string, { mu: number; sigma: number }> = tagGlickoByUser ??
+    new Map(users.map(u => [u.id, { mu: u.mu, sigma: u.sigma }]))
+
+  const ctx: ScoringContext = {
+    cuByUser,
+    resolvedByUser,
+    brierByUser,
+    peerScoreByUser,
+    aiScoreByUser,
+    rsChangeByUser,
+    weightedPeerScoreByUser,
+    eloByUser,
+    glickoByUser,
+  }
+
+  const activeSystem = SCORING_SYSTEMS.find(s => s.key === sortBy) ?? SCORING_SYSTEMS[0]
 
   const leaderboard = users.map(user => {
     const resolved = resolvedByUser.get(user.id) ?? { total: 0, correct: 0 }
-    const accuracy = resolved.total > 0 ? Math.round((resolved.correct / resolved.total) * 100) : null
     const brier = brierByUser.get(user.id)
-    const avgBrierScore = (brier && brier.count > 0 && brier.avg != null)
-      ? Math.round(brier.avg * 1000) / 1000
-      : null
-
-    // μ - 3σ: lower bound of skill estimate; prevents one-hit wonders from topping the board
-    const glickoRank = user.mu - 3 * user.sigma
-
-    // Use per-tag replayed ELO when a tag is selected; otherwise use stored global value
-    const eloRating = tagEloByUser ? (tagEloByUser.get(user.id) ?? 1500) : user.eloRating
+    const ps = peerScoreByUser.get(user.id)
+    const rsc = rsChangeByUser.get(user.id)
+    const g = glickoByUser.get(user.id) ?? { mu: user.mu, sigma: user.sigma }
+    const elo = eloByUser.get(user.id) ?? user.eloRating
 
     return {
       id: user.id,
@@ -145,57 +197,45 @@ export const getLeaderboard = async (limit: number, sortBy: SortBy, tagSlug?: st
       image: user.image,
       rs: user.rs,
       cuAvailable: user.cuAvailable,
-      mu: user.mu,
-      sigma: user.sigma,
-      glickoRank,
-      eloRating,
+      mu: g.mu,
+      sigma: g.sigma,
+      glickoRank: g.mu - 3 * g.sigma,
+      eloRating: elo,
       totalPredictions: user.totalPredictions,
       correctPredictions: user.correctPredictions,
       totalCommitments: user._count.commitments,
       totalResolved: resolved.total,
       totalCorrect: resolved.correct,
-      accuracy,
+      accuracy: resolved.total > 0 ? Math.round((resolved.correct / resolved.total) * 100) : null,
       totalCuCommitted: cuByUser.get(user.id) ?? 0,
       totalRsGained: Math.round((rsGainByUser.get(user.id) ?? 0) * 100) / 100,
-      avgBrierScore,
+      avgBrierScore: (brier && brier.count > 0 && brier.avg != null)
+        ? Math.round(brier.avg * 1000) / 1000
+        : null,
       brierCount: brier?.count ?? 0,
-      peerScoreSum: peerScoreByUser.get(user.id)?.sum ?? null,
+      peerScoreSum: ps?.sum ?? null,
       aiScoreSum: aiScoreByUser.get(user.id) ?? null,
-      // ROI: average net RS change per resolved prediction (positive = net gain)
-      roi: (() => {
-        const rs = rsChangeByUser.get(user.id)
-        if (!rs || rs.count < 3) return null
-        return Math.round((rs.sum / rs.count) * 100) / 100
-      })(),
-      // truthScore: average peer score per prediction (how consistently you beat the crowd)
-      truthScore: (() => {
-        const ps = peerScoreByUser.get(user.id)
-        if (!ps || ps.count < 3 || ps.sum === null) return null
-        return Math.round((ps.sum / ps.count) * 10000) / 10000
-      })(),
+      roi: rsc && rsc.count >= 3
+        ? Math.round((rsc.sum / rsc.count) * 100) / 100
+        : null,
+      truthScore: ps && ps.count >= 3 && ps.sum !== null
+        ? Math.round((ps.sum / ps.count) * 10000) / 10000
+        : null,
+      weightedPeerScore: weightedPeerScoreByUser.get(user.id) ?? null,
     }
   })
 
-  const sortFns: Record<SortBy, (a: typeof leaderboard[0], b: typeof leaderboard[0]) => number> = {
-    rs: (a, b) => b.rs - a.rs,
-    accuracy: (a, b) => (b.accuracy ?? -1) - (a.accuracy ?? -1),
-    totalCorrect: (a, b) => b.totalCorrect - a.totalCorrect,
-    cuCommitted: (a, b) => b.totalCuCommitted - a.totalCuCommitted,
-    brierScore: (a, b) => {
-      if (a.avgBrierScore == null && b.avgBrierScore == null) return 0
-      if (a.avgBrierScore == null) return 1
-      if (b.avgBrierScore == null) return -1
-      return a.avgBrierScore - b.avgBrierScore
-    },
-    roi: (a, b) => (b.roi ?? -Infinity) - (a.roi ?? -Infinity),
-    truthScore: (a, b) => (b.truthScore ?? -Infinity) - (a.truthScore ?? -Infinity),
-    glicko: (a, b) => b.glickoRank - a.glickoRank,
-    peerScore: (a, b) => (b.peerScoreSum ?? -Infinity) - (a.peerScoreSum ?? -Infinity),
-    aiScore: (a, b) => (b.aiScoreSum ?? -Infinity) - (a.aiScoreSum ?? -Infinity),
-    elo: (a, b) => b.eloRating - a.eloRating,
-  }
+  // Sort using the active system's comparator from the registry
+  leaderboard.sort((a, b) => {
+    const minUser = (u: typeof a) => ({ id: u.id, rs: u.rs, mu: u.mu, sigma: u.sigma, eloRating: u.eloRating })
+    const va = activeSystem.compute(a.id, minUser(a), ctx)
+    const vb = activeSystem.compute(b.id, minUser(b), ctx)
+    if (va == null && vb == null) return 0
+    if (va == null) return 1
+    if (vb == null) return -1
+    return activeSystem.lowerIsBetter ? va - vb : vb - va
+  })
 
-  leaderboard.sort(sortFns[sortBy] ?? sortFns.rs)
   return leaderboard.slice(0, limit)
 }
 

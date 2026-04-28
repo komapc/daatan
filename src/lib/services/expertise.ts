@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 
 // Glicko-2 algorithm constants
 const SCALE = 173.7178   // converts Glicko-1 ↔ Glicko-2 scale
@@ -84,6 +85,44 @@ export function glicko2Update(
     phi: newPhiG2 * SCALE,
     volatility: newVolatility,
   }
+}
+
+/**
+ * Replay full Glicko-2 history from stored brierScore values, optionally filtered
+ * to a single tag slug. Analogous to replayEloHistory in elo.ts.
+ *
+ * All participants start at defaults (mu=1500, sigma=350, volatility=0.06).
+ * Commitments are processed in resolvedAt order so earlier matches influence later ones.
+ *
+ * Returns a map of userId → { mu, sigma } (Glicko-1 scale).
+ */
+export async function replayGlicko2History(tagSlug?: string): Promise<Map<string, { mu: number; sigma: number }>> {
+  const rows = await prisma.commitment.findMany({
+    where: {
+      brierScore: { not: null },
+      prediction: {
+        status: { in: ['RESOLVED_CORRECT', 'RESOLVED_WRONG'] },
+        resolvedAt: { not: null },
+        ...(tagSlug ? { tags: { some: { slug: tagSlug } } } : {}),
+      },
+    },
+    select: {
+      userId: true,
+      brierScore: true,
+      prediction: { select: { resolvedAt: true } },
+    },
+    orderBy: { prediction: { resolvedAt: 'asc' } },
+  })
+
+  const ratings = new Map<string, { mu: number; sigma: number; volatility: number }>()
+
+  for (const row of rows) {
+    const prev = ratings.get(row.userId) ?? { mu: 1500, sigma: 350, volatility: 0.06 }
+    const updated = glicko2Update(prev.mu, prev.sigma, prev.volatility, 1 - row.brierScore!)
+    ratings.set(row.userId, { mu: updated.mu, sigma: updated.phi, volatility: updated.volatility })
+  }
+
+  return new Map([...ratings].map(([id, r]) => [id, { mu: r.mu, sigma: r.sigma }]))
 }
 
 interface GlickoUserData {
