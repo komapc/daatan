@@ -65,6 +65,36 @@ jobs:
             sleep 10
           done
 
+      - name: Verify backup restore via SSM
+        if: steps.backup.outputs.status == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          INSTANCE_ID=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=daatan-backend" "Name=tag:Environment,Values=prod" \
+            --query "Reservations[0].Instances[0].InstanceId" \
+            --output text)
+          echo "Instance: $INSTANCE_ID"
+
+          RAW_BASE="https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}"
+
+          # Fire-and-forget: the script sends its own Telegram alert on failure.
+          # Restore can take a few minutes on large DBs — SSM timeout set to 10 min.
+          aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --targets "Key=instanceids,Values=$INSTANCE_ID" \
+            --comment "Backup restore verification $(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --timeout-seconds 600 \
+            --parameters commands='[
+              "set -e",
+              "mkdir -p ~/app/scripts",
+              "cd ~/app",
+              "curl -sfL -H \"Authorization: token '"$GH_TOKEN"'\" \"'"$RAW_BASE"'/scripts/verify-backup.sh\" -o \"scripts/verify-backup.sh\"",
+              "chmod +x scripts/verify-backup.sh",
+              "./scripts/verify-backup.sh"
+            ]' \
+            --output text
+
       - name: Alert via Telegram on failure
         if: failure()
         run: |
