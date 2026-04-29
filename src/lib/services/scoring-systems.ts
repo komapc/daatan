@@ -38,8 +38,9 @@ export interface ScoringContext {
   weightedPeerScoreByUser: Map<string, number | null>
   /** Global stored value (no tag) or tag-replayed ELO (when tag selected). */
   eloByUser: Map<string, number>
-  /** Global stored value (no tag) or tag-replayed Glicko-2 (when tag selected). */
-  glickoByUser: Map<string, { mu: number; sigma: number }>
+  /** Global stored value (no tag) or tag-replayed Glicko-2 (when tag selected).
+   *  count is present only in per-tag replays; undefined = stored global (no min threshold). */
+  glickoByUser: Map<string, { mu: number; sigma: number; count?: number }>
 }
 
 type MinimalUser = {
@@ -101,10 +102,13 @@ export const SCORING_SYSTEMS: ScoringSystem[] = [
   },
   {
     key: 'glicko',
+    lowerIsBetter: false,
     compute: (userId, user, ctx) => {
       const g = ctx.glickoByUser.get(userId)
       const mu = g?.mu ?? user.mu
       const sigma = g?.sigma ?? user.sigma
+      // Per-tag replays include count; require ≥3 predictions before surfacing the score
+      if (g?.count !== undefined && g.count < 3) return null
       return mu - 3 * sigma
     },
   },

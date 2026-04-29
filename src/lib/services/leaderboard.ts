@@ -164,8 +164,9 @@ export const getLeaderboard = async (limit: number, sortBy: SortBy, tagSlug?: st
   const eloByUser: Map<string, number> = tagEloByUser ??
     new Map(users.map(u => [u.id, u.eloRating]))
 
-  // Glicko-2: per-tag replay when tag selected; stored global values otherwise
-  const glickoByUser: Map<string, { mu: number; sigma: number }> = tagGlickoByUser ??
+  // Glicko-2: per-tag replay when tag selected; stored global values otherwise.
+  // Per-tag entries include `count`; global entries do not (no minimum applied globally).
+  const glickoByUser: Map<string, { mu: number; sigma: number; count?: number }> = tagGlickoByUser ??
     new Map(users.map(u => [u.id, { mu: u.mu, sigma: u.sigma }]))
 
   const ctx: ScoringContext = {

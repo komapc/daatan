@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { SCORING_SYSTEMS } from '@/lib/services/scoring-systems'
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
@@ -11,6 +12,97 @@ vi.mock('@/lib/prisma', () => ({
 vi.mock('@/lib/logger', () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),
 }))
+
+describe('replayGlicko2History', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('returns empty map when no resolved commitments exist', async () => {
+    const { prisma } = await import('@/lib/prisma')
+    const { replayGlicko2History } = await import('@/lib/services/expertise')
+    vi.mocked(prisma.commitment.findMany).mockResolvedValue([])
+    const result = await replayGlicko2History()
+    expect(result.size).toBe(0)
+  })
+
+  it('includes count in each user entry', async () => {
+    const { prisma } = await import('@/lib/prisma')
+    const { replayGlicko2History } = await import('@/lib/services/expertise')
+    vi.mocked(prisma.commitment.findMany).mockResolvedValue([
+      { userId: 'u1', brierScore: 0.1, prediction: { resolvedAt: new Date('2026-01-01') } },
+      { userId: 'u1', brierScore: 0.2, prediction: { resolvedAt: new Date('2026-02-01') } },
+      { userId: 'u2', brierScore: 0.3, prediction: { resolvedAt: new Date('2026-01-15') } },
+    ] as any)
+    const result = await replayGlicko2History()
+    expect(result.get('u1')?.count).toBe(2)
+    expect(result.get('u2')?.count).toBe(1)
+  })
+
+  it('returns count=0 for absent users (map.get returns undefined)', async () => {
+    const { prisma } = await import('@/lib/prisma')
+    const { replayGlicko2History } = await import('@/lib/services/expertise')
+    vi.mocked(prisma.commitment.findMany).mockResolvedValue([
+      { userId: 'u1', brierScore: 0.1, prediction: { resolvedAt: new Date('2026-01-01') } },
+    ] as any)
+    const result = await replayGlicko2History()
+    expect(result.get('u-missing')).toBeUndefined()
+  })
+})
+
+describe('glicko scoring system — per-tag minimum', () => {
+  it('returns null when per-tag count < 3', () => {
+    const glicko = SCORING_SYSTEMS.find((s: any) => s.key === 'glicko')!
+
+    const ctx = {
+      glickoByUser: new Map([['u1', { mu: 1600, sigma: 200, count: 2 }]]),
+      eloByUser: new Map(),
+      cuByUser: new Map(),
+      resolvedByUser: new Map(),
+      brierByUser: new Map(),
+      peerScoreByUser: new Map(),
+      aiScoreByUser: new Map(),
+      rsChangeByUser: new Map(),
+      weightedPeerScoreByUser: new Map(),
+    }
+    const user = { id: 'u1', rs: 0, mu: 1500, sigma: 350, eloRating: 1500 }
+    expect(glicko.compute('u1', user, ctx)).toBeNull()
+  })
+
+  it('returns mu − 3σ when per-tag count >= 3', () => {
+    const glicko = SCORING_SYSTEMS.find((s: any) => s.key === 'glicko')!
+
+    const ctx = {
+      glickoByUser: new Map([['u1', { mu: 1600, sigma: 100, count: 5 }]]),
+      eloByUser: new Map(),
+      cuByUser: new Map(),
+      resolvedByUser: new Map(),
+      brierByUser: new Map(),
+      peerScoreByUser: new Map(),
+      aiScoreByUser: new Map(),
+      rsChangeByUser: new Map(),
+      weightedPeerScoreByUser: new Map(),
+    }
+    const user = { id: 'u1', rs: 0, mu: 1500, sigma: 350, eloRating: 1500 }
+    expect(glicko.compute('u1', user, ctx)).toBe(1600 - 3 * 100)
+  })
+
+  it('returns score without minimum when count is absent (global stored value)', () => {
+    const glicko = SCORING_SYSTEMS.find((s: any) => s.key === 'glicko')!
+
+    const ctx = {
+      glickoByUser: new Map([['u1', { mu: 1600, sigma: 200 }]]), // no count
+      eloByUser: new Map(),
+      cuByUser: new Map(),
+      resolvedByUser: new Map(),
+      brierByUser: new Map(),
+      peerScoreByUser: new Map(),
+      aiScoreByUser: new Map(),
+      rsChangeByUser: new Map(),
+      weightedPeerScoreByUser: new Map(),
+    }
+    const user = { id: 'u1', rs: 0, mu: 1500, sigma: 350, eloRating: 1500 }
+    expect(glicko.compute('u1', user, ctx)).toBe(1600 - 3 * 200)
+  })
+})
 
 describe('getGlickoHistory', () => {
   beforeEach(() => vi.clearAllMocks())
