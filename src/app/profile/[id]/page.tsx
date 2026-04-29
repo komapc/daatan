@@ -24,12 +24,21 @@ export async function generateMetadata({ params }: ProfilePageProps): Promise<Me
     select: {
       name: true,
       username: true,
+      isPublic: true,
     }
   })
 
   if (!user) {
     return {
       title: 'User Not Found - DAATAN',
+      robots: { index: false },
+    }
+  }
+
+  if (!user.isPublic) {
+    return {
+      title: `${user.name} - DAATAN Profile`,
+      robots: { index: false, follow: false },
     }
   }
 

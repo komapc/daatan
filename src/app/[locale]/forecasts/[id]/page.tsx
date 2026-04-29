@@ -93,7 +93,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         en: `https://daatan.com/forecasts/${slug}`,
         he: `https://daatan.com/he/forecasts/${slug}`,
         ru: `https://daatan.com/ru/forecasts/${slug}`,
-        eo: `https://daatan.com/eo/forecasts/${slug}`,
       },
     },
     openGraph: {

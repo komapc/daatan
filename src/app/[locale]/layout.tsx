@@ -29,13 +29,14 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params
   return {
+    // eo is supported for UI purposes but excluded from Google indexing
+    ...(locale === 'eo' ? { robots: { index: false, follow: false } } : {}),
     alternates: {
       languages: {
         'x-default': 'https://daatan.com',
         en: 'https://daatan.com',
         he: 'https://daatan.com/he',
         ru: 'https://daatan.com/ru',
-        eo: 'https://daatan.com/eo',
       },
     },
     openGraph: {

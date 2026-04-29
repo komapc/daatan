@@ -104,10 +104,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       canonical: `https://daatan.com/forecasts/${slug}`,
       languages: {
         'x-default': `https://daatan.com/forecasts/${slug}`,
-        'en': `https://daatan.com/forecasts/${slug}`,
-        'he': `https://daatan.com/he/forecasts/${slug}`,
-        'ru': `https://daatan.com/ru/forecasts/${slug}`,
-        'eo': `https://daatan.com/eo/forecasts/${slug}`,
+        en: `https://daatan.com/forecasts/${slug}`,
+        he: `https://daatan.com/he/forecasts/${slug}`,
+        ru: `https://daatan.com/ru/forecasts/${slug}`,
       },
     },
     openGraph: {
