@@ -27,6 +27,7 @@ const { mockSearchArticles, mockGenerateContent, mockPrisma, mockGetOracleForeca
 }))
 
 vi.mock('@/lib/services/oracle', () => ({
+  DEFAULT_MAX_ARTICLES: 5,
   getOracleForecast: (...args: unknown[]) => mockGetOracleForecast(...args),
 }))
 
@@ -234,7 +235,7 @@ it('returns 400 when prediction is not ACTIVE', async () => {
     expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1)
 
     // Verify search used newsAnchor title
-    expect(mockSearchArticles).toHaveBeenCalledWith('Bitcoin Rally', 4)
+    expect(mockSearchArticles).toHaveBeenCalledWith('Bitcoin Rally', 5)
   })
 
   it('denormalizes Oracle CI bounds onto Prediction when Oracle path runs', async () => {
