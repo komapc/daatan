@@ -7,7 +7,7 @@ import { llmService } from '@/lib/llm'
 import { searchArticles, type SearchResult } from '@/lib/utils/webSearch'
 import { oracleSearch } from '@/lib/services/oracleSearch'
 import { guessChances } from '@/lib/llm/expressPrediction'
-import { getOracleForecast, type OracleSource } from '@/lib/services/oracle'
+import { getOracleForecast, DEFAULT_MAX_ARTICLES, type OracleSource } from '@/lib/services/oracle'
 import { createLogger } from '@/lib/logger'
 import {
   getContextTimeline,
@@ -93,7 +93,7 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
         // unconfigured). Convert that into a clean 503 instead of leaking a 500 to the client.
         let searchResults: SearchResult[]
         try {
-            searchResults = await oracleSearch(searchQuery, 4) ?? await searchArticles(searchQuery, 4)
+            searchResults = await oracleSearch(searchQuery, DEFAULT_MAX_ARTICLES) ?? await searchArticles(searchQuery, DEFAULT_MAX_ARTICLES)
         } catch (err) {
             log.warn(
                 { predictionId: prediction.id, searchQuery, err },
@@ -165,7 +165,15 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
         // the UI can render provenance. Shape is camelCased for frontend consumption.
         let oracleSnapshotData: Prisma.InputJsonValue | null = null
 
-        const oracleForecast = await getOracleForecast(prediction.claimText)
+        const oracleForecast = await getOracleForecast(prediction.claimText, {
+            articles: searchResults.map(r => ({
+                url: r.url,
+                title: r.title,
+                snippet: r.snippet,
+                source: r.source,
+                publishedDate: r.publishedDate,
+            })),
+        })
         if (oracleForecast !== null) {
             const toPercent = (v: number) => Math.round(((v + 1) / 2) * 100)
             externalProbability = toPercent(oracleForecast.mean)

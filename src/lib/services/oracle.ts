@@ -11,7 +11,15 @@ const HEALTH_TIMEOUT_MS = 5_000
 // already runs gatekeeper+extractor in parallel, so wall-clock ≈ slowest
 // article, not sum. Bedrock Nova is cheap per call. Oracle-side cap
 // (`settings.max_articles = 5`) already supports this.
-const DEFAULT_MAX_ARTICLES = 5
+export const DEFAULT_MAX_ARTICLES = 5
+
+export interface ArticleInput {
+  url: string
+  title: string
+  snippet: string
+  source?: string
+  publishedDate?: string
+}
 
 /** Per-source signal returned by the Oracle's /forecast endpoint. */
 export interface OracleSource {
@@ -60,6 +68,7 @@ const normalizeBaseUrl = (url: string): string => url.replace(/\/$/, '')
  */
 export const getOracleForecast = async (
   question: string,
+  options?: { articles?: ArticleInput[] },
 ): Promise<OracleForecastResponse | null> => {
   const url = env.ORACLE_URL
   const key = env.ORACLE_API_KEY
@@ -73,7 +82,11 @@ export const getOracleForecast = async (
     const res = await fetch(`${normalizeBaseUrl(url)}/forecast`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': key },
-      body: JSON.stringify({ question, max_articles: DEFAULT_MAX_ARTICLES }),
+      body: JSON.stringify({
+        question,
+        max_articles: DEFAULT_MAX_ARTICLES,
+        ...(options?.articles?.length ? { articles: options.articles } : {}),
+      }),
       signal: AbortSignal.timeout(FORECAST_TIMEOUT_MS),
     })
 
