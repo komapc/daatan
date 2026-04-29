@@ -125,6 +125,56 @@ export async function replayGlicko2History(tagSlug?: string): Promise<Map<string
   return new Map([...ratings].map(([id, r]) => [id, { mu: r.mu, sigma: r.sigma }]))
 }
 
+export interface GlickoDataPoint {
+  date: string   // ISO date of resolution
+  mu: number
+  sigma: number
+}
+
+/**
+ * Replay Glicko-2 history for a single user and return the time series of
+ * (mu, sigma) after each resolved prediction. Optionally filtered by tag.
+ * Returns an empty array if the user has no resolved predictions.
+ */
+export async function getGlickoHistory(
+  userId: string,
+  tagSlug?: string,
+): Promise<GlickoDataPoint[]> {
+  const rows = await prisma.commitment.findMany({
+    where: {
+      userId,
+      brierScore: { not: null },
+      prediction: {
+        status: { in: ['RESOLVED_CORRECT', 'RESOLVED_WRONG'] },
+        resolvedAt: { not: null },
+        ...(tagSlug ? { tags: { some: { slug: tagSlug } } } : {}),
+      },
+    },
+    select: {
+      brierScore: true,
+      prediction: { select: { resolvedAt: true } },
+    },
+    orderBy: { prediction: { resolvedAt: 'asc' } },
+  })
+
+  const points: GlickoDataPoint[] = []
+  let mu = 1500, sigma = 350, volatility = 0.06
+
+  for (const row of rows) {
+    const updated = glicko2Update(mu, sigma, volatility, 1 - row.brierScore!)
+    mu = updated.mu
+    sigma = updated.phi
+    volatility = updated.volatility
+    points.push({
+      date: row.prediction.resolvedAt!.toISOString().slice(0, 10),
+      mu: Math.round(mu),
+      sigma: Math.round(sigma),
+    })
+  }
+
+  return points
+}
+
 interface GlickoUserData {
   mu: number
   sigma: number      // this is the RD (phi) in Glicko-1 scale

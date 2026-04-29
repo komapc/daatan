@@ -16,6 +16,7 @@
 - [x] `notifyOracleSearchUnavailable()` in `telegram.ts` — 5-min cooldown alert on oracle failure (v1.10.54, PR #699)
 - [x] **Health route** — `getOracleSearchHealth()` in `oracleSearch.ts` (v1.10.58, PR #703)
 - [x] **Hourly cron** — `GET /api/cron/search-health` + `search-health.yml` GitHub Actions (v1.10.58, PR #703)
+- [ ] **Env var rename** — retro PR #58 renamed `SERPAPI_KEY` → `SERPAPI_API_KEY` and `SERPERDEV_KEY` → `SERPER_API_KEY` in `web_search.py`. If daatan's `src/env.ts` or any `.env` files reference the old names, update them. (SM paths are unchanged.)
 
 ### Unified Analysis Pipeline (oracle articles passthrough)
 
@@ -27,7 +28,7 @@
 
 - [x] **`oracle.ts` — add `articles` param to `getOracleForecast`** (v1.10.57, PR #702)
 - [x] **`context/route.ts` — pass found articles to oracle** (v1.10.57, PR #702)
-- [ ] **Verify end-to-end**: trigger a context update → oracle log should show `provider=caller` and `articles_used` should match the article count from `oracleSearch`
+- [x] **Verify end-to-end**: confirmed 2026-04-29 — `articlesUsed: 5` matches `resultCount: 5` from oracleSearch; same article set used for both prose and probability
 
 ---
 

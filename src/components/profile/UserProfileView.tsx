@@ -18,6 +18,7 @@ import Link from 'next/link'
 import EmptyState from '@/components/ui/EmptyState'
 import { RoleBadge } from '@/components/RoleBadge'
 import { TagFilter } from '@/components/profile/TagFilter'
+import { GlickoChart } from '@/components/profile/GlickoChart'
 
 interface TopicStat {
   name: string
@@ -224,6 +225,14 @@ export async function UserProfileView({
                 </div>
               </div>
             )}
+
+            {/* Glicko-2 skill history chart */}
+            <div className="mt-4 bg-navy-800 rounded-xl border border-navy-600 p-3">
+              <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-2">
+                Skill Rating History{selectedTag ? ` · ${userTags.find(tg => tg.slug === selectedTag)?.name ?? selectedTag}` : ''}
+              </p>
+              <GlickoChart userId={user.id} selectedTag={selectedTag} />
+            </div>
 
             <TagFilter tags={userTags} selectedTag={selectedTag} />
           </div>

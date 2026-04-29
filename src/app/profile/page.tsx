@@ -21,6 +21,7 @@ import Link from 'next/link'
 import EmptyState from '@/components/ui/EmptyState'
 import { RoleBadge } from '@/components/RoleBadge'
 import { TagFilter } from '@/components/profile/TagFilter'
+import { GlickoChart } from '@/components/profile/GlickoChart'
 
 interface ProfilePageProps {
   searchParams: Promise<{ tag?: string }>
@@ -358,6 +359,14 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
                   </div>
                 </div>
               )}
+
+              {/* Glicko-2 skill history chart */}
+              <div className="mt-4 bg-navy-800 rounded-xl border border-navy-600 p-3">
+                <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-2">
+                  Skill Rating History{selectedTag ? ` · ${userTags.find(tag => tag.slug === selectedTag)?.name ?? selectedTag}` : ''}
+                </p>
+                <GlickoChart userId={user.id} selectedTag={selectedTag} />
+              </div>
 
               <TagFilter tags={userTags} selectedTag={selectedTag} />
             </div>
