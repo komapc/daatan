@@ -309,5 +309,6 @@ full health check. See `.claude/commands/` for details.
 | `TELEGRAM_BOT_TOKEN`           | Deploy success/failure notifications |
 | `TELEGRAM_CHAT_ID`             | Deploy notifications target          |
 | `BOT_RUNNER_SECRET`            | Bot cron trigger (`bots.yml`)        |
-| `STAGING_URL`                  | Bot cron target URL                  |
+| `CRON_SECRET`                  | Heartbeat cron auth (`heartbeat.yml`) — same value as `BOT_RUNNER_SECRET` in `.env` |
+| `STAGING_URL`                  | Bot cron + heartbeat target URL (staging) |
 | `OPENROUTER_API_KEY`           | Bot LLM calls (staging only)         |

@@ -94,6 +94,7 @@ Uncertainty-aware skill rating. The leaderboard rank uses `μ − 3σ` (lower bo
 **Outcome signal:** `score = 1 − brierScore` (0=worst, 1=perfect)  
 **Reference opponent:** social consensus baseline at μ=1500, σ=350  
 **Constants:** SCALE=173.7178, TAU=0.5, ε=1e-6  
+**Minimum (per-tag only):** requires ≥3 resolved predictions in the selected tag; users below this threshold return `null` and sort last — same as `roi` and `truthScore`.
 
 Reference: [Glickman (2012)](http://www.glicko.net/glicko/glicko2.pdf)
 
@@ -211,6 +212,8 @@ When a tag is selected via `?tag=slug`:
 | Most Correct | Filtered |
 
 ELO and Glicko-2 per-tag replays start all users at default ratings, so the tag leaderboard represents "if this topic were all you ever predicted, how skilled would you be?"
+
+**Note:** Per-tag Glicko-2 requires ≥3 resolved predictions in the tag before a score is surfaced; users with fewer appear at the bottom (same as ROI and TruthScore). ELO has no minimum threshold.
 
 ---
 

@@ -30,16 +30,20 @@ jobs:
         env:
           - name: production
             url: https://daatan.com
-            secret: CRON_SECRET
           - name: staging
-            url: ${{ secrets.STAGING_URL }}
-            secret: CRON_SECRET
 
     steps:
       - name: Ping heartbeat endpoint
+        env:
+          STAGING_URL: ${{ secrets.STAGING_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
           ENV="${{ matrix.env.name }}"
-          BASE="${{ matrix.env.url }}"
+          if [ "$ENV" = "staging" ]; then
+            BASE="$STAGING_URL"
+          else
+            BASE="${{ matrix.env.url }}"
+          fi
 
           if [ -z "$BASE" ]; then
             echo "⚠️ No URL configured for $ENV — skipping"
@@ -48,7 +52,7 @@ jobs:
 
           HTTP=$(curl -s -o /tmp/heartbeat_body.txt -w "%{http_code}" \
             --max-time 15 \
-            -H "x-cron-secret: ${{ secrets[matrix.env.secret] }}" \
+            -H "x-cron-secret: $CRON_SECRET" \
             "$BASE/api/cron/heartbeat")
 
           BODY=$(cat /tmp/heartbeat_body.txt)
