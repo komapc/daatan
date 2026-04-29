@@ -16,7 +16,7 @@
 - [x] `notifyOracleSearchUnavailable()` in `telegram.ts` — 5-min cooldown alert on oracle failure (v1.10.54, PR #699)
 - [x] **Health route** — `getOracleSearchHealth()` in `oracleSearch.ts` (v1.10.58, PR #703)
 - [x] **Hourly cron** — `GET /api/cron/search-health` + `search-health.yml` GitHub Actions (v1.10.58, PR #703)
-- [ ] **Env var rename** — retro PR #58 renamed `SERPAPI_KEY` → `SERPAPI_API_KEY` and `SERPERDEV_KEY` → `SERPER_API_KEY` in `web_search.py`. If daatan's `src/env.ts` or any `.env` files reference the old names, update them. (SM paths are unchanged.)
+- [x] **Env var rename** — verified: daatan already uses `SERPER_API_KEY` and `SERPAPI_API_KEY` in `src/env.ts`, `.env`, and `webSearch.ts`. No changes needed. (v1.10.60)
 
 ### Unified Analysis Pipeline (oracle articles passthrough)
 
