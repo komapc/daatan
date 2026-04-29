@@ -8,6 +8,21 @@ const appVersion = process.env.NEXT_PUBLIC_APP_VERSION || version
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  async redirects() {
+    return [
+      // /predictions was the old route name — permanently redirect to /forecasts
+      {
+        source: '/predictions',
+        destination: '/forecasts',
+        permanent: true,
+      },
+      {
+        source: '/predictions/:id',
+        destination: '/forecasts/:id',
+        permanent: true,
+      },
+    ]
+  },
   output: 'standalone',
   reactStrictMode: true,
   logging: {
