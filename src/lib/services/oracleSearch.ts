@@ -8,6 +8,9 @@ const log = createLogger('oracle-search')
 const SEARCH_TIMEOUT_MS = 10_000
 const HEALTH_TIMEOUT_MS = 5_000
 
+/** Alert threshold shared between the health UI route and the hourly cron. */
+export const SEARCH_LOW_CREDITS_THRESHOLD = 100
+
 export interface OracleSearchProviderStatus {
   configured: boolean
   exhausted: boolean

@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server'
 import { notifySearchCreditsLow } from '@/lib/services/telegram'
+import { SEARCH_LOW_CREDITS_THRESHOLD } from '@/lib/services/oracleSearch'
 
 export const dynamic = 'force-dynamic'
-
-const LOW_CREDITS_THRESHOLD = 100
 
 interface ProviderStatus {
   configured: boolean
@@ -26,7 +25,7 @@ async function checkSerper(): Promise<ProviderStatus> {
     }
     const data = await res.json() as { balance?: number }
     const credits = data.balance ?? undefined
-    if (credits !== undefined && credits < LOW_CREDITS_THRESHOLD) {
+    if (credits !== undefined && credits < SEARCH_LOW_CREDITS_THRESHOLD) {
       notifySearchCreditsLow('Serper', credits)
     }
     return { configured: true, status: 'ok', credits }
@@ -46,7 +45,7 @@ async function checkSerpApi(): Promise<ProviderStatus> {
     }
     const data = await res.json() as { searches_left?: number }
     const credits = data.searches_left ?? undefined
-    if (credits !== undefined && credits < LOW_CREDITS_THRESHOLD) {
+    if (credits !== undefined && credits < SEARCH_LOW_CREDITS_THRESHOLD) {
       notifySearchCreditsLow('SerpAPI', credits)
     }
     return { configured: true, status: 'ok', credits }
@@ -68,7 +67,7 @@ async function checkScrapingBee(): Promise<ProviderStatus> {
     const credits = data.max_api_credit !== undefined && data.used_api_credit !== undefined
       ? data.max_api_credit - data.used_api_credit
       : undefined
-    if (credits !== undefined && credits < LOW_CREDITS_THRESHOLD) {
+    if (credits !== undefined && credits < SEARCH_LOW_CREDITS_THRESHOLD) {
       notifySearchCreditsLow('ScrapingBee', credits)
     }
     return { configured: true, status: 'ok', credits }

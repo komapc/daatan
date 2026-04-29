@@ -1,16 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createHash, timingSafeEqual } from 'crypto'
 import { cleanupOldNotifications } from '@/lib/services/notification'
 import { createLogger } from '@/lib/logger'
 import { env } from '@/env'
+import { secretsMatch } from '@/lib/cron-auth'
 
 const log = createLogger('cron-cleanup')
-
-function secretsMatch(provided: string, expected: string): boolean {
-  const a = createHash('sha256').update(provided).digest()
-  const b = createHash('sha256').update(expected).digest()
-  return timingSafeEqual(a, b)
-}
 
 /**
  * GET /api/cron/cleanup

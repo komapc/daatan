@@ -1,15 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-
-interface DataPoint {
-  date: string
-  mu: number
-  sigma: number
-}
+import type { GlickoDataPoint } from '@/lib/services/expertise'
 
 interface GlickoChartProps {
-  userId: string        // user id or username (for API call)
+  userId: string
   selectedTag: string | null
 }
 
@@ -20,15 +15,27 @@ const INNER_W = W - PAD.left - PAD.right
 const INNER_H = H - PAD.top - PAD.bottom
 
 export function GlickoChart({ userId, selectedTag }: GlickoChartProps) {
-  const [points, setPoints] = useState<DataPoint[] | null>(null)
+  const [points, setPoints] = useState<GlickoDataPoint[] | null>(null)
+  const [error, setError] = useState(false)
 
   useEffect(() => {
+    setPoints(null)
+    setError(false)
     const url = `/api/profile/${userId}/glicko-history${selectedTag ? `?tag=${selectedTag}` : ''}`
     fetch(url)
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return r.json()
+      })
       .then(d => setPoints(d.points ?? []))
-      .catch(() => setPoints([]))
+      .catch(() => setError(true))
   }, [userId, selectedTag])
+
+  if (error) return (
+    <div className="h-[140px] flex items-center justify-center text-xs text-gray-500">
+      Could not load skill history
+    </div>
+  )
 
   if (points === null) return (
     <div className="h-[140px] flex items-center justify-center text-xs text-gray-600">Loading…</div>
