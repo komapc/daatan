@@ -321,3 +321,60 @@ export function notifyDiskSpaceLow(
 
   sendChannelNotification(msg)
 }
+
+export function notifyMemoryPressure(
+  instanceId: string,
+  usedMb: number,
+  totalMb: number,
+  usagePct: number
+): void {
+  if (isDevEnv()) return
+  const key = `memory-pressure:${instanceId}`
+  if (!canNotify(key)) return
+
+  const msg = [
+    `🧠 <b>Critical: Memory Pressure</b>`,
+    `Instance: <code>${instanceId}</code>`,
+    `Memory: <b>${usedMb} MB / ${totalMb} MB (${usagePct}%)</b>`,
+    `High memory usage may cause OOM kills or severe slowdowns.`,
+  ].join('\n')
+
+  sendChannelNotification(msg)
+}
+
+export function notifyHighLoad(
+  instanceId: string,
+  load1: string,
+  load5: string,
+  cpuCores: number
+): void {
+  if (isDevEnv()) return
+  const key = `high-load:${instanceId}`
+  if (!canNotify(key)) return
+
+  const msg = [
+    `🔥 <b>Critical: High CPU Load</b>`,
+    `Instance: <code>${instanceId}</code>`,
+    `Load avg: <b>${load1} (1m) / ${load5} (5m)</b>`,
+    `CPU cores: ${cpuCores} — sustained load above ${cpuCores * 2}x normal.`,
+  ].join('\n')
+
+  sendChannelNotification(msg)
+}
+
+export function notifyHeartbeat(version: string): void {
+  if (isDevEnv()) return
+  const msg = `✅ <b>Server heartbeat</b> — v${version} is alive.\n<i>Sent from the server (EC2 app process), not GitHub Actions.</i>`
+  sendChannelNotification(msg)
+}
+
+export function notifyBackupVerificationFailed(reason: string): void {
+  if (isDevEnv()) return
+  const msg = [
+    `🚨 <b>Backup Verification FAILED</b>`,
+    `The latest backup was uploaded but could not be restored successfully.`,
+    `Reason: <code>${reason}</code>`,
+    `<b>Manual investigation required — backup may be corrupt.</b>`,
+  ].join('\n')
+  sendChannelNotification(msg)
+}

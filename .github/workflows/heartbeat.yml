@@ -1,0 +1,62 @@
+name: Daily Heartbeat
+
+# Sends a daily "server is alive" signal via the app's /api/cron/heartbeat
+# endpoint. This is complementary to the watchdog (which alerts on failure) —
+# the heartbeat proves the full pipeline (GitHub Actions → server → Telegram)
+# is working. If heartbeats stop appearing in Telegram, the watchdog itself
+# may be broken.
+#
+# WHERE THIS RUNS:
+#   GitHub Actions runner (ubuntu-latest) makes an HTTP request to the server.
+#   The server (EC2 app process) then sends the Telegram message directly.
+#   This means the Telegram message originates FROM the server, not from GitHub.
+#
+# For full independence from GitHub Actions outages, also add to EC2 crontab:
+#   0 12 * * * curl -sf -H "x-cron-secret: $BOT_RUNNER_SECRET" \
+#     https://daatan.com/api/cron/heartbeat >> /var/log/heartbeat.log 2>&1
+
+on:
+  schedule:
+    - cron: '0 9 * * *'   # 09:00 UTC daily
+  workflow_dispatch:
+
+jobs:
+  heartbeat:
+    name: Heartbeat ${{ matrix.env.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        env:
+          - name: production
+            url: https://daatan.com
+            secret: CRON_SECRET
+          - name: staging
+            url: ${{ secrets.STAGING_URL }}
+            secret: CRON_SECRET
+
+    steps:
+      - name: Ping heartbeat endpoint
+        run: |
+          ENV="${{ matrix.env.name }}"
+          BASE="${{ matrix.env.url }}"
+
+          if [ -z "$BASE" ]; then
+            echo "⚠️ No URL configured for $ENV — skipping"
+            exit 0
+          fi
+
+          HTTP=$(curl -s -o /tmp/heartbeat_body.txt -w "%{http_code}" \
+            --max-time 15 \
+            -H "x-cron-secret: ${{ secrets[matrix.env.secret] }}" \
+            "$BASE/api/cron/heartbeat")
+
+          BODY=$(cat /tmp/heartbeat_body.txt)
+          echo "HTTP $HTTP — $BODY"
+
+          if [ "$HTTP" -ne 200 ]; then
+            echo "❌ Heartbeat failed for $ENV (HTTP $HTTP)"
+            exit 1
+          fi
+
+          echo "✅ Heartbeat OK for $ENV"

@@ -1,4 +1,20 @@
 name: Health Watchdog
+#
+# WHERE EACH JOB RUNS:
+#
+#   watchdog job (HTTP checks + version drift):
+#     Runs on a GitHub Actions runner (ubuntu-latest cloud VM).
+#     Makes HTTP requests to daatan.com / staging.daatan.com from GitHub's network.
+#     Telegram alerts sent here originate FROM GitHub Actions, not from the server.
+#     If GitHub Actions has an outage, this job stops silently.
+#     → Complemented by heartbeat.yml: the EC2 app process sends its own daily
+#       Telegram ping so you know the server is alive even if GH Actions is down.
+#
+#   disk-watchdog job (disk, CPU, memory):
+#     Starts on a GitHub Actions runner, then issues AWS SSM commands to EC2.
+#     The shell scripts (check-disk-space.sh, check-system-health.sh) EXECUTE ON
+#     the EC2 instance. Telegram alerts from those scripts are sent FROM the server
+#     using the TELEGRAM_BOT_TOKEN in the server's .env file — independent of GH.
 
 on:
   schedule:
@@ -123,8 +139,8 @@ jobs:
             -d "disable_web_page_preview=true"
 
       # Advisory-only: detect when production is running a version older than staging.
-      # Notifies at most once per unique (prod, staging) version pair — subsequent
-      # watchdog runs skip the Telegram alert until the versions change again.
+      # Notifies at most once per production version — subsequent watchdog runs skip
+      # the alert until prod itself advances, regardless of how many times staging bumps.
       - name: Restore version-drift notification cache
         if: matrix.env.name == 'production'
         id: drift-cache
@@ -161,13 +177,14 @@ jobs:
           echo "Production version : $PROD_VER"
           echo "Staging version    : $STAGING_VER"
 
-          DRIFT_KEY="prod-${PROD_VER}__staging-${STAGING_VER}"
+          # Cache key is keyed on prod version only — once alerted for a given prod
+          # version, no further alerts fire until prod itself deploys a newer build.
+          DRIFT_KEY="prod-${PROD_VER}"
           echo "$DRIFT_KEY" > /tmp/drift-key.txt
 
           if [ "$(ver "$STAGING_VER")" -gt "$(ver "$PROD_VER")" ]; then
             echo "Version drift detected: staging ($STAGING_VER) > production ($PROD_VER)"
 
-            # Only notify if this exact (prod, staging) pair hasn't been notified before
             CACHED_KEY=$(cat /tmp/drift-notified 2>/dev/null || echo "")
             if [ "$CACHED_KEY" = "$DRIFT_KEY" ]; then
               echo "Already notified for this drift — skipping Telegram alert"
@@ -220,12 +237,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Get Instance ID
           INSTANCE_ID=$(aws ec2 describe-instances \
             --filters "Name=tag:Name,Values=daatan-backend" "Name=tag:Environment,Values=${{ matrix.env.tag }}" \
             --query "Reservations[0].Instances[0].InstanceId" \
             --output text)
-          
+
           if [[ -z "$INSTANCE_ID" || "$INSTANCE_ID" == "None" ]]; then
             echo "⚠️ No instance found for ${{ matrix.env.name }}"
             exit 0
@@ -233,9 +249,8 @@ jobs:
 
           echo "Found Instance: $INSTANCE_ID"
 
-          # Upload latest script and run it
           RAW_BASE="https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}"
-          
+
           aws ssm send-command \
             --document-name "AWS-RunShellScript" \
             --targets "Key=instanceids,Values=$INSTANCE_ID" \
@@ -247,5 +262,37 @@ jobs:
               "curl -sfL -H \"Authorization: token '"$GH_TOKEN"'\" \"'"$RAW_BASE"'/scripts/check-disk-space.sh\" -o \"scripts/check-disk-space.sh\"",
               "chmod +x scripts/check-disk-space.sh",
               "./scripts/check-disk-space.sh '"${{ matrix.env.name }}"'"
+            ]' \
+            --output text
+
+      - name: Run System Health Check via SSM
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          INSTANCE_ID=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=daatan-backend" "Name=tag:Environment,Values=${{ matrix.env.tag }}" \
+            --query "Reservations[0].Instances[0].InstanceId" \
+            --output text)
+
+          if [[ -z "$INSTANCE_ID" || "$INSTANCE_ID" == "None" ]]; then
+            echo "⚠️ No instance found for ${{ matrix.env.name }}"
+            exit 0
+          fi
+
+          echo "Found Instance: $INSTANCE_ID"
+
+          RAW_BASE="https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}"
+
+          aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --targets "Key=instanceids,Values=$INSTANCE_ID" \
+            --comment "System Health Check ${{ matrix.env.name }}" \
+            --parameters commands='[
+              "set -e",
+              "mkdir -p ~/app/scripts",
+              "cd ~/app",
+              "curl -sfL -H \"Authorization: token '"$GH_TOKEN"'\" \"'"$RAW_BASE"'/scripts/check-system-health.sh\" -o \"scripts/check-system-health.sh\"",
+              "chmod +x scripts/check-system-health.sh",
+              "./scripts/check-system-health.sh '"${{ matrix.env.name }}"'"
             ]' \
             --output text
