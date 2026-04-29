@@ -1,19 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createHash, timingSafeEqual } from 'crypto'
 import { createLogger } from '@/lib/logger'
 import { env } from '@/env'
-import { getOracleSearchHealth } from '@/lib/services/oracleSearch'
+import { getOracleSearchHealth, SEARCH_LOW_CREDITS_THRESHOLD } from '@/lib/services/oracleSearch'
 import { notifySearchCreditsLow, notifyAllSearchProvidersFailed } from '@/lib/services/telegram'
+import { secretsMatch } from '@/lib/cron-auth'
 
 const log = createLogger('cron-search-health')
-
-const LOW_CREDITS_THRESHOLD = 100
-
-function secretsMatch(provided: string, expected: string): boolean {
-  const a = createHash('sha256').update(provided).digest()
-  const b = createHash('sha256').update(expected).digest()
-  return timingSafeEqual(a, b)
-}
 
 /**
  * GET /api/cron/search-health
@@ -50,7 +42,7 @@ export async function GET(request: NextRequest) {
       continue
     }
 
-    if (provider.credits !== undefined && provider.credits < LOW_CREDITS_THRESHOLD) {
+    if (provider.credits !== undefined && provider.credits < SEARCH_LOW_CREDITS_THRESHOLD) {
       notifySearchCreditsLow(name, provider.credits)
       alerts.push(`${name}: ${provider.credits} credits remaining`)
     }

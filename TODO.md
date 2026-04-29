@@ -16,7 +16,7 @@
 - [x] `notifyOracleSearchUnavailable()` in `telegram.ts` — 5-min cooldown alert on oracle failure (v1.10.54, PR #699)
 - [x] **Health route** — `getOracleSearchHealth()` in `oracleSearch.ts` (v1.10.58, PR #703)
 - [x] **Hourly cron** — `GET /api/cron/search-health` + `search-health.yml` GitHub Actions (v1.10.58, PR #703)
-- [ ] **Env var rename** — retro PR #58 renamed `SERPAPI_KEY` → `SERPAPI_API_KEY` and `SERPERDEV_KEY` → `SERPER_API_KEY` in `web_search.py`. If daatan's `src/env.ts` or any `.env` files reference the old names, update them. (SM paths are unchanged.)
+- [x] **Env var rename** — verified: daatan already uses `SERPER_API_KEY` and `SERPAPI_API_KEY` in `src/env.ts`, `.env`, and `webSearch.ts`. No changes needed. (v1.10.60)
 
 ### Unified Analysis Pipeline (oracle articles passthrough)
 
@@ -41,7 +41,7 @@
 ### Scoring Systems
 - [ ] **Glicko-2 per-tag backfill** — existing users have global mu/sigma but no per-tag history. Consider whether to surface a "requires X predictions in this tag" notice on per-tag Glicko-2. (Deferred; the replay approach makes this optional.)
 - [ ] **Polymarket integration (Phase 2)** — add `polymarketPrice Float?` to `Commitment` + `Prediction`; compute KL-divergence vs market at resolution. See `docs/EXPERTISE_RATING_SYSTEM.md` Phase 2.
-- [ ] **User profile: skill history chart** — show μ ± σ trend over time (per tag or global). See `docs/EXPERTISE_RATING_SYSTEM.md` Phase 3.
+- [x] **User profile: skill history chart** — μ ± σ SVG chart, on-the-fly replay, tag-filtered (v1.10.59, PR #704)
 
 ### Features & UX
 - [ ] **Microservice for predictions** — defer until a concrete driver appears (independent scaling, separate deploy cadence, or team ownership split). Until then the operational cost (two deployables, auth, data sync, and failure modes) usually outweighs the benefit for a single-app codebase.
