@@ -1,6 +1,6 @@
 # TODO.md — Task Queue
 
-*Last updated: April 28, 2026 · v1.10.54*
+*Last updated: April 29, 2026 · v1.10.54*
 
 ---
 
@@ -14,8 +14,20 @@
 - [x] `src/lib/services/oracleSearch.ts` — thin client for `POST ${ORACLE_URL}/search` (v1.10.54, PR #699)
 - [x] `context/route.ts` + `research/route.ts` — try oracle first, fall back to local `searchArticles` (v1.10.54, PR #699)
 - [x] `notifyOracleSearchUnavailable()` in `telegram.ts` — 5-min cooldown alert on oracle failure (v1.10.54, PR #699)
-- [ ] **Health route** — once oracle exposes `/search/health`, delegate per-provider credit checks there
-- [ ] **Hourly cron** — `GET /api/cron/search-health` polls oracle `/search/health`, fires `notifySearchCreditsLow` per exhausted provider
+- [x] **Health route** — `getOracleSearchHealth()` in `oracleSearch.ts` (v1.10.58, PR #703)
+- [x] **Hourly cron** — `GET /api/cron/search-health` + `search-health.yml` GitHub Actions (v1.10.58, PR #703)
+
+### Unified Analysis Pipeline (oracle articles passthrough)
+
+> Oracle API now accepts `articles` in `POST /forecast` (retro PR #57, merged 2026-04-29).
+> Goal: daatan passes the articles it already found (for prose context) directly to oracle,
+> so the probability estimate and the context text are derived from the **same article set**.
+> Currently daatan searches 4 articles for prose, then oracle independently searches 5 different
+> articles for the probability — this fixes that inconsistency.
+
+- [x] **`oracle.ts` — add `articles` param to `getOracleForecast`** (v1.10.57, PR #702)
+- [x] **`context/route.ts` — pass found articles to oracle** (v1.10.57, PR #702)
+- [ ] **Verify end-to-end**: trigger a context update → oracle log should show `provider=caller` and `articles_used` should match the article count from `oracleSearch`
 
 ---
 

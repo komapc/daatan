@@ -1,0 +1,35 @@
+name: Search Health Check
+
+on:
+  schedule:
+    # Every hour — checks oracle search provider credits and alerts via Telegram
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+jobs:
+  check-search-health:
+    name: Poll oracle search health
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Trigger search health check
+        run: |
+          URL="${{ secrets.STAGING_URL }}/api/cron/search-health"
+
+          echo "Polling search health at $URL"
+
+          RESPONSE=$(curl -s -w "\n%{http_code}" "$URL" \
+            -H "x-cron-secret: ${{ secrets.BOT_RUNNER_SECRET }}" \
+            --max-time 30)
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n-1)
+
+          echo "Response: $BODY"
+          echo "HTTP status: $HTTP_CODE"
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Search health check failed with HTTP $HTTP_CODE"
+            exit 1
+          fi

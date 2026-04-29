@@ -6,6 +6,47 @@ import type { SearchResult } from '@/lib/utils/webSearch'
 const log = createLogger('oracle-search')
 
 const SEARCH_TIMEOUT_MS = 10_000
+const HEALTH_TIMEOUT_MS = 5_000
+
+export interface OracleSearchProviderStatus {
+  configured: boolean
+  exhausted: boolean
+  status: 'ok' | 'error' | 'not_configured' | string
+  credits?: number
+  error?: string
+}
+
+export interface OracleSearchHealthResponse {
+  providers: Record<string, OracleSearchProviderStatus>
+  overall: 'healthy' | 'degraded' | 'unhealthy' | string
+  usable_count: number
+}
+
+/**
+ * Fetch provider health from the Oracle's /search/health endpoint.
+ * Returns null if oracle is not configured or the request fails.
+ * Never throws.
+ */
+export async function getOracleSearchHealth(): Promise<OracleSearchHealthResponse | null> {
+  const baseUrl = env.ORACLE_URL
+  const key = env.ORACLE_API_KEY
+  if (!baseUrl || !key) return null
+
+  try {
+    const res = await fetch(`${normalizeBaseUrl(baseUrl)}/search/health`, {
+      headers: { 'x-api-key': key },
+      signal: AbortSignal.timeout(HEALTH_TIMEOUT_MS),
+    })
+    if (!res.ok) {
+      log.warn({ status: res.status }, 'oracle-search-health: non-OK response')
+      return null
+    }
+    return await res.json() as OracleSearchHealthResponse
+  } catch (err) {
+    log.warn({ err }, 'oracle-search-health: request failed')
+    return null
+  }
+}
 
 interface OracleSearchResult {
   title: string
