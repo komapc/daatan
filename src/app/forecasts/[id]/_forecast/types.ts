@@ -70,5 +70,9 @@ export type Prediction = {
     cuCommitted: number
     binaryChoice?: boolean
     optionId?: string
+    createdAt?: string
+    rsChange?: number | null
+    brierScore?: number | null
+    option?: { id: string; text: string } | null
   }
 }
