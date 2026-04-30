@@ -378,7 +378,16 @@ export async function getPredictionWithTags(id: string) {
 export async function getUserCommitment(predictionId: string, userId: string) {
   return prisma.commitment.findFirst({
     where: { predictionId, userId },
-    select: { id: true, cuCommitted: true, binaryChoice: true, optionId: true, createdAt: true },
+    select: {
+      id: true,
+      cuCommitted: true,
+      binaryChoice: true,
+      optionId: true,
+      createdAt: true,
+      rsChange: true,
+      brierScore: true,
+      option: { select: { id: true, text: true } },
+    },
   })
 }
 
