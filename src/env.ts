@@ -35,6 +35,8 @@ export const env = createEnv({
     // AI / Analytics
     GEMINI_API_KEY: z.string().min(1).optional(),
     SERPER_API_KEY: z.string().min(1).optional(),
+    DATAFORSEO_LOGIN: z.string().min(1).optional(),
+    DATAFORSEO_PASSWORD: z.string().min(1).optional(),
     SERPAPI_API_KEY: z.string().min(1).optional(),
     SCRAPINGBEE_API_KEY: z.string().min(1).optional(),
     BRIGHTDATA_API_KEY: z.string().min(1).optional(),
@@ -74,6 +76,8 @@ export const env = createEnv({
     NEXTAUTH_DEBUG: process.env.NEXTAUTH_DEBUG,
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
     SERPER_API_KEY: process.env.SERPER_API_KEY,
+    DATAFORSEO_LOGIN: process.env.DATAFORSEO_LOGIN,
+    DATAFORSEO_PASSWORD: process.env.DATAFORSEO_PASSWORD,
     SERPAPI_API_KEY: process.env.SERPAPI_API_KEY,
     SCRAPINGBEE_API_KEY: process.env.SCRAPINGBEE_API_KEY,
     BRIGHTDATA_API_KEY: process.env.BRIGHTDATA_API_KEY,
