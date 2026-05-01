@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { FileText, RefreshCw, Loader2, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { useTranslations } from 'next-intl'
@@ -94,11 +94,31 @@ export default function ContextTimeline({
   const [contextUpdatedAt, setContextUpdatedAt] = useState(initialContextUpdatedAt || null)
   const [snapshots, setSnapshots] = useState<Snapshot[]>([])
   const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [analyzeStep, setAnalyzeStep] = useState<'searching' | 'analyzing' | 'estimating' | null>(null)
+  const stepTimers = useRef<ReturnType<typeof setTimeout>[]>([])
   const [isContextOpen, setIsContextOpen] = useState(false)
   const [isTimelineOpen, setIsTimelineOpen] = useState(false)
   const [hasFetched, setHasFetched] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
   const t = useTranslations('context')
+
+  const TIMING_KEY = 'daatan:context-timings'
+  const DEFAULT_TIMINGS = { searchMs: 10_000, llmMs: 12_000, oracleMs: 8_000 }
+
+  function loadTimings() {
+    try {
+      const raw = localStorage.getItem(TIMING_KEY)
+      return raw ? { ...DEFAULT_TIMINGS, ...JSON.parse(raw) } : DEFAULT_TIMINGS
+    } catch {
+      return DEFAULT_TIMINGS
+    }
+  }
+
+  function saveTimings(timings: { searchMs: number; llmMs: number; oracleMs: number }) {
+    try {
+      localStorage.setItem(TIMING_KEY, JSON.stringify(timings))
+    } catch { /* storage full or private mode */ }
+  }
 
   // Fetch timeline on mount
   useEffect(() => {
@@ -124,8 +144,23 @@ export default function ContextTimeline({
   }, [predictionId, onAiEstimate])
 
   const handleAnalyze = async () => {
+    const timings = loadTimings()
     setIsAnalyzing(true)
-    toast.loading(t('analyzing'), { id: 'analyze' })
+    setAnalyzeStep('searching')
+    toast.loading(t('stepSearching'), { id: 'analyze' })
+
+    // Schedule step transitions based on stored/default timing estimates
+    stepTimers.current = [
+      setTimeout(() => {
+        setAnalyzeStep('analyzing')
+        toast.loading(t('stepAnalyzing'), { id: 'analyze' })
+      }, timings.searchMs),
+      setTimeout(() => {
+        setAnalyzeStep('estimating')
+        toast.loading(t('stepEstimating'), { id: 'analyze' })
+      }, timings.searchMs + timings.llmMs),
+    ]
+
     try {
       const res = await fetch(`/api/forecasts/${predictionId}/context`, {
         method: 'POST',
@@ -135,6 +170,16 @@ export default function ContextTimeline({
         throw new Error(errorData.error || `${t('failed')} (${res.status})`)
       }
       const data = await res.json()
+
+      // Calibrate future estimates with real measured durations
+      if (data.timings) {
+        saveTimings({
+          searchMs: data.timings.searchMs,
+          llmMs: data.timings.llmMs,
+          oracleMs: data.timings.oracleMs,
+        })
+      }
+
       setCurrentContext(data.newContext)
       setContextUpdatedAt(data.contextUpdatedAt)
       const timeline: Snapshot[] = data.timeline || []
@@ -146,7 +191,10 @@ export default function ContextTimeline({
       log.error({ err: e }, 'Failed to analyze context')
       toast.error(toError(e).message || t('failed'), { id: 'analyze' })
     } finally {
+      stepTimers.current.forEach(clearTimeout)
+      stepTimers.current = []
       setIsAnalyzing(false)
+      setAnalyzeStep(null)
     }
   }
 
@@ -187,12 +235,11 @@ export default function ContextTimeline({
               aria-disabled={isAnalyzing}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-600 bg-cobalt/10 hover:bg-blue-100 rounded-md transition-colors aria-disabled:opacity-50 aria-disabled:pointer-events-none"
             >
-              {isAnalyzing ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <RefreshCw className="w-4 h-4" />
-              )}
-              {t('analyze')}
+              <Loader2 className={`w-4 h-4 ${isAnalyzing ? 'animate-spin' : 'hidden'}`} />
+              {!isAnalyzing && <RefreshCw className="w-4 h-4" />}
+              {isAnalyzing && analyzeStep
+                ? t(`step${analyzeStep.charAt(0).toUpperCase()}${analyzeStep.slice(1)}` as 'stepSearching' | 'stepAnalyzing' | 'stepEstimating')
+                : t('analyze')}
             </span>
           )}
           {isContextOpen ? (
