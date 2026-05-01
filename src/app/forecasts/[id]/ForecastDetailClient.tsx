@@ -37,7 +37,7 @@ import type { Prediction } from './_forecast/types'
 
 const log = createClientLogger('ForecastDetail')
 
-export default function ForecastDetailClient({ initialData }: { initialData?: Prediction }) {
+export default function ForecastDetailClient({ initialData, isLocalized }: { initialData?: Prediction; isLocalized?: boolean }) {
   const { id } = useParams() as { id: string }
   const router = useRouter()
   const { data: session } = useSession()
@@ -59,8 +59,12 @@ export default function ForecastDetailClient({ initialData }: { initialData?: Pr
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Translation state
-  const [translatedFields, setTranslatedFields] = useState<Record<string, string> | null>(null)
+  // Translation state — pre-populate from initialData when the server already localized it
+  const [translatedFields, setTranslatedFields] = useState<Record<string, string> | null>(
+    isLocalized && initialData
+      ? { claimText: initialData.claimText, detailsText: initialData.detailsText ?? '', resolutionRules: (initialData as any).resolutionRules ?? '' }
+      : null,
+  )
   const [isTranslating, setIsTranslating] = useState(false)
   const [showTranslated, setShowTranslated] = useState(locale !== 'en')
 

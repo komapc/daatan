@@ -97,6 +97,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     }
   }
 
+  const translatedLocales = await prisma.predictionTranslation.findMany({
+    where: { predictionId: prediction.id, language: { in: ['he', 'ru'] } },
+    select: { language: true },
+    distinct: ['language'],
+  })
+  const translatedLangs = new Set(translatedLocales.map((t) => t.language))
+
   return {
     title: prediction.claimText,
     description: prediction.detailsText || 'Make your prediction on DAATAN.',
@@ -105,8 +112,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       languages: {
         'x-default': `https://daatan.com/forecasts/${slug}`,
         en: `https://daatan.com/forecasts/${slug}`,
-        he: `https://daatan.com/he/forecasts/${slug}`,
-        ru: `https://daatan.com/ru/forecasts/${slug}`,
+        ...(translatedLangs.has('he') ? { he: `https://daatan.com/he/forecasts/${slug}` } : {}),
+        ...(translatedLangs.has('ru') ? { ru: `https://daatan.com/ru/forecasts/${slug}` } : {}),
       },
     },
     openGraph: {

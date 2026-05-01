@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
 import { getPromptTemplate, fillPrompt } from '@/lib/llm/bedrock-prompts'
 import { locales, defaultLocale } from '@/i18n/config'
+import { notifyTranslationFailed } from '@/lib/services/telegram'
 
 const log = createLogger('translation-service')
 
@@ -93,6 +94,7 @@ export async function translatePrediction(
       result[field] = translated
     } catch (err) {
       log.error({ err, predictionId, field, language }, 'Translation failed, returning original')
+      notifyTranslationFailed(predictionId, language, field, err)
       result[field] = sourceText
     }
   }
