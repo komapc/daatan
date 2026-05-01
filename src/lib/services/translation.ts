@@ -6,7 +6,7 @@ import { locales, defaultLocale } from '@/i18n/config'
 
 const log = createLogger('translation-service')
 
-const TRANSLATABLE_FIELDS = ['claimText', 'detailsText', 'resolutionRules'] as const
+export const TRANSLATABLE_FIELDS = ['claimText', 'detailsText', 'resolutionRules'] as const
 type TranslatableField = (typeof TRANSLATABLE_FIELDS)[number]
 
 /**
