@@ -17,6 +17,7 @@ export const POST = withAuth(async (request: NextRequest, user, { params }) => {
     const rl = checkRateLimit(`research:${user.id}`, RESEARCH_LIMIT, RESEARCH_WINDOW)
     if (!rl.allowed) return rateLimitResponse(rl.resetAt)
     try {
+        const routeStart = Date.now()
         const prediction = await getForecastForResearch(params.id)
 
         if (!prediction) return apiError('Prediction not found', 404)
@@ -31,6 +32,8 @@ export const POST = withAuth(async (request: NextRequest, user, { params }) => {
         // Build a simplified query by stripping stopwords so we get tighter matches
         // even when the raw claim text uses future-tense phrasing that news won't use.
         const simplifiedQuery = extractKeyTerms(prediction.claimText, forecastEnd)
+
+        const searchStart = Date.now()
 
         // 1. Try oracle first (shares provider fallback chain + quota with oracle forecasts).
         //    If oracle returns ≥ 3 results, skip the 3-way local parallel search.
@@ -107,7 +110,10 @@ export const POST = withAuth(async (request: NextRequest, user, { params }) => {
             ? `\nThis is a MULTIPLE CHOICE prediction. The available options are:\n${prediction.options.map(o => `- ID: ${o.id}, Text: "${o.text}"`).join('\n')}\nIf the outcome is 'correct', you MUST identify which specific option ID is the winner.`
             : ''
 
+        const searchMs = Date.now() - searchStart
+
         // 3. Ask LLM to evaluate
+        const llmStart = Date.now()
         const template = await getPromptTemplate('resolution-research')
         const prompt = fillPrompt(template, {
             claimText: prediction.claimText,
@@ -128,8 +134,9 @@ export const POST = withAuth(async (request: NextRequest, user, { params }) => {
             temperature: 0
         })
 
+        const llmMs = Date.now() - llmStart
         const findings = JSON.parse(response.text)
-        return NextResponse.json(findings)
+        return NextResponse.json({ ...findings, timings: { searchMs, llmMs, totalMs: Date.now() - routeStart } })
     } catch (err) {
         return handleRouteError(err, 'Failed to perform AI research')
     }

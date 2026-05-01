@@ -1,8 +1,31 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { CheckCircle, XCircle, Ban, HelpCircle, Sparkles, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+
+const RESEARCH_TIMING_KEY = 'daatan:research-timings'
+const RESEARCH_TIMING_TTL_MS = 7 * 24 * 60 * 60 * 1000
+const DEFAULT_RESEARCH_TIMINGS = { searchMs: 8_000, llmMs: 10_000 }
+const DEFAULT_RESOLVE_TIMINGS = { scoringMs: 1_200, updatingMs: 800 }
+
+function loadResearchTimings() {
+  try {
+    const raw = localStorage.getItem(RESEARCH_TIMING_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      const isStale = !parsed.savedAt || Date.now() - parsed.savedAt > RESEARCH_TIMING_TTL_MS
+      if (!isStale) return { searchMs: parsed.searchMs ?? DEFAULT_RESEARCH_TIMINGS.searchMs, llmMs: parsed.llmMs ?? DEFAULT_RESEARCH_TIMINGS.llmMs }
+    }
+  } catch { /* ignore */ }
+  return DEFAULT_RESEARCH_TIMINGS
+}
+
+function saveResearchTimings(timings: { searchMs: number; llmMs: number }) {
+  try {
+    localStorage.setItem(RESEARCH_TIMING_KEY, JSON.stringify({ ...timings, savedAt: Date.now() }))
+  } catch { /* storage full or private mode */ }
+}
 
 interface ResolutionFormProps {
   predictionId: string
@@ -18,12 +41,22 @@ export function ResolutionForm({ predictionId, outcomeType, options, onResolved 
   const [resolutionNote, setResolutionNote] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isResearching, setIsResearching] = useState(false)
+  const [researchStep, setResearchStep] = useState<'searching' | 'analyzing' | null>(null)
+  const [resolveStep, setResolveStep] = useState<'scoring' | 'updating' | null>(null)
+  const researchTimers = useRef<ReturnType<typeof setTimeout>[]>([])
+  const resolveTimers = useRef<ReturnType<typeof setTimeout>[]>([])
   const [error, setError] = useState<string | null>(null)
   const [resolved, setResolved] = useState(false)
 
   const handleAiResearch = async () => {
+    const timings = loadResearchTimings()
     setIsResearching(true)
+    setResearchStep('searching')
     setError(null)
+
+    researchTimers.current = [
+      setTimeout(() => setResearchStep('analyzing'), timings.searchMs),
+    ]
 
     try {
       const response = await fetch(`/api/forecasts/${predictionId}/research`, {
@@ -35,6 +68,9 @@ export function ResolutionForm({ predictionId, outcomeType, options, onResolved 
       }
 
       const data = await response.json()
+      if (data.timings) {
+        saveResearchTimings({ searchMs: data.timings.searchMs, llmMs: data.timings.llmMs })
+      }
       setOutcome(data.outcome)
       setEvidenceLinks(data.evidenceLinks.join('\n'))
       setResolutionNote(data.reasoning)
@@ -44,21 +80,30 @@ export function ResolutionForm({ predictionId, outcomeType, options, onResolved 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'AI research failed')
     } finally {
+      researchTimers.current.forEach(clearTimeout)
+      researchTimers.current = []
       setIsResearching(false)
+      setResearchStep(null)
     }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
+    setResolveStep('scoring')
     setError(null)
 
     const isMultipleChoice = outcomeType === 'MULTIPLE_CHOICE'
     if (isMultipleChoice && (outcome === 'correct' || outcome === 'wrong') && !correctOptionId) {
       setError('Please select the correct option')
       setIsSubmitting(false)
+      setResolveStep(null)
       return
     }
+
+    resolveTimers.current = [
+      setTimeout(() => setResolveStep('updating'), DEFAULT_RESOLVE_TIMINGS.scoringMs),
+    ]
 
     try {
       const links = evidenceLinks
@@ -87,7 +132,10 @@ export function ResolutionForm({ predictionId, outcomeType, options, onResolved 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to resolve prediction')
     } finally {
+      resolveTimers.current.forEach(clearTimeout)
+      resolveTimers.current = []
       setIsSubmitting(false)
+      setResolveStep(null)
     }
   }
 
@@ -119,7 +167,9 @@ export function ResolutionForm({ predictionId, outcomeType, options, onResolved 
           leftIcon={!isResearching && <Sparkles className="w-4 h-4" />}
           className="text-blue-600 bg-cobalt/10 border border-cobalt/20 hover:bg-blue-100"
         >
-          AI Assist
+          {isResearching
+            ? researchStep === 'analyzing' ? 'Analyzing outcomes...' : 'Searching articles...'
+            : 'AI Assist'}
         </Button>
       </div>
 
@@ -255,7 +305,9 @@ export function ResolutionForm({ predictionId, outcomeType, options, onResolved 
         fullWidth
         size="lg"
       >
-        Confirm Resolution
+        {isSubmitting
+          ? resolveStep === 'updating' ? 'Updating ratings...' : 'Scoring commitments...'
+          : 'Confirm Resolution'}
       </Button>
     </form>
   )
