@@ -176,7 +176,7 @@ describe('ContextTimeline', () => {
     renderWithIntl(<ContextTimeline predictionId="p1" canAnalyze={true} />)
 
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledTimes(1)
+      expect(mockFetch).toHaveBeenCalledWith('/api/forecasts/p1/context')
     })
 
     // Second call: POST on analyze

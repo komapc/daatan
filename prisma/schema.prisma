@@ -779,3 +779,19 @@ model BotRejectedTopic {
   @@index([rejectedAt])
   @@map("bot_rejected_topics")
 }
+
+// ============================================
+// CONTEXT TIMINGS
+// ============================================
+
+model ContextTiming {
+  id        String   @id @default(cuid())
+  searchMs  Int
+  llmMs     Int
+  oracleMs  Int
+  totalMs   Int
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("context_timings")
+}

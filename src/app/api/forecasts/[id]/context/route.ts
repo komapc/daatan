@@ -9,6 +9,7 @@ import { oracleSearch } from '@/lib/services/oracleSearch'
 import { guessChances } from '@/lib/llm/expressPrediction'
 import { getOracleForecast, DEFAULT_MAX_ARTICLES, type OracleSource } from '@/lib/services/oracle'
 import { createLogger } from '@/lib/logger'
+import { prisma } from '@/lib/prisma'
 import {
   getContextTimeline,
   getForecastForContextUpdate,
@@ -249,6 +250,9 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
             { predictionId: prediction.id, searchMs, llmMs, oracleMs, totalMs },
             'context.timings',
         )
+
+        // Persist timing sample for population-level calibration (non-critical)
+        prisma.contextTiming.create({ data: { searchMs, llmMs, oracleMs, totalMs } }).catch(() => { /* non-critical */ })
 
         // 4. Persist snapshot + update prediction
         const snapshot = await saveContextUpdate({

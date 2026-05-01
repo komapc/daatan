@@ -103,20 +103,27 @@ export default function ContextTimeline({
   const t = useTranslations('context')
 
   const TIMING_KEY = 'daatan:context-timings'
+  const TIMING_TTL_MS = 7 * 24 * 60 * 60 * 1000
   const DEFAULT_TIMINGS = { searchMs: 10_000, llmMs: 12_000, oracleMs: 8_000 }
 
   function loadTimings() {
     try {
       const raw = localStorage.getItem(TIMING_KEY)
-      return raw ? { ...DEFAULT_TIMINGS, ...JSON.parse(raw) } : DEFAULT_TIMINGS
-    } catch {
-      return DEFAULT_TIMINGS
-    }
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        return {
+          searchMs: parsed.searchMs ?? DEFAULT_TIMINGS.searchMs,
+          llmMs: parsed.llmMs ?? DEFAULT_TIMINGS.llmMs,
+          oracleMs: parsed.oracleMs ?? DEFAULT_TIMINGS.oracleMs,
+        }
+      }
+    } catch { /* ignore */ }
+    return DEFAULT_TIMINGS
   }
 
   function saveTimings(timings: { searchMs: number; llmMs: number; oracleMs: number }) {
     try {
-      localStorage.setItem(TIMING_KEY, JSON.stringify(timings))
+      localStorage.setItem(TIMING_KEY, JSON.stringify({ ...timings, savedAt: Date.now() }))
     } catch { /* storage full or private mode */ }
   }
 
@@ -142,6 +149,24 @@ export default function ContextTimeline({
     }
     fetchTimeline()
   }, [predictionId, onAiEstimate])
+
+  // Seed localStorage from server averages when data is absent or stale
+  useEffect(() => {
+    const seedFromServer = async () => {
+      try {
+        const raw = localStorage.getItem(TIMING_KEY)
+        const parsed = raw ? JSON.parse(raw) : null
+        const isStale = !parsed?.savedAt || Date.now() - parsed.savedAt > TIMING_TTL_MS
+        if (!isStale) return
+        const res = await fetch('/api/meta/timings')
+        if (!res.ok) return
+        const data = await res.json()
+        if (data.hasData) saveTimings(data.timings)
+      } catch { /* non-critical */ }
+    }
+    seedFromServer()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleAnalyze = async () => {
     const timings = loadTimings()

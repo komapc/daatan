@@ -22,6 +22,9 @@ const { mockSearchArticles, mockGenerateContent, mockPrisma, mockGetOracleForeca
       create: vi.fn(),
       findMany: vi.fn(),
     },
+    contextTiming: {
+      create: vi.fn().mockResolvedValue({}),
+    },
     $transaction: vi.fn(),
   },
 }))

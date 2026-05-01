@@ -1,6 +1,6 @@
 # TODO.md — Task Queue
 
-*Last updated: May 1, 2026 · v1.10.66*
+*Last updated: May 1, 2026 · v1.10.69*
 
 ---
 
@@ -15,7 +15,7 @@
 ### Features & UX
 - [x] **Web search indexing audit** — hreflang conditional on translation existence, locale pages noindex when untranslated, eo removed from root hreflang, feed pages SSR'd, redundant translate fetch eliminated, Telegram alert on translation failure. (v1.10.67, PR #713)
 - [ ] **Progress feedback on long actions** — context analysis now shows step labels ("Searching articles…" / "Analyzing context…" / "Estimating probability…") timed by localStorage-calibrated estimates (defaults: search=10s, llm=12s, oracle=8s); real durations logged as `context.timings` and returned in API response for self-calibration. Remaining: forecast creation, bot runs, resolution processing.
-- [ ] **Population-level timing calibration** — aggregate `context.timings` log entries (CloudWatch Insights or a small DB table) to compute server-side medians; return them from a `/api/meta/timings` endpoint so the UI can seed localStorage on first run instead of relying on hardcoded defaults.
+- [x] **Population-level timing calibration** — `ContextTiming` DB table accumulates per-call samples (non-blocking write in context route); `/api/meta/timings` returns 30-day averages (min 3 samples); `ContextTimeline` seeds localStorage on first run or after 7-day TTL. (v1.10.69, PR #715)
 - [ ] **Extend step progress to other long actions** — forecast creation (embedding + translation ~5-15s), resolution processing, bot runs.
 - [ ] **Microservice for predictions** — defer until a concrete driver appears (independent scaling, separate deploy cadence, or team ownership split). Until then the operational cost (two deployables, auth, data sync, and failure modes) usually outweighs the benefit for a single-app codebase.
 
