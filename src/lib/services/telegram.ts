@@ -303,6 +303,27 @@ export function notifyLlmError(
   sendChannelNotification(msg)
 }
 
+export function notifyTranslationFailed(
+  predictionId: string,
+  language: string,
+  field: string,
+  error: unknown,
+): void {
+  if (isDevEnv()) return
+  const key = `translation-failed:${language}`
+  if (!canNotify(key)) return
+
+  const errMsg = error instanceof Error ? error.message : String(error)
+  const msg = [
+    `🌐 <b>Translation failed</b>`,
+    `Prediction: <code>${predictionId}</code>`,
+    `Language: <b>${language}</b> · Field: <code>${field}</code>`,
+    `Error: <code>${truncate(errMsg, 200)}</code>`,
+  ].join('\n')
+
+  sendChannelNotification(msg)
+}
+
 export function notifyDiskSpaceLow(
   instanceId: string,
   usage: string,

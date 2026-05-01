@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
-import PredictionsPage from '@/app/forecasts/page'
+import { PredictionsPage } from '@/app/forecasts/PredictionsClient'
+import { listForecasts, enrichPredictions } from '@/lib/services/forecast'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,4 +43,21 @@ export async function generateMetadata({
   }
 }
 
-export default PredictionsPage
+export default async function LocaleForecastsPage() {
+  const { predictions } = await listForecasts({
+    where: { status: 'ACTIVE', isPublic: true },
+    orderBy: { createdAt: 'desc' },
+    page: 1,
+    limit: 20,
+    isCuSort: false,
+    sortOrder: 'desc',
+  })
+  const initialPredictions = enrichPredictions(predictions, undefined, {
+    page: 1,
+    limit: 20,
+    sortOrder: 'desc',
+    isCuSort: false,
+  })
+
+  return <PredictionsPage initialPredictions={initialPredictions as any} />
+}

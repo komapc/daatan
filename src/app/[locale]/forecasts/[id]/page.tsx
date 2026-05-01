@@ -78,7 +78,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     }
   }
 
-  const translations = await getCachedPredictionTranslation(prediction.id, locale)
+  const [translations, translatedLocales] = await Promise.all([
+    getCachedPredictionTranslation(prediction.id, locale),
+    prisma.predictionTranslation.findMany({
+      where: { predictionId: prediction.id, language: { in: ['he', 'ru'] } },
+      select: { language: true },
+      distinct: ['language'],
+    }),
+  ])
+
+  const translatedLangs = new Set(translatedLocales.map((t) => t.language))
+  const hasTranslation = translatedLangs.has(locale)
   const title = translations.claimText || prediction.claimText
   const description =
     translations.detailsText || prediction.detailsText || 'Make your prediction on DAATAN.'
@@ -86,13 +96,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title,
     description,
+    ...(!hasTranslation ? { robots: { index: false, follow: false } } : {}),
     alternates: {
       canonical: `https://daatan.com/forecasts/${slug}`,
       languages: {
         'x-default': `https://daatan.com/forecasts/${slug}`,
         en: `https://daatan.com/forecasts/${slug}`,
-        he: `https://daatan.com/he/forecasts/${slug}`,
-        ru: `https://daatan.com/ru/forecasts/${slug}`,
+        ...(translatedLangs.has('he') ? { he: `https://daatan.com/he/forecasts/${slug}` } : {}),
+        ...(translatedLangs.has('ru') ? { ru: `https://daatan.com/ru/forecasts/${slug}` } : {}),
       },
     },
     openGraph: {
@@ -123,6 +134,7 @@ export default async function LocaleForecastDetailPage({ params }: Props) {
 
   // Apply cached translations — never triggers Gemini, read-only
   const translations = await getCachedPredictionTranslation(prediction.id, locale)
+  const isLocalized = Object.keys(translations).length > 0
   const localizedPrediction = {
     ...prediction,
     claimText: translations.claimText || prediction.claimText,
@@ -160,7 +172,7 @@ export default async function LocaleForecastDetailPage({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <Suspense fallback={<ForecastLoading />}>
-        <ForecastDetailClient initialData={localizedPrediction as any} />
+        <ForecastDetailClient initialData={localizedPrediction as any} isLocalized={isLocalized} />
       </Suspense>
     </>
   )

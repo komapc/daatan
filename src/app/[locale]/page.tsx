@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { Loader2 } from 'lucide-react'
 import type { Metadata } from 'next'
 import FeedClient from '@/app/FeedClient'
+import { listForecasts, enrichPredictions } from '@/lib/services/forecast'
 
 export const dynamic = 'force-dynamic'
 
@@ -52,10 +53,25 @@ function FeedLoading() {
   )
 }
 
-export default function LocaleHomePage() {
+export default async function LocaleHomePage() {
+  const { predictions } = await listForecasts({
+    where: { status: 'ACTIVE', isPublic: true },
+    orderBy: { createdAt: 'desc' },
+    page: 1,
+    limit: 20,
+    isCuSort: false,
+    sortOrder: 'desc',
+  })
+  const initialPredictions = enrichPredictions(predictions, undefined, {
+    page: 1,
+    limit: 20,
+    sortOrder: 'desc',
+    isCuSort: false,
+  })
+
   return (
     <Suspense fallback={<FeedLoading />}>
-      <FeedClient initialPredictions={[]} />
+      <FeedClient initialPredictions={initialPredictions as any} />
     </Suspense>
   )
 }
