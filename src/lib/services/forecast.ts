@@ -1,8 +1,10 @@
 import crypto from 'crypto'
 import type { OutcomeType } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { slugify, generateUniqueSlug } from '@/lib/utils/slugify'
 import { hashUrl } from '@/lib/utils/hash'
+import { embedText, embedAndStoreForecast } from '@/lib/services/embedding'
 
 const PREDICTION_AUTHOR_SELECT = {
   id: true,
@@ -198,6 +200,9 @@ export async function createForecast(input: CreateForecastInput) {
 
   if (!prediction) throw new Error('Failed to generate a unique URL slug after multiple attempts')
 
+  // Fire-and-forget: store embedding for similar-forecast search
+  embedAndStoreForecast(prediction.id, input.claimText).catch(() => {/* non-critical */})
+
   if (input.outcomeType === 'MULTIPLE_CHOICE') {
     const payload = input.outcomePayload as { options?: string[] } | undefined
     if (payload?.options?.length) {
@@ -223,36 +228,8 @@ export async function createForecast(input: CreateForecastInput) {
 
 // ── Similar forecasts ──────────────────────────────────────────────────────────
 
-const STOPWORDS = new Set([
-  'the','a','an','will','would','should','could','may','might','by','of','end',
-  'to','in','on','at','and','or','be','is','are','was','were','that','this',
-  'it','its','have','has','had','do','does','did','not','for','with','from',
-  'up','about','into','than','then','so','if','as','over','under','between',
-])
-
-function extractKeywords(text: string): string[] {
-  return text
-    .toLowerCase()
-    .replace(/[^\w\s]/g, ' ')
-    .split(/\s+/)
-    .filter(w => w.length > 2 && !STOPWORDS.has(w))
-}
-
-/**
- * Jaccard similarity between two keyword sets: |A∩B| / |A∪B|.
- * Returns 0 when both sets are empty.
- */
-function jaccard(a: Set<string>, b: Set<string>): number {
-  if (a.size === 0 && b.size === 0) return 0
-  let intersection = 0
-  for (const w of a) if (b.has(w)) intersection++
-  const union = a.size + b.size - intersection
-  return intersection / union
-}
-
-// Minimum Jaccard similarity to be considered "similar".
-// 0.15 means roughly 1 shared keyword out of 5–7 total unique keywords.
-const JACCARD_THRESHOLD = 0.15
+// Cosine similarity threshold: 1 - distance. 0.75 means reasonably similar.
+const COSINE_THRESHOLD = 0.75
 
 export interface SimilarForecast {
   id: string
@@ -262,6 +239,18 @@ export interface SimilarForecast {
   resolveByDatetime: Date
   author: { name: string | null; username: string | null }
   score: number
+}
+
+interface SimilarRow {
+  id: string
+  slug: string | null
+  claimText: string
+  status: string
+  resolveByDatetime: Date
+  authorName: string | null
+  authorUsername: string | null
+  score: number
+  tagNames: string[] | null
 }
 
 export async function findSimilarForecasts({
@@ -275,59 +264,53 @@ export async function findSimilarForecasts({
   excludeId?: string
   limit?: number
 }): Promise<SimilarForecast[]> {
-  const keywords = extractKeywords(claimText)
-  if (keywords.length === 0 && tags.length === 0) return []
+  const embedding = await embedText(claimText)
 
-  // Fetch candidates: require at least 1 shared tag when tags are available,
-  // otherwise fall back to a multi-keyword OR search. This prunes the candidate
-  // set at the DB level so Jaccard only runs on topically adjacent forecasts.
-  const candidates = await prisma.prediction.findMany({
-    where: {
-      status: { in: ['ACTIVE', 'PENDING_APPROVAL'] },
-      ...(excludeId ? { id: { not: excludeId } } : {}),
-      ...(tags.length > 0
-        ? { tags: { some: { name: { in: tags } } } }
-        : {
-            OR: keywords.slice(0, 5).map(k => ({
-              claimText: { contains: k, mode: 'insensitive' as const },
-            })),
-          }),
-    },
-    select: {
-      id: true,
-      slug: true,
-      claimText: true,
-      status: true,
-      resolveByDatetime: true,
-      author: { select: { name: true, username: true } },
-      tags: { select: { name: true } },
-    },
-    take: 100,
-  })
+  if (!embedding) return []
 
-  const queryKws = new Set(keywords)
+  // vectorStr contains only digits, commas, brackets, and minus — safe to inline
+  const vectorStr = `[${embedding.join(',')}]`
+  const fetchLimit = limit * 5 // fetch extra to allow tag-boosted re-sorting
 
-  return candidates
-    .map(c => {
-      const candidateKws = new Set(extractKeywords(c.claimText))
-      const similarity = jaccard(queryKws, candidateKws)
+  const rows = await prisma.$queryRaw<SimilarRow[]>(
+    Prisma.sql`
+      SELECT
+        p.id,
+        p.slug,
+        p."claimText",
+        p.status,
+        p."resolveByDatetime",
+        u.name AS "authorName",
+        u.username AS "authorUsername",
+        (1 - (p.embedding <=> ${Prisma.raw(`'${vectorStr}'::vector`)}))::float AS score,
+        array_agg(t.name) FILTER (WHERE t.name IS NOT NULL) AS "tagNames"
+      FROM predictions p
+      JOIN users u ON u.id = p."authorId"
+      LEFT JOIN "_PredictionToTag" pt ON pt."A" = p.id
+      LEFT JOIN tags t ON t.id = pt."B"
+      WHERE p.status IN ('ACTIVE', 'PENDING_APPROVAL')
+        AND p.embedding IS NOT NULL
+        AND p.id != ${excludeId ?? ''}
+      GROUP BY p.id, u.name, u.username, p.embedding
+      HAVING (1 - (p.embedding <=> ${Prisma.raw(`'${vectorStr}'::vector`)})) >= ${COSINE_THRESHOLD}
+      ORDER BY p.embedding <=> ${Prisma.raw(`'${vectorStr}'::vector`)}
+      LIMIT ${fetchLimit}
+    `
+  )
 
-      // Shared tag count used only as a tiebreaker, not to inflate score
-      const candidateTags = new Set(c.tags.map((t: { name: string }) => t.name.toLowerCase()))
-      const sharedTags = tags.filter(t => candidateTags.has(t.toLowerCase())).length
+  const tagSet = new Set(tags.map(t => t.toLowerCase()))
 
-      return {
-        id: c.id,
-        slug: c.slug,
-        claimText: c.claimText,
-        status: c.status,
-        resolveByDatetime: c.resolveByDatetime,
-        author: c.author,
-        score: similarity,
-        sharedTags,
-      }
-    })
-    .filter(c => c.score >= JACCARD_THRESHOLD)
+  return rows
+    .map(r => ({
+      id: r.id,
+      slug: r.slug,
+      claimText: r.claimText,
+      status: r.status,
+      resolveByDatetime: r.resolveByDatetime,
+      author: { name: r.authorName, username: r.authorUsername },
+      score: r.score,
+      sharedTags: (r.tagNames ?? []).filter(n => tagSet.has(n.toLowerCase())).length,
+    }))
     .sort((a, b) => b.score - a.score || b.sharedTags - a.sharedTags)
     .slice(0, limit)
     .map(({ sharedTags: _, ...rest }) => rest)

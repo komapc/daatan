@@ -46,7 +46,7 @@ services:
         max-file: "3"
 
   postgres:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     container_name: daatan-postgres
     restart: unless-stopped
     # Expose port for local development access
