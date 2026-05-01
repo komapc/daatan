@@ -24,7 +24,8 @@ export async function embedText(text: string): Promise<number[] | null> {
     return null
   }
   try {
-    const model = genAI.getGenerativeModel({ model: EMBEDDING_MODEL })
+    // text-embedding-004 was removed from the v1beta endpoint in 2026-05; use v1
+    const model = genAI.getGenerativeModel({ model: EMBEDDING_MODEL }, { apiVersion: 'v1' })
     const result = await model.embedContent(text)
     const values = result.embedding.values
     if (values.length !== EMBEDDING_DIM) {
