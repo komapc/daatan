@@ -1,4 +1,4 @@
-// Web search utility with fallback chain: Serper → BrightData → Nimbleway → SerpAPI → ScrapingBee → DuckDuckGo
+// Web search utility with fallback chain: Serper → DataForSEO → BrightData → Nimbleway → SerpAPI → ScrapingBee → DuckDuckGo
 
 import { createLogger } from '@/lib/logger'
 
@@ -125,6 +125,65 @@ async function searchWithSerpApi(query: string, limit: number): Promise<SearchRe
       source: item.source?.name || extractDomain(item.link),
       publishedDate: item.date || undefined,
     }))
+}
+
+// ──────────────────────────────────────────────
+// Provider: DataForSEO Google News API
+// ──────────────────────────────────────────────
+
+interface DataForSEONewsItem {
+  title: string
+  url: string
+  snippet: string
+  domain?: string
+  date?: string
+}
+
+interface DataForSEOResponse {
+  tasks?: Array<{
+    result?: Array<{
+      items?: DataForSEONewsItem[]
+    }>
+  }>
+}
+
+async function searchWithDataForSEO(query: string, limit: number): Promise<SearchResult[]> {
+  const login = process.env.DATAFORSEO_LOGIN
+  const password = process.env.DATAFORSEO_PASSWORD
+  if (!login || !password) throw new Error('DataForSEO not configured')
+
+  const credentials = Buffer.from(`${login}:${password}`).toString('base64')
+
+  const response = await fetch('https://api.dataforseo.com/v3/serp/google/news/live/advanced', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Basic ${credentials}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify([{
+      keyword: query,
+      language_name: 'English',
+      location_name: 'United States',
+      depth: limit,
+    }]),
+  })
+
+  if (!response.ok) {
+    const errorBody = await response.text().catch(() => '(no body)')
+    log.error({ status: response.status, body: errorBody }, 'DataForSEO API error')
+    throw new Error(`DataForSEO error: ${response.status}`)
+  }
+
+  const data: DataForSEOResponse = await response.json()
+  const items = data.tasks?.[0]?.result?.[0]?.items ?? []
+
+  return items.slice(0, limit).map(item => ({
+    title: item.title,
+    url: item.url,
+    snippet: item.snippet,
+    source: item.domain || extractDomain(item.url),
+    publishedDate: item.date || undefined,
+  }))
 }
 
 // ──────────────────────────────────────────────
@@ -368,7 +427,21 @@ export async function searchArticles(
     }
   }
 
-  // 2. BrightData
+  // 2. DataForSEO
+  if (process.env.DATAFORSEO_LOGIN && process.env.DATAFORSEO_PASSWORD) {
+    try {
+      const results = await searchWithDataForSEO(query, limit)
+      if (results.length > 0) {
+        log.debug({ provider: 'dataforseo', count: results.length }, 'Search succeeded')
+        return results
+      }
+      log.warn('DataForSEO returned 0 results, trying BrightData fallback')
+    } catch (error) {
+      log.warn({ err: error }, 'DataForSEO failed, trying BrightData fallback')
+    }
+  }
+
+  // 3. BrightData
   if (process.env.BRIGHTDATA_API_KEY) {
     try {
       const results = await searchWithBrightData(query, limit)
@@ -382,7 +455,7 @@ export async function searchArticles(
     }
   }
 
-  // 3. Nimbleway
+  // 4. Nimbleway
   if (process.env.NIMBLEWAY_API_KEY) {
     try {
       const results = await searchWithNimbleway(query, limit)
@@ -396,7 +469,7 @@ export async function searchArticles(
     }
   }
 
-  // 4. SerpAPI
+  // 5. SerpAPI
   if (process.env.SERPAPI_API_KEY) {
     try {
       const results = await searchWithSerpApi(query, limit)
@@ -411,7 +484,7 @@ export async function searchArticles(
     }
   }
 
-  // 5. ScrapingBee
+  // 6. ScrapingBee
   if (process.env.SCRAPINGBEE_API_KEY) {
     try {
       const results = await searchWithScrapingBee(query, limit)
@@ -425,7 +498,7 @@ export async function searchArticles(
     }
   }
 
-  // 6. DuckDuckGo (free, no key)
+  // 7. DuckDuckGo (free, no key)
   try {
     const results = await searchWithDDG(query, limit)
     log.info({ provider: 'ddg', count: results.length }, 'Search succeeded via DDG fallback')
