@@ -1,17 +1,20 @@
 /**
- * Unit tests for findSimilarForecasts — Jaccard similarity + tag-gated DB query.
+ * Unit tests for findSimilarForecasts — pgvector cosine similarity.
  *
- * Strategy: mock prisma to return canned candidates, verify that only results
- * above the Jaccard threshold are returned and that ranking is correct.
+ * Strategy: mock embedText (returns a fixed vector) and prisma.$queryRaw
+ * (returns canned rows), then verify sorting and limit behaviour.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
-    prediction: {
-      findMany: vi.fn(),
-    },
+    $queryRaw: vi.fn(),
   },
+}))
+
+vi.mock('@/lib/services/embedding', () => ({
+  embedText: vi.fn(),
+  embedAndStoreForecast: vi.fn(),
 }))
 
 vi.mock('@/lib/logger', () => ({
@@ -20,163 +23,126 @@ vi.mock('@/lib/logger', () => ({
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
-function makeCandidate(claimText: string, tags: string[] = [], id = claimText.slice(0, 8)) {
+function makeRow(overrides: {
+  id?: string
+  claimText?: string
+  score?: number
+  tagNames?: string[] | null
+}) {
   return {
-    id,
-    slug: id,
-    claimText,
+    id: overrides.id ?? 'forecast-1',
+    slug: overrides.id ?? 'forecast-1',
+    claimText: overrides.claimText ?? 'Will Bitcoin reach $100k?',
     status: 'ACTIVE',
     resolveByDatetime: new Date('2027-01-01'),
-    author: { name: 'Alice', username: 'alice' },
-    tags: tags.map(name => ({ name })),
+    authorName: 'Alice',
+    authorUsername: 'alice',
+    score: overrides.score ?? 0.9,
+    tagNames: overrides.tagNames ?? null,
   }
 }
 
+const FAKE_EMBEDDING = new Array(768).fill(0.1)
+
 // ── tests ─────────────────────────────────────────────────────────────────────
 
-describe('findSimilarForecasts — Jaccard filtering', () => {
+describe('findSimilarForecasts — vector search', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('returns empty array when no candidates exceed the threshold', async () => {
-    const { prisma } = await import('@/lib/prisma')
+  it('returns empty array when embedText returns null (no API key)', async () => {
+    const { embedText } = await import('@/lib/services/embedding')
     const { findSimilarForecasts } = await import('@/lib/services/forecast')
 
-    // Completely unrelated candidate
-    vi.mocked(prisma.prediction.findMany).mockResolvedValue([
-      makeCandidate('The moon landing anniversary celebrations begin') as any,
-    ])
+    vi.mocked(embedText).mockResolvedValue(null)
 
-    const results = await findSimilarForecasts({
-      claimText: 'Bitcoin will exceed one hundred thousand dollars by year end',
-      tags: ['crypto'],
-    })
+    const results = await findSimilarForecasts({ claimText: 'Bitcoin 100k', tags: ['crypto'] })
 
     expect(results).toHaveLength(0)
   })
 
-  it('returns a highly similar forecast above threshold', async () => {
+  it('returns results from the cosine query, shaped correctly', async () => {
+    const { embedText } = await import('@/lib/services/embedding')
     const { prisma } = await import('@/lib/prisma')
     const { findSimilarForecasts } = await import('@/lib/services/forecast')
 
-    vi.mocked(prisma.prediction.findMany).mockResolvedValue([
-      makeCandidate('Bitcoin price will surpass one hundred thousand dollars this year', ['crypto']) as any,
+    vi.mocked(embedText).mockResolvedValue(FAKE_EMBEDDING)
+    vi.mocked(prisma.$queryRaw).mockResolvedValue([
+      makeRow({ id: 'a', score: 0.9 }),
     ])
 
-    const results = await findSimilarForecasts({
-      claimText: 'Bitcoin will exceed one hundred thousand dollars by year end',
-      tags: ['crypto'],
-    })
+    const results = await findSimilarForecasts({ claimText: 'Bitcoin 100k', tags: [] })
 
     expect(results).toHaveLength(1)
-    expect(results[0].score).toBeGreaterThanOrEqual(0.15)
-    expect(results[0].claimText).toContain('Bitcoin')
+    expect(results[0].id).toBe('a')
+    expect(results[0].score).toBe(0.9)
+    expect(results[0].author).toEqual({ name: 'Alice', username: 'alice' })
   })
 
-  it('ranks higher-Jaccard result first', async () => {
+  it('sorts by score descending', async () => {
+    const { embedText } = await import('@/lib/services/embedding')
     const { prisma } = await import('@/lib/prisma')
     const { findSimilarForecasts } = await import('@/lib/services/forecast')
 
-    vi.mocked(prisma.prediction.findMany).mockResolvedValue([
-      // moderate overlap: shares bitcoin, hundred, thousand, dollars
-      makeCandidate('Bitcoin price will exceed hundred thousand dollars this quarter', ['crypto'], 'id-low') as any,
-      // higher overlap: shares bitcoin, exceed, hundred, thousand, dollars, year
-      makeCandidate('Bitcoin price will exceed one hundred thousand dollars in year 2026', ['crypto'], 'id-high') as any,
+    vi.mocked(embedText).mockResolvedValue(FAKE_EMBEDDING)
+    vi.mocked(prisma.$queryRaw).mockResolvedValue([
+      makeRow({ id: 'low', score: 0.80 }),
+      makeRow({ id: 'high', score: 0.95 }),
+    ])
+
+    const results = await findSimilarForecasts({ claimText: 'Bitcoin 100k', tags: [], limit: 2 })
+
+    expect(results[0].id).toBe('high')
+    expect(results[1].id).toBe('low')
+  })
+
+  it('uses shared tag count as tiebreaker on equal scores', async () => {
+    const { embedText } = await import('@/lib/services/embedding')
+    const { prisma } = await import('@/lib/prisma')
+    const { findSimilarForecasts } = await import('@/lib/services/forecast')
+
+    vi.mocked(embedText).mockResolvedValue(FAKE_EMBEDDING)
+    vi.mocked(prisma.$queryRaw).mockResolvedValue([
+      makeRow({ id: 'few-tags', score: 0.9, tagNames: ['crypto'] }),
+      makeRow({ id: 'many-tags', score: 0.9, tagNames: ['crypto', 'finance', 'usa'] }),
     ])
 
     const results = await findSimilarForecasts({
-      claimText: 'Bitcoin will exceed one hundred thousand dollars by year end',
-      tags: ['crypto'],
+      claimText: 'Bitcoin 100k',
+      tags: ['crypto', 'finance'],
       limit: 2,
     })
 
-    expect(results.length).toBe(2)
-    expect(results[0].id).toBe('id-high')
-    expect(results[0].score).toBeGreaterThanOrEqual(results[1].score)
+    expect(results[0].id).toBe('many-tags')
   })
 
-  it('uses shared tag count as a tiebreaker when Jaccard scores are equal', async () => {
+  it('respects the limit parameter', async () => {
+    const { embedText } = await import('@/lib/services/embedding')
     const { prisma } = await import('@/lib/prisma')
     const { findSimilarForecasts } = await import('@/lib/services/forecast')
 
-    // Both candidates have identical claimText (equal Jaccard) but different tag overlap
-    const identicalClaim = 'Will the Federal Reserve cut interest rates before December'
-    vi.mocked(prisma.prediction.findMany).mockResolvedValue([
-      makeCandidate(identicalClaim, ['economy'], 'id-1tag') as any,
-      makeCandidate(identicalClaim, ['economy', 'finance', 'usa'], 'id-3tags') as any,
+    vi.mocked(embedText).mockResolvedValue(FAKE_EMBEDDING)
+    vi.mocked(prisma.$queryRaw).mockResolvedValue([
+      makeRow({ id: 'a', score: 0.99 }),
+      makeRow({ id: 'b', score: 0.95 }),
+      makeRow({ id: 'c', score: 0.90 }),
+      makeRow({ id: 'd', score: 0.85 }),
     ])
 
-    const results = await findSimilarForecasts({
-      claimText: identicalClaim,
-      tags: ['economy', 'finance'],
-      limit: 2,
-    })
+    const results = await findSimilarForecasts({ claimText: 'Bitcoin 100k', tags: [], limit: 2 })
 
-    expect(results[0].id).toBe('id-3tags')
+    expect(results).toHaveLength(2)
   })
 
-  it('respects limit parameter', async () => {
+  it('returns empty array when the vector query returns no rows', async () => {
+    const { embedText } = await import('@/lib/services/embedding')
     const { prisma } = await import('@/lib/prisma')
     const { findSimilarForecasts } = await import('@/lib/services/forecast')
 
-    vi.mocked(prisma.prediction.findMany).mockResolvedValue([
-      makeCandidate('Bitcoin price will exceed one hundred thousand dollars', ['crypto'], 'a') as any,
-      makeCandidate('Bitcoin will reach one hundred thousand in 2026', ['crypto'], 'b') as any,
-      makeCandidate('Bitcoin surpasses hundred thousand dollar mark', ['crypto'], 'c') as any,
-      makeCandidate('Bitcoin one hundred thousand dollar milestone this year', ['crypto'], 'd') as any,
-    ])
+    vi.mocked(embedText).mockResolvedValue(FAKE_EMBEDDING)
+    vi.mocked(prisma.$queryRaw).mockResolvedValue([])
 
-    const results = await findSimilarForecasts({
-      claimText: 'Bitcoin will exceed one hundred thousand dollars by year end',
-      tags: ['crypto'],
-      limit: 2,
-    })
-
-    expect(results.length).toBeLessThanOrEqual(2)
-  })
-
-  it('excludes the forecast with excludeId', async () => {
-    const { prisma } = await import('@/lib/prisma')
-    const { findSimilarForecasts } = await import('@/lib/services/forecast')
-
-    // Prisma enforces excludeId via where clause — verify the where is built correctly
-    vi.mocked(prisma.prediction.findMany).mockResolvedValue([])
-
-    await findSimilarForecasts({
-      claimText: 'Bitcoin will exceed one hundred thousand dollars',
-      tags: ['crypto'],
-      excludeId: 'self-id',
-    })
-
-    const whereArg = vi.mocked(prisma.prediction.findMany).mock.calls[0][0]?.where as any
-    expect(whereArg.id).toEqual({ not: 'self-id' })
-  })
-
-  it('falls back to keyword OR query when no tags provided', async () => {
-    const { prisma } = await import('@/lib/prisma')
-    const { findSimilarForecasts } = await import('@/lib/services/forecast')
-
-    vi.mocked(prisma.prediction.findMany).mockResolvedValue([])
-
-    await findSimilarForecasts({
-      claimText: 'Bitcoin will exceed one hundred thousand dollars by year end',
-      tags: [],
-    })
-
-    const whereArg = vi.mocked(prisma.prediction.findMany).mock.calls[0][0]?.where as any
-    // No tag filter; should have OR array of keyword contains clauses
-    expect(whereArg.tags).toBeUndefined()
-    expect(Array.isArray(whereArg.OR)).toBe(true)
-    expect(whereArg.OR.length).toBeGreaterThan(0)
-    expect(whereArg.OR[0].claimText).toBeDefined()
-  })
-
-  it('returns empty array immediately when both claimText and tags are empty', async () => {
-    const { prisma } = await import('@/lib/prisma')
-    const { findSimilarForecasts } = await import('@/lib/services/forecast')
-
-    const results = await findSimilarForecasts({ claimText: '   ', tags: [] })
+    const results = await findSimilarForecasts({ claimText: 'Bitcoin 100k', tags: [] })
 
     expect(results).toHaveLength(0)
-    expect(prisma.prediction.findMany).not.toHaveBeenCalled()
   })
 })

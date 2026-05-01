@@ -14,6 +14,7 @@
 
 import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
+import { embedAndStoreForecast } from '@/lib/services/embedding'
 import { createBotLLMService } from '@/lib/llm'
 import { getPromptTemplate, fillPrompt } from '@/lib/llm/bedrock-prompts'
 import { fetchRssFeeds, detectHotTopics, type HotTopic } from '@/lib/services/bots/rss'
@@ -685,6 +686,9 @@ async function processTopic(
         return 'error'
       }
     }
+
+    // Fire-and-forget: store embedding for similar-forecast search
+    embedAndStoreForecast(prediction.id, predictionCreateData.claimText).catch(() => {/* non-critical */})
 
     await logBotAction(bot.id, 'CREATED_FORECAST', { title: topicTitle, urls: sourceUrls }, generatedText, null, false, prediction.id)
 

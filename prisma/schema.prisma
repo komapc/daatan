@@ -236,6 +236,9 @@ model Prediction {
   aiCiLow  Int? @map("ai_ci_low")
   aiCiHigh Int? @map("ai_ci_high")
 
+  // Semantic embedding for similar-forecast search (pgvector, text-embedding-004, 768-dim)
+  embedding Unsupported("vector(768)")?
+
   // Status & timestamps
   status           PredictionStatus @default(DRAFT)
   createdAt        DateTime         @default(now())
