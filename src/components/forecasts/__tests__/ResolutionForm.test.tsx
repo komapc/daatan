@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { ResolutionForm } from '../ResolutionForm'
 
 const mockFetch = vi.fn()
@@ -8,6 +8,7 @@ describe('ResolutionForm', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     global.fetch = mockFetch
+    localStorage.clear()
   })
 
   it('renders outcome options and submit button', () => {
@@ -106,5 +107,80 @@ describe('ResolutionForm', () => {
       const callBody = JSON.parse(mockFetch.mock.calls[0][1].body)
       expect(callBody.evidenceLinks).toEqual(['https://example.com/1', 'https://example.com/2'])
     })
+  })
+
+  it('shows "Searching articles..." during AI research', async () => {
+    let resolveResearch!: (value: unknown) => void
+    mockFetch.mockReturnValueOnce(
+      new Promise((resolve) => { resolveResearch = resolve })
+    )
+
+    render(<ResolutionForm predictionId="pred-1" outcomeType="BINARY" options={[]} />)
+
+    fireEvent.click(screen.getByText('AI Assist'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Searching articles...')).toBeInTheDocument()
+    })
+
+    await act(async () => {
+      resolveResearch({
+        ok: true,
+        json: async () => ({
+          outcome: 'correct',
+          reasoning: 'test',
+          evidenceLinks: [],
+          timings: { searchMs: 5000, llmMs: 8000, totalMs: 13000 },
+        }),
+      })
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('AI Assist')).toBeInTheDocument()
+    })
+  })
+
+  it('shows "Scoring commitments..." during resolution submit', async () => {
+    let resolveSubmit!: (value: unknown) => void
+    mockFetch.mockReturnValueOnce(
+      new Promise((resolve) => { resolveSubmit = resolve })
+    )
+
+    render(<ResolutionForm predictionId="pred-1" outcomeType="BINARY" options={[]} />)
+
+    const submitButton = screen.getAllByRole('button', { name: /Confirm Resolution/i })[0]
+    fireEvent.click(submitButton)
+
+    await waitFor(() => {
+      expect(screen.getByText('Scoring commitments...')).toBeInTheDocument()
+    })
+
+    await act(async () => {
+      resolveSubmit({ ok: true, json: async () => ({}) })
+    })
+  })
+
+  it('saves research timings to localStorage after successful AI research', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        outcome: 'correct',
+        reasoning: 'test',
+        evidenceLinks: [],
+        timings: { searchMs: 6000, llmMs: 9000, totalMs: 15000 },
+      }),
+    })
+
+    render(<ResolutionForm predictionId="pred-1" outcomeType="BINARY" options={[]} />)
+
+    fireEvent.click(screen.getByText('AI Assist'))
+
+    await waitFor(() => {
+      expect(screen.getByText('AI Assist')).toBeInTheDocument()
+    })
+
+    const stored = JSON.parse(localStorage.getItem('daatan:research-timings') ?? 'null')
+    expect(stored?.searchMs).toBe(6000)
+    expect(stored?.llmMs).toBe(9000)
   })
 })
