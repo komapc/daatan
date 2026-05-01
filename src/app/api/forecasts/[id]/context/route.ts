@@ -9,6 +9,7 @@ import { oracleSearch } from '@/lib/services/oracleSearch'
 import { guessChances } from '@/lib/llm/expressPrediction'
 import { getOracleForecast, DEFAULT_MAX_ARTICLES, type OracleSource } from '@/lib/services/oracle'
 import { createLogger } from '@/lib/logger'
+import { prisma } from '@/lib/prisma'
 import {
   getContextTimeline,
   getForecastForContextUpdate,
@@ -92,6 +93,7 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
         // fallback chain fails (e.g. transient ECONNRESET on DDG when paid providers are
         // unconfigured). Convert that into a clean 503 instead of leaking a 500 to the client.
         let searchResults: SearchResult[]
+        const t0 = Date.now()
         try {
             searchResults = await oracleSearch(searchQuery, DEFAULT_MAX_ARTICLES) ?? await searchArticles(searchQuery, DEFAULT_MAX_ARTICLES)
         } catch (err) {
@@ -101,6 +103,7 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
             )
             return apiError('No recent articles found for this forecast. Try again later.', 503)
         }
+        const searchMs = Date.now() - t0
 
         log.info(
             {
@@ -145,12 +148,14 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
             changeInstruction,
         })
 
+        const t1 = Date.now()
         const result = await llmService.generateContent({
             prompt,
             temperature: 0.2,
         })
 
         const newContextSummary = result.text.trim()
+        const llmMs = Date.now() - t1
         const now = new Date()
 
         // 3. AI probability — try Oracle first, fall back to LLM guessChances
@@ -165,6 +170,7 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
         // the UI can render provenance. Shape is camelCased for frontend consumption.
         let oracleSnapshotData: Prisma.InputJsonValue | null = null
 
+        const t2 = Date.now()
         const oracleForecast = await getOracleForecast(prediction.claimText, {
             articles: searchResults.map(r => ({
                 url: r.url,
@@ -237,6 +243,17 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
             }
         }
 
+        const oracleMs = Date.now() - t2
+        const totalMs = Date.now() - t0
+
+        log.info(
+            { predictionId: prediction.id, searchMs, llmMs, oracleMs, totalMs },
+            'context.timings',
+        )
+
+        // Persist timing sample for population-level calibration (non-critical)
+        prisma.contextTiming.create({ data: { searchMs, llmMs, oracleMs, totalMs } }).catch(() => { /* non-critical */ })
+
         // 4. Persist snapshot + update prediction
         const snapshot = await saveContextUpdate({
             predictionId: prediction.id,
@@ -260,6 +277,7 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
             contextUpdatedAt: now,
             snapshot,
             timeline: snapshots,
+            timings: { searchMs, llmMs, oracleMs, totalMs },
         })
 
     } catch (error) {
