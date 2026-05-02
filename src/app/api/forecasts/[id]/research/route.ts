@@ -3,6 +3,7 @@ import { withAuth } from '@/lib/api-middleware'
 import { apiError, handleRouteError } from '@/lib/api-error'
 import { getForecastForResearch } from '@/lib/services/forecast'
 import { searchArticles, SearchResult } from '@/lib/utils/webSearch'
+import { searchArticlesMultilingual } from '@/lib/utils/multilingualSearch'
 import { oracleSearch } from '@/lib/services/oracleSearch'
 import { llmService } from '@/lib/llm'
 import { getPromptTemplate, fillPrompt } from '@/lib/llm/bedrock-prompts'
@@ -51,9 +52,9 @@ export const POST = withAuth(async (request: NextRequest, user, { params }) => {
             //    b) Broad (no date) with raw claim text — catches older or wider coverage
             //    c) Date-scoped with simplified key-term query — targets the actual topic
             const [dated, broad, simplified] = await Promise.all([
-                searchArticles(prediction.claimText, 6, { dateFrom: forecastStart, dateTo: searchDateTo })
+                searchArticlesMultilingual(prediction.claimText, 6, { dateFrom: forecastStart, dateTo: searchDateTo })
                     .catch(() => [] as SearchResult[]),
-                searchArticles(prediction.claimText, 4)
+                searchArticlesMultilingual(prediction.claimText, 4)
                     .catch(() => [] as SearchResult[]),
                 searchArticles(simplifiedQuery, 6, { dateFrom: forecastStart, dateTo: searchDateTo })
                     .catch(() => [] as SearchResult[]),
