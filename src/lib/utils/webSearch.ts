@@ -194,8 +194,6 @@ async function searchWithBrightData(query: string, limit: number): Promise<Searc
 
   const url = new URL('https://www.google.com/search')
   url.searchParams.set('q', query)
-  url.searchParams.set('gl', 'us')
-  url.searchParams.set('hl', 'en')
 
   const response = await fetch('https://api.brightdata.com/request', {
     method: 'POST',
@@ -271,7 +269,6 @@ async function searchWithNimbleway(query: string, limit: number): Promise<Search
     },
     body: JSON.stringify({
       search_engine: 'google_search',
-      country: 'US',
       query,
       parse: true,
     }),
@@ -353,7 +350,7 @@ async function searchWithScrapingBee(query: string, limit: number): Promise<Sear
 // ──────────────────────────────────────────────
 
 async function searchWithDDG(query: string, limit: number): Promise<SearchResult[]> {
-  const body = new URLSearchParams({ q: query, kl: 'us-en' })
+  const body = new URLSearchParams({ q: query })
   const response = await fetch('https://lite.duckduckgo.com/lite/', {
     method: 'POST',
     headers: {
