@@ -267,8 +267,9 @@ export async function findSimilarForecasts({
   const embedding = await embedText(claimText)
 
   if (!embedding) return []
+  if (!embedding.every(Number.isFinite)) return []
 
-  // vectorStr contains only digits, commas, brackets, and minus — safe to inline
+  // vectorStr contains only finite floats (digits, commas, brackets, minus) — safe to inline
   const vectorStr = `[${embedding.join(',')}]`
   const fetchLimit = limit * 5 // fetch extra to allow tag-boosted re-sorting
 

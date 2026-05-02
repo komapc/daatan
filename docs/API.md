@@ -179,7 +179,49 @@ The chosen source is recorded in `externalReasoning` on the snapshot (`"TruthMac
 ---
 
 ### `POST /api/forecasts/[id]/research` — Auth
-Trigger AI research for a forecast.
+AI-assisted resolution research for resolvers. Searches for recent articles about the forecast claim (Oracle → 3-way parallel local fallback), optionally generates better queries via LLM if initial results are sparse, then asks an LLM to suggest a resolution outcome and evidence links. Rate-limited to 10 calls per hour per user. Requires `RESOLVER` or `ADMIN` role.
+
+**Response**
+
+```jsonc
+{
+  "outcome": "correct",          // "correct" | "wrong" | "void" | "unresolvable"
+  "reasoning": "string",         // LLM explanation for the suggested outcome
+  "evidenceLinks": ["https://..."],  // URLs found that support the resolution
+  "correctOptionId": "opt_cuid", // only set for MULTIPLE_CHOICE predictions
+  "timings": { "searchMs": 8200, "llmMs": 9400, "totalMs": 17600 }
+}
+```
+
+---
+
+### `GET /api/forecasts/similar`
+Find forecasts similar to a given forecast (by ID) or query text, using pgvector cosine similarity on Gemini `text-embedding-004` embeddings. Public — no auth required. Returns results from `ACTIVE` and `PENDING_APPROVAL` forecasts only, filtered to cosine similarity ≥ 0.75.
+
+**Query params**
+
+| Param | Required | Description |
+|-------|----------|-------------|
+| `id` | one of `id`/`q` | Forecast ID to find similar forecasts for (claimText + tags fetched automatically) |
+| `q` | one of `id`/`q` | Free-text query to embed (max 200 chars) |
+| `tags` | no | Comma-separated tag names used to boost results with shared tags (max 10, 50 chars each) |
+| `limit` | no | Max results to return (default `3`, max `10`) |
+
+**Response** — `{ similar: SimilarForecast[] }`, each entry shaped as:
+
+```jsonc
+{
+  "id": "cuid",
+  "slug": "bitcoin-will-reach-100k-by-2026",
+  "claimText": "Bitcoin will reach $100k by end of 2026",
+  "status": "ACTIVE",
+  "resolveByDatetime": "2026-12-31T00:00:00Z",
+  "author": { "name": "Alice", "username": "alice" },
+  "score": 0.91    // cosine similarity, 0–1
+}
+```
+
+Returns `{ similar: [] }` when no embedding is available (Gemini API key not configured) or no results pass the similarity threshold.
 
 ---
 
@@ -396,6 +438,21 @@ Trigger the bot runner. Used by the GitHub Actions cron workflow.
 ---
 
 ## System
+
+### `GET /api/meta/timings`
+Returns average server-side timing samples for the context-analysis pipeline (search → LLM → Oracle) aggregated over the last 30 days. The client uses these estimates to drive step-progress labels ("Searching… 10s → Analyzing… 12s → Estimating… 8s"). Public — no auth required.
+
+**Response**
+
+```jsonc
+// When ≥ 3 samples exist:
+{ "hasData": true, "sampleCount": 142, "timings": { "searchMs": 9800, "llmMs": 11200, "oracleMs": 7400 } }
+
+// When fewer than 3 samples:
+{ "hasData": false, "timings": { "searchMs": 10000, "llmMs": 12000, "oracleMs": 8000 } }
+```
+
+---
 
 ### `GET /api/health`
 Liveness + readiness probe. Returns `200` when the DB is reachable, `503` when it is not.

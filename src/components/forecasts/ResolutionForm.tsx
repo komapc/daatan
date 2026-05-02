@@ -72,7 +72,7 @@ export function ResolutionForm({ predictionId, outcomeType, options, onResolved 
         saveResearchTimings({ searchMs: data.timings.searchMs, llmMs: data.timings.llmMs })
       }
       setOutcome(data.outcome)
-      setEvidenceLinks(data.evidenceLinks.join('\n'))
+      setEvidenceLinks((data.evidenceLinks ?? []).join('\n'))
       setResolutionNote(data.reasoning)
       if (data.correctOptionId) {
         setCorrectOptionId(data.correctOptionId)
