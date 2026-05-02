@@ -11,22 +11,22 @@ export default auth((req) => {
   // Admin routes require ADMIN role
   if (pathname.startsWith('/admin')) {
     if (!isAuth) {
-      // Not logged in (or stale/invalid JWT) — send to signin.
-      // No callbackUrl: avoids a bounce loop when the client session appears
-      // valid but the Edge JWT can't be decoded (e.g. after a secret rotation).
       return NextResponse.redirect(new URL('/auth/signin', req.url))
     }
     if (req.auth?.user?.role !== 'ADMIN') {
-      // Authenticated but not an admin — go home, not signin (avoids bounce loop)
       return NextResponse.redirect(new URL('/', req.url))
     }
   }
 
-  return NextResponse.next()
+  // Forward pathname to server components so the root layout can set
+  // <html lang> from the URL prefix (/he, /ru, /eo) instead of cookies.
+  const requestHeaders = new Headers(req.headers)
+  requestHeaders.set('x-pathname', pathname)
+  return NextResponse.next({ request: { headers: requestHeaders } })
 })
 
 export const config = {
   matcher: [
-    "/admin/:path*",
-  ]
+    '/((?!api|_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|manifest.webmanifest).*)',
+  ],
 }

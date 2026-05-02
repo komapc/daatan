@@ -29,7 +29,7 @@ export async function generateMetadata({
     title: meta.title,
     description: meta.description,
     alternates: {
-      canonical: 'https://daatan.com',
+      canonical: `https://daatan.com/${locale}`,
       languages: {
         'x-default': 'https://daatan.com',
         en: 'https://daatan.com',
@@ -41,6 +41,7 @@ export async function generateMetadata({
       title: meta.title,
       description: meta.description,
       url: `https://daatan.com/${locale}`,
+      locale,
     },
   }
 }
