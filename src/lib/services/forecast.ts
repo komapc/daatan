@@ -5,6 +5,9 @@ import { prisma } from '@/lib/prisma'
 import { slugify, generateUniqueSlug } from '@/lib/utils/slugify'
 import { hashUrl } from '@/lib/utils/hash'
 import { embedText, embedAndStoreForecast } from '@/lib/services/embedding'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('forecast')
 
 const PREDICTION_AUTHOR_SELECT = {
   id: true,
@@ -201,7 +204,9 @@ export async function createForecast(input: CreateForecastInput) {
   if (!prediction) throw new Error('Failed to generate a unique URL slug after multiple attempts')
 
   // Fire-and-forget: store embedding for similar-forecast search
-  embedAndStoreForecast(prediction.id, input.claimText).catch(() => {/* non-critical */})
+  embedAndStoreForecast(prediction.id, input.claimText).catch((err) =>
+    log.error({ err, id: prediction.id }, 'embed failed')
+  )
 
   if (input.outcomeType === 'MULTIPLE_CHOICE') {
     const payload = input.outcomePayload as { options?: string[] } | undefined
