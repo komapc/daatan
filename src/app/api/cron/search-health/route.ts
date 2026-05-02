@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
       continue
     }
 
-    if (provider.credits !== undefined && provider.credits < SEARCH_LOW_CREDITS_THRESHOLD) {
+    if (typeof provider.credits === 'number' && provider.credits < SEARCH_LOW_CREDITS_THRESHOLD) {
       notifySearchCreditsLow(name, provider.credits)
       alerts.push(`${name}: ${provider.credits} credits remaining`)
     }
