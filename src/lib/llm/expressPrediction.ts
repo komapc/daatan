@@ -2,6 +2,7 @@ import { SchemaType, type Schema } from '@google/generative-ai'
 import { getPromptTemplate, fillPrompt } from './bedrock-prompts'
 import { llmService } from './index'
 import { searchArticles, type SearchResult } from '../utils/webSearch'
+import { searchArticlesMultilingual } from '../utils/multilingualSearch'
 import { oracleSearch } from '../services/oracleSearch'
 import { fetchUrlContent } from '../utils/scraper'
 import { hashUrl } from '../utils/hash'
@@ -255,7 +256,7 @@ export async function generateExpressPrediction(
       onProgress?.('searching', { message: `Finding related articles for: "${topic}"` })
 
       try {
-        searchResults = await oracleSearch(topic, 5) ?? await searchArticles(topic, 5)
+        searchResults = await oracleSearch(topic, 5) ?? await searchArticlesMultilingual(topic, 5)
       } catch {
         searchResults = []
       }
@@ -269,7 +270,7 @@ export async function generateExpressPrediction(
   } else {
     // Normal text flow: search for articles
     onProgress?.('searching', { message: 'Searching for relevant articles...' })
-    searchResults = await oracleSearch(userInput, 5) ?? await searchArticles(userInput, 5)
+    searchResults = await oracleSearch(userInput, 5) ?? await searchArticlesMultilingual(userInput, 5)
 
     if (searchResults.length === 0) {
       throw new Error('NO_ARTICLES_FOUND')

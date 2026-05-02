@@ -4,7 +4,8 @@ import { apiError, handleRouteError } from '@/lib/api-error'
 import { withAuth, type RouteContext } from '@/lib/api-middleware'
 import { getPromptTemplate, fillPrompt } from '@/lib/llm/bedrock-prompts'
 import { llmService } from '@/lib/llm'
-import { searchArticles, type SearchResult } from '@/lib/utils/webSearch'
+import type { SearchResult } from '@/lib/utils/webSearch'
+import { searchArticlesMultilingual } from '@/lib/utils/multilingualSearch'
 import { oracleSearch } from '@/lib/services/oracleSearch'
 import { guessChances } from '@/lib/llm/expressPrediction'
 import { getOracleForecast, DEFAULT_MAX_ARTICLES, type OracleSource } from '@/lib/services/oracle'
@@ -95,7 +96,7 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
         let searchResults: SearchResult[]
         const t0 = Date.now()
         try {
-            searchResults = await oracleSearch(searchQuery, DEFAULT_MAX_ARTICLES) ?? await searchArticles(searchQuery, DEFAULT_MAX_ARTICLES)
+            searchResults = await oracleSearch(searchQuery, DEFAULT_MAX_ARTICLES) ?? await searchArticlesMultilingual(searchQuery, DEFAULT_MAX_ARTICLES)
         } catch (err) {
             log.warn(
                 { predictionId: prediction.id, searchQuery, err },

@@ -23,7 +23,7 @@ export async function translatePredictionToAllLocales(predictionId: string): Pro
   )
 }
 
-async function callGeminiTranslate(text: string, language: string): Promise<string> {
+export async function callGeminiTranslate(text: string, language: string): Promise<string> {
   const template = await getPromptTemplate('translate')
   const prompt = fillPrompt(template, { text, language })
 
