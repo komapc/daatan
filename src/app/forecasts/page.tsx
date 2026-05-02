@@ -2,7 +2,10 @@ import { headers } from 'next/headers'
 import { PredictionsPage } from './PredictionsClient'
 import type { Prediction } from '@/components/forecasts/ForecastCard'
 
-export const revalidate = 60
+// Render on demand — at build time the internal /api/forecasts fetch fails
+// because the server isn't running, and crawlers would see an empty list
+// until the first ISR regeneration.
+export const dynamic = 'force-dynamic'
 
 async function getInitialFeed(): Promise<Prediction[]> {
   try {
