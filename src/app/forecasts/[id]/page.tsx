@@ -147,8 +147,7 @@ export default async function ForecastDetailPage({ params }: Props) {
   }
 
   const slug = prediction.slug || prediction.id
-  // Structured Data (JSON-LD)
-  const jsonLd = {
+  const articleJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Article',
     headline: prediction.claimText,
@@ -170,12 +169,20 @@ export default async function ForecastDetailPage({ params }: Props) {
     },
   }
 
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://daatan.com' },
+      { '@type': 'ListItem', position: 2, name: 'Forecasts', item: 'https://daatan.com/forecasts' },
+      { '@type': 'ListItem', position: 3, name: prediction.claimText, item: `https://daatan.com/forecasts/${slug}` },
+    ],
+  }
+
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
       <Suspense fallback={<ForecastLoading />}>
         <ForecastDetailClient initialData={prediction as any} />
       </Suspense>

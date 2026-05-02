@@ -155,7 +155,7 @@ const Sidebar = () => {
       <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-navy-900 border-b border-navy-600 flex items-center justify-between px-4 z-50">
         <Link href="/" className="flex items-center gap-2" onClick={handleCloseMenu}>
           <Image src="/logo-icon.png" alt="DAATAN" width={40} height={40} priority />
-          <h1 className="text-lg font-bold text-white">DAATAN</h1>
+          <span className="text-lg font-bold text-white">DAATAN</span>
         </Link>
         <div className="flex items-center gap-2">
           <button
@@ -221,7 +221,7 @@ const Sidebar = () => {
           <Image src="/logo-icon.png" alt="DAATAN" width={48} height={48} priority />
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-white">DAATAN</h1>
+              <span className="text-xl font-bold text-white">DAATAN</span>
               <span className="text-xs text-text-subtle font-mono">v{VERSION}</span>
             </div>
             <p className="text-sm text-text-secondary">{t('tagline')}</p>

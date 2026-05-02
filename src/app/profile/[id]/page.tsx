@@ -275,12 +275,19 @@ export default async function PublicProfilePage({ params, searchParams }: Profil
       ...(user.website && { sameAs: [user.website] }),
     }
 
+    const breadcrumbJsonLd = {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://daatan.com' },
+        { '@type': 'ListItem', position: 2, name: user.name ?? user.username, item: `https://daatan.com/profile/${user.username}` },
+      ],
+    }
+
     return (
       <>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd) }}
-        />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
         <UserProfileView
           user={user}
           commitments={commitments}

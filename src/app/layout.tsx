@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next'
+import { headers } from 'next/headers'
 import { NextIntlClientProvider } from 'next-intl'
 import { getLocale, getMessages } from 'next-intl/server'
 import './globals.css'
@@ -26,10 +27,11 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     metadataBase: new URL(baseUrl),
     title: {
-      default: 'DAATAN - Forecast Tracking',
+      default: 'DAATAN — Prediction Market & Forecast Tracking',
       template: '%s | DAATAN',
     },
-    description: 'Prove you were right — without shouting into the void.',
+    description:
+      'DAATAN is a prediction market and forecast tracking platform. Make calibrated forecasts, stake reputation, and prove your accuracy with Brier scores and head-to-head ELO.',
     icons: {
       icon: [
         { url: '/favicon.ico', sizes: 'any' },
@@ -47,15 +49,16 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: {
       type: 'website',
       siteName: 'DAATAN',
-      title: 'DAATAN - Forecast Tracking',
-      description: 'Prove you were right — without shouting into the void.',
+      title: 'DAATAN — Prediction Market & Forecast Tracking',
+      description:
+        'Make calibrated forecasts, stake reputation, and prove your accuracy with Brier scores and head-to-head ELO.',
       url: 'https://daatan.com',
-      images: [{ url: '/logo-icon.png', width: 512, height: 512, alt: 'DAATAN' }],
     },
     twitter: {
-      card: 'summary',
-      title: 'DAATAN - Forecast Tracking',
-      description: 'Prove you were right — without shouting into the void.',
+      card: 'summary_large_image',
+      title: 'DAATAN — Prediction Market & Forecast Tracking',
+      description:
+        'Make calibrated forecasts, stake reputation, and prove your accuracy with Brier scores and head-to-head ELO.',
     },
     alternates: {
       languages: {
@@ -81,12 +84,23 @@ export const viewport: Viewport = {
   initialScale: 1,
 }
 
+function localeFromPathname(pathname: string | null): Locale | null {
+  if (!pathname) return null
+  const match = pathname.match(/^\/(he|ru|eo)(\/|$)/)
+  return (match?.[1] as Locale | undefined) ?? null
+}
+
 export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const locale = await getLocale() as Locale
+  // Prefer URL-derived locale (set by middleware) over cookie so crawlers
+  // see the correct <html lang> on /he and /ru pages.
+  const headersList = await headers()
+  const urlLocale = localeFromPathname(headersList.get('x-pathname'))
+  const cookieLocale = (await getLocale()) as Locale
+  const locale: Locale = urlLocale ?? cookieLocale
   const messages = await getMessages()
   const isStaging = env.NEXT_PUBLIC_ENV === 'staging'
   const gaMeasurementId = isStaging ? 'G-Z4XXM7GYHW' : (process.env.GA_MEASUREMENT_ID ?? '')

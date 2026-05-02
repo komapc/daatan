@@ -143,7 +143,7 @@ export default async function LocaleForecastDetailPage({ params }: Props) {
   }
 
   const slug = prediction.slug || prediction.id
-  const jsonLd = {
+  const articleJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Article',
     headline: localizedPrediction.claimText,
@@ -165,12 +165,20 @@ export default async function LocaleForecastDetailPage({ params }: Props) {
     },
   }
 
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: `https://daatan.com/${locale}` },
+      { '@type': 'ListItem', position: 2, name: 'Forecasts', item: `https://daatan.com/${locale}/forecasts` },
+      { '@type': 'ListItem', position: 3, name: localizedPrediction.claimText, item: `https://daatan.com/${locale}/forecasts/${slug}` },
+    ],
+  }
+
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
       <Suspense fallback={<ForecastLoading />}>
         <ForecastDetailClient initialData={localizedPrediction as any} isLocalized={isLocalized} />
       </Suspense>
