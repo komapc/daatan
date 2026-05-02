@@ -1,7 +1,9 @@
 import type { Metadata } from 'next'
 import { getLeaderboard } from '@/lib/services/leaderboard'
 
-export const revalidate = 300
+// Don't prerender at build time — DATABASE_URL is a placeholder during the
+// Docker image build. Render on demand and let CDN handle any caching.
+export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
   title: 'Leaderboard',

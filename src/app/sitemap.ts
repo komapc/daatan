@@ -2,7 +2,9 @@ import type { MetadataRoute } from 'next'
 import { prisma } from '@/lib/prisma'
 import { env } from '@/env'
 
-export const revalidate = 3600
+// Don't prerender at build time — DATABASE_URL is a placeholder during the
+// Docker image build and Prisma can't reach it. Regenerate on demand instead.
+export const dynamic = 'force-dynamic'
 
 const BASE_URL = 'https://daatan.com'
 
