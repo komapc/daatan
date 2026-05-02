@@ -162,8 +162,6 @@ async function searchWithDataForSEO(query: string, limit: number): Promise<Searc
     },
     body: JSON.stringify([{
       keyword: query,
-      language_name: 'English',
-      location_name: 'United States',
       depth: limit,
     }]),
   })
