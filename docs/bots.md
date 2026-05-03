@@ -9,7 +9,7 @@ DAATAN includes an autonomous bot system: configurable agents that monitor RSS f
 1. [Default Personas](#default-personas)
 2. [How It Works](#how-it-works)
 3. [Configuration Reference](#configuration-reference)
-4. [autoApprove Behavior](#autoapprove-behavior)
+4. [Approval Flags](#approval-flags)
 5. [Admin API Endpoints](#admin-api-endpoints)
 6. [Bedrock Prompts Catalog](#bedrock-prompts-catalog)
 7. [Parameter Storage Reference](#parameter-storage-reference)
@@ -106,7 +106,12 @@ Each bot is a `BotConfig` record linked 1:1 to a bot `User` account (`isBot=true
 | `hotnessMinSources` | int ≥ 1 | `2` | Minimum number of RSS sources that must mention a topic for it to qualify as "hot". |
 | `hotnessWindowHours` | int ≥ 1 | `6` | Lookback window (hours) for hot topic detection. |
 | `tagFilter` | string[] | `[]` | If non-empty, the LLM is instructed to only create forecasts matching one of these tag slugs. Topics that don't match are skipped. |
-| `autoApprove` | boolean | `false` | See [autoApprove Behavior](#autoapprove-behavior). |
+| `autoApprove` | boolean | `false` | See [Approval Flags](#approval-flags). |
+| `requireApprovalForForecasts` | boolean | `false` | See [Approval Flags](#approval-flags). |
+| `enableSentimentExtraction` | boolean | `false` | Extract sentiment/confidence from cluster articles before forecast creation. |
+| `enableRejectionTracking` | boolean | `false` | Track rejected topics in `BotRejectedTopic` to prevent the LLM from re-suggesting them. |
+| `showMetadataOnForecast` | boolean | `false` | Render extracted metadata (sentiment, entities, consensus line) on the forecast detail page when status is `PENDING_APPROVAL`. |
+| `maxForecastsPerHour` | int ≥ 0 | `0` | Hourly rate limit for forecast creation (`0` = unlimited). Per-day cap still applies via `maxForecastsPerDay`. |
 
 ### Voting
 
@@ -134,16 +139,27 @@ The bot always commits YES (`binaryChoice = true`, positive confidence). Confide
 
 ---
 
-## autoApprove Behavior
+## Approval Flags
 
-After a bot creates a forecast, it is published with one of two statuses:
+Two related fields govern the approval/staking workflow. They were introduced in different phases and have distinct meanings:
 
-| `autoApprove` | Published Status | Effect |
-|---------------|-----------------|--------|
-| `false` (default) | `PENDING_APPROVAL` | Forecast is queued for human review before it appears publicly. |
-| `true` | `ACTIVE` | Forecast is published immediately and visible to all users. |
+| Flag | Default | What it controls |
+|------|---------|------------------|
+| `autoApprove` | `false` | The **publish status** of a newly created forecast. `true` → `ACTIVE` (publicly visible); `false` → `PENDING_APPROVAL` (admin must approve). |
+| `requireApprovalForForecasts` | `false` | Whether the bot **stakes immediately** when creating a forecast. `true` → bot does NOT stake; staking is deferred until an admin approves via `POST /api/forecasts/[id]/approve` (which auto-stakes within the bot's range). `false` → bot stakes immediately on creation. |
 
-Use `autoApprove=true` with caution. LLM-generated content can occasionally be off-topic or low quality; human review (`PENDING_APPROVAL`) provides a quality gate.
+The two flags compose:
+
+| `autoApprove` | `requireApprovalForForecasts` | Behavior |
+|---|---|---|
+| `false` | `false` | Forecast is `PENDING_APPROVAL`; bot stakes immediately. (Original default.) |
+| `true`  | `false` | Forecast is `ACTIVE` immediately; bot stakes immediately. (Hands-off.) |
+| `false` | `true`  | Forecast is `PENDING_APPROVAL`; staking deferred until admin approves. (Recommended for new bots — see `BOT_APPROVAL_WORKFLOW.md`.) |
+| `true`  | `true`  | Inconsistent — `requireApprovalForForecasts=true` blocks staking, but `autoApprove=true` skips approval. Avoid this combination. |
+
+Use `autoApprove=true` with caution. LLM-generated content can occasionally be off-topic or low quality; the `PENDING_APPROVAL` review (`autoApprove=false`) is a quality gate.
+
+Full approval-workflow design including notifications, sentiment extraction, and rejection tracking: [BOT_APPROVAL_WORKFLOW.md](./BOT_APPROVAL_WORKFLOW.md).
 
 ---
 
