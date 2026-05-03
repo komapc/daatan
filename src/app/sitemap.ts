@@ -1,10 +1,40 @@
 import type { MetadataRoute } from 'next'
+import { unstable_cache } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { env } from '@/env'
 
 // Don't prerender at build time — DATABASE_URL is a placeholder during the
 // Docker image build and Prisma can't reach it. Regenerate on demand instead.
 export const dynamic = 'force-dynamic'
+
+// Cache the DB queries for 1h so crawler hits don't hammer the DB.
+// The route itself stays dynamic (avoids the build-time prerender problem
+// that broke v1.10.76); only the data layer is cached.
+const fetchSitemapData = unstable_cache(
+  async () => {
+    const [predictions, translatedPredictionIds, users] = await Promise.all([
+      prisma.prediction.findMany({
+        where: {
+          isPublic: true,
+          status: { in: ['ACTIVE', 'PENDING', 'RESOLVED_CORRECT', 'RESOLVED_WRONG'] },
+        },
+        select: { id: true, slug: true, status: true, updatedAt: true },
+      }),
+      prisma.predictionTranslation.findMany({
+        where: { language: { in: ['he', 'ru'] } },
+        select: { predictionId: true, language: true },
+        distinct: ['predictionId', 'language'],
+      }),
+      prisma.user.findMany({
+        where: { isPublic: true, username: { not: null } },
+        select: { username: true, updatedAt: true },
+      }),
+    ])
+    return { predictions, translatedPredictionIds, users }
+  },
+  ['sitemap-data'],
+  { revalidate: 3600, tags: ['sitemap'] },
+)
 
 const BASE_URL = 'https://daatan.com'
 
@@ -81,21 +111,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ])
 
-  // 3. Dynamic forecast routes
-  const predictions = await prisma.prediction.findMany({
-    where: {
-      isPublic: true,
-      status: { in: ['ACTIVE', 'PENDING', 'RESOLVED_CORRECT', 'RESOLVED_WRONG'] },
-    },
-    select: { id: true, slug: true, status: true, updatedAt: true },
-  })
-
-  // Translations that exist in the DB (only he/ru — eo excluded from sitemap)
-  const translatedPredictionIds = await prisma.predictionTranslation.findMany({
-    where: { language: { in: ['he', 'ru'] } },
-    select: { predictionId: true, language: true },
-    distinct: ['predictionId', 'language'],
-  })
+  const { predictions, translatedPredictionIds, users } = await fetchSitemapData()
 
   const translatedSet = new Set(
     translatedPredictionIds.map((t) => `${t.predictionId}:${t.language}`),
@@ -150,11 +166,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   })
 
   // 5. Public profile routes (no locale variants)
-  const users = await prisma.user.findMany({
-    where: { isPublic: true, username: { not: null } },
-    select: { username: true, updatedAt: true },
-  })
-
   const profileRoutes: MetadataRoute.Sitemap = users.map((u) => ({
     url: `${BASE_URL}/profile/${u.username}`,
     lastModified: u.updatedAt,

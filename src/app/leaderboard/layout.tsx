@@ -1,9 +1,18 @@
 import type { Metadata } from 'next'
+import { unstable_cache } from 'next/cache'
 import { getLeaderboard } from '@/lib/services/leaderboard'
 
 // Don't prerender at build time — DATABASE_URL is a placeholder during the
-// Docker image build. Render on demand and let CDN handle any caching.
+// Docker image build. Route stays dynamic; the DB call below is cached.
 export const dynamic = 'force-dynamic'
+
+// Top 10 by RS moves slowly; 5min TTL is plenty fresh and avoids a DB
+// hit on every leaderboard request.
+const fetchTopUsersForJsonLd = unstable_cache(
+  async () => (await getLeaderboard(10, 'rs')) ?? [],
+  ['leaderboard-jsonld-top10-rs'],
+  { revalidate: 300, tags: ['leaderboard'] },
+)
 
 export const metadata: Metadata = {
   title: 'Leaderboard',
@@ -15,7 +24,7 @@ export const metadata: Metadata = {
 export default async function LeaderboardLayout({ children }: { children: React.ReactNode }) {
   let topUsers: Array<{ id: string; name: string | null; username: string | null }> = []
   try {
-    topUsers = (await getLeaderboard(10, 'rs')) ?? []
+    topUsers = await fetchTopUsersForJsonLd()
   } catch {
     topUsers = []
   }
