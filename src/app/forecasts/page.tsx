@@ -1,23 +1,38 @@
-import { headers } from 'next/headers'
+import { unstable_cache } from 'next/cache'
 import { PredictionsPage } from './PredictionsClient'
 import type { Prediction } from '@/components/forecasts/ForecastCard'
+import { listForecasts, enrichPredictions } from '@/lib/services/forecast'
 
-// Render on demand — at build time the internal /api/forecasts fetch fails
-// because the server isn't running, and crawlers would see an empty list
-// until the first ISR regeneration.
+// Render on demand — at build time the DB is a placeholder. The data layer
+// below is cached so crawler hits don't re-query the DB on every request.
 export const dynamic = 'force-dynamic'
+
+// SSR initial feed is user-agnostic (no session forwarded), so it's safe to
+// cache globally. 60s TTL keeps the front page fresh for the bulk of traffic.
+const fetchInitialFeed = unstable_cache(
+  async (): Promise<Prediction[]> => {
+    const { predictions } = await listForecasts({
+      where: { status: 'ACTIVE', isPublic: true },
+      orderBy: { createdAt: 'desc' },
+      page: 1,
+      limit: 20,
+      isCuSort: false,
+      sortOrder: 'desc',
+    })
+    return enrichPredictions(predictions, undefined, {
+      page: 1,
+      limit: 20,
+      sortOrder: 'desc',
+      isCuSort: false,
+    }) as unknown as Prediction[]
+  },
+  ['forecasts-page-initial-feed'],
+  { revalidate: 60, tags: ['forecasts'] },
+)
 
 async function getInitialFeed(): Promise<Prediction[]> {
   try {
-    const headersList = await headers()
-    const host = headersList.get('host') ?? 'localhost:3000'
-    const protocol = host.startsWith('localhost') || host.startsWith('127.') ? 'http' : 'https'
-    const res = await fetch(`${protocol}://${host}/api/forecasts?status=ACTIVE&limit=20`, {
-      cache: 'no-store',
-    })
-    if (!res.ok) return []
-    const data = await res.json()
-    return data.predictions ?? []
+    return await fetchInitialFeed()
   } catch {
     return []
   }
