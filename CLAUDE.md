@@ -1,0 +1,63 @@
+# Claude / agent guidance
+
+This file is loaded automatically by Claude Code (and other CLAUDE.md-aware agents) when working in this repo. Keep it terse; it's read on every turn.
+
+## What this project is
+
+Daatan — reputation-based news prediction platform. Production at https://daatan.com, staging at https://staging.daatan.com. Stack: Next.js 15 (App Router) + TypeScript + Prisma 7 + PostgreSQL (with pgvector) + NextAuth (Google OAuth, JWT sessions) + Tailwind. Deployed on AWS EC2 via Docker + GitHub Actions blue-green.
+
+Detailed architecture and feature docs: see [`docs/`](./docs/).
+
+## Hard rules
+
+- **PR-only workflow.** Never push directly to `main`. Every change — even a typo — goes through a PR that's merged via the GitHub UI (so CI runs and review happens). Never use `git push --force` to main.
+- **Bump version on every commit on a non-main branch.** The pre-commit hook enforces this. Bump `package.json` and the `// vX.Y.Z` comment in `src/lib/version.ts` together, and run `npm install` so the lockfile picks up the change. Follow semver.
+- **Production deploys are tag-triggered and explicit.** Never tag a release or push a `v*` tag unless the user asked for it. CI auto-deploys staging on every PR merge to main; production only on `v*` tags.
+- **Migrations run via the dedicated migrations container** in blue-green Phase 5. Don't rely on `docker exec` for `prisma migrate deploy` — the slim runner image lacks the Prisma CLI deps. See `docs/PRISMA_MIGRATE_DEPLOY_DEPS.md`.
+- **The pgvector extension must be present** in the postgres image. Production uses `pgvector/pgvector:pg16`. Don't switch to stock `postgres:16-alpine` without re-evaluating the embedding migration.
+
+## Common patterns
+
+- API routes: `withAuth(handler, { roles: ['ADMIN'] })` from `src/lib/api-middleware.ts`
+- Service results: `ServiceResult<T> = { ok: true; data; status } | { ok: false; error; status }`
+- Prisma singleton: `src/lib/prisma.ts`
+- Errors: `handleRouteError(err, msg)` and `apiError(msg, status)`
+- Logging: structured pino via `createLogger('module-name')`
+
+## Code style
+
+- TypeScript strict; no `as any` / `as unknown as X` (audited and cleaned April 2026)
+- Default to no comments; only add when WHY is non-obvious
+- Don't add error handling, fallbacks, or validation for impossible scenarios — trust internal callers
+- Tests use vitest. Run `npm test` (no extra flags needed). 990+ tests, ~45s.
+- `npm run lint` and `npx tsc --noEmit` must both be clean before any commit
+
+## Where to look
+
+- Schema: [`prisma/schema.prisma`](./prisma/schema.prisma)
+- Auth flow: [`src/lib/auth.ts`](./src/lib/auth.ts)
+- LLM providers: [`src/lib/llm/`](./src/lib/llm/) — Gemini primary, Ollama fallback, OpenRouter for bots
+- Scoring systems: [`src/lib/services/scoring-systems.ts`](./src/lib/services/scoring-systems.ts) and [`docs/SCORING_SYSTEMS.md`](./docs/SCORING_SYSTEMS.md)
+- Bot system: [`src/lib/services/bots/`](./src/lib/services/bots/) and [`docs/bots.md`](./docs/bots.md), [`docs/BOT_APPROVAL_WORKFLOW.md`](./docs/BOT_APPROVAL_WORKFLOW.md)
+- Embeddings + similar-forecasts: [`docs/EMBEDDINGS.md`](./docs/EMBEDDINGS.md)
+- Search providers: [`docs/SEARCH_PROVIDERS.md`](./docs/SEARCH_PROVIDERS.md)
+- API surface: [`docs/API.md`](./docs/API.md)
+- Deployment: [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md), [`docs/zero-downtime-version-updates.md`](./docs/zero-downtime-version-updates.md)
+- Telegram notifications: [`docs/TELEGRAM_NOTIFICATIONS.md`](./docs/TELEGRAM_NOTIFICATIONS.md)
+
+## Infra cheat-sheet
+
+- Production EC2: `i-04ea44d4243d35624`, EIP `3.126.238.216` → `daatan.com`
+- Staging EC2:    `i-0406d237ca5d92cdf` → `staging.daatan.com`
+- SSH port 22 is closed — server access is via AWS SSM `send-command` (use the `/ssm` slash command in Claude Code)
+- Use `docker compose` (v2 plugin, no hyphen) on prod, not `docker-compose`
+- Production uses containers `daatan-app`, `daatan-nginx`, `daatan-postgres`, `daatan-certbot`
+- Backups: GitHub Actions `backup.yml` runs at 03:00 and 15:00 UTC daily (RPO ≤ 12h); stored in S3 `daatan-db-backups-272007598366`
+
+## Before opening a PR
+
+1. `git fetch origin main && git rebase origin/main` — keep the branch current
+2. `npm run lint && npx tsc --noEmit && npm test` — all must pass
+3. Bump version (hook will reject the commit otherwise)
+4. Update relevant doc(s) in `docs/` if you changed an API surface, schema, or env var
+5. Open the PR. Verify `gh pr view --json mergeable` shows `MERGEABLE` before announcing it
