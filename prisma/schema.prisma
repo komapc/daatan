@@ -31,16 +31,16 @@ model User {
   password      String? // bcrypt hash; null for Google-only accounts
 
   // Custom profile fields
-  username             String? @unique
-  slug                 String? @unique // URL-friendly identifier (e.g., "john-doe")
-  website              String?
-  twitterHandle        String?
-  emailNotifications   Boolean @default(true)
-  preferredLanguage    String  @default("en") @db.VarChar(10) // ISO 639-1 code (en, he, etc.)
-  isPublic             Boolean @default(true)
-  
+  username           String? @unique
+  slug               String? @unique // URL-friendly identifier (e.g., "john-doe")
+  website            String?
+  twitterHandle      String?
+  emailNotifications Boolean @default(true)
+  preferredLanguage  String  @default("en") @db.VarChar(10) // ISO 639-1 code (en, he, etc.)
+  isPublic           Boolean @default(true)
+
   // Roles
-  role                 UserRole @default(USER)
+  role UserRole @default(USER)
 
   // Scoring & Currency
   rs          Float @default(100) // Reputation Score (starts at 100)
@@ -49,7 +49,7 @@ model User {
 
   // Glicko-2 expertise rating
   mu                 Float @default(1500) // skill estimate (Glicko-1 scale)
-  sigma              Float @default(350)  // rating deviation — high = uncertain
+  sigma              Float @default(350) // rating deviation — high = uncertain
   volatility         Float @default(0.06) // erraticism of skill changes
   totalPredictions   Int   @default(0)
   correctPredictions Int   @default(0)
@@ -76,20 +76,26 @@ model User {
   commitments         Commitment[] // User's CU commitments
   withdrawals         CommitmentWithdrawal[] // Exited commitments
   cuTransactions      CuTransaction[] // CU ledger entries
-  resolvedPredictions Prediction[]    @relation("ResolvedBy")
+  resolvedPredictions Prediction[]           @relation("ResolvedBy")
 
   // Bot rejection tracking
   rejectedBotTopics BotRejectedTopic[]
 
   // Comments & reactions
-  comments        Comment[]
+  comments         Comment[]
   commentReactions CommentReaction[]
 
   // Notifications
-  notifications          Notification[]
+  notifications           Notification[]
   notificationPreferences NotificationPreference[]
-  pushSubscriptions      PushSubscription[]
+  pushSubscriptions       PushSubscription[]
 
+  // Leaderboard sort indexes — ORDER BY ... LIMIT N becomes a scan without these
+  @@index([rs(sort: Desc)])
+  @@index([eloRating(sort: Desc)])
+  @@index([mu(sort: Desc)])
+  @@index([correctPredictions(sort: Desc)])
+  @@index([isBot])
   @@map("users")
 }
 
@@ -222,14 +228,14 @@ model Prediction {
   resolveByDatetime DateTime // Deadline for resolution
 
   // Source tracking (e.g. 'bot' for bot-created predictions)
-  source      String?          @db.VarChar(50)
+  source String? @db.VarChar(50)
 
   // Bot-generated metadata (populated when source = 'bot')
-  sentiment         String?    @db.VarChar(20) // "positive" | "negative" | "neutral"
-  confidence        Int?                       // 0–100
-  extractedEntities String[]   @default([])    // ["Israel", "Lebanon"]
-  consensusLine     String?    @db.Text        // "Based on 4 sources, 72% indicate escalation"
-  sourceSummary     String?    @db.Text        // Aggregated summary from multi-source articles
+  sentiment         String?  @db.VarChar(20) // "positive" | "negative" | "neutral"
+  confidence        Int? // 0–100
+  extractedEntities String[] @default([]) // ["Israel", "Lebanon"]
+  consensusLine     String?  @db.Text // "Based on 4 sources, 72% indicate escalation"
+  sourceSummary     String?  @db.Text // Aggregated summary from multi-source articles
 
   // AI forecast 95% CI (0–100). Denormalized from the latest Oracle ContextSnapshot
   // so list endpoints can render the range on cards without a join.
@@ -246,7 +252,7 @@ model Prediction {
   publishedAt      DateTime? // When status changed to ACTIVE
   lockedAt         DateTime? // When first commitment was made
   contextUpdatedAt DateTime? // When the detailsText was last updated via analyze context
-  winnersPoolBonus Int @default(0) @map("winners_pool_bonus")
+  winnersPoolBonus Int              @default(0) @map("winners_pool_bonus")
 
   // Visibility
   isPublic   Boolean @default(true)
@@ -281,15 +287,15 @@ model Prediction {
 // ============================================
 
 model ContextSnapshot {
-  id           String   @id @default(cuid())
+  id           String     @id @default(cuid())
   predictionId String
   prediction   Prediction @relation(fields: [predictionId], references: [id], onDelete: Cascade)
 
   summary String @db.Text
-  sources Json   // Array of { title, url, source, publishedDate }
+  sources Json // Array of { title, url, source, publishedDate }
 
   externalProbability Int?    @map("external_probability") // 0–100, AI's probability estimate
-  externalReasoning   String? @db.Text @map("external_reasoning") // Brief AI reasoning
+  externalReasoning   String? @map("external_reasoning") @db.Text // Brief AI reasoning
 
   // Full TruthMachine Oracle payload, when the Oracle path produced the probability.
   // Shape: { mean, std, ciLow, ciHigh, articlesUsed,
@@ -368,11 +374,11 @@ model Commitment {
   brierScore Float? // (probability - outcome)² computed at resolution
 
   // Competitive scoring fields (snapshotted at commit, computed at resolution)
-  communityProbabilityAtCommit Float?  @map("community_probability_at_commit")
-  aiProbabilityAtCommit        Float?  @map("ai_probability_at_commit")
-  peerScore                    Float?  @map("peer_score")
-  aiScore                      Float?  @map("ai_score")
-  eloChange                    Int?    @map("elo_change")
+  communityProbabilityAtCommit Float? @map("community_probability_at_commit")
+  aiProbabilityAtCommit        Float? @map("ai_probability_at_commit")
+  peerScore                    Float? @map("peer_score")
+  aiScore                      Float? @map("ai_score")
+  eloChange                    Int?   @map("elo_change")
 
   // Each user can only commit once per prediction
   @@unique([userId, predictionId])
@@ -387,20 +393,20 @@ model Commitment {
 // ============================================
 
 model CommitmentWithdrawal {
-  id           String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   predictionId String
   prediction   Prediction @relation(fields: [predictionId], references: [id], onDelete: Cascade)
 
-  cuCommitted  Int // Original committed amount at time of exit
-  cuBurned     Int // Amount burned as penalty (goes to winnersPoolBonus)
-  cuRefunded   Int // Amount returned immediately (cuCommitted - cuBurned)
-  burnRate     Int // Burn rate × 100 (e.g., 25 = 25%)
+  cuCommitted Int // Original committed amount at time of exit
+  cuBurned    Int // Amount burned as penalty (goes to winnersPoolBonus)
+  cuRefunded  Int // Amount returned immediately (cuCommitted - cuBurned)
+  burnRate    Int // Burn rate × 100 (e.g., 25 = 25%)
 
-  createdAt    DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([userId])
   @@index([predictionId])
@@ -531,8 +537,8 @@ model PredictionTranslation {
   id             String     @id @default(cuid())
   predictionId   String
   prediction     Prediction @relation(fields: [predictionId], references: [id], onDelete: Cascade)
-  fieldName      String     @db.VarChar(50)  // "claimText" | "detailsText" | "resolutionRules"
-  language       String     @db.VarChar(10)  // ISO 639-1 e.g. "he"
+  fieldName      String     @db.VarChar(50) // "claimText" | "detailsText" | "resolutionRules"
+  language       String     @db.VarChar(10) // ISO 639-1 e.g. "he"
   translatedText String     @db.Text
   createdAt      DateTime   @default(now())
 
@@ -559,12 +565,12 @@ model CommentTranslation {
 // ============================================
 
 enum NotificationType {
-  COMMITMENT_RESOLVED    // Your committed prediction was resolved
-  COMMENT_ON_FORECAST    // Someone commented on your forecast
-  REPLY_TO_COMMENT       // Someone replied to your comment
-  NEW_COMMITMENT         // Someone committed to your forecast
-  MENTION                // You were @mentioned in a comment
-  SYSTEM                 // System-wide announcement
+  COMMITMENT_RESOLVED // Your committed prediction was resolved
+  COMMENT_ON_FORECAST // Someone commented on your forecast
+  REPLY_TO_COMMENT // Someone replied to your comment
+  NEW_COMMITMENT // Someone committed to your forecast
+  MENTION // You were @mentioned in a comment
+  SYSTEM // System-wide announcement
 }
 
 enum NotificationChannel {
@@ -583,9 +589,9 @@ model Notification {
 
   // Content
   type    NotificationType
-  title   String  @db.VarChar(200)
-  message String  @db.Text
-  link    String? @db.VarChar(500) // Deep link into the app (e.g., /forecasts/abc)
+  title   String           @db.VarChar(200)
+  message String           @db.Text
+  link    String?          @db.VarChar(500) // Deep link into the app (e.g., /forecasts/abc)
 
   // Source references (for deduplication and grouping)
   predictionId String? // Related prediction
@@ -593,9 +599,9 @@ model Notification {
   actorId      String? // User who triggered the notification
 
   // State
-  read      Boolean  @default(false)
+  read      Boolean   @default(false)
   readAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   @@index([userId, read])
   @@index([userId, createdAt])
@@ -747,9 +753,9 @@ model BotRunLog {
 
   runAt         DateTime  @default(now())
   action        BotAction
-  triggerNews   Json?     // { title, url, sources: string[] }
+  triggerNews   Json? // { title, url, sources: string[] }
   generatedText String?   @db.Text // LLM-generated forecast text (for review)
-  forecastId    String?   // Prediction ID if forecast was created
+  forecastId    String? // Prediction ID if forecast was created
   isDryRun      Boolean   @default(false)
   error         String?   @db.Text
 
@@ -764,12 +770,12 @@ model BotRunLog {
 // ============================================
 
 model BotRejectedTopic {
-  id          String   @id @default(cuid())
-  botId       String
-  bot         BotConfig @relation(fields: [botId], references: [id], onDelete: Cascade)
+  id    String    @id @default(cuid())
+  botId String
+  bot   BotConfig @relation(fields: [botId], references: [id], onDelete: Cascade)
 
-  keywords    String[]                      // normalized keyword set of rejected topic
-  description String   @db.VarChar(500)    // human-readable e.g. "War between Israel and Lebanon"
+  keywords    String[] // normalized keyword set of rejected topic
+  description String   @db.VarChar(500) // human-readable e.g. "War between Israel and Lebanon"
 
   rejectedById String
   rejectedBy   User     @relation(fields: [rejectedById], references: [id], onDelete: Cascade)
