@@ -330,10 +330,19 @@ Set preferred display language.
 ## Leaderboard & Stats
 
 ### `GET /api/leaderboard`
-Top users by RS score. Public.
+Top users ranked by the selected scoring system. Public.
+
+| Query | Type | Default | Description |
+|-------|------|---------|-------------|
+| `sortBy` | enum | `rs` | One of: `rs`, `accuracy`, `totalCorrect`, `cuCommitted`, `brierScore`, `peerScore`, `aiScore`, `elo`, `glicko`, `roi`, `truthScore`, `weightedPeerScore`. See `docs/SCORING_SYSTEMS.md`. |
+| `tag` | string | – | Filter by tag slug. When provided, ELO and Glicko-2 are replayed from scratch for that tag only; other sorts are filtered to commitments on predictions tagged with the slug. |
+| `limit` | int | `50` | Max users to return (capped server-side). |
 
 ### `GET /api/top-reputation`
 Top users by reputation for sidebar widget. Public.
+
+### `GET /api/profile/[id]/glicko-history`
+Skill history (μ, σ, μ−3σ) over time for the user's profile chart. Public.
 
 ---
 
@@ -386,6 +395,12 @@ Admin-level forecast update (no status restrictions).
 
 ### `POST /api/admin/forecasts/backfill-rules` — Admin
 LLM-generate resolution rules for all forecasts that are missing them. Long-running (up to 300s).
+
+### `POST /api/admin/backfill-embeddings` — Admin
+Generate vector embeddings (gemini-embedding-2, 768 dims) for predictions that don't yet have one. Used to power similar-forecasts lookup. Long-running.
+
+### `POST /api/admin/recalculate-elo` — Admin
+Replay ELO history from scratch over all resolved commitments. Used after data corrections.
 
 ### `GET /api/admin/approvals`
 List forecasts with status `PENDING_APPROVAL`.
@@ -476,6 +491,51 @@ Search provider health check. Returns credit/status for Serper, SerpAPI, and Scr
 
 ### `GET /api/cron/cleanup`
 Clean up expired/stale data. Intended for cron use.
+
+### `GET /api/cron/heartbeat`
+Liveness probe used by external monitoring. Verifies app + DB and emits a metric.
+
+### `GET /api/cron/search-health`
+Periodic search-provider health check. Triggers a Telegram alert if a provider is degraded.
+
+---
+
+## Notifications
+
+### `GET /api/notifications` — Auth
+List notifications for the current user.
+
+### `GET /api/notifications/unread-count` — Auth
+Unread count for the bell badge.
+
+### `PATCH /api/notifications/[id]` — Auth
+Mark a single notification as read.
+
+### `GET /api/notifications/preferences` — Auth
+Get the user's notification preferences (email, push, telegram channels).
+
+### `PATCH /api/notifications/preferences` — Auth
+Update notification preferences.
+
+---
+
+## Telegram
+
+### `POST /api/telegram/rollback` — Internal
+Trigger a manual production rollback notification. Used by CI/CD.
+
+---
+
+## Comments (extended)
+
+### `POST /api/comments/[id]/react` — Auth
+Add or remove a reaction (emoji) on a comment.
+
+### `GET /api/comments/[id]/translate` — Auth
+LLM-translate a comment to the user's preferred language.
+
+### `GET /api/forecasts/[id]/translate` — Auth
+LLM-translate forecast claim/details/options to the user's preferred language.
 
 ---
 

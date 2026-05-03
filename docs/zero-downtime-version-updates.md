@@ -20,7 +20,7 @@ in Claude Code, or `aws ssm send-command` directly:
 ```bash
 # Start an interactive session
 aws ssm start-session --target i-04ea44d4243d35624   # production
-aws ssm start-session --target i-0286f62b47117b85c   # staging
+aws ssm start-session --target i-0406d237ca5d92cdf   # staging
 ```
 
 ## Usage
@@ -38,7 +38,7 @@ aws ssm send-command \
 
 ```bash
 aws ssm send-command \
-  --instance-ids i-0286f62b47117b85c \
+  --instance-ids i-0406d237ca5d92cdf \
   --document-name AWS-RunShellScript \
   --parameters 'commands=["cd ~/app && ./scripts/update-version.sh staging 1.7.X"]'
 ```
