@@ -171,9 +171,9 @@ Fail the forecast if ANY of these are true:
 2. The claim does not clearly relate to the original topic
 3. The resolution rules cite "reliable sources" or "news reports" without naming a specific authoritative source
 4. The resolution rules lack a concrete threshold or triggering event
-5. resolveByDatetime is more than 365 days away or less than 14 days away
-6. The detailsText is generic boilerplate that could apply to any news story
-7. The claim duplicates a well-known near-certain or near-impossible outcome
+5. The detailsText is generic boilerplate that could apply to any news story
+6. The claim duplicates a well-known near-certain or near-impossible outcome
+NOTE: do NOT validate resolveByDatetime — that check is done deterministically in code, you have no reliable concept of "today".
 
 Respond ONLY with JSON: { "pass": true|false, "reason": "one sentence explaining the specific failure if failed" }`,
 
