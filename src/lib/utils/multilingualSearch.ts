@@ -7,7 +7,7 @@ const log = createLogger('multilingual-search')
 
 // Cyrillic, Hebrew, Arabic, CJK ranges. If a query has any character in these
 // ranges we assume it isn't English and translate before searching.
-const NON_LATIN = /[Ѐ-ӿ֐-׿؀-ۿ一-鿿぀-ヿ]/
+export const NON_LATIN = /[Ѐ-ӿ֐-׿؀-ۿ一-鿿぀-ヿ]/
 
 // Small in-memory LRU. The express-prediction flow has no prediction ID yet,
 // so a content-hash cache is the right granularity.

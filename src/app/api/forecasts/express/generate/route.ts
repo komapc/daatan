@@ -1,7 +1,10 @@
-import { generateExpressPrediction } from '@/lib/llm/expressPrediction'
+import { generateExpressPrediction, NoArticlesFoundError } from '@/lib/llm/expressPrediction'
 import { z } from 'zod'
 import { apiError } from '@/lib/api-error'
 import { withAuth } from '@/lib/api-middleware'
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('express-generate')
 
 const generateSchema = z.object({
   userInput: z.string().min(5).max(1000),
@@ -41,11 +44,20 @@ export const POST = withAuth(async (request) => {
         controller.enqueue(encoder.encode(finalMessage))
         controller.close()
       } catch (error) {
-        if (error instanceof Error && error.message === 'NO_ARTICLES_FOUND') {
+        if (error instanceof NoArticlesFoundError) {
+          log.warn(
+            {
+              userInput: error.details.searchedFor,
+              isUrl: error.details.isUrl,
+              isNonLatin: error.details.isNonLatin,
+            },
+            'Express forecast: no articles found',
+          )
           const errorMessage = JSON.stringify({
             stage: 'error',
             error: 'NO_ARTICLES_FOUND',
-            message: "Couldn't find relevant articles. Try rephrasing your prediction or being more specific."
+            message: "Couldn't find relevant articles. Try rephrasing your prediction or being more specific.",
+            details: error.details,
           }) + '\n'
           controller.enqueue(encoder.encode(errorMessage))
         } else if (error instanceof Error && error.message.startsWith('OFFENSIVE_INPUT:')) {
