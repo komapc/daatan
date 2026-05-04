@@ -70,6 +70,12 @@ const LLM_CALL_TIMEOUT_MS = 10000 // 10 second timeout per LLM call
 const LLM_RETRY_ATTEMPTS = 2 // Total of 2 attempts (1 initial + 1 retry)
 const LLM_RETRY_DELAY_MS = 1000 // 1 second delay before retry
 
+// Deterministic resolveByDatetime range. Done in code, not in the LLM quality
+// gate prompt — the LLM has no concept of "today" and was rejecting valid
+// future dates as "too far in the future" using its training cutoff as now.
+const MIN_RESOLVE_DAYS = 14
+const MAX_RESOLVE_DAYS = 365
+
 interface LLMCallOptions {
   prompt: string
   temperature?: number
@@ -330,7 +336,7 @@ async function runBot(bot: BotWithUser, dryRun: boolean, isManual: boolean = fal
 
         if (hotTopics.length === 0) {
           log.info({ botId: bot.id, fetchedCount: items.length }, 'No hot topics detected from fetched items')
-          await logBotAction(bot.id, 'SKIPPED', { reason: 'No hot topics detected', fetchedCount: items.length }, null, null, dryRun)
+          await logBotAction(bot.id, 'SKIPPED', { reason: 'No hot topics detected', fetchedCount: items.length }, null, 'no hot topics detected', dryRun)
           summary.skipped++
         }
 
@@ -403,7 +409,7 @@ async function processTopic(
 
     if (alreadyExists) {
       log.info({ botId: bot.id, topic: topicTitle }, 'Topic already covered, skipping')
-      await logBotAction(bot.id, 'SKIPPED', { title: topicTitle, urls: sourceUrls }, null, null, dryRun)
+      await logBotAction(bot.id, 'SKIPPED', { title: topicTitle, urls: sourceUrls }, null, 'topic already covered (dedup)', dryRun)
       return 'skipped'
     }
 
@@ -448,7 +454,7 @@ async function processTopic(
         const skipCheck = JSON.parse(rawText.match(/\{[\s\S]*\}/)?.[0] ?? rawText)
         if (skipCheck?.skip === true) {
           log.info({ botId: bot.id, topic: topicTitle, tagFilter }, 'Topic out of scope, skipping')
-          await logBotAction(bot.id, 'SKIPPED', { title: topicTitle, urls: sourceUrls }, null, null, dryRun)
+          await logBotAction(bot.id, 'SKIPPED', { title: topicTitle, urls: sourceUrls }, null, `topic out of scope for tag filter '${tagFilter}'`, dryRun)
           return 'skipped'
         }
       } catch {
@@ -490,6 +496,20 @@ async function processTopic(
       forecast.claimText = `🤖 ${forecast.claimText}`
     }
 
+    // ── Deterministic resolveByDatetime check (done in code, not LLM) ───
+    // Catches LLM-generated dates outside our acceptable window before we
+    // burn another LLM call on the quality gate.
+    const resolveByCheck = new Date(forecast.resolveByDatetime)
+    if (!isNaN(resolveByCheck.getTime())) {
+      const days = (resolveByCheck.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+      if (days < MIN_RESOLVE_DAYS || days > MAX_RESOLVE_DAYS) {
+        const reason = `resolveByDatetime ${forecast.resolveByDatetime} is ${days.toFixed(0)} days out (need ${MIN_RESOLVE_DAYS}-${MAX_RESOLVE_DAYS})`
+        log.info({ botId: bot.id, topic: topicTitle, reason }, 'Forecast date out of range')
+        await logBotAction(bot.id, 'SKIPPED', { title: topicTitle, urls: sourceUrls, dateOutOfRange: true, daysOut: Math.round(days) }, null, reason, dryRun)
+        return 'skipped'
+      }
+    }
+
     // ── Quality gate ─────────────────────────────────────────────────────
     // Ask LLM to validate forecast quality before saving
     const qualityTemplate = await getPromptTemplate('forecast-quality-validation')
@@ -520,8 +540,9 @@ async function processTopic(
       const qualityCheck = JSON.parse(qMatch ? qMatch[0] : qText)
 
       if (!qualityCheck.pass) {
-        log.info({ botId: bot.id, topic: topicTitle, reason: qualityCheck.reason }, 'Forecast failed quality gate')
-        await logBotAction(bot.id, 'SKIPPED', { title: topicTitle, urls: sourceUrls, qualityReason: qualityCheck.reason }, null, null, dryRun)
+        const reason = qualityCheck.reason || 'quality gate failed'
+        log.info({ botId: bot.id, topic: topicTitle, reason }, 'Forecast failed quality gate')
+        await logBotAction(bot.id, 'SKIPPED', { title: topicTitle, urls: sourceUrls, qualityReason: reason }, null, reason, dryRun)
         return 'skipped'
       }
     } catch (parseErr) {
