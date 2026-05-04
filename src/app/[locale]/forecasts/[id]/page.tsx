@@ -98,7 +98,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     description,
     ...(!hasTranslation ? { robots: { index: false, follow: false } } : {}),
     alternates: {
-      canonical: `https://daatan.com/forecasts/${slug}`,
+      canonical: `https://daatan.com/${locale}/forecasts/${slug}`,
       languages: {
         'x-default': `https://daatan.com/forecasts/${slug}`,
         en: `https://daatan.com/forecasts/${slug}`,

@@ -27,7 +27,7 @@ export async function generateMetadata({
     title: meta.title,
     description: meta.description,
     alternates: {
-      canonical: 'https://daatan.com/forecasts',
+      canonical: `https://daatan.com/${locale}/forecasts`,
       languages: {
         'x-default': 'https://daatan.com/forecasts',
         en: 'https://daatan.com/forecasts',
