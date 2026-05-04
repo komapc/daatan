@@ -967,6 +967,92 @@ describe('runDueBots — quality gate', () => {
     expect(summaries[0].forecastsCreated).toBe(1)
     expect(prisma.prediction.create).toHaveBeenCalled()
   })
+
+  it('skips forecast and logs reason when resolveByDatetime is too soon (deterministic check)', async () => {
+    const { prisma } = await import('@/lib/prisma')
+    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/bots/rss')
+    const { runDueBots } = await import('@/lib/services/bots')
+
+    const bot = makeBot({ maxVotesPerDay: 0 })
+    vi.mocked(prisma.botConfig.findMany).mockResolvedValue([bot] as any)
+    vi.mocked(prisma.botRunLog.count).mockResolvedValue(0)
+    vi.mocked(fetchRssFeeds).mockResolvedValue([])
+    vi.mocked(detectHotTopics).mockReturnValue([
+      { title: 'Topic with too-soon resolve', items: [], sourceCount: 3 },
+    ] as any)
+
+    // 5 days from fake-now → below MIN_RESOLVE_DAYS (14)
+    const tooSoonForecast = JSON.stringify({
+      claimText: '🤖 X will happen',
+      detailsText: 'Soon.',
+      outcomeType: 'BINARY',
+      resolveByDatetime: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+      resolutionRules: 'Check.',
+      tags: ['news'],
+    })
+
+    mockGenerateContent
+      .mockResolvedValueOnce({ text: 'no' })
+      .mockResolvedValueOnce({ text: tooSoonForecast })
+
+    vi.mocked(prisma.prediction.findMany).mockResolvedValue([])
+    vi.mocked(prisma.botRunLog.create).mockResolvedValue({} as any)
+    vi.mocked(prisma.botConfig.update).mockResolvedValue({} as any)
+
+    const summaries = await runDueBots()
+
+    expect(summaries[0].forecastsCreated).toBe(0)
+    expect(summaries[0].skipped).toBe(1)
+    expect(prisma.prediction.create).not.toHaveBeenCalled()
+    // Quality gate should NOT have been called — date check rejects first
+    expect(mockGenerateContent).toHaveBeenCalledTimes(2) // dedup + generation only
+    expect(prisma.botRunLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          action: 'SKIPPED',
+          error: expect.stringMatching(/days out \(need 14-365\)/),
+        }),
+      }),
+    )
+  })
+
+  it('skips forecast when resolveByDatetime is too far (>365 days)', async () => {
+    const { prisma } = await import('@/lib/prisma')
+    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/bots/rss')
+    const { runDueBots } = await import('@/lib/services/bots')
+
+    const bot = makeBot({ maxVotesPerDay: 0 })
+    vi.mocked(prisma.botConfig.findMany).mockResolvedValue([bot] as any)
+    vi.mocked(prisma.botRunLog.count).mockResolvedValue(0)
+    vi.mocked(fetchRssFeeds).mockResolvedValue([])
+    vi.mocked(detectHotTopics).mockReturnValue([
+      { title: 'Topic with too-far resolve', items: [], sourceCount: 3 },
+    ] as any)
+
+    // 400 days from fake-now → above MAX_RESOLVE_DAYS (365)
+    const tooFarForecast = JSON.stringify({
+      claimText: '🤖 Y will happen',
+      detailsText: 'Far future.',
+      outcomeType: 'BINARY',
+      resolveByDatetime: new Date(Date.now() + 400 * 24 * 60 * 60 * 1000).toISOString(),
+      resolutionRules: 'Check.',
+      tags: ['news'],
+    })
+
+    mockGenerateContent
+      .mockResolvedValueOnce({ text: 'no' })
+      .mockResolvedValueOnce({ text: tooFarForecast })
+
+    vi.mocked(prisma.prediction.findMany).mockResolvedValue([])
+    vi.mocked(prisma.botRunLog.create).mockResolvedValue({} as any)
+    vi.mocked(prisma.botConfig.update).mockResolvedValue({} as any)
+
+    const summaries = await runDueBots()
+
+    expect(summaries[0].skipped).toBe(1)
+    expect(prisma.prediction.create).not.toHaveBeenCalled()
+    expect(mockGenerateContent).toHaveBeenCalledTimes(2) // no quality gate call
+  })
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
