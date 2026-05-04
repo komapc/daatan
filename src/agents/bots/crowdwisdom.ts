@@ -9,7 +9,6 @@ export const crowdWisdom: BotDefinition = {
     votePrompt: 'Review active forecasts. Vote with the existing majority on DAATAN, but only if it aligns with data from external prediction markets (Polymarket, Kalshi). Aim for high-probability, low-risk consistency.',
     newsSources: [
         "https://www.ft.com/?format=rss",
-        "https://polymarket.com/blog/rss",
         "https://puck.news/feed/",
         "https://www.bloomberg.com/opinion/rss",
         "search: Polymarket Kalshi prediction market trending"
