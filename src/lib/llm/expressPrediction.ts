@@ -2,7 +2,7 @@ import { SchemaType, type Schema } from '@google/generative-ai'
 import { getPromptTemplate, fillPrompt } from './bedrock-prompts'
 import { llmService } from './index'
 import { searchArticles, type SearchResult } from '../utils/webSearch'
-import { searchArticlesMultilingual } from '../utils/multilingualSearch'
+import { searchArticlesMultilingual, NON_LATIN } from '../utils/multilingualSearch'
 import { oracleSearch } from '../services/oracleSearch'
 import { fetchUrlContent } from '../utils/scraper'
 import { hashUrl } from '../utils/hash'
@@ -11,6 +11,21 @@ import { STANDARD_TAGS } from '@/lib/constants'
 import { checkContent } from '../services/moderation'
 
 const log = createLogger('express-prediction')
+
+export interface NoArticlesFoundDetails {
+  searchedFor: string
+  isUrl: boolean
+  isNonLatin: boolean
+}
+
+export class NoArticlesFoundError extends Error {
+  details: NoArticlesFoundDetails
+  constructor(details: NoArticlesFoundDetails) {
+    super('NO_ARTICLES_FOUND')
+    this.name = 'NoArticlesFoundError'
+    this.details = details
+  }
+}
 
 export const expressPredictionSchema: Schema = {
   description: "Structured prediction generated from user's casual input",
@@ -220,7 +235,9 @@ export async function generateExpressPrediction(
       // Fallback: use the URL as a search query
       onProgress?.('searching', { message: 'Searching for relevant articles...' })
       searchResults = await oracleSearch(url, 5) ?? await searchArticles(url, 5)
-      if (searchResults.length === 0) throw new Error('NO_ARTICLES_FOUND')
+      if (searchResults.length === 0) {
+        throw new NoArticlesFoundError({ searchedFor: url, isUrl: true, isNonLatin: false })
+      }
     } else {
       // Extract topic from article content using LLM
       onProgress?.('searching', { message: 'Reading article and extracting topic...' })
@@ -273,7 +290,11 @@ export async function generateExpressPrediction(
     searchResults = await oracleSearch(userInput, 5) ?? await searchArticlesMultilingual(userInput, 5)
 
     if (searchResults.length === 0) {
-      throw new Error('NO_ARTICLES_FOUND')
+      throw new NoArticlesFoundError({
+        searchedFor: userInput,
+        isUrl: false,
+        isNonLatin: NON_LATIN.test(userInput),
+      })
     }
   }
 

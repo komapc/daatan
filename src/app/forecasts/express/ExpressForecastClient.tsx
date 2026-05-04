@@ -74,6 +74,11 @@ export default function ExpressForecastClient({
   const [predictionPreview, setPredictionPreview] = useState<{ claim: string; resolveBy: string } | null>(null)
 
   const [skipSources, setSkipSources] = useState(false)
+  const [noArticlesDetails, setNoArticlesDetails] = useState<{
+    searchedFor: string
+    isUrl: boolean
+    isNonLatin: boolean
+  } | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [isPublishing, setIsPublishing] = useState(false)
   const [isGuessing, setIsGuessing] = useState(false)
@@ -182,6 +187,7 @@ export default function ExpressForecastClient({
             } else if (data.stage === 'error') {
               if (data.error === 'NO_ARTICLES_FOUND') {
                 setError(data.message || t('noArticlesFound'))
+                if (data.details) setNoArticlesDetails(data.details)
               } else if (data.error === 'OFFENSIVE_INPUT') {
                 setError(data.message)
               } else if (data.message?.startsWith('OFFENSIVE_INPUT:')) {
@@ -213,6 +219,14 @@ export default function ExpressForecastClient({
     setArticlesFound(0)
     setSourcesSummary('')
     setPredictionPreview(null)
+    setNoArticlesDetails(null)
+  }
+
+  const handleSkipSourcesAndRetry = () => {
+    setSkipSources(true)
+    setNoArticlesDetails(null)
+    setError('')
+    handleGenerate()
   }
 
   const handleRegenerateFromEdit = () => {
@@ -532,13 +546,38 @@ export default function ExpressForecastClient({
               </div>
             </div>
             <h3 className="text-lg font-bold text-white mb-2">{t('errorTitle')}</h3>
-            <p className="text-gray-300 mb-6">{error}</p>
-            <button
-              onClick={handleTryAgain}
-              className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors"
-            >
-              {t('tryAgain')}
-            </button>
+            <p className="text-gray-300 mb-4">{error}</p>
+            {noArticlesDetails && (
+              <div className="text-left text-sm bg-navy-800 border border-navy-600 rounded-lg p-4 mb-4 space-y-2">
+                <div>
+                  <span className="text-gray-400">{t('searchedFor')}: </span>
+                  <span className="text-white font-mono break-words">{noArticlesDetails.searchedFor}</span>
+                </div>
+                <div className="text-gray-300">{t('whatToTryNextHeader')}</div>
+                <ul className="list-disc list-inside text-gray-300 space-y-1">
+                  <li>{t('hintRephrase')}</li>
+                  {noArticlesDetails.isNonLatin && <li>{t('hintTryEnglish')}</li>}
+                  {noArticlesDetails.isUrl && <li>{t('hintUrlFailed')}</li>}
+                  <li>{t('hintBeMoreSpecific')}</li>
+                </ul>
+              </div>
+            )}
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                onClick={handleTryAgain}
+                className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors"
+              >
+                {t('tryAgain')}
+              </button>
+              {noArticlesDetails && (
+                <button
+                  onClick={handleSkipSourcesAndRetry}
+                  className="bg-navy-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-navy-500 transition-colors border border-navy-500"
+                >
+                  {t('skipSourcesAndRetry')}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
