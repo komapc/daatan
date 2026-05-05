@@ -32,7 +32,6 @@ import { ResolutionInfo } from './_forecast/ResolutionInfo'
 import { BotApprovalSection } from './_forecast/BotApprovalSection'
 import { SimilarForecasts } from './_forecast/SimilarForecasts'
 import { CommitmentsHistory } from './_forecast/CommitmentsHistory'
-import CommitmentDisplay from '@/components/forecasts/CommitmentDisplay'
 import type { Prediction } from './_forecast/types'
 
 const log = createClientLogger('ForecastDetail')
@@ -613,26 +612,6 @@ export default function ForecastDetailClient({ initialData, isLocalized }: { ini
         })()}
       </div>
 
-      {/* Your commitment details — shown whenever the user has committed */}
-      {prediction.userCommitment && (
-        <CommitmentDisplay
-          commitment={{
-            id: prediction.userCommitment.id,
-            cuCommitted: prediction.userCommitment.cuCommitted,
-            binaryChoice: prediction.userCommitment.binaryChoice,
-            rsSnapshot: 0,
-            createdAt: prediction.userCommitment.createdAt ?? new Date().toISOString(),
-            rsChange: prediction.userCommitment.rsChange,
-            brierScore: prediction.userCommitment.brierScore,
-            option: prediction.userCommitment.option,
-          }}
-          prediction={prediction}
-          onRemove={prediction.status === 'ACTIVE'
-            ? () => fetch(`/api/forecasts/${prediction.id}`).then(r => r.json()).then(setPrediction)
-            : undefined}
-        />
-      )}
-
       {/* Resolution Info (if resolved) */}
       <ResolutionInfo prediction={prediction} formatDate={formatDate} />
 
@@ -654,7 +633,13 @@ export default function ForecastDetailClient({ initialData, isLocalized }: { ini
       />
 
       {/* Commitments List */}
-      <CommitmentsHistory prediction={prediction} />
+      <CommitmentsHistory
+        prediction={prediction}
+        currentUserId={session?.user?.id}
+        onRemove={prediction.status === 'ACTIVE'
+          ? () => fetch(`/api/forecasts/${prediction.id}`).then(r => r.json()).then(setPrediction)
+          : undefined}
+      />
 
       {/* Author Section - Moved to bottom */}
       <div className="mt-12 p-6 border border-navy-600 rounded-xl bg-navy-700 shadow-sm flex items-center justify-between">
