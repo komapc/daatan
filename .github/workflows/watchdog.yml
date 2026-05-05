@@ -303,3 +303,50 @@ jobs:
               "./scripts/check-system-health.sh '"${{ matrix.env.name }}"'"
             ]' \
             --output text
+
+  # Polls CloudWatch alarms (prefix: daatan-) and posts to Telegram if any are
+  # ALARM. Independent of SSM and the EC2 instance — so it still fires when the
+  # SSM agent is dead, which is exactly the OOM state the existing
+  # check-system-health.sh can't detect (because that script runs on the box
+  # via SSM dispatch-without-await).
+  metric-alarm-watchdog:
+    name: CloudWatch Alarm Check
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: eu-central-1
+
+      - name: Check CloudWatch alarms in ALARM state
+        id: alarms
+        run: |
+          # JSON array of currently-firing daatan-* alarms, with name +
+          # description + state-reason. Empty array means nothing firing.
+          FIRING=$(aws cloudwatch describe-alarms \
+            --state-value ALARM \
+            --alarm-name-prefix daatan- \
+            --query 'MetricAlarms[*].{name:AlarmName,desc:AlarmDescription,reason:StateReason}' \
+            --output json)
+          COUNT=$(echo "$FIRING" | jq 'length')
+          echo "Firing count: $COUNT"
+          echo "$FIRING" | jq -r '.[] | "  - \(.name): \(.reason)"'
+          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+          # Newline-delimited so the Telegram step can format. Use base64 to
+          # survive the GITHUB_OUTPUT format which doesn't tolerate newlines.
+          echo "alarms_b64=$(echo "$FIRING" | jq -r '.[] | "• \(.name) — \(.reason)"' | base64 -w 0)" >> "$GITHUB_OUTPUT"
+
+      - name: Alert via Telegram
+        if: steps.alarms.outputs.count != '0'
+        run: |
+          ALARM_LINES=$(echo '${{ steps.alarms.outputs.alarms_b64 }}' | base64 -d)
+          MSG="🚨 <b>CloudWatch alarm(s) firing</b>%0A%0A$(echo "$ALARM_LINES" | sed 's/$/%0A/g' | tr -d '\n')"
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d "text=$MSG" \
+            -d "parse_mode=HTML" \
+            -d "disable_web_page_preview=true"
