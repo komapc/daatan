@@ -81,6 +81,9 @@ model User {
   // Bot rejection tracking
   rejectedBotTopics BotRejectedTopic[]
 
+  // Express Forecast attempt audit log
+  forecastCreationAttempts ForecastCreationAttempt[]
+
   // Comments & reactions
   comments         Comment[]
   commentReactions CommentReaction[]
@@ -784,6 +787,36 @@ model BotRejectedTopic {
   @@index([botId])
   @@index([rejectedAt])
   @@map("bot_rejected_topics")
+}
+
+// ============================================
+// FORECAST CREATION ATTEMPTS (Express Forecast audit log)
+// ============================================
+
+enum ForecastAttemptOutcome {
+  SUCCESS
+  NO_ARTICLES
+  MODERATED
+  SEARCH_UNAVAILABLE
+  GENERATION_FAILED
+}
+
+model ForecastCreationAttempt {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  userInput String                 @db.Text
+  isUrl     Boolean                @default(false)
+  outcome   ForecastAttemptOutcome
+  details   Json? // outcome-specific: {searchedFor,isNonLatin} | {moderationReason} | {searchErrorCode} | {errorMessage}
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([outcome])
+  @@index([createdAt(sort: Desc)])
+  @@map("forecast_creation_attempts")
 }
 
 // ============================================

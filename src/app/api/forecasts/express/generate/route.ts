@@ -3,17 +3,44 @@ import { z } from 'zod'
 import { apiError } from '@/lib/api-error'
 import { withAuth } from '@/lib/api-middleware'
 import { createLogger } from '@/lib/logger'
+import { prisma } from '@/lib/prisma'
+import { ForecastAttemptOutcome, Prisma } from '@prisma/client'
 
 const log = createLogger('express-generate')
+
+/**
+ * Persist a forecast-creation attempt audit row. Fire-and-forget — a DB
+ * failure here must not break the user's response stream.
+ */
+function recordAttempt(
+  userId: string,
+  userInput: string,
+  isUrl: boolean,
+  outcome: ForecastAttemptOutcome,
+  details: Prisma.InputJsonValue | null = null,
+): void {
+  prisma.forecastCreationAttempt
+    .create({
+      data: {
+        userId,
+        userInput: userInput.slice(0, 1000),
+        isUrl,
+        outcome,
+        details: details ?? undefined,
+      },
+    })
+    .catch((err) => log.warn({ err, outcome }, 'Failed to persist forecast attempt'))
+}
 
 const generateSchema = z.object({
   userInput: z.string().min(5).max(1000),
   skipSources: z.boolean().optional().default(false),
 })
 
-export const POST = withAuth(async (request) => {
+export const POST = withAuth(async (request, user) => {
   const body = await request.json()
   const { userInput, skipSources } = generateSchema.parse(body)
+  const isUrl = /^https?:\/\/[^\s]+$/i.test(userInput.trim())
 
   // Check if GEMINI_API_KEY is configured
   if (!process.env.GEMINI_API_KEY) {
@@ -42,6 +69,7 @@ export const POST = withAuth(async (request) => {
         // Send final result
         const finalMessage = JSON.stringify({ stage: 'complete', data: result }) + '\n'
         controller.enqueue(encoder.encode(finalMessage))
+        recordAttempt(user.id, userInput, isUrl, ForecastAttemptOutcome.SUCCESS, { skipSources })
         controller.close()
       } catch (error) {
         if (error instanceof NoArticlesFoundError) {
@@ -53,6 +81,10 @@ export const POST = withAuth(async (request) => {
             },
             'Express forecast: no articles found',
           )
+          recordAttempt(user.id, userInput, isUrl, ForecastAttemptOutcome.NO_ARTICLES, {
+            searchedFor: error.details.searchedFor,
+            isNonLatin: error.details.isNonLatin,
+          })
           const errorMessage = JSON.stringify({
             stage: 'error',
             error: 'NO_ARTICLES_FOUND',
@@ -62,6 +94,7 @@ export const POST = withAuth(async (request) => {
           controller.enqueue(encoder.encode(errorMessage))
         } else if (error instanceof Error && error.message.startsWith('OFFENSIVE_INPUT:')) {
           const reason = error.message.split('OFFENSIVE_INPUT:')[1].trim()
+          recordAttempt(user.id, userInput, isUrl, ForecastAttemptOutcome.MODERATED, { moderationReason: reason })
           const errorMessage = JSON.stringify({
             stage: 'error',
             error: 'OFFENSIVE_INPUT',
@@ -69,6 +102,10 @@ export const POST = withAuth(async (request) => {
           }) + '\n'
           controller.enqueue(encoder.encode(errorMessage))
         } else if (error instanceof Error && /Search API error: (400|401|403|429)/.test(error.message)) {
+          const match = error.message.match(/Search API error: (\d+)/)
+          recordAttempt(user.id, userInput, isUrl, ForecastAttemptOutcome.SEARCH_UNAVAILABLE, {
+            searchErrorCode: match ? Number(match[1]) : null,
+          })
           const errorMessage = JSON.stringify({
             stage: 'error',
             error: 'SEARCH_UNAVAILABLE',
@@ -76,6 +113,10 @@ export const POST = withAuth(async (request) => {
           }) + '\n'
           controller.enqueue(encoder.encode(errorMessage))
         } else {
+          const errMsg = error instanceof Error ? error.message : String(error)
+          recordAttempt(user.id, userInput, isUrl, ForecastAttemptOutcome.GENERATION_FAILED, {
+            errorMessage: errMsg.slice(0, 500),
+          })
           const errorMessage = JSON.stringify({
             stage: 'error',
             error: 'GENERATION_FAILED',
