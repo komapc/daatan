@@ -11,7 +11,7 @@ Oracle gateway (try first, optional)            ← src/lib/services/oracleSearc
   ↓ (null/empty/disabled)
 searchArticles()                                 ← src/lib/utils/webSearch.ts
   ↓
-[Serper → DataForSEO → BrightData → Nimbleway → SerpAPI → ScrapingBee → DuckDuckGo]
+[DataForSEO → Serper → BrightData → Nimbleway → SerpAPI → ScrapingBee → DuckDuckGo]
 ```
 
 **Oracle** is our internal proxy gateway (separate service). It runs its own provider chain server-side so credentials don't sit in every Next.js process. If `ORACLE_URL` + `ORACLE_API_KEY` are set, callers try it first; on `null`/empty/error/disabled, they fall back to the in-process chain.
@@ -22,12 +22,12 @@ searchArticles()                                 ← src/lib/utils/webSearch.ts
 
 | # | Provider     | Adapter (file:line)                   | Env vars                                  | Notes |
 |---|--------------|---------------------------------------|-------------------------------------------|-------|
-| 1 | Serper       | `webSearch.ts:33-75`                  | `SERPER_API_KEY`                          | News API; tries `news` → `topStories` → `organic` |
-| 2 | DataForSEO   | `webSearch.ts:150-185`                | `DATAFORSEO_LOGIN`, `DATAFORSEO_PASSWORD` | Google News API (HTTP basic auth) |
-| 3 | BrightData   | `webSearch.ts:191-238`                | `BRIGHTDATA_API_KEY`                      | Google SERP via proxy; HTML parsing |
-| 4 | Nimbleway    | `webSearch.ts:260-295`                | `NIMBLEWAY_API_KEY`                       | Google SERP API; structured JSON |
-| 5 | SerpAPI      | `webSearch.ts:97-128`                 | `SERPAPI_API_KEY`                         | News results (`tbm=nws`) |
-| 6 | ScrapingBee  | `webSearch.ts:316-346`                | `SCRAPINGBEE_API_KEY`                     | Google "store" API; news → top stories → organic |
+| 1 | DataForSEO   | `webSearch.ts:150-185`                | `DATAFORSEO_LOGIN`, `DATAFORSEO_PASSWORD` | Google News API (HTTP basic auth). Primary as of 2026-05-05. |
+| 2 | Serper       | `webSearch.ts:33-75`                  | `SERPER_API_KEY`                          | News API; tries `news` → `topStories` → `organic`. **Disabled (empty key) — out of credits 2026-05-05.** |
+| 3 | BrightData   | `webSearch.ts:191-238`                | `BRIGHTDATA_API_KEY`                      | Google SERP via proxy; HTML parsing. Not configured (no key in Secrets Manager). |
+| 4 | Nimbleway    | `webSearch.ts:260-295`                | `NIMBLEWAY_API_KEY`                       | Google SERP API; structured JSON. **Disabled (empty key) — trial quota finished 2026-05-05.** |
+| 5 | SerpAPI      | `webSearch.ts:97-128`                 | `SERPAPI_API_KEY`                         | News results (`tbm=nws`). **Disabled (empty key) — exhausted 2026-05-05.** |
+| 6 | ScrapingBee  | `webSearch.ts:316-346`                | `SCRAPINGBEE_API_KEY`                     | Google "store" API; news → top stories → organic. **Disabled (empty key) — exhausted 2026-05-05.** |
 | 7 | DuckDuckGo   | `webSearch.ts:352-400`                | (none — free)                             | DDG lite HTML scrape; last-resort, no quota |
 
 All adapters return the same shape:

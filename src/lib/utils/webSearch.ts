@@ -1,4 +1,6 @@
-// Web search utility with fallback chain: Serper → DataForSEO → BrightData → Nimbleway → SerpAPI → ScrapingBee → DuckDuckGo
+// Web search utility with fallback chain: DataForSEO → Serper → BrightData → Nimbleway → SerpAPI → ScrapingBee → DuckDuckGo
+// Provider order is determined by which env vars are set; provider functions stay
+// in place so any one can be re-enabled by populating its key in Secrets Manager.
 
 import { createLogger } from '@/lib/logger'
 
@@ -408,21 +410,7 @@ export async function searchArticles(
   limit: number = 10,
   options?: { dateFrom?: Date; dateTo?: Date },
 ): Promise<SearchResult[]> {
-  // 1. Serper
-  if (process.env.SERPER_API_KEY) {
-    try {
-      const results = await searchWithSerper(query, limit, options)
-      if (results.length > 0) {
-        log.debug({ provider: 'serper', count: results.length }, 'Search succeeded')
-        return results
-      }
-      log.warn('Serper returned 0 results, trying SerpAPI fallback')
-    } catch (error) {
-      log.warn({ err: error }, 'Serper failed, trying SerpAPI fallback')
-    }
-  }
-
-  // 2. DataForSEO
+  // 1. DataForSEO (primary)
   if (process.env.DATAFORSEO_LOGIN && process.env.DATAFORSEO_PASSWORD) {
     try {
       const results = await searchWithDataForSEO(query, limit)
@@ -430,9 +418,23 @@ export async function searchArticles(
         log.debug({ provider: 'dataforseo', count: results.length }, 'Search succeeded')
         return results
       }
-      log.warn('DataForSEO returned 0 results, trying BrightData fallback')
+      log.warn('DataForSEO returned 0 results, trying Serper fallback')
     } catch (error) {
-      log.warn({ err: error }, 'DataForSEO failed, trying BrightData fallback')
+      log.warn({ err: error }, 'DataForSEO failed, trying Serper fallback')
+    }
+  }
+
+  // 2. Serper
+  if (process.env.SERPER_API_KEY) {
+    try {
+      const results = await searchWithSerper(query, limit, options)
+      if (results.length > 0) {
+        log.debug({ provider: 'serper', count: results.length }, 'Search succeeded')
+        return results
+      }
+      log.warn('Serper returned 0 results, trying BrightData fallback')
+    } catch (error) {
+      log.warn({ err: error }, 'Serper failed, trying BrightData fallback')
     }
   }
 
