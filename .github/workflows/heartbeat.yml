@@ -36,7 +36,7 @@ jobs:
       - name: Ping heartbeat endpoint
         env:
           STAGING_URL: ${{ secrets.STAGING_URL }}
-          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          BOT_RUNNER_SECRET: ${{ secrets.BOT_RUNNER_SECRET }}
         run: |
           ENV="${{ matrix.env.name }}"
           if [ "$ENV" = "staging" ]; then
@@ -50,9 +50,13 @@ jobs:
             exit 0
           fi
 
+          # The endpoint validates x-cron-secret against env.BOT_RUNNER_SECRET
+          # on the server (src/app/api/cron/heartbeat/route.ts). Previously
+          # this workflow read CRON_SECRET, which is not a GitHub secret —
+          # the header was empty and every run got 401.
           HTTP=$(curl -s -o /tmp/heartbeat_body.txt -w "%{http_code}" \
             --max-time 15 \
-            -H "x-cron-secret: $CRON_SECRET" \
+            -H "x-cron-secret: $BOT_RUNNER_SECRET" \
             "$BASE/api/cron/heartbeat")
 
           BODY=$(cat /tmp/heartbeat_body.txt)
