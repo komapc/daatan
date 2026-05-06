@@ -48,7 +48,7 @@ export default function ForecastDetailClient({ initialData, isLocalized }: { ini
   const [error, setError] = useState<string | null>(null)
   const [isApproving, setIsApproving] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
-  const [showRules, setShowRules] = useState(false)
+  const [showRules, setShowRules] = useState(true)
 
   // Confidence state (-100 to 100 for BINARY, 0 to 100 for MC)
   const [userConfidence, setUserConfidence] = useState<number>(0)
