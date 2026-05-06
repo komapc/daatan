@@ -7,6 +7,8 @@ import { getCachedPredictionTranslation } from '@/lib/services/translation'
 import { buildForecastDescription } from '@/lib/forecast-seo'
 import { listComments } from '@/lib/services/comment'
 import type { Comment } from '@/components/comments/CommentThread'
+import { getContextTimeline } from '@/lib/services/context'
+import type { Snapshot as ContextSnapshot } from '@/components/forecasts/ContextTimeline'
 import ForecastDetailClient from '@/app/forecasts/[id]/ForecastDetailClient'
 
 export const revalidate = 60
@@ -21,6 +23,20 @@ async function getInitialComments(predictionId: string): Promise<Comment[]> {
     updatedAt: c.updatedAt.toISOString(),
     deletedAt: c.deletedAt ? c.deletedAt.toISOString() : null,
   })) as Comment[]
+}
+
+async function getInitialContextSnapshots(predictionId: string): Promise<ContextSnapshot[]> {
+  const data = await getContextTimeline(predictionId)
+  if (!data) return []
+  return data.contextSnapshots.map((s) => ({
+    id: s.id,
+    summary: s.summary,
+    sources: (s.sources as ContextSnapshot['sources']) ?? [],
+    createdAt: s.createdAt.toISOString(),
+    externalProbability: s.externalProbability,
+    externalReasoning: s.externalReasoning,
+    oracleSnapshot: (s.oracleSnapshot as ContextSnapshot['oracleSnapshot']) ?? null,
+  }))
 }
 
 interface Props {
@@ -150,7 +166,10 @@ export default async function LocaleForecastDetailPage({ params }: Props) {
     notFound()
   }
 
-  const initialComments = await getInitialComments(prediction.id)
+  const [initialComments, initialContextSnapshots] = await Promise.all([
+    getInitialComments(prediction.id),
+    getInitialContextSnapshots(prediction.id),
+  ])
 
   // Apply cached translations — never triggers Gemini, read-only
   const translations = await getCachedPredictionTranslation(prediction.id, locale)
@@ -204,6 +223,7 @@ export default async function LocaleForecastDetailPage({ params }: Props) {
           initialData={localizedPrediction as any}
           isLocalized={isLocalized}
           initialComments={initialComments}
+          initialContextSnapshots={initialContextSnapshots}
         />
       </Suspense>
     </>

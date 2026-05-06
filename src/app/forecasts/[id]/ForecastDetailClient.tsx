@@ -24,7 +24,7 @@ import { ModeratorResolutionSection } from './ModeratorResolutionSection'
 import CommentThread, { type Comment } from '@/components/comments/CommentThread'
 import ConfidenceSlider from '@/components/forecasts/ConfidenceSlider'
 import Speedometer from '@/components/forecasts/Speedometer'
-import ContextTimeline, { type AiEstimate } from '@/components/forecasts/ContextTimeline'
+import ContextTimeline, { type AiEstimate, type Snapshot as ContextSnapshot } from '@/components/forecasts/ContextTimeline'
 import { RoleBadge } from '@/components/RoleBadge'
 import { UserLink } from '@/components/UserLink'
 import { ForecastInfoPanel } from './_forecast/ForecastInfoPanel'
@@ -40,10 +40,12 @@ export default function ForecastDetailClient({
   initialData,
   isLocalized,
   initialComments,
+  initialContextSnapshots,
 }: {
   initialData?: Prediction
   isLocalized?: boolean
   initialComments?: Comment[]
+  initialContextSnapshots?: ContextSnapshot[]
 }) {
   const { id } = useParams() as { id: string }
   const router = useRouter()
@@ -394,6 +396,7 @@ export default function ForecastDetailClient({
         predictionId={prediction.id}
         initialContext={prediction.detailsText}
         initialContextUpdatedAt={prediction.contextUpdatedAt}
+        initialSnapshots={initialContextSnapshots}
         canAnalyze={!!session?.user && prediction.status === 'ACTIVE'}
         newsAnchor={prediction.newsAnchor}
         onAiEstimate={setAiEstimate}
