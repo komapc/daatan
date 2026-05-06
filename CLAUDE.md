@@ -44,6 +44,7 @@ Detailed architecture and feature docs: see [`docs/`](./docs/).
 - API surface: [`docs/API.md`](./docs/API.md)
 - Deployment: [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md), [`docs/zero-downtime-version-updates.md`](./docs/zero-downtime-version-updates.md)
 - Telegram notifications: [`docs/TELEGRAM_NOTIFICATIONS.md`](./docs/TELEGRAM_NOTIFICATIONS.md)
+- Analytics (GA4 + consent mode): [`docs/ANALYTICS.md`](./docs/ANALYTICS.md)
 
 ## Infra cheat-sheet
 
