@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react'
 import type { Metadata } from 'next'
 import { prisma } from '@/lib/prisma'
 import { getCachedPredictionTranslation } from '@/lib/services/translation'
+import { buildForecastDescription } from '@/lib/forecast-seo'
 import ForecastDetailClient from '@/app/forecasts/[id]/ForecastDetailClient'
 
 export const revalidate = 60
@@ -74,6 +75,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (shouldNoIndex) {
     return {
       title: prediction.claimText,
+      description: buildForecastDescription(prediction.claimText, prediction.detailsText),
       robots: { index: false, follow: false },
     }
   }
@@ -90,8 +92,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const translatedLangs = new Set(translatedLocales.map((t) => t.language))
   const hasTranslation = translatedLangs.has(locale)
   const title = translations.claimText || prediction.claimText
-  const description =
-    translations.detailsText || prediction.detailsText || 'Make your prediction on DAATAN.'
+  const description = buildForecastDescription(
+    title,
+    translations.detailsText || prediction.detailsText,
+  )
 
   return {
     title,

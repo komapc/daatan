@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { prisma } from '@/lib/prisma'
+import { buildForecastDescription } from '@/lib/forecast-seo'
 import ForecastDetailClient from './ForecastDetailClient'
 import { Loader2 } from 'lucide-react'
 
@@ -89,10 +90,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const slug = prediction.slug || prediction.id
   const noIndexStatuses = ['DRAFT', 'PENDING_APPROVAL', 'VOID', 'UNRESOLVABLE']
   const shouldNoIndex = !prediction.isPublic || noIndexStatuses.includes(prediction.status)
+  const description = buildForecastDescription(prediction.claimText, prediction.detailsText)
 
   if (shouldNoIndex) {
     return {
       title: prediction.claimText,
+      description,
       robots: { index: false, follow: false },
     }
   }
@@ -106,7 +109,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   return {
     title: prediction.claimText,
-    description: prediction.detailsText || 'Make your prediction on DAATAN.',
+    description,
     alternates: {
       canonical: `https://daatan.com/forecasts/${slug}`,
       languages: {
@@ -118,14 +121,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     },
     openGraph: {
       title: prediction.claimText,
-      description: prediction.detailsText || 'Make your prediction on DAATAN.',
+      description,
       type: 'article',
       url: `https://daatan.com/forecasts/${slug}`,
     },
     twitter: {
       card: 'summary_large_image',
       title: prediction.claimText,
-      description: prediction.detailsText || 'Make your prediction on DAATAN.',
+      description,
     },
   }
 }
