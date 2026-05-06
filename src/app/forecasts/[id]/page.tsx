@@ -5,8 +5,24 @@ import { prisma } from '@/lib/prisma'
 import { buildForecastDescription } from '@/lib/forecast-seo'
 import { listComments } from '@/lib/services/comment'
 import type { Comment } from '@/components/comments/CommentThread'
+import { getContextTimeline } from '@/lib/services/context'
+import type { Snapshot as ContextSnapshot } from '@/components/forecasts/ContextTimeline'
 import ForecastDetailClient from './ForecastDetailClient'
 import { Loader2 } from 'lucide-react'
+
+async function getInitialContextSnapshots(predictionId: string): Promise<ContextSnapshot[]> {
+  const data = await getContextTimeline(predictionId)
+  if (!data) return []
+  return data.contextSnapshots.map((s) => ({
+    id: s.id,
+    summary: s.summary,
+    sources: (s.sources as ContextSnapshot['sources']) ?? [],
+    createdAt: s.createdAt.toISOString(),
+    externalProbability: s.externalProbability,
+    externalReasoning: s.externalReasoning,
+    oracleSnapshot: (s.oracleSnapshot as ContextSnapshot['oracleSnapshot']) ?? null,
+  }))
+}
 
 export const revalidate = 60
 
@@ -163,7 +179,10 @@ export default async function ForecastDetailPage({ params }: Props) {
     notFound()
   }
 
-  const initialComments = await getInitialComments(prediction.id)
+  const [initialComments, initialContextSnapshots] = await Promise.all([
+    getInitialComments(prediction.id),
+    getInitialContextSnapshots(prediction.id),
+  ])
   const slug = prediction.slug || prediction.id
   const articleJsonLd = {
     '@context': 'https://schema.org',
@@ -202,7 +221,11 @@ export default async function ForecastDetailPage({ params }: Props) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
       <Suspense fallback={<ForecastLoading />}>
-        <ForecastDetailClient initialData={prediction as any} initialComments={initialComments} />
+        <ForecastDetailClient
+          initialData={prediction as any}
+          initialComments={initialComments}
+          initialContextSnapshots={initialContextSnapshots}
+        />
       </Suspense>
     </>
   )

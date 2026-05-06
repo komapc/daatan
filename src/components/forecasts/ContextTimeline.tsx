@@ -46,7 +46,7 @@ export type AiEstimate = {
   ciHigh?: number
 }
 
-type Snapshot = {
+export type Snapshot = {
   id: string
   summary: string
   sources: Source[]
@@ -66,6 +66,8 @@ type Props = {
   predictionId: string
   initialContext?: string | null
   initialContextUpdatedAt?: string | null
+  /** Server-prefetched timeline; when present, skips the mount-time fetch and renders snapshots into SSR HTML. */
+  initialSnapshots?: Snapshot[]
   canAnalyze: boolean
   newsAnchor?: NewsAnchor | null
   onAiEstimate?: (value: AiEstimate | null) => void
@@ -86,19 +88,23 @@ export default function ContextTimeline({
   predictionId,
   initialContext,
   initialContextUpdatedAt,
+  initialSnapshots,
   canAnalyze,
   newsAnchor,
   onAiEstimate,
 }: Props) {
+  const hasInitialSnapshots = initialSnapshots != null
   const [currentContext, setCurrentContext] = useState(initialContext || null)
   const [contextUpdatedAt, setContextUpdatedAt] = useState(initialContextUpdatedAt || null)
-  const [snapshots, setSnapshots] = useState<Snapshot[]>([])
+  const [snapshots, setSnapshots] = useState<Snapshot[]>(initialSnapshots ?? [])
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [analyzeStep, setAnalyzeStep] = useState<'searching' | 'analyzing' | 'estimating' | null>(null)
   const stepTimers = useRef<ReturnType<typeof setTimeout>[]>([])
-  const [isContextOpen, setIsContextOpen] = useState(false)
+  // Default to expanded only when the server prefetched a timeline — preserves the
+  // collapsed UX for callers without SSR data while giving crawlers visible content.
+  const [isContextOpen, setIsContextOpen] = useState(hasInitialSnapshots)
   const [isTimelineOpen, setIsTimelineOpen] = useState(false)
-  const [hasFetched, setHasFetched] = useState(false)
+  const [hasFetched, setHasFetched] = useState(hasInitialSnapshots)
   const [isMounted, setIsMounted] = useState(false)
   const t = useTranslations('context')
 
@@ -130,6 +136,11 @@ export default function ContextTimeline({
   // Fetch timeline on mount
   useEffect(() => {
     setIsMounted(true)
+    // Server already prefetched the timeline for SEO — propagate the AI estimate but skip the redundant fetch.
+    if (hasInitialSnapshots) {
+      onAiEstimate?.(toAiEstimate(initialSnapshots?.[0]))
+      return
+    }
     const fetchTimeline = async () => {
       try {
         const res = await fetch(`/api/forecasts/${predictionId}/context`)
@@ -148,7 +159,7 @@ export default function ContextTimeline({
       }
     }
     fetchTimeline()
-  }, [predictionId, onAiEstimate])
+  }, [predictionId, onAiEstimate, hasInitialSnapshots, initialSnapshots])
 
   // Seed localStorage from server averages when data is absent or stale
   useEffect(() => {
