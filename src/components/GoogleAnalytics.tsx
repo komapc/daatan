@@ -28,21 +28,24 @@ const GoogleAnalytics = ({ measurementId, isStaging = false }: GoogleAnalyticsPr
 
   return (
     <>
-      {/* Must run before the GA script so the default consent state is applied
-          before any events are sent. This script runs first (afterInteractive)
-          because it appears before the GA library tag in the JSX; it queues
-          the consent default in dataLayer which GA processes on initialization. */}
-      <Script id="google-analytics-consent" strategy="afterInteractive">
+      {/* beforeInteractive runs synchronously before hydration, guaranteeing
+          consent is established before the GA library initializes.
+          The ESLint rule below is a Pages Router holdover; App Router layouts
+          explicitly support beforeInteractive per Next.js docs. */}
+      {/* eslint-disable-next-line @next/next/no-before-interactive-script-outside-document */}
+      <Script id="google-analytics-consent" strategy="beforeInteractive">
         {`
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
+          var _storedConsent;
+          try { _storedConsent = localStorage.getItem('daatan_analytics_consent'); } catch(e) {}
           gtag('consent', 'default', {
-            analytics_storage: 'denied',
+            analytics_storage: _storedConsent === 'granted' ? 'granted' : 'denied',
             ad_storage: 'denied',
             functionality_storage: 'denied',
             personalization_storage: 'denied',
             security_storage: 'granted',
-            wait_for_update: 500
+            wait_for_update: _storedConsent ? undefined : 500
           });
         `}
       </Script>
