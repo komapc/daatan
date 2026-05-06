@@ -5,9 +5,23 @@ import type { Metadata } from 'next'
 import { prisma } from '@/lib/prisma'
 import { getCachedPredictionTranslation } from '@/lib/services/translation'
 import { buildForecastDescription } from '@/lib/forecast-seo'
+import { listComments } from '@/lib/services/comment'
+import type { Comment } from '@/components/comments/CommentThread'
 import ForecastDetailClient from '@/app/forecasts/[id]/ForecastDetailClient'
 
 export const revalidate = 60
+
+const SSR_COMMENT_LIMIT = 50
+
+async function getInitialComments(predictionId: string): Promise<Comment[]> {
+  const { comments } = await listComments({ predictionId, page: 1, limit: SSR_COMMENT_LIMIT })
+  return comments.map((c) => ({
+    ...c,
+    createdAt: c.createdAt.toISOString(),
+    updatedAt: c.updatedAt.toISOString(),
+    deletedAt: c.deletedAt ? c.deletedAt.toISOString() : null,
+  })) as Comment[]
+}
 
 interface Props {
   params: Promise<{ locale: string; id: string }>
@@ -136,6 +150,8 @@ export default async function LocaleForecastDetailPage({ params }: Props) {
     notFound()
   }
 
+  const initialComments = await getInitialComments(prediction.id)
+
   // Apply cached translations — never triggers Gemini, read-only
   const translations = await getCachedPredictionTranslation(prediction.id, locale)
   const isLocalized = Object.keys(translations).length > 0
@@ -184,7 +200,11 @@ export default async function LocaleForecastDetailPage({ params }: Props) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
       <Suspense fallback={<ForecastLoading />}>
-        <ForecastDetailClient initialData={localizedPrediction as any} isLocalized={isLocalized} />
+        <ForecastDetailClient
+          initialData={localizedPrediction as any}
+          isLocalized={isLocalized}
+          initialComments={initialComments}
+        />
       </Suspense>
     </>
   )

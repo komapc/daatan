@@ -39,19 +39,23 @@ export interface Comment {
 
 interface CommentThreadProps {
   predictionId?: string
+  initialComments?: Comment[]
 }
 
-export default function CommentThread({ predictionId }: CommentThreadProps) {
+export default function CommentThread({ predictionId, initialComments }: CommentThreadProps) {
   const { data: session } = useSession()
-  const [comments, setComments] = useState<Comment[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [comments, setComments] = useState<Comment[]>(initialComments ?? [])
+  const [isLoading, setIsLoading] = useState(initialComments == null)
 
   useEffect(() => {
+    // Server already pre-fetched the thread for SEO; skip the redundant client fetch.
+    if (initialComments != null) return
+
     const fetchComments = async () => {
       try {
         const params = new URLSearchParams()
         if (predictionId) params.set('predictionId', predictionId)
-        
+
         const response = await fetch(`/api/comments?${params}`)
         if (response.ok) {
           const data = await response.json()
@@ -65,7 +69,7 @@ export default function CommentThread({ predictionId }: CommentThreadProps) {
     }
 
     fetchComments()
-  }, [predictionId])
+  }, [predictionId, initialComments])
 
   const handleCommentAdded = (newComment: Comment) => {
     setComments([newComment, ...comments])
