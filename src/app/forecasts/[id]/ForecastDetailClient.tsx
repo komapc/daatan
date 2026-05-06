@@ -21,7 +21,7 @@ import {
 import { toast } from 'react-hot-toast'
 import { useTranslations, useLocale } from 'next-intl'
 import { ModeratorResolutionSection } from './ModeratorResolutionSection'
-import CommentThread from '@/components/comments/CommentThread'
+import CommentThread, { type Comment } from '@/components/comments/CommentThread'
 import ConfidenceSlider from '@/components/forecasts/ConfidenceSlider'
 import Speedometer from '@/components/forecasts/Speedometer'
 import ContextTimeline, { type AiEstimate } from '@/components/forecasts/ContextTimeline'
@@ -36,7 +36,15 @@ import type { Prediction } from './_forecast/types'
 
 const log = createClientLogger('ForecastDetail')
 
-export default function ForecastDetailClient({ initialData, isLocalized }: { initialData?: Prediction; isLocalized?: boolean }) {
+export default function ForecastDetailClient({
+  initialData,
+  isLocalized,
+  initialComments,
+}: {
+  initialData?: Prediction
+  isLocalized?: boolean
+  initialComments?: Comment[]
+}) {
   const { id } = useParams() as { id: string }
   const router = useRouter()
   const { data: session } = useSession()
@@ -670,7 +678,7 @@ export default function ForecastDetailClient({ initialData, isLocalized }: { ini
 
       {/* Comments Section */}
       <div className="border-t border-navy-600 mt-12 pt-8">
-        <CommentThread predictionId={prediction.id} />
+        <CommentThread predictionId={prediction.id} initialComments={initialComments} />
       </div>
 
         </div>{/* end left column */}

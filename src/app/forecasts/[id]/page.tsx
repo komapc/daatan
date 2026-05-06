@@ -3,10 +3,24 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { prisma } from '@/lib/prisma'
 import { buildForecastDescription } from '@/lib/forecast-seo'
+import { listComments } from '@/lib/services/comment'
+import type { Comment } from '@/components/comments/CommentThread'
 import ForecastDetailClient from './ForecastDetailClient'
 import { Loader2 } from 'lucide-react'
 
 export const revalidate = 60
+
+const SSR_COMMENT_LIMIT = 50
+
+async function getInitialComments(predictionId: string): Promise<Comment[]> {
+  const { comments } = await listComments({ predictionId, page: 1, limit: SSR_COMMENT_LIMIT })
+  return comments.map((c) => ({
+    ...c,
+    createdAt: c.createdAt.toISOString(),
+    updatedAt: c.updatedAt.toISOString(),
+    deletedAt: c.deletedAt ? c.deletedAt.toISOString() : null,
+  })) as Comment[]
+}
 
 interface Props {
   params: Promise<{ id: string }>
@@ -149,6 +163,7 @@ export default async function ForecastDetailPage({ params }: Props) {
     notFound()
   }
 
+  const initialComments = await getInitialComments(prediction.id)
   const slug = prediction.slug || prediction.id
   const articleJsonLd = {
     '@context': 'https://schema.org',
@@ -187,7 +202,7 @@ export default async function ForecastDetailPage({ params }: Props) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
       <Suspense fallback={<ForecastLoading />}>
-        <ForecastDetailClient initialData={prediction as any} />
+        <ForecastDetailClient initialData={prediction as any} initialComments={initialComments} />
       </Suspense>
     </>
   )
