@@ -40,4 +40,36 @@ describe('buildForecastDescription', () => {
     const b = buildForecastDescription('Forecast B about Russia', null)
     expect(a).not.toBe(b)
   })
+
+  it('enriches fallback with ctx when detailsText is absent', () => {
+    const claim = 'Will inflation drop below 3% by year end?'
+    const result = buildForecastDescription(claim, null, {
+      commitmentCount: 12,
+      resolveByDatetime: '2026-12-31T00:00:00Z',
+    })
+    expect(result).toContain('12 forecasters have committed')
+    expect(result).toContain('resolves')
+    expect(result.length).toBeLessThanOrEqual(158)
+  })
+
+  it('uses singular "forecaster" when commitmentCount is 1', () => {
+    const result = buildForecastDescription('Will X happen?', null, { commitmentCount: 1 })
+    expect(result).toContain('1 forecaster have committed')
+  })
+
+  it('ignores ctx when detailsText is long enough', () => {
+    const details = 'A detailed analysis of weather patterns suggests rain is likely in the morning.'
+    const result = buildForecastDescription('Will it rain?', details, {
+      commitmentCount: 5,
+      resolveByDatetime: '2026-12-31T00:00:00Z',
+    })
+    expect(result).toBe(details)
+    expect(result).not.toContain('forecaster')
+  })
+
+  it('falls back to claimText when ctx is empty', () => {
+    const claim = 'Will the market recover?'
+    const result = buildForecastDescription(claim, null, {})
+    expect(result).toBe(claim)
+  })
 })
