@@ -110,7 +110,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         { slug: idOrSlug }
       ]
     },
-    select: { id: true, claimText: true, detailsText: true, slug: true, isPublic: true, status: true },
+    select: {
+      id: true,
+      claimText: true,
+      detailsText: true,
+      slug: true,
+      isPublic: true,
+      status: true,
+      resolveByDatetime: true,
+      _count: { select: { commitments: true } },
+    },
   })
 
   if (!prediction) {
@@ -122,7 +131,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const slug = prediction.slug || prediction.id
   const noIndexStatuses = ['DRAFT', 'PENDING_APPROVAL', 'VOID', 'UNRESOLVABLE']
   const shouldNoIndex = !prediction.isPublic || noIndexStatuses.includes(prediction.status)
-  const description = buildForecastDescription(prediction.claimText, prediction.detailsText)
+  const description = buildForecastDescription(prediction.claimText, prediction.detailsText, {
+    resolveByDatetime: prediction.resolveByDatetime,
+    commitmentCount: prediction._count.commitments,
+  })
 
   if (shouldNoIndex) {
     return {

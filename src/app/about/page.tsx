@@ -4,8 +4,8 @@ import { VERSION } from '@/lib/version'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: 'About',
-  description: 'Learn how DAATAN works — a forecast tracking platform where you make predictions, track your accuracy, and build your credibility over time.',
+  title: 'How DAATAN Works — Forecast Tracking & Prediction Market',
+  description: 'Learn how DAATAN works — a forecast tracking platform where you make predictions, stake your reputation, track your Brier score, and build your credibility over time.',
   alternates: { canonical: '/about' },
   openGraph: { url: '/about', type: 'website' },
 }

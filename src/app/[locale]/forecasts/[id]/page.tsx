@@ -95,7 +95,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const prediction = await prisma.prediction.findFirst({
     where: { OR: [{ id: idOrSlug }, { slug: idOrSlug }] },
-    select: { id: true, claimText: true, detailsText: true, slug: true, isPublic: true, status: true },
+    select: {
+      id: true,
+      claimText: true,
+      detailsText: true,
+      slug: true,
+      isPublic: true,
+      status: true,
+      resolveByDatetime: true,
+      _count: { select: { commitments: true } },
+    },
   })
 
   if (!prediction) return { title: 'Forecast Not Found' }
@@ -103,11 +112,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const slug = prediction.slug || prediction.id
   const noIndexStatuses = ['DRAFT', 'PENDING_APPROVAL', 'VOID', 'UNRESOLVABLE']
   const shouldNoIndex = !prediction.isPublic || noIndexStatuses.includes(prediction.status)
+  const baseCtx = {
+    resolveByDatetime: prediction.resolveByDatetime,
+    commitmentCount: prediction._count.commitments,
+  }
 
   if (shouldNoIndex) {
     return {
       title: prediction.claimText,
-      description: buildForecastDescription(prediction.claimText, prediction.detailsText),
+      description: buildForecastDescription(prediction.claimText, prediction.detailsText, baseCtx),
       robots: { index: false, follow: false },
     }
   }
@@ -127,6 +140,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description = buildForecastDescription(
     title,
     translations.detailsText || prediction.detailsText,
+    baseCtx,
   )
 
   return {

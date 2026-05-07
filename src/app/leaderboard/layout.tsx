@@ -15,8 +15,8 @@ const fetchTopUsersForJsonLd = unstable_cache(
 )
 
 export const metadata: Metadata = {
-  title: 'Leaderboard',
-  description: 'Top forecasters on DAATAN ranked by reputation score, accuracy, and staked Confidence Units.',
+  title: 'Leaderboard — Top Forecasters by Accuracy & Reputation',
+  description: 'See who leads on DAATAN. Rankings by Reputation Score, Brier calibration, ELO, peer score, and more — across all forecasts and filtered by topic.',
   alternates: { canonical: '/leaderboard' },
   openGraph: { url: '/leaderboard', type: 'website' },
 }

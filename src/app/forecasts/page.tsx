@@ -1,7 +1,15 @@
+import type { Metadata } from 'next'
 import { unstable_cache } from 'next/cache'
 import { PredictionsPage } from './PredictionsClient'
 import type { Prediction } from '@/components/forecasts/ForecastCard'
 import { listForecasts, enrichPredictions } from '@/lib/services/forecast'
+
+export const metadata: Metadata = {
+  title: 'Forecasts — Browse Predictions',
+  description: 'Browse open and resolved predictions on DAATAN. Stake your reputation on geopolitics, economics, technology, and more. Track accuracy with Brier scores and ELO rankings.',
+  alternates: { canonical: '/forecasts' },
+  openGraph: { url: '/forecasts', type: 'website' },
+}
 
 // Render on demand — at build time the DB is a placeholder. The data layer
 // below is cached so crawler hits don't re-query the DB on every request.
