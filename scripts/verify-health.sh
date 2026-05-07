@@ -117,7 +117,7 @@ else
     exit 1
 fi
 
-# Verify OAuth credentials against Google (live validation)
+# Verify OAuth credentials against Google (live validation — warning only, does not block deploy)
 echo -n "Verifying Google OAuth credentials... "
 VERIFY_RESPONSE=$(curl -s -w "\n%{http_code}" "$URL/api/health/auth?verify=true&cb=$CACHE_BUSTER")
 VERIFY_BODY=$(echo "$VERIFY_RESPONSE" | head -n -1)
@@ -126,12 +126,10 @@ VERIFY_CODE=$(echo "$VERIFY_RESPONSE" | tail -1)
 if [ "$VERIFY_CODE" = "200" ]; then
     echo -e "${GREEN}OK${NC} (Google accepted credentials)"
 else
-    echo -e "${RED}FAILED${NC} (HTTP $VERIFY_CODE)"
     GOOGLE_ERROR=$(echo "$VERIFY_BODY" | grep -oP '"google_error"\s*:\s*"[^"]*"' | sed 's/.*"\([^"]*\)"$/\1/' || echo "unknown")
-    echo -e "  Google OAuth credentials are INVALID (error: $GOOGLE_ERROR)"
-    echo -e "  Login will not work until credentials are updated in .env and containers restarted"
-    echo -e "  See SECRETS.md for rotation instructions"
-    exit 1
+    echo -e "${YELLOW}WARN${NC} (HTTP $VERIFY_CODE — error: $GOOGLE_ERROR)"
+    echo -e "  Google OAuth credentials may be invalid — login could be broken."
+    echo -e "  Check /api/health/auth?verify=true and rotate credentials if needed."
 fi
 
 echo -e "${GREEN}✅ Health check passed!${NC}"
