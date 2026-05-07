@@ -7,7 +7,10 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   const t = await getTranslations({ locale, namespace: 'footer' })
   return {
     title: t('privacy'),
-    alternates: { canonical: `/${locale}/privacy` },
+    // Content is the same English text on every locale (page literally says
+    // "Authoritative version in English"), so consolidate the duplicates by
+    // pointing all locale canonicals at the en URL until the content is translated.
+    alternates: { canonical: 'https://daatan.com/privacy' },
   }
 }
 

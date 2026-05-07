@@ -3,8 +3,10 @@ import { notFound } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import type { Metadata } from 'next'
 import { prisma } from '@/lib/prisma'
+import { auth } from '@/auth'
 import { getCachedPredictionTranslation } from '@/lib/services/translation'
 import { buildForecastDescription } from '@/lib/forecast-seo'
+import { isForecastViewableByVisitor } from '@/lib/forecast-visibility'
 import { listComments } from '@/lib/services/comment'
 import type { Comment } from '@/components/comments/CommentThread'
 import { getContextTimeline } from '@/lib/services/context'
@@ -163,6 +165,14 @@ export default async function LocaleForecastDetailPage({ params }: Props) {
   const prediction = await getPrediction(idOrSlug)
 
   if (!prediction) {
+    notFound()
+  }
+
+  const session = await auth()
+  if (!isForecastViewableByVisitor(prediction, {
+    userId: session?.user?.id,
+    role: session?.user?.role,
+  })) {
     notFound()
   }
 
