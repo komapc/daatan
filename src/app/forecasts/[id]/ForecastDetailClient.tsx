@@ -60,8 +60,8 @@ export default function ForecastDetailClient({
   const [isMounted, setIsMounted] = useState(false)
   const [showRules, setShowRules] = useState(true)
 
-  // Confidence state (-100 to 100 for BINARY, 0 to 100 for MC)
-  const [userConfidence, setUserConfidence] = useState<number>(0)
+  // Confidence state (0 to 100 for display; 50 = neutral for BINARY)
+  const [userConfidence, setUserConfidence] = useState<number>(50)
   const [initialUserConfidence, setInitialUserConfidence] = useState<number | null>(null)
   const [mcConfidence, setMcConfidence] = useState<number>(70)
   const [aiEstimate, setAiEstimate] = useState<AiEstimate | null>(null)
@@ -83,13 +83,14 @@ export default function ForecastDetailClient({
   useEffect(() => {
     setIsMounted(true)
     if (prediction?.userCommitment) {
-      // cuCommitted now stores confidence directly (-100..100 for BINARY, 0..100 for MC)
+      // cuCommitted stores -100..100 for BINARY in DB; convert to 0..100 for display
       const val = prediction.userCommitment.cuCommitted ?? (prediction.userCommitment.binaryChoice ? 70 : -70)
       if (prediction.userCommitment.optionId) {
         setMcConfidence(Math.max(1, Math.abs(val)))
       } else {
-        setUserConfidence(val)
-        setInitialUserConfidence(val)
+        const displayVal = Math.round((val + 100) / 2)
+        setUserConfidence(displayVal)
+        setInitialUserConfidence(displayVal)
       }
       setSelectedOptionId(prediction.userCommitment.optionId || null)
     }
@@ -155,11 +156,13 @@ export default function ForecastDetailClient({
   }
 
   const handleCommitConfidence = async () => {
-    if (userConfidence === 0 || !prediction) return
+    if (userConfidence === 50 || !prediction) return
 
     setIsSubmitting(true)
     try {
-      const body: Record<string, unknown> = { confidence: userConfidence }
+      // Convert display 0..100 back to DB -100..100 for BINARY before sending
+      const dbConfidence = (userConfidence - 50) * 2
+      const body: Record<string, unknown> = { confidence: dbConfidence }
       if (prediction.outcomeType === 'MULTIPLE_CHOICE' && selectedOptionId) {
         body.optionId = selectedOptionId
         body.confidence = Math.abs(userConfidence)
@@ -411,24 +414,21 @@ export default function ForecastDetailClient({
           const noTokens = prediction.commitments.filter(c => c.binaryChoice === false).reduce((sum, c) => sum + Math.abs(c.cuCommitted), 0)
           const marketProb = (yesTokens + noTokens) > 0 ? Math.round((yesTokens / (yesTokens + noTokens)) * 100) : 50
           
-          // Map user slider (-100 to 100) to 0-100 for gauge
-          const userProb = (userConfidence + 100) / 2
-          
           return (
             <div className="flex flex-col items-center">
               <div className="w-full max-w-lg relative rounded-3xl border border-navy-600 bg-navy-700 p-8 sm:p-12 flex flex-col items-center justify-center shadow-2xl overflow-hidden">
                 {/* Background glow */}
                 <div className="absolute inset-0 bg-gradient-to-b from-blue-500/5 to-transparent pointer-events-none" />
-                
+
                 <Speedometer
                   percentage={marketProb}
-                  userPercentage={userProb}
+                  userPercentage={userConfidence}
                   aiPercentage={aiEstimate?.probability ?? prediction.confidence ?? undefined}
                   aiCiLow={aiEstimate?.ciLow ?? prediction.aiCiLow ?? undefined}
                   aiCiHigh={aiEstimate?.ciHigh ?? prediction.aiCiHigh ?? undefined}
                   size="xl"
                   onUserPercentageChange={prediction.status === 'ACTIVE'
-                    ? (pct) => setUserConfidence(Math.round(pct * 2 - 100))
+                    ? (pct) => setUserConfidence(Math.round(pct))
                     : undefined}
                 />
 

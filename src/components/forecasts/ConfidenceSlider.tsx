@@ -25,34 +25,34 @@ export default function ConfidenceSlider({
   const t = useTranslations('commitment.confidenceLabel')
 
   const getLabel = (val: number) => {
-    if (val === 0) return t('neutral')
-    if (val <= -90) return t('almostCertainNo')
-    if (val <= -70) return t('veryLikelyNo')
-    if (val <= -50) return t('probablyNo')
-    if (val <= -30) return t('leaningNo')
-    if (val < 0) return t('slightlyNo')
-    if (val >= 90) return t('almostCertainYes')
-    if (val >= 70) return t('veryLikelyYes')
-    if (val >= 50) return t('probablyYes')
-    if (val >= 30) return t('leaningYes')
-    return t('slightlyYes')
+    if (val <= 5)  return t('almostCertainNo')
+    if (val <= 15) return t('veryLikelyNo')
+    if (val <= 25) return t('probablyNo')
+    if (val <= 35) return t('leaningNo')
+    if (val < 50)  return t('slightlyNo')
+    if (val === 50) return t('neutral')
+    if (val < 65)  return t('slightlyYes')
+    if (val < 75)  return t('leaningYes')
+    if (val < 85)  return t('probablyYes')
+    if (val < 95)  return t('veryLikelyYes')
+    return t('almostCertainYes')
   }
 
-  const isNeutral = value === 0
+  const isNeutral = value === 50
 
   return (
     <div className="w-full space-y-6 py-4">
       <div className="space-y-4">
         <div className="flex justify-between text-[10px] uppercase tracking-widest font-bold text-gray-500">
-          <span className="text-red-400">100% NO</span>
-          <span>Neutral</span>
+          <span className="text-red-400">0% NO</span>
+          <span>50 Neutral</span>
           <span className="text-teal">100% YES</span>
         </div>
-        
+
         <div className="relative group">
           <input
             type="range"
-            min="-100"
+            min="0"
             max="100"
             step="any"
             value={value}
@@ -60,18 +60,18 @@ export default function ConfidenceSlider({
             disabled={disabled || isSubmitting}
             className="w-full h-3 bg-navy-800 rounded-lg appearance-none cursor-pointer accent-blue-500 hover:accent-blue-400 transition-all border border-navy-600 shadow-inner"
           />
-          {/* Zero mark */}
+          {/* Midpoint mark at 50 */}
           <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-navy-600 -translate-x-1/2 pointer-events-none" />
         </div>
-        
+
         <div className="text-center">
           <div className={`text-xl font-black uppercase tracking-tighter ${
-            value > 0 ? 'text-teal' : value < 0 ? 'text-red-400' : 'text-gray-500'
+            value > 50 ? 'text-teal' : value < 50 ? 'text-red-400' : 'text-gray-500'
           }`}>
             {getLabel(value)}
           </div>
           <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">
-            Confidence Score: {value > 0 ? '+' : ''}{value}
+            Confidence: {value}
           </div>
         </div>
       </div>
