@@ -58,7 +58,7 @@ export default function ForecastDetailClient({
   const [error, setError] = useState<string | null>(null)
   const [isApproving, setIsApproving] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
-  const [showRules, setShowRules] = useState(true)
+  const [showRules, setShowRules] = useState(false)
 
   // Confidence state (0 to 100 for display; 50 = neutral for BINARY)
   const [userConfidence, setUserConfidence] = useState<number>(50)
