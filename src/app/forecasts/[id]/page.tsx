@@ -2,7 +2,9 @@ import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { prisma } from '@/lib/prisma'
+import { auth } from '@/auth'
 import { buildForecastDescription } from '@/lib/forecast-seo'
+import { isForecastViewableByVisitor } from '@/lib/forecast-visibility'
 import { listComments } from '@/lib/services/comment'
 import type { Comment } from '@/components/comments/CommentThread'
 import { getContextTimeline } from '@/lib/services/context'
@@ -176,6 +178,14 @@ export default async function ForecastDetailPage({ params }: Props) {
   const prediction = await getPrediction(id)
 
   if (!prediction) {
+    notFound()
+  }
+
+  const session = await auth()
+  if (!isForecastViewableByVisitor(prediction, {
+    userId: session?.user?.id,
+    role: session?.user?.role,
+  })) {
     notFound()
   }
 

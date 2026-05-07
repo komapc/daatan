@@ -7,7 +7,9 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   const t = await getTranslations({ locale, namespace: 'footer' })
   return {
     title: t('terms'),
-    alternates: { canonical: `/${locale}/terms` },
+    // Same rationale as the locale privacy page: the rendered content is the
+    // English text on every locale, so consolidate canonicals on /terms.
+    alternates: { canonical: 'https://daatan.com/terms' },
   }
 }
 
