@@ -166,7 +166,11 @@ export default function ActivityFeedPage() {
                             {action.chipText}
                           </span>
                           <span className="text-gray-500">·</span>
-                          <span className="font-semibold text-amber-400">{item.cuCommitted} CU</span>
+                          <span className="font-semibold text-amber-400">
+                            {item.binaryChoice !== null
+                              ? Math.round((item.cuCommitted + 100) / 2)
+                              : Math.abs(item.cuCommitted)}%
+                          </span>
                         </div>
                         <div className="flex items-center gap-1 text-xs text-gray-400 shrink-0">
                           <Clock className="w-3 h-3" />

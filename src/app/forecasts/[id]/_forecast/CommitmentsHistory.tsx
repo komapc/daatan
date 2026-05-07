@@ -11,9 +11,8 @@ interface Props {
   onRemove?: () => void
 }
 
-function toPct(cuCommitted: number, binaryChoice?: boolean): number {
-  const yesPct = Math.round((cuCommitted + 100) / 2)
-  return binaryChoice === false ? 100 - yesPct : yesPct
+function toPct(cuCommitted: number): number {
+  return Math.round((cuCommitted + 100) / 2)
 }
 
 export function CommitmentsHistory({ prediction, currentUserId, onRemove }: Props) {
@@ -56,7 +55,7 @@ export function CommitmentsHistory({ prediction, currentUserId, onRemove }: Prop
           const isCurrentUser = commitment.user.id === currentUserId
           const isBinary = prediction.outcomeType === 'BINARY'
           const pct = isBinary
-            ? toPct(commitment.cuCommitted, commitment.binaryChoice)
+            ? toPct(commitment.cuCommitted)
             : Math.round(commitment.cuCommitted)
           const direction = isBinary
             ? (commitment.binaryChoice ? t('willHappen') : t('wontHappen'))

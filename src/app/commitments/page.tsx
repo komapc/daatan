@@ -141,7 +141,11 @@ export default function CommitmentsPage() {
                       <span className="text-[10px] uppercase font-bold text-gray-400 leading-none mb-1">Confidence</span>
                       <div className="flex items-center gap-1">
                         <ArrowUpCircle className="w-4 h-4 text-blue-500" />
-                        <span className="text-lg font-bold text-white">{commitment.cuCommitted}</span>
+                        <span className="text-lg font-bold text-white">
+                          {commitment.prediction.outcomeType === 'BINARY'
+                            ? Math.round((commitment.cuCommitted + 100) / 2)
+                            : Math.abs(commitment.cuCommitted)}%
+                        </span>
                       </div>
                     </div>
                   </div>
