@@ -100,9 +100,7 @@ export default function ContextTimeline({
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [analyzeStep, setAnalyzeStep] = useState<'searching' | 'analyzing' | 'estimating' | null>(null)
   const stepTimers = useRef<ReturnType<typeof setTimeout>[]>([])
-  // Default to expanded only when the server prefetched a timeline — preserves the
-  // collapsed UX for callers without SSR data while giving crawlers visible content.
-  const [isContextOpen, setIsContextOpen] = useState(hasInitialSnapshots)
+  const [isContextOpen, setIsContextOpen] = useState(false)
   const [isTimelineOpen, setIsTimelineOpen] = useState(false)
   const [hasFetched, setHasFetched] = useState(hasInitialSnapshots)
   const [isMounted, setIsMounted] = useState(false)
