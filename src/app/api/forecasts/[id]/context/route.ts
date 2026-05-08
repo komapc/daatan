@@ -172,48 +172,69 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
         let oracleSnapshotData: Prisma.InputJsonValue | null = null
 
         const t2 = Date.now()
-        const oracleForecast = await getOracleForecast(prediction.claimText, {
-            articles: searchResults.map(r => ({
-                url: r.url,
-                title: r.title,
-                snippet: r.snippet,
-                source: r.source,
-                publishedDate: r.publishedDate,
-            })),
-        })
-        if (oracleForecast !== null) {
-            const toPercent = (v: number) => Math.round(((v + 1) / 2) * 100)
-            externalProbability = toPercent(oracleForecast.mean)
-            predictionCiLow = toPercent(oracleForecast.ci_low)
-            predictionCiHigh = toPercent(oracleForecast.ci_high)
-            externalReasoning = 'TruthMachine Oracle (calibrated multi-source estimate)'
-            log.info(
-                {
-                    predictionId: prediction.id,
-                    path: 'oracle',
-                    probability: externalProbability,
-                    articlesUsed: oracleForecast.articles_used,
-                    sourceCount: oracleForecast.sources.length,
-                },
-                'context.ai_estimate',
-            )
-            oracleSnapshotData = {
-                mean: oracleForecast.mean,
-                std: oracleForecast.std,
-                ciLow: predictionCiLow,
-                ciHigh: predictionCiHigh,
-                articlesUsed: oracleForecast.articles_used,
-                sources: oracleForecast.sources.map((s: OracleSource) => ({
-                    sourceId: s.source_id,
-                    sourceName: s.source_name,
-                    url: s.url,
-                    stance: s.stance,
-                    certainty: s.certainty,
-                    credibilityWeight: s.credibility_weight,
-                    claims: s.claims,
+        const ESTIMATION_TIMEOUT_MS = 15_000
+
+        type EstimationResult = {
+            externalProbability: number | null
+            externalReasoning: string | null
+            predictionCiLow: number | null
+            predictionCiHigh: number | null
+            oracleSnapshotData: Prisma.InputJsonValue | null
+        }
+
+        const estimationTimeout: Promise<null> = new Promise(resolve =>
+            setTimeout(() => resolve(null), ESTIMATION_TIMEOUT_MS)
+        )
+
+        const estimationWork: Promise<EstimationResult> = (async () => {
+            const oracleForecast = await getOracleForecast(prediction.claimText, {
+                articles: searchResults.map(r => ({
+                    url: r.url,
+                    title: r.title,
+                    snippet: r.snippet,
+                    source: r.source,
+                    publishedDate: r.publishedDate,
                 })),
+            })
+            if (oracleForecast !== null) {
+                const toPercent = (v: number) => Math.round(((v + 1) / 2) * 100)
+                const prob = toPercent(oracleForecast.mean)
+                const ciLow = toPercent(oracleForecast.ci_low)
+                const ciHigh = toPercent(oracleForecast.ci_high)
+                log.info(
+                    {
+                        predictionId: prediction.id,
+                        path: 'oracle',
+                        probability: prob,
+                        articlesUsed: oracleForecast.articles_used,
+                        sourceCount: oracleForecast.sources.length,
+                    },
+                    'context.ai_estimate',
+                )
+                return {
+                    externalProbability: prob,
+                    externalReasoning: 'TruthMachine Oracle (calibrated multi-source estimate)',
+                    predictionCiLow: ciLow,
+                    predictionCiHigh: ciHigh,
+                    oracleSnapshotData: {
+                        mean: oracleForecast.mean,
+                        std: oracleForecast.std,
+                        ciLow,
+                        ciHigh,
+                        articlesUsed: oracleForecast.articles_used,
+                        sources: oracleForecast.sources.map((s: OracleSource) => ({
+                            sourceId: s.source_id,
+                            sourceName: s.source_name,
+                            url: s.url,
+                            stance: s.stance,
+                            certainty: s.certainty,
+                            credibilityWeight: s.credibility_weight,
+                            claims: s.claims,
+                        })),
+                    },
+                }
             }
-        } else {
+
             const articlesMapped = searchResults.map((r: SearchResult) => ({
                 title: r.title,
                 source: r.source || 'Unknown',
@@ -225,23 +246,50 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
                     prediction.detailsText ?? '',
                     articlesMapped
                 )
-                externalProbability = chances.probability
-                externalReasoning = chances.reasoning
                 log.info(
                     {
                         predictionId: prediction.id,
                         path: 'llm_fallback',
-                        probability: externalProbability,
+                        probability: chances.probability,
                         reason: 'oracle_returned_null',
                     },
                     'context.ai_estimate',
                 )
+                return {
+                    externalProbability: chances.probability,
+                    externalReasoning: chances.reasoning,
+                    predictionCiLow: null,
+                    predictionCiHigh: null,
+                    oracleSnapshotData: null,
+                }
             } catch (err) {
                 log.warn(
                     { predictionId: prediction.id, err, path: 'llm_fallback' },
                     'context.ai_estimate_failed',
                 )
+                return {
+                    externalProbability: null,
+                    externalReasoning: null,
+                    predictionCiLow: null,
+                    predictionCiHigh: null,
+                    oracleSnapshotData: null,
+                }
             }
+        })()
+
+        const estimationResult = await Promise.race([estimationWork, estimationTimeout])
+
+        if (estimationResult === null) {
+            log.warn(
+                { predictionId: prediction.id, timeoutMs: ESTIMATION_TIMEOUT_MS },
+                'context.ai_estimate_timeout',
+            )
+        } else {
+            externalProbability = estimationResult.externalProbability
+            externalReasoning = estimationResult.externalReasoning
+            predictionCiLow = estimationResult.predictionCiLow
+            predictionCiHigh = estimationResult.predictionCiHigh
+            oracleSnapshotData = estimationResult.oracleSnapshotData
         }
 
         const oracleMs = Date.now() - t2
