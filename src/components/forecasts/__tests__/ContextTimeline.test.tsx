@@ -179,15 +179,19 @@ describe('ContextTimeline', () => {
       expect(mockFetch).toHaveBeenCalledWith('/api/forecasts/p1/context')
     })
 
-    // Second call: POST on analyze
+    // Second call: POST on analyze — returns SSE stream
+    const sseData = [
+      `data: ${JSON.stringify({ type: 'summary', newContext: 'Freshly analyzed context', contextUpdatedAt: '2026-02-20T12:00:00Z' })}\n\n`,
+      `data: ${JSON.stringify({ type: 'done', success: true, timeline: [{ id: 's1', summary: 'Freshly analyzed context', sources: [], createdAt: '2026-02-20T12:00:00Z' }], timings: { searchMs: 1000, llmMs: 2000, oracleMs: 3000, totalMs: 6000 } })}\n\n`,
+    ].join('')
+    const sseEncoder = new TextEncoder()
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: () => Promise.resolve({
-        success: true,
-        newContext: 'Freshly analyzed context',
-        contextUpdatedAt: '2026-02-20T12:00:00Z',
-        snapshot: { id: 's1', summary: 'Freshly analyzed context', sources: [], createdAt: '2026-02-20T12:00:00Z' },
-        timeline: [{ id: 's1', summary: 'Freshly analyzed context', sources: [], createdAt: '2026-02-20T12:00:00Z' }],
+      body: new ReadableStream({
+        start(controller) {
+          controller.enqueue(sseEncoder.encode(sseData))
+          controller.close()
+        },
       }),
     })
 

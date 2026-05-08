@@ -104,6 +104,27 @@ describe('POST /api/forecasts/[id]/context', () => {
     cuLocked: 0,
   }
 
+  // Drains an SSE streaming response and merges all events into one object.
+  // Error-path tests still use res.json(); this helper is only for success paths.
+  async function parseSSE(res: Response): Promise<Record<string, unknown>> {
+    const reader = res.body!.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+    const merged: Record<string, unknown> = {}
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop()!
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue
+        try { Object.assign(merged, JSON.parse(line.slice(6))) } catch { /* ignore */ }
+      }
+    }
+    return merged
+  }
+
   beforeEach(() => {
     vi.clearAllMocks()
   })
@@ -228,11 +249,11 @@ it('returns 400 when prediction is not ACTIVE', async () => {
     const res = await POST(makeRequest('pred1', 'POST'), routeParams('pred1'))
     expect(res.status).toBe(200)
 
-    const data = await res.json()
+    const data = await parseSSE(res)
     expect(data.success).toBe(true)
     expect(data.newContext).toBe('New context summary')
-    expect(data.snapshot.id).toBe('snap1')
-    expect(data.timeline).toHaveLength(1)
+    expect((data.snapshot as { id: string }).id).toBe('snap1')
+    expect((data.timeline as unknown[]).length).toBe(1)
 
     // Verify transaction was called
     expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1)
@@ -274,6 +295,7 @@ it('returns 400 when prediction is not ACTIVE', async () => {
 
     const res = await POST(makeRequest('pred1', 'POST'), routeParams('pred1'))
     expect(res.status).toBe(200)
+    await parseSSE(res)  // drain stream so DB ops complete before checking mocks
 
     // Inspect the prediction.update call inside the transaction
     const ops = mockPrisma.$transaction.mock.calls[0][0] as unknown[]
@@ -304,7 +326,8 @@ it('returns 400 when prediction is not ACTIVE', async () => {
     mockPrisma.$transaction.mockResolvedValue([{ id: 'snap1', summary: 'Summary', sources: [], createdAt: new Date() }, {}])
     mockPrisma.contextSnapshot.findMany.mockResolvedValue([])
 
-    await POST(makeRequest('pred1', 'POST'), routeParams('pred1'))
+    const res = await POST(makeRequest('pred1', 'POST'), routeParams('pred1'))
+    await parseSSE(res)
 
     const predictionUpdateCall = mockPrisma.prediction.update.mock.calls[0][0]
     expect(predictionUpdateCall.data.aiCiLow).toBeNull()
@@ -331,7 +354,8 @@ it('returns 400 when prediction is not ACTIVE', async () => {
     mockPrisma.$transaction.mockResolvedValue([{ id: 'snap1', summary: 'Updated context', sources: [], createdAt: new Date() }, {}])
     mockPrisma.contextSnapshot.findMany.mockResolvedValue([])
 
-    await POST(makeRequest('pred1', 'POST'), routeParams('pred1'))
+    const res = await POST(makeRequest('pred1', 'POST'), routeParams('pred1'))
+    await parseSSE(res)
 
     // Verify LLM was called with a prompt containing previous context
     const llmCall = mockGenerateContent.mock.calls[0][0]
@@ -362,5 +386,6 @@ it('returns 400 when prediction is not ACTIVE', async () => {
 
     const res = await POST(makeRequest('pred1', 'POST'), routeParams('pred1'))
     expect(res.status).toBe(200)
+    await parseSSE(res)
   })
 })
