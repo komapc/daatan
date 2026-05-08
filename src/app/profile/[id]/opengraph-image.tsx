@@ -3,43 +3,27 @@ import { prisma } from '@/lib/prisma'
 
 export const runtime = 'nodejs'
 
-// Image metadata
 export const alt = 'DAATAN User Profile'
-export const size = {
-  width: 1200,
-  height: 630,
-}
-
+export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
 export default async function Image({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
-  // Try to find by ID or Username
   const user = await prisma.user.findFirst({
-    where: {
-      OR: [
-        { id: id },
-        { username: id }
-      ]
-    },
+    where: { OR: [{ id }, { username: id }] },
     select: {
       name: true,
       username: true,
       image: true,
       rs: true,
-      _count: {
-        select: {
-          predictions: true,
-          commitments: true,
-        }
-      }
-    }
+      _count: { select: { predictions: true, commitments: true } },
+    },
   })
 
-  if (!user) {
-    return new Response('Not Found', { status: 404 })
-  }
+  if (!user) return new Response('Not Found', { status: 404 })
+
+  const initial = (user.name ?? '?').charAt(0).toUpperCase()
 
   return new ImageResponse(
     (
@@ -49,137 +33,76 @@ export default async function Image({ params }: { params: Promise<{ id: string }
           width: '100%',
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: '#fff',
-          backgroundImage: 'linear-gradient(to bottom right, #f8fafc, #eff6ff)',
-          padding: '80px',
+          backgroundColor: '#0B1F33',
+          backgroundImage: 'linear-gradient(135deg, #0B1F33 0%, #0E2D4A 100%)',
+          padding: '60px 72px',
           fontFamily: 'sans-serif',
         }}
       >
-        {/* Logo/Header */}
-        <div
-          style={{
-            position: 'absolute',
-            top: '60px',
-            left: '80px',
-            display: 'flex',
-            alignItems: 'center',
-          }}
-        >
-          <div
-            style={{
-              width: '32px',
-              height: '32px',
-              backgroundColor: '#2563eb',
-              borderRadius: '6px',
-              marginRight: '10px',
-            }}
-          />
-          <span
-            style={{
-              fontSize: '24px',
-              fontWeight: 'bold',
-              color: '#1e40af',
-              letterSpacing: '-0.02em',
-            }}
-          >
-            DAATAN
-          </span>
+        {/* Logo */}
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '48px' }}>
+          <div style={{ width: '36px', height: '36px', backgroundColor: '#2F6BFF', borderRadius: '8px', marginRight: '12px' }} />
+          <span style={{ fontSize: '28px', fontWeight: 'bold', color: '#ffffff', letterSpacing: '-0.02em' }}>DAATAN</span>
         </div>
 
-        {/* Profile Info */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            textAlign: 'center',
-          }}
-        >
+        {/* Profile row */}
+        <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+          {/* Avatar */}
           {user.image ? (
             <img
               src={user.image}
+              style={{ width: '160px', height: '160px', borderRadius: '50%', marginRight: '48px', border: '4px solid #1C3A5A' }}
               alt=""
-              style={{
-                width: '180px',
-                height: '180px',
-                borderRadius: '50%',
-                marginBottom: '24px',
-                border: '8px solid #fff',
-                boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-              }}
             />
           ) : (
-            <div
-              style={{
-                width: '180px',
-                height: '180px',
-                borderRadius: '50%',
-                backgroundColor: '#dbeafe',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '72px',
-                fontWeight: 'bold',
-                color: '#2563eb',
-                marginBottom: '24px',
-                border: '8px solid #fff',
-                boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-              }}
-            >
-              {user.name?.charAt(0) || '?'}
-            </div>
+            <div style={{
+              width: '160px', height: '160px', borderRadius: '50%',
+              backgroundColor: '#1C3A5A', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', fontSize: '64px', fontWeight: 'bold',
+              color: '#2F6BFF', marginRight: '48px', border: '4px solid #2F6BFF',
+            }}>{initial}</div>
           )}
-          
-          <h1
-            style={{
-              fontSize: '64px',
-              fontWeight: 'bold',
-              color: '#0f172a',
-              marginBottom: '8px',
-              lineHeight: 1,
-            }}
-          >
-            {user.name}
-          </h1>
-          <span style={{ fontSize: '32px', color: '#64748b', marginBottom: '48px' }}>
-            @{user.username || 'anonymous'}
-          </span>
 
-          <div style={{ display: 'flex', gap: '60px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px' }}>
-                Reputation Score
-              </span>
-              <span style={{ fontSize: '56px', fontWeight: 'bold', color: '#2563eb' }}>
-                {Math.round(user.rs)}
-              </span>
-            </div>
+          {/* Name + stats */}
+          <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+            <span style={{ fontSize: '64px', fontWeight: 'bold', color: '#ffffff', lineHeight: 1, marginBottom: '8px' }}>
+              {user.name}
+            </span>
+            <span style={{ fontSize: '28px', color: '#7A9CC0', marginBottom: '40px' }}>
+              @{user.username ?? 'anonymous'}
+            </span>
 
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px' }}>
-                Commitments
-              </span>
-              <span style={{ fontSize: '56px', fontWeight: 'bold', color: '#0f172a' }}>
-                {user._count.commitments}
-              </span>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px' }}>
-                Forecasts
-              </span>
-              <span style={{ fontSize: '56px', fontWeight: 'bold', color: '#0f172a' }}>
-                {user._count.predictions}
-              </span>
+            {/* Stats */}
+            <div style={{ display: 'flex', gap: '48px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#7A9CC0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>
+                  Reputation
+                </span>
+                <span style={{ fontSize: '48px', fontWeight: 'bold', color: '#2F6BFF' }}>
+                  {Math.round(user.rs)}
+                </span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#7A9CC0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>
+                  Commitments
+                </span>
+                <span style={{ fontSize: '48px', fontWeight: 'bold', color: '#ffffff' }}>
+                  {user._count.commitments}
+                </span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#7A9CC0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>
+                  Forecasts
+                </span>
+                <span style={{ fontSize: '48px', fontWeight: 'bold', color: '#ffffff' }}>
+                  {user._count.predictions}
+                </span>
+              </div>
             </div>
           </div>
         </div>
       </div>
     ),
-    {
-      ...size,
-    }
+    { ...size }
   )
 }
