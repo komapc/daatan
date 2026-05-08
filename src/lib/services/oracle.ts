@@ -4,7 +4,7 @@ import { createLogger } from '@/lib/logger'
 const log = createLogger('oracle')
 
 const EXPECTED_API_VERSION = '0.1'
-const FORECAST_TIMEOUT_MS = 20_000
+const FORECAST_TIMEOUT_MS = 12_000
 const HEALTH_TIMEOUT_MS = 5_000
 // Bumped from 3 → 5 to give the Oracle headroom when some results 404,
 // paywall, or get gatekeeper-rejected. Budget impact is small: the Oracle

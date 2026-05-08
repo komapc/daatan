@@ -149,29 +149,9 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
             changeInstruction,
         })
 
+        // 3. AI probability + LLM summary — run concurrently (both need only searchResults)
+        // llmMs and oracleMs are both measured from t1 (same start), not sequentially.
         const t1 = Date.now()
-        const result = await llmService.generateContent({
-            prompt,
-            temperature: 0.2,
-        })
-
-        const newContextSummary = result.text.trim()
-        const llmMs = Date.now() - t1
-        const now = new Date()
-
-        // 3. AI probability — try Oracle first, fall back to LLM guessChances
-        let externalProbability: number | null = null
-        let externalReasoning: string | null = null
-        // Denormalized CI bounds for the Prediction row so list endpoints render
-        // the range without joining ContextSnapshot. Null when the LLM-fallback path
-        // ran (no CI available) so we know to clear stale values from a prior Oracle run.
-        let predictionCiLow: number | null = null
-        let predictionCiHigh: number | null = null
-        // When the Oracle path is taken, persist the full payload (CI + sources) so
-        // the UI can render provenance. Shape is camelCased for frontend consumption.
-        let oracleSnapshotData: Prisma.InputJsonValue | null = null
-
-        const t2 = Date.now()
         const ESTIMATION_TIMEOUT_MS = 15_000
 
         type EstimationResult = {
@@ -182,10 +162,7 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
             oracleSnapshotData: Prisma.InputJsonValue | null
         }
 
-        const estimationTimeout: Promise<null> = new Promise(resolve =>
-            setTimeout(() => resolve(null), ESTIMATION_TIMEOUT_MS)
-        )
-
+        // Oracle estimation starts immediately; LLM runs concurrently below
         const estimationWork: Promise<EstimationResult> = (async () => {
             const oracleForecast = await getOracleForecast(prediction.claimText, {
                 articles: searchResults.map(r => ({
@@ -277,7 +254,27 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
             }
         })()
 
-        const estimationResult = await Promise.race([estimationWork, estimationTimeout])
+        const estimationRace = Promise.race([
+            estimationWork,
+            new Promise<null>(resolve => setTimeout(() => resolve(null), ESTIMATION_TIMEOUT_MS)),
+        ])
+
+        // LLM summary runs concurrently with the oracle estimation above
+        const result = await llmService.generateContent({ prompt, temperature: 0.2 })
+        const newContextSummary = result.text.trim()
+        const llmMs = Date.now() - t1
+        const now = new Date()
+
+        // Await oracle — likely partially or fully done since it ran in parallel
+        const estimationResult = await estimationRace
+        // Both llmMs and oracleMs are measured from the same t1 (concurrent, not sequential)
+        const oracleMs = Date.now() - t1
+
+        let externalProbability: number | null = null
+        let externalReasoning: string | null = null
+        let predictionCiLow: number | null = null
+        let predictionCiHigh: number | null = null
+        let oracleSnapshotData: Prisma.InputJsonValue | null = null
 
         if (estimationResult === null) {
             log.warn(
@@ -292,7 +289,6 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
             oracleSnapshotData = estimationResult.oracleSnapshotData
         }
 
-        const oracleMs = Date.now() - t2
         const totalMs = Date.now() - t0
 
         log.info(
