@@ -259,70 +259,95 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
             new Promise<null>(resolve => setTimeout(() => resolve(null), ESTIMATION_TIMEOUT_MS)),
         ])
 
-        // LLM summary runs concurrently with the oracle estimation above
-        const result = await llmService.generateContent({ prompt, temperature: 0.2 })
-        const newContextSummary = result.text.trim()
-        const llmMs = Date.now() - t1
-        const now = new Date()
+        // Stream the response so the client sees the summary as soon as the LLM
+        // finishes, without waiting for the oracle to complete. X-Accel-Buffering: no
+        // disables nginx proxy buffering for this response so events arrive in real-time.
+        const encoder = new TextEncoder()
+        const stream = new ReadableStream({
+            async start(controller) {
+                const send = (obj: object) =>
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify(obj)}\n\n`))
+                try {
+                    // LLM runs concurrently with oracle (estimationRace already started above)
+                    const result = await llmService.generateContent({ prompt, temperature: 0.2 })
+                    const newContextSummary = result.text.trim()
+                    const llmMs = Date.now() - t1
+                    const now = new Date()
 
-        // Await oracle — likely partially or fully done since it ran in parallel
-        const estimationResult = await estimationRace
-        // Both llmMs and oracleMs are measured from the same t1 (concurrent, not sequential)
-        const oracleMs = Date.now() - t1
+                    // Push summary to client immediately — oracle may still be running
+                    send({ type: 'summary', newContext: newContextSummary, contextUpdatedAt: now })
 
-        let externalProbability: number | null = null
-        let externalReasoning: string | null = null
-        let predictionCiLow: number | null = null
-        let predictionCiHigh: number | null = null
-        let oracleSnapshotData: Prisma.InputJsonValue | null = null
+                    // Await oracle (partially or fully done since it ran concurrently)
+                    const estimationResult = await estimationRace
+                    // Both llmMs and oracleMs measured from t1 (concurrent, not sequential)
+                    const oracleMs = Date.now() - t1
 
-        if (estimationResult === null) {
-            log.warn(
-                { predictionId: prediction.id, timeoutMs: ESTIMATION_TIMEOUT_MS },
-                'context.ai_estimate_timeout',
-            )
-        } else {
-            externalProbability = estimationResult.externalProbability
-            externalReasoning = estimationResult.externalReasoning
-            predictionCiLow = estimationResult.predictionCiLow
-            predictionCiHigh = estimationResult.predictionCiHigh
-            oracleSnapshotData = estimationResult.oracleSnapshotData
-        }
+                    let externalProbability: number | null = null
+                    let externalReasoning: string | null = null
+                    let predictionCiLow: number | null = null
+                    let predictionCiHigh: number | null = null
+                    let oracleSnapshotData: Prisma.InputJsonValue | null = null
 
-        const totalMs = Date.now() - t0
+                    if (estimationResult === null) {
+                        log.warn(
+                            { predictionId: prediction.id, timeoutMs: ESTIMATION_TIMEOUT_MS },
+                            'context.ai_estimate_timeout',
+                        )
+                    } else {
+                        externalProbability = estimationResult.externalProbability
+                        externalReasoning = estimationResult.externalReasoning
+                        predictionCiLow = estimationResult.predictionCiLow
+                        predictionCiHigh = estimationResult.predictionCiHigh
+                        oracleSnapshotData = estimationResult.oracleSnapshotData
+                    }
 
-        log.info(
-            { predictionId: prediction.id, searchMs, llmMs, oracleMs, totalMs },
-            'context.timings',
-        )
+                    const totalMs = Date.now() - t0
 
-        // Persist timing sample for population-level calibration (non-critical)
-        prisma.contextTiming.create({ data: { searchMs, llmMs, oracleMs, totalMs } }).catch(() => { /* non-critical */ })
+                    log.info(
+                        { predictionId: prediction.id, searchMs, llmMs, oracleMs, totalMs },
+                        'context.timings',
+                    )
+                    prisma.contextTiming.create({ data: { searchMs, llmMs, oracleMs, totalMs } }).catch(() => {})
 
-        // 4. Persist snapshot + update prediction
-        const snapshot = await saveContextUpdate({
-            predictionId: prediction.id,
-            summary: newContextSummary,
-            sources,
-            externalProbability,
-            externalReasoning,
-            oracleSnapshot: oracleSnapshotData,
-            confidence: externalProbability,
-            aiCiLow: predictionCiLow,
-            aiCiHigh: predictionCiHigh,
-            now,
+                    // 4. Persist snapshot + update prediction
+                    const snapshot = await saveContextUpdate({
+                        predictionId: prediction.id,
+                        summary: newContextSummary,
+                        sources,
+                        externalProbability,
+                        externalReasoning,
+                        oracleSnapshot: oracleSnapshotData,
+                        confidence: externalProbability,
+                        aiCiLow: predictionCiLow,
+                        aiCiHigh: predictionCiHigh,
+                        now,
+                    })
+
+                    const snapshots = await listContextSnapshots(prediction.id)
+
+                    send({
+                        type: 'done',
+                        success: true,
+                        snapshot,
+                        timeline: snapshots,
+                        timings: { searchMs, llmMs, oracleMs, totalMs },
+                    })
+                } catch (err) {
+                    log.error({ predictionId: prediction.id, err }, 'context.stream_error')
+                    send({ type: 'error', message: 'Analysis failed. Please try again.' })
+                } finally {
+                    controller.close()
+                }
+            },
         })
 
-        // Fetch full timeline
-        const snapshots = await listContextSnapshots(prediction.id)
-
-        return NextResponse.json({
-            success: true,
-            newContext: newContextSummary,
-            contextUpdatedAt: now,
-            snapshot,
-            timeline: snapshots,
-            timings: { searchMs, llmMs, oracleMs, totalMs },
+        return new Response(stream, {
+            headers: {
+                'Content-Type': 'text/event-stream',
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive',
+                'X-Accel-Buffering': 'no',
+            },
         })
 
     } catch (error) {

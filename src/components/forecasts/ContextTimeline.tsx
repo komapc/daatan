@@ -183,16 +183,13 @@ export default function ContextTimeline({
     setAnalyzeStep('searching')
     toast.loading(t('stepSearching'), { id: 'analyze' })
 
-    // Schedule step transitions based on stored/default timing estimates
+    // Timer: searching → analyzing (search phase estimate; transitions to 'estimating'
+    // are driven by the real 'summary' SSE event once the LLM finishes)
     stepTimers.current = [
       setTimeout(() => {
         setAnalyzeStep('analyzing')
         toast.loading(t('stepAnalyzing'), { id: 'analyze' })
       }, timings.searchMs),
-      setTimeout(() => {
-        setAnalyzeStep('estimating')
-        toast.loading(t('stepEstimating'), { id: 'analyze' })
-      }, timings.searchMs + timings.llmMs),
     ]
 
     try {
@@ -203,24 +200,42 @@ export default function ContextTimeline({
         const errorData = await res.json().catch(() => ({}))
         throw new Error(errorData.error || `${t('failed')} (${res.status})`)
       }
-      const data = await res.json()
 
-      // Calibrate future estimates with real measured durations
-      if (data.timings) {
-        saveTimings({
-          searchMs: data.timings.searchMs,
-          llmMs: data.timings.llmMs,
-          oracleMs: data.timings.oracleMs,
-        })
+      const reader = res.body!.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop()!
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          const msg = JSON.parse(line.slice(6)) as { type: string } & Record<string, unknown>
+
+          if (msg.type === 'summary') {
+            setCurrentContext(msg.newContext as string)
+            setContextUpdatedAt(msg.contextUpdatedAt as string)
+            setIsContextOpen(true)
+            setAnalyzeStep('estimating')
+            toast.loading(t('stepEstimating'), { id: 'analyze' })
+          } else if (msg.type === 'done') {
+            if (msg.timings) {
+              const tr = msg.timings as { searchMs: number; llmMs: number; oracleMs: number }
+              saveTimings({ searchMs: tr.searchMs, llmMs: tr.llmMs, oracleMs: tr.oracleMs })
+            }
+            const timeline = (msg.timeline as Snapshot[]) || []
+            setSnapshots(timeline)
+            onAiEstimate?.(toAiEstimate(timeline[0]))
+            toast.success(t('updated'), { id: 'analyze', duration: 3000 })
+          } else if (msg.type === 'error') {
+            throw new Error((msg.message as string) || t('failed'))
+          }
+        }
       }
-
-      setCurrentContext(data.newContext)
-      setContextUpdatedAt(data.contextUpdatedAt)
-      const timeline: Snapshot[] = data.timeline || []
-      setSnapshots(timeline)
-      onAiEstimate?.(toAiEstimate(timeline[0]))
-      setIsContextOpen(true)
-      toast.success(t('updated'), { id: 'analyze', duration: 3000 })
     } catch (e) {
       log.error({ err: e }, 'Failed to analyze context')
       toast.error(toError(e).message || t('failed'), { id: 'analyze' })
