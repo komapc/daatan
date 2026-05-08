@@ -17,6 +17,7 @@ import {
   EyeOff,
   Languages,
   Info,
+  Share2,
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { useTranslations, useLocale } from 'next-intl'
@@ -342,8 +343,24 @@ export default function ForecastDetailClient({
               </button>
             )}
           </div>
-          {canEdit && (
-            <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={async () => {
+                const url = window.location.href
+                if (navigator.share) {
+                  await navigator.share({ title: prediction.claimText, url }).catch(() => {})
+                } else {
+                  await navigator.clipboard.writeText(url)
+                  toast.success('Link copied!')
+                }
+              }}
+              className="p-2 text-gray-400 hover:text-blue-400 hover:bg-cobalt/10 rounded-lg transition-colors"
+              title="Share forecast"
+            >
+              <Share2 className="w-5 h-5" />
+            </button>
+            {canEdit && (
               <Link
                 href={`/forecasts/${prediction.slug || prediction.id}/edit`}
                 className="p-2 text-gray-400 hover:text-blue-600 hover:bg-cobalt/10 rounded-lg transition-colors"
@@ -351,8 +368,8 @@ export default function ForecastDetailClient({
               >
                 <Edit2 className="w-5 h-5" />
               </Link>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight leading-tight mb-4 break-words">
