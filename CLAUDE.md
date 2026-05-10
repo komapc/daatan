@@ -10,6 +10,7 @@ Detailed architecture and feature docs: see [`docs/`](./docs/).
 
 ## Hard rules
 
+- **Interview before implementing.** Before starting any non-trivial implementation task, invoke the `/interview` skill (default 6 questions). Ask questions one at a time, suggest your preferred answer first. Skip only for tiny changes (typos, config tweaks, single-line fixes).
 - **PR-only workflow.** Never push directly to `main`. Every change — even a typo — goes through a PR that's merged via the GitHub UI (so CI runs and review happens). Never use `git push --force` to main.
 - **Bump version on every commit on a non-main branch.** The pre-commit hook enforces this. Bump `package.json` and the `// vX.Y.Z` comment in `src/lib/version.ts` together, and run `npm install` so the lockfile picks up the change. Follow semver.
 - **Production deploys are tag-triggered and explicit.** Never tag a release or push a `v*` tag unless the user asked for it. CI auto-deploys staging on every PR merge to main; production only on `v*` tags.
@@ -45,6 +46,7 @@ Detailed architecture and feature docs: see [`docs/`](./docs/).
 - Deployment: [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md), [`docs/zero-downtime-version-updates.md`](./docs/zero-downtime-version-updates.md)
 - Telegram notifications: [`docs/TELEGRAM_NOTIFICATIONS.md`](./docs/TELEGRAM_NOTIFICATIONS.md)
 - Analytics (GA4 + consent mode): [`docs/ANALYTICS.md`](./docs/ANALYTICS.md)
+- SEO (IndexNow, JSON-LD, metadata): [`docs/SEO.md`](./docs/SEO.md)
 
 ## Infra cheat-sheet
 
