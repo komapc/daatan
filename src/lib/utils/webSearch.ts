@@ -407,7 +407,7 @@ async function searchWithDDG(query: string, limit: number): Promise<SearchResult
 
 export async function searchArticles(
   query: string,
-  limit: number = 10,
+  limit: number = 30,
   options?: { dateFrom?: Date; dateTo?: Date },
 ): Promise<SearchResult[]> {
   // 1. DataForSEO (primary)

@@ -234,7 +234,7 @@ export async function generateExpressPrediction(
     if (!articleContent) {
       // Fallback: use the URL as a search query
       onProgress?.('searching', { message: 'Searching for relevant articles...' })
-      searchResults = await oracleSearch(url, 5) ?? await searchArticles(url, 5)
+      searchResults = await oracleSearch(url, 30) ?? await searchArticles(url, 30)
       if (searchResults.length === 0) {
         throw new NoArticlesFoundError({ searchedFor: url, isUrl: true, isNonLatin: false })
       }
@@ -273,7 +273,7 @@ export async function generateExpressPrediction(
       onProgress?.('searching', { message: `Finding related articles for: "${topic}"` })
 
       try {
-        searchResults = await oracleSearch(topic, 5) ?? await searchArticlesMultilingual(topic, 5)
+        searchResults = await oracleSearch(topic, 30) ?? await searchArticlesMultilingual(topic, 30)
       } catch {
         searchResults = []
       }
@@ -287,7 +287,7 @@ export async function generateExpressPrediction(
   } else {
     // Normal text flow: search for articles
     onProgress?.('searching', { message: 'Searching for relevant articles...' })
-    searchResults = await oracleSearch(userInput, 5) ?? await searchArticlesMultilingual(userInput, 5)
+    searchResults = await oracleSearch(userInput, 30) ?? await searchArticlesMultilingual(userInput, 30)
 
     if (searchResults.length === 0) {
       throw new NoArticlesFoundError({
