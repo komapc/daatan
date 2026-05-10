@@ -6,6 +6,7 @@ import { slugify, generateUniqueSlug } from '@/lib/utils/slugify'
 import { hashUrl } from '@/lib/utils/hash'
 import { embedText, embedAndStoreForecast } from '@/lib/services/embedding'
 import { createLogger } from '@/lib/logger'
+import { notifyIndexNow } from '@/lib/services/indexnow'
 
 const log = createLogger('forecast')
 
@@ -428,7 +429,7 @@ export async function deleteForecast(id: string) {
 
 export async function publishForecast(id: string) {
   const now = new Date()
-  return prisma.prediction.update({
+  const result = await prisma.prediction.update({
     where: { id },
     data: { status: 'ACTIVE', publishedAt: now },
     include: {
@@ -437,11 +438,13 @@ export async function publishForecast(id: string) {
       options: { orderBy: { displayOrder: 'asc' } },
     },
   })
+  if (result.isPublic) notifyIndexNow(result.slug ?? result.id)
+  return result
 }
 
 export async function approveForecast(predictionId: string) {
   const now = new Date()
-  return prisma.prediction.update({
+  const result = await prisma.prediction.update({
     where: { id: predictionId },
     data: { status: 'ACTIVE', publishedAt: now },
     include: {
@@ -449,6 +452,8 @@ export async function approveForecast(predictionId: string) {
       options: { orderBy: { displayOrder: 'asc' } },
     },
   })
+  if (result.isPublic) notifyIndexNow(result.slug ?? result.id)
+  return result
 }
 
 export interface RejectForecastOptions {
