@@ -59,6 +59,7 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     twitter: {
       card: 'summary_large_image',
+      site: '@daatan_dev',
       title: 'DAATAN — Prediction Market & Forecast Tracking',
       description:
         'Make calibrated forecasts, stake reputation, and prove your accuracy with Brier scores and head-to-head ELO.',

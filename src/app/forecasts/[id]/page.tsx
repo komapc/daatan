@@ -61,6 +61,7 @@ async function getPrediction(idOrSlug: string) {
           image: true,
           rs: true,
           role: true,
+          twitterHandle: true,
         },
       },
       newsAnchor: true,
@@ -171,6 +172,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     },
     twitter: {
       card: 'summary_large_image',
+      site: '@daatan_dev',
       title: prediction.claimText,
       description,
     },
@@ -238,10 +240,30 @@ export default async function ForecastDetailPage({ params }: Props) {
     ],
   }
 
+  const eventJsonLd = prediction.isPublic ? {
+    '@context': 'https://schema.org',
+    '@type': 'Event',
+    name: prediction.claimText,
+    description: prediction.detailsText || undefined,
+    url: `https://daatan.com/forecasts/${slug}`,
+    startDate: prediction.publishedAt ?? prediction.createdAt,
+    endDate: prediction.resolveByDatetime,
+    organizer: {
+      '@type': 'Person',
+      name: prediction.author.name || prediction.author.username,
+      url: `https://daatan.com/profile/${prediction.author.username}`,
+    },
+    location: {
+      '@type': 'VirtualLocation',
+      url: `https://daatan.com/forecasts/${slug}`,
+    },
+  } : null
+
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
+      {eventJsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(eventJsonLd) }} />}
       <Suspense fallback={<ForecastLoading />}>
         <ForecastDetailClient
           initialData={prediction as any}
