@@ -88,8 +88,9 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
 
         // 1. Search for recent articles
         // Clean up news anchor title: strip subtitle after " | " or " – " (common in Wikipedia-style titles)
+        // Also strip any leading emoji (e.g. "🤖 " prefix on bot-generated forecasts) that confuse search APIs.
         const rawQuery = prediction.newsAnchor?.title || prediction.claimText
-        const searchQuery = rawQuery.split(/\s+[|—–]\s+/)[0].trim()
+        const searchQuery = rawQuery.split(/\s+[|—–]\s+/)[0].replace(/^[\p{Emoji_Presentation}\p{Extended_Pictographic}]+\s*/gu, '').trim()
         // `searchArticles` throws "Search API not available" when every provider in the
         // fallback chain fails (e.g. transient ECONNRESET on DDG when paid providers are
         // unconfigured). Convert that into a clean 503 instead of leaking a 500 to the client.
