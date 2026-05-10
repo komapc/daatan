@@ -1,8 +1,11 @@
 import type { Metadata, Viewport } from 'next'
 import { headers } from 'next/headers'
+import { Inter } from 'next/font/google'
 import { NextIntlClientProvider } from 'next-intl'
 import { getLocale, getMessages } from 'next-intl/server'
 import './globals.css'
+
+const inter = Inter({ subsets: ['latin'], display: 'swap' })
 import { StagingBanner } from '@/components/StagingBanner'
 import { NextBanner } from '@/components/NextBanner'
 import Sidebar from '@/components/Sidebar'
@@ -107,7 +110,7 @@ export default async function RootLayout({
 
   return (
     <html lang={locale} dir={isRtl(locale) ? 'rtl' : 'ltr'} suppressHydrationWarning>
-      <body suppressHydrationWarning>
+      <body className={inter.className} suppressHydrationWarning>
         <GoogleAnalytics measurementId={gaMeasurementId} isStaging={isStaging} />
         <NextIntlClientProvider messages={messages}>
           <SessionWrapper>
