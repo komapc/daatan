@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
 import { applyGlicko2Update } from '@/lib/services/expertise'
 import { calculateEloUpdates } from '@/lib/services/elo'
+import { notifyIndexNow } from '@/lib/services/indexnow'
 
 const log = createLogger('prediction-resolution')
 
@@ -195,6 +196,8 @@ export async function resolvePrediction(predictionId: string, options: Resolutio
     { predictionId, outcome, commitmentCount: prediction.commitments.length },
     'Prediction resolved',
   )
+
+  if (prediction.isPublic) notifyIndexNow(prediction.slug ?? prediction.id)
 
   return { result, prediction }
 }

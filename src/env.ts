@@ -59,6 +59,9 @@ export const env = createEnv({
     // Oracle API — TruthMachine probability estimates
     ORACLE_URL: z.string().url().optional(),
     ORACLE_API_KEY: z.string().min(1).optional(),
+
+    // IndexNow — instant Bing/Yandex indexing notifications
+    INDEXNOW_KEY: z.string().min(1).optional(),
   },
   client: {
     NEXT_PUBLIC_APP_VERSION: z.string().optional(),
@@ -90,6 +93,7 @@ export const env = createEnv({
     MAX_BOTS: process.env.MAX_BOTS,
     ORACLE_URL: process.env.ORACLE_URL,
     ORACLE_API_KEY: process.env.ORACLE_API_KEY,
+    INDEXNOW_KEY: process.env.INDEXNOW_KEY,
     NEXT_PUBLIC_APP_VERSION: process.env.NEXT_PUBLIC_APP_VERSION,
     NEXT_PUBLIC_ENV: process.env.NEXT_PUBLIC_ENV,
     NEXT_PUBLIC_VAPID_PUBLIC_KEY: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
