@@ -312,3 +312,4 @@ full health check. See `.claude/commands/` for details.
 | `CRON_SECRET`                  | Heartbeat cron auth (`heartbeat.yml`) — same value as `BOT_RUNNER_SECRET` in `.env` |
 | `STAGING_URL`                  | Bot cron + heartbeat target URL (staging) |
 | `OPENROUTER_API_KEY`           | Bot LLM calls (staging only)         |
+| `INDEXNOW_KEY`                 | IndexNow instant indexing (Bing/Yandex) — optional; omit to disable |
