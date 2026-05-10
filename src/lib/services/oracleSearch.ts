@@ -81,7 +81,7 @@ const normalizeBaseUrl = (url: string) => url.replace(/\/$/, '')
  */
 export async function oracleSearch(
   query: string,
-  limit: number = 5,
+  limit: number = 30,
   options?: { dateFrom?: Date; dateTo?: Date },
 ): Promise<SearchResult[] | null> {
   const baseUrl = env.ORACLE_URL
