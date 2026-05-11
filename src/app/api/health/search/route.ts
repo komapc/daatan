@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { notifySearchCreditsLow } from '@/lib/services/telegram'
-import { SEARCH_LOW_CREDITS_THRESHOLD } from '@/lib/services/oracleSearch'
+import { SEARCH_LOW_CREDITS_THRESHOLD, getOracleSearchHealth, getLastOracleSearchError } from '@/lib/services/oracleSearch'
+import { getStagingDataForSEOCallCount } from '@/lib/utils/webSearch'
+import { env } from '@/env'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,6 +11,30 @@ interface ProviderStatus {
   status: 'ok' | 'error' | 'not_configured'
   credits?: number
   error?: string
+}
+
+async function checkDataForSEO(): Promise<ProviderStatus & { stagingCallRate?: ReturnType<typeof getStagingDataForSEOCallCount> }> {
+  const login = env.DATAFORSEO_LOGIN
+  const password = env.DATAFORSEO_PASSWORD
+  if (!login || !password) return { configured: false, status: 'not_configured' }
+
+  try {
+    const credentials = Buffer.from(`${login}:${password}`).toString('base64')
+    const res = await fetch('https://api.dataforseo.com/v3/appendix/user_data', {
+      headers: { Authorization: `Basic ${credentials}` },
+      signal: AbortSignal.timeout(5_000),
+    })
+    if (!res.ok) {
+      const body = await res.text().catch(() => '')
+      return { configured: true, status: 'error', error: `HTTP ${res.status}: ${body.slice(0, 200)}` }
+    }
+    const data = await res.json() as { tasks?: Array<{ result?: Array<{ money_balance?: number }> }> }
+    const balance = data.tasks?.[0]?.result?.[0]?.money_balance
+    const stagingCallRate = process.env.APP_ENV === 'staging' ? getStagingDataForSEOCallCount() : undefined
+    return { configured: true, status: 'ok', credits: balance, stagingCallRate }
+  } catch (e) {
+    return { configured: true, status: 'error', error: e instanceof Error ? e.message : 'unknown' }
+  }
 }
 
 async function checkSerper(): Promise<ProviderStatus> {
@@ -77,24 +103,35 @@ async function checkScrapingBee(): Promise<ProviderStatus> {
 }
 
 export async function GET() {
-  const [serper, serpapi, scrapingbee] = await Promise.all([checkSerper(), checkSerpApi(), checkScrapingBee()])
+  const [dataforseo, serper, serpapi, scrapingbee, oracleHealth] = await Promise.all([
+    checkDataForSEO(),
+    checkSerper(),
+    checkSerpApi(),
+    checkScrapingBee(),
+    getOracleSearchHealth(),
+  ])
 
-  const allConfiguredProvidersFailed =
-    (serper.configured && serper.status !== 'ok') &&
-    (serpapi.configured && serpapi.status !== 'ok') &&
-    (scrapingbee.configured && scrapingbee.status !== 'ok')
+  const oracle = {
+    configured: oracleHealth !== null || (!!env.ORACLE_URL && !!env.ORACLE_API_KEY),
+    status: oracleHealth ? (oracleHealth.overall === 'healthy' ? 'ok' : 'degraded') : (env.ORACLE_URL ? 'error' : 'not_configured'),
+    providers: oracleHealth?.providers,
+    usableProviders: oracleHealth?.usable_count,
+    lastSearchError: getLastOracleSearchError(),
+  }
 
-  const anyOk = serper.status === 'ok' || serpapi.status === 'ok' || scrapingbee.status === 'ok' ||
-    (!serper.configured && !serpapi.configured && !scrapingbee.configured) // DDG fallback always available
+  const anyOk = dataforseo.status === 'ok' || serper.status === 'ok' || serpapi.status === 'ok' ||
+    scrapingbee.status === 'ok' || oracle.status === 'ok' ||
+    (!dataforseo.configured && !serper.configured && !serpapi.configured && !scrapingbee.configured)
 
   return NextResponse.json(
     {
+      oracle,
+      dataforseo,
       serper,
       serpapi,
       scrapingbee,
       ddg: { configured: true, status: 'ok', credits: 'unlimited' },
       overall: anyOk ? 'ok' : 'degraded',
-      allConfiguredProvidersFailed,
     },
     { status: anyOk ? 200 : 503 },
   )

@@ -6,6 +6,32 @@ import { createLogger } from '@/lib/logger'
 
 const log = createLogger('web-search')
 
+// #8 — staging rate limiter: prevents runaway DataForSEO spend if Oracle
+// silently fails and all traffic falls through to the paid fallback.
+// Only active when APP_ENV=staging; production and development are unaffected.
+const STAGING_DATAFORSEO_HOURLY_CAP = 50
+let _stagingCallCount = 0
+let _stagingWindowStart = Date.now()
+
+function checkStagingDataForSEOCap(): void {
+  if (process.env.APP_ENV !== 'staging') return
+  const now = Date.now()
+  if (now - _stagingWindowStart > 60 * 60 * 1000) {
+    _stagingCallCount = 0
+    _stagingWindowStart = now
+  }
+  _stagingCallCount++
+  if (_stagingCallCount > STAGING_DATAFORSEO_HOURLY_CAP) {
+    log.warn({ count: _stagingCallCount, cap: STAGING_DATAFORSEO_HOURLY_CAP }, 'dataforseo: staging hourly cap exceeded')
+    throw new Error(`DataForSEO staging cap exceeded (${STAGING_DATAFORSEO_HOURLY_CAP}/hr) — possible fallback loop`)
+  }
+}
+
+/** Exposed for the health endpoint. */
+export function getStagingDataForSEOCallCount(): { count: number; windowStart: string; cap: number } {
+  return { count: _stagingCallCount, windowStart: new Date(_stagingWindowStart).toISOString(), cap: STAGING_DATAFORSEO_HOURLY_CAP }
+}
+
 export interface SearchResult {
   title: string
   url: string
@@ -153,6 +179,7 @@ async function searchWithDataForSEO(query: string, limit: number): Promise<Searc
   const login = process.env.DATAFORSEO_LOGIN
   const password = process.env.DATAFORSEO_PASSWORD
   if (!login || !password) throw new Error('DataForSEO not configured')
+  checkStagingDataForSEOCap()
 
   const credentials = Buffer.from(`${login}:${password}`).toString('base64')
 

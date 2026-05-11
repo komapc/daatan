@@ -25,6 +25,20 @@ export interface OracleSearchHealthResponse {
   usable_count: number
 }
 
+// #4 — tracks the most recent non-OK response so /api/health/search can surface it
+// without callers needing to change their null-return handling.
+interface OracleSearchError {
+  status: number
+  body: string
+  at: string // ISO timestamp
+}
+let _lastSearchError: OracleSearchError | null = null
+
+/** Returns the last non-OK response from oracleSearch(), or null if none. */
+export function getLastOracleSearchError(): OracleSearchError | null {
+  return _lastSearchError
+}
+
 /**
  * Fetch provider health from the Oracle's /search/health endpoint.
  * Returns null if oracle is not configured or the request fails.
@@ -72,6 +86,9 @@ const normalizeBaseUrl = (url: string) => url.replace(/\/$/, '')
  * Search via the Oracle's /search endpoint, sharing the oracle's provider
  * fallback chain and quota counter with the oracle's own forecast calls.
  *
+ * The Oracle /search limit is validated server-side (Pydantic: ge=1, le=30).
+ * See: retro/api/src/forecast_api/models.py → SearchRequest.limit
+ *
  * Returns null if:
  * - ORACLE_URL or ORACLE_API_KEY are not configured
  * - The request times out, returns a non-OK status, or throws
@@ -107,6 +124,7 @@ export async function oracleSearch(
     if (!res.ok) {
       const errorBody = await res.text().catch(() => '(unreadable)')
       log.warn({ status: res.status, body: errorBody, query }, 'oracle-search: non-OK response')
+      _lastSearchError = { status: res.status, body: errorBody, at: new Date().toISOString() }
       notifyOracleSearchUnavailable(query)
       return null
     }
