@@ -89,7 +89,7 @@ export async function oracleSearch(
 
   if (!baseUrl || !key) return null
 
-  const body: Record<string, unknown> = { query, limit: Math.min(limit, 30) }
+  const body: Record<string, unknown> = { query, limit }
   if (options?.dateFrom) body.date_from = options.dateFrom.toISOString().slice(0, 10)
   if (options?.dateTo) body.date_to = options.dateTo.toISOString().slice(0, 10)
 
