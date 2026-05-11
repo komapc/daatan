@@ -105,7 +105,8 @@ export async function oracleSearch(
     })
 
     if (!res.ok) {
-      log.warn({ status: res.status, query }, 'oracle-search: non-OK response')
+      const errorBody = await res.text().catch(() => '(unreadable)')
+      log.warn({ status: res.status, body: errorBody, query }, 'oracle-search: non-OK response')
       notifyOracleSearchUnavailable(query)
       return null
     }
