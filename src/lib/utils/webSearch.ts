@@ -164,7 +164,7 @@ async function searchWithDataForSEO(query: string, limit: number): Promise<Searc
     },
     body: JSON.stringify([{
       keyword: query,
-      depth: limit,
+      depth: Math.min(limit, 10), // DataForSEO bills one credit per 10 results; cap at 10 to avoid 3× cost
     }]),
   })
 
