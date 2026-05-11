@@ -1,4 +1,3 @@
-import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { prisma } from '@/lib/prisma'
@@ -10,7 +9,6 @@ import type { Comment } from '@/components/comments/CommentThread'
 import { getContextTimeline } from '@/lib/services/context'
 import type { Snapshot as ContextSnapshot } from '@/components/forecasts/ContextTimeline'
 import ForecastDetailClient from './ForecastDetailClient'
-import { Loader2 } from 'lucide-react'
 
 async function getInitialContextSnapshots(predictionId: string): Promise<ContextSnapshot[]> {
   const data = await getContextTimeline(predictionId)
@@ -119,6 +117,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       isPublic: true,
       status: true,
       resolveByDatetime: true,
+      resolutionOutcome: true,
+      resolvedAt: true,
       _count: { select: { commitments: true } },
     },
   })
@@ -132,9 +132,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const slug = prediction.slug || prediction.id
   const noIndexStatuses = ['DRAFT', 'PENDING_APPROVAL', 'VOID', 'UNRESOLVABLE']
   const shouldNoIndex = !prediction.isPublic || noIndexStatuses.includes(prediction.status)
+  const resolution =
+    prediction.resolvedAt && prediction.resolutionOutcome
+      ? { outcome: prediction.resolutionOutcome, resolvedAt: prediction.resolvedAt }
+      : undefined
   const description = buildForecastDescription(prediction.claimText, prediction.detailsText, {
     resolveByDatetime: prediction.resolveByDatetime,
     commitmentCount: prediction._count.commitments,
+    resolution,
   })
 
   if (shouldNoIndex) {
@@ -179,13 +184,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-function ForecastLoading() {
-  return (
-    <div className="flex items-center justify-center min-h-[50vh]">
-      <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
-    </div>
-  )
-}
 
 export default async function ForecastDetailPage({ params }: Props) {
   const { id } = await params
@@ -259,18 +257,51 @@ export default async function ForecastDetailPage({ params }: Props) {
     },
   } : null
 
+  const claimReviewJsonLd =
+    prediction.isPublic &&
+    prediction.resolvedAt &&
+    (prediction.resolutionOutcome === 'correct' || prediction.resolutionOutcome === 'wrong')
+      ? {
+          '@context': 'https://schema.org',
+          '@type': 'ClaimReview',
+          url: `https://daatan.com/forecasts/${slug}`,
+          claimReviewed: prediction.claimText,
+          datePublished: prediction.resolvedAt,
+          author: {
+            '@type': 'Organization',
+            name: 'DAATAN',
+            url: 'https://daatan.com',
+          },
+          reviewRating: {
+            '@type': 'Rating',
+            ratingValue: prediction.resolutionOutcome === 'correct' ? 5 : 1,
+            bestRating: 5,
+            worstRating: 1,
+            alternateName: prediction.resolutionOutcome === 'correct' ? 'Correct' : 'Wrong',
+          },
+          itemReviewed: {
+            '@type': 'Claim',
+            name: prediction.claimText,
+            author: {
+              '@type': 'Person',
+              name: prediction.author.name || prediction.author.username,
+              url: `https://daatan.com/profile/${prediction.author.username}`,
+            },
+          },
+        }
+      : null
+
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
       {eventJsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(eventJsonLd) }} />}
-      <Suspense fallback={<ForecastLoading />}>
-        <ForecastDetailClient
-          initialData={prediction as any}
-          initialComments={initialComments}
-          initialContextSnapshots={initialContextSnapshots}
-        />
-      </Suspense>
+      {claimReviewJsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(claimReviewJsonLd) }} />}
+      <ForecastDetailClient
+        initialData={prediction as any}
+        initialComments={initialComments}
+        initialContextSnapshots={initialContextSnapshots}
+      />
     </>
   )
 }
