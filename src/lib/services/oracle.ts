@@ -86,7 +86,8 @@ export const getOracleForecast = async (
     })
 
     if (!res.ok) {
-      log.warn({ status: res.status }, 'Oracle returned non-OK status')
+      const errorBody = await res.text().catch(() => '(unreadable)')
+      log.warn({ status: res.status, body: errorBody }, 'Oracle returned non-OK status')
       return null
     }
 
