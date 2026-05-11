@@ -288,6 +288,27 @@ jobs:
           health-url: https://staging.daatan.com
           app-version: ${{ needs.build.outputs.app_version }}
 
+      - name: Search provider health smoke test (staging)
+        run: |
+          HEALTH=$(curl -s --max-time 15 https://staging.daatan.com/api/health/search)
+          echo "Search health: $HEALTH"
+
+          LAST_ERR=$(echo "$HEALTH" | jq -r '.oracle.lastSearchError // empty')
+          if [ -n "$LAST_ERR" ]; then
+            STATUS=$(echo "$LAST_ERR" | jq -r '.status')
+            BODY=$(echo "$LAST_ERR" | jq -r '.body')
+            echo "❌ Oracle /search last error: HTTP $STATUS — $BODY"
+            exit 1
+          fi
+
+          DFS_STATUS=$(echo "$HEALTH" | jq -r '.dataforseo.status // "unknown"')
+          if [ "$DFS_STATUS" == "error" ]; then
+            echo "❌ DataForSEO reported error: $(echo "$HEALTH" | jq -r '.dataforseo.error')"
+            exit 1
+          fi
+
+          echo "✅ Search providers healthy"
+
       - name: Get merged PR info
         id: pr_info
         if: always()
@@ -403,6 +424,29 @@ jobs:
 
           echo "❌ Staging did not reach v$PROD_VERSION after $((MAX_ATTEMPTS * SLEEP_SECONDS / 60)) minutes. Aborting."
           exit 1
+
+      - name: Search provider health gate (must pass on staging before promoting to prod)
+        run: |
+          HEALTH=$(curl -s --max-time 15 https://staging.daatan.com/api/health/search)
+          echo "Search health: $HEALTH"
+
+          LAST_ERR=$(echo "$HEALTH" | jq -r '.oracle.lastSearchError // empty')
+          if [ -n "$LAST_ERR" ]; then
+            STATUS=$(echo "$LAST_ERR" | jq -r '.status')
+            BODY=$(echo "$LAST_ERR" | jq -r '.body')
+            echo "❌ Oracle /search has a recorded error: HTTP $STATUS — $BODY"
+            echo "   Fix the root cause before promoting to production."
+            exit 1
+          fi
+
+          DFS_STATUS=$(echo "$HEALTH" | jq -r '.dataforseo.status // "unknown"')
+          if [ "$DFS_STATUS" == "error" ]; then
+            echo "❌ DataForSEO is in error state on staging: $(echo "$HEALTH" | jq -r '.dataforseo.error')"
+            echo "   Fix the root cause before promoting to production."
+            exit 1
+          fi
+
+          echo "✅ Search providers healthy — safe to promote to production"
 
       - name: Check Instance SSM Health
         run: |
