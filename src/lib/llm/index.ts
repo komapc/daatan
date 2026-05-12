@@ -43,6 +43,14 @@ providers.push(
 // Tries providers in the order they were registered above.
 export const llmService = new ResilientLLMService(providers)
 
+// OpenRouter model IDs that have been renamed; map old → current.
+const OPENROUTER_MODEL_ALIASES: Record<string, string> = {
+  'google/gemini-2.5-flash-preview:free': 'google/gemini-2.5-flash:free',
+  'google/gemini-2.5-flash-preview':      'google/gemini-2.5-flash',
+  'google/gemini-2.0-flash-exp:free':     'google/gemini-2.0-flash:free',
+  'google/gemini-2.0-flash-exp':          'google/gemini-2.0-flash',
+}
+
 /**
  * Creates an LLM service backed by OpenRouter for a specific model.
  * Used by the bot runner where each bot may have a different model preference.
@@ -53,34 +61,40 @@ export function createBotLLMService(modelName: string): ResilientLLMService {
 
   const providers: LLMProvider[] = []
 
-  // If model looks like a Google model and we have a direct key, try direct provider first
-  if (modelName.toLowerCase().includes('gemini') && geminiApiKey) {
-    // Extract base model name from OpenRouter slug
-    // e.g. "google/gemini-2.0-flash-exp:free" -> "gemini-2.0-flash-exp"
-    let directModelName = modelName.split(':').shift()?.split('/').pop() || 'gemini-1.5-flash'
+  // Normalise stale OpenRouter slugs before using them anywhere
+  const resolvedModelName = OPENROUTER_MODEL_ALIASES[modelName] ?? modelName
+  if (resolvedModelName !== modelName) {
+    log.info({ from: modelName, to: resolvedModelName }, 'Resolved deprecated OpenRouter model alias')
+  }
 
-    // Ensure we handle known renames or experimental suffixes if needed
+  // If model looks like a Google model and we have a direct key, try direct provider first
+  if (resolvedModelName.toLowerCase().includes('gemini') && geminiApiKey) {
+    // Extract base model name from OpenRouter slug
+    // e.g. "google/gemini-2.0-flash:free" -> "gemini-2.0-flash"
+    let directModelName = resolvedModelName.split(':').shift()?.split('/').pop() || 'gemini-1.5-flash'
+
+    // Remap legacy direct-API model names to the current stable ID
     if (directModelName === 'gemini-2.0-flash-exp' || directModelName === 'gemini-2.5-flash-preview' || directModelName === 'gemini-1.5-flash' || directModelName === 'gemini-1.5-pro') {
       directModelName = 'gemini-2.5-flash'
     }
 
-    log.info({ modelName, directModelName }, 'Trying direct Gemini provider for bot')
+    log.info({ modelName: resolvedModelName, directModelName }, 'Trying direct Gemini provider for bot')
     providers.push(new GeminiProvider({ apiKey: geminiApiKey, modelName: directModelName }))
   }
 
   if (openrouterApiKey) {
-    log.info({ modelName }, 'Adding OpenRouter provider for bot')
-    providers.push(new OpenRouterProvider({ apiKey: openrouterApiKey, modelName }))
+    log.info({ modelName: resolvedModelName }, 'Adding OpenRouter provider for bot')
+    providers.push(new OpenRouterProvider({ apiKey: openrouterApiKey, modelName: resolvedModelName }))
   }
 
   // Final fallback: direct stable Gemini if we have a key and requested model was Gemini
-  if (modelName.toLowerCase().includes('gemini') && geminiApiKey) {
+  if (resolvedModelName.toLowerCase().includes('gemini') && geminiApiKey) {
     log.info('Adding stable gemini-2.5-flash as final fallback')
     providers.push(new GeminiProvider({ apiKey: geminiApiKey, modelName: 'gemini-2.5-flash' }))
   }
 
   if (providers.length === 0) {
-    log.warn({ modelName, hasOpenRouter: !!openrouterApiKey, hasGemini: !!geminiApiKey }, 'No LLM providers available for bot')
+    log.warn({ modelName: resolvedModelName, hasOpenRouter: !!openrouterApiKey, hasGemini: !!geminiApiKey }, 'No LLM providers available for bot')
   }
 
   return new ResilientLLMService(providers)
