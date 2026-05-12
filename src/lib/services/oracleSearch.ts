@@ -5,7 +5,7 @@ import type { SearchResult } from '@/lib/utils/webSearch'
 
 const log = createLogger('oracle-search')
 
-const SEARCH_TIMEOUT_MS = 10_000
+const SEARCH_TIMEOUT_MS = 25_000
 const HEALTH_TIMEOUT_MS = 5_000
 
 /** Alert threshold shared between the health UI route and the hourly cron. */
