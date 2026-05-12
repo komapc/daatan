@@ -47,10 +47,6 @@ export const POST = withAuth(async (request, user) => {
     return apiError('Service not configured. Please contact administrator.', 503)
   }
 
-  // Check if Serper API is configured (not needed when skipping sources)
-  if (!skipSources && !process.env.SERPER_API_KEY) {
-    return apiError('Search service not configured. Please contact administrator.', 503)
-  }
 
   // Create a readable stream for progress updates
   const encoder = new TextEncoder()

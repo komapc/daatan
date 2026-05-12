@@ -19,7 +19,6 @@ export async function register() {
 
   const required: Array<{ key: string; feature: string }> = [
     { key: 'GEMINI_API_KEY', feature: 'LLM / bot-runner' },
-    { key: 'SERPER_API_KEY', feature: 'web search / research' },
     { key: 'VAPID_PRIVATE_KEY', feature: 'browser push notifications' },
     { key: 'NEXT_PUBLIC_VAPID_PUBLIC_KEY', feature: 'browser push notifications' },
   ]
