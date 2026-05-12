@@ -143,6 +143,8 @@ interface DataForSEONewsItem {
 
 interface DataForSEOResponse {
   tasks?: Array<{
+    status_code?: number
+    status_message?: string
     result?: Array<{
       items?: DataForSEONewsItem[]
     }>
@@ -175,7 +177,12 @@ async function searchWithDataForSEO(query: string, limit: number): Promise<Searc
   }
 
   const data: DataForSEOResponse = await response.json()
-  const items = data.tasks?.[0]?.result?.[0]?.items ?? []
+  const task = data.tasks?.[0]
+  if (task && typeof task.status_code === 'number' && task.status_code !== 20000) {
+    log.warn({ statusCode: task.status_code, statusMessage: task.status_message }, 'DataForSEO task-level error')
+    throw new Error(`DataForSEO task error: ${task.status_code}`)
+  }
+  const items = task?.result?.[0]?.items ?? []
 
   return items.slice(0, limit).map(item => ({
     title: item.title,
