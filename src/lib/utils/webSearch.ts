@@ -1,4 +1,4 @@
-// Web search utility with fallback chain: DataForSEO → Serper → BrightData → Nimbleway → SerpAPI → ScrapingBee → DuckDuckGo
+// Web search utility with fallback chain: DataForSEO → NewsDataIO → Serper → BrightData → Nimbleway → SerpAPI → ScrapingBee → DuckDuckGo
 // Provider order is determined by which env vars are set; provider functions stay
 // in place so any one can be re-enabled by populating its key in Secrets Manager.
 
@@ -190,6 +190,55 @@ async function searchWithDataForSEO(query: string, limit: number): Promise<Searc
     snippet: item.snippet,
     source: item.domain || extractDomain(item.url),
     publishedDate: item.date || undefined,
+  }))
+}
+
+// ──────────────────────────────────────────────
+// Provider: NewsData.io
+// ──────────────────────────────────────────────
+
+interface NewsDataIOArticle {
+  title: string
+  link: string
+  description: string | null
+  source_id: string
+  pubDate: string | null
+}
+
+interface NewsDataIOResponse {
+  status: string
+  results?: NewsDataIOArticle[]
+}
+
+async function searchWithNewsDataIO(query: string, limit: number): Promise<SearchResult[]> {
+  const apiKey = process.env.NEWSDATAIO_API_KEY
+  if (!apiKey) throw new Error('NewsData.io not configured')
+
+  const url = new URL('https://newsdata.io/api/1/news')
+  url.searchParams.set('apikey', apiKey)
+  url.searchParams.set('q', query)
+  url.searchParams.set('language', 'en')
+  url.searchParams.set('size', String(Math.min(limit, 10)))
+
+  const response = await fetch(url.toString(), {
+    signal: AbortSignal.timeout(10_000),
+  })
+
+  if (!response.ok) {
+    const errorBody = await response.text().catch(() => '(no body)')
+    log.error({ status: response.status, body: errorBody }, 'NewsData.io API error')
+    throw new Error(`NewsData.io error: ${response.status}`)
+  }
+
+  const data: NewsDataIOResponse = await response.json()
+  if (data.status !== 'success' || !data.results?.length) return []
+
+  return data.results.slice(0, limit).map(item => ({
+    title: item.title,
+    url: item.link,
+    snippet: item.description ?? item.title,
+    source: item.source_id || extractDomain(item.link),
+    publishedDate: item.pubDate ?? undefined,
   }))
 }
 
@@ -431,7 +480,21 @@ export async function searchArticles(
     }
   }
 
-  // 2. Serper
+  // 2. NewsData.io
+  if (process.env.NEWSDATAIO_API_KEY) {
+    try {
+      const results = await searchWithNewsDataIO(query, limit)
+      if (results.length > 0) {
+        log.debug({ provider: 'newsdataio', count: results.length }, 'Search succeeded')
+        return results
+      }
+      log.warn('NewsData.io returned 0 results, trying Serper fallback')
+    } catch (error) {
+      log.warn({ err: error }, 'NewsData.io failed, trying Serper fallback')
+    }
+  }
+
+  // 3. Serper
   if (process.env.SERPER_API_KEY) {
     try {
       const results = await searchWithSerper(query, limit, options)
@@ -445,7 +508,7 @@ export async function searchArticles(
     }
   }
 
-  // 3. BrightData
+  // 4. BrightData
   if (process.env.BRIGHTDATA_API_KEY) {
     try {
       const results = await searchWithBrightData(query, limit)
@@ -459,7 +522,7 @@ export async function searchArticles(
     }
   }
 
-  // 4. Nimbleway
+  // 5. Nimbleway
   if (process.env.NIMBLEWAY_API_KEY) {
     try {
       const results = await searchWithNimbleway(query, limit)
@@ -473,7 +536,7 @@ export async function searchArticles(
     }
   }
 
-  // 5. SerpAPI
+  // 6. SerpAPI
   if (process.env.SERPAPI_API_KEY) {
     try {
       const results = await searchWithSerpApi(query, limit)
@@ -488,7 +551,7 @@ export async function searchArticles(
     }
   }
 
-  // 6. ScrapingBee
+  // 7. ScrapingBee
   if (process.env.SCRAPINGBEE_API_KEY) {
     try {
       const results = await searchWithScrapingBee(query, limit)
@@ -502,7 +565,7 @@ export async function searchArticles(
     }
   }
 
-  // 7. DuckDuckGo (free, no key)
+  // 8. DuckDuckGo (free, no key)
   try {
     const results = await searchWithDDG(query, limit)
     log.info({ provider: 'ddg', count: results.length }, 'Search succeeded via DDG fallback')
