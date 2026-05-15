@@ -4,6 +4,7 @@ import { llmService } from './index'
 import { searchArticles, type SearchResult } from '../utils/webSearch'
 import { searchArticlesMultilingual, NON_LATIN } from '../utils/multilingualSearch'
 import { oracleSearch } from '../services/oracleSearch'
+import { DEFAULT_MAX_ARTICLES } from '../services/oracle'
 import { fetchUrlContent } from '../utils/scraper'
 import { hashUrl } from '../utils/hash'
 import { createLogger } from '@/lib/logger'
@@ -234,7 +235,7 @@ export async function generateExpressPrediction(
     if (!articleContent) {
       // Fallback: use the URL as a search query
       onProgress?.('searching', { message: 'Searching for relevant articles...' })
-      searchResults = await oracleSearch(url, 30) ?? await searchArticles(url, 30)
+      searchResults = await oracleSearch(url, DEFAULT_MAX_ARTICLES) ?? await searchArticles(url, DEFAULT_MAX_ARTICLES)
       if (searchResults.length === 0) {
         throw new NoArticlesFoundError({ searchedFor: url, isUrl: true, isNonLatin: false })
       }
@@ -273,7 +274,7 @@ export async function generateExpressPrediction(
       onProgress?.('searching', { message: `Finding related articles for: "${topic}"` })
 
       try {
-        searchResults = await oracleSearch(topic, 30) ?? await searchArticlesMultilingual(topic, 30)
+        searchResults = await oracleSearch(topic, DEFAULT_MAX_ARTICLES) ?? await searchArticlesMultilingual(topic, DEFAULT_MAX_ARTICLES)
       } catch {
         searchResults = []
       }
@@ -287,7 +288,7 @@ export async function generateExpressPrediction(
   } else {
     // Normal text flow: search for articles
     onProgress?.('searching', { message: 'Searching for relevant articles...' })
-    searchResults = await oracleSearch(userInput, 30) ?? await searchArticlesMultilingual(userInput, 30)
+    searchResults = await oracleSearch(userInput, DEFAULT_MAX_ARTICLES) ?? await searchArticlesMultilingual(userInput, DEFAULT_MAX_ARTICLES)
 
     if (searchResults.length === 0) {
       throw new NoArticlesFoundError({

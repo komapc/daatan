@@ -6,7 +6,12 @@ const log = createLogger('oracle')
 const EXPECTED_API_VERSION = '0.1'
 const FORECAST_TIMEOUT_MS = 12_000
 const HEALTH_TIMEOUT_MS = 5_000
-export const DEFAULT_MAX_ARTICLES = 30
+/**
+ * Maximum articles fetched per search query and passed to the oracle for forecasting.
+ * Used by: context/route.ts, expressPrediction.ts, and the /forecast max_articles param.
+ * To change the budget for all these callers, edit this one value.
+ */
+export const DEFAULT_MAX_ARTICLES = 15
 
 export interface ArticleInput {
   url: string
