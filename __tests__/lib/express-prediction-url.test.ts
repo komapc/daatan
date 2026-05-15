@@ -110,7 +110,7 @@ describe('generateExpressPrediction', () => {
 
       const result = await generateExpressPrediction('Bitcoin price prediction')
 
-      expect(mockSearchArticles).toHaveBeenCalledWith('Bitcoin price prediction', 30)
+      expect(mockSearchArticles).toHaveBeenCalledWith('Bitcoin price prediction', 15)
       expect(mockFetchUrlContent).not.toHaveBeenCalled()
       expect(result.claimText).toBe(mockLlmPrediction.claimText)
       expect(result.newsAnchor!.url).toBe('https://cnn.com/btc')
@@ -137,7 +137,7 @@ describe('generateExpressPrediction', () => {
       // Should use text search, not URL fetch (input has spaces, not a pure URL)
       expect(mockFetchUrlContent).not.toHaveBeenCalled()
       expect(mockSearchArticles).toHaveBeenCalledWith(
-        'check https://cnn.com for news about bitcoin', 30
+        'check https://cnn.com for news about bitcoin', 15
       )
     })
   })
@@ -167,7 +167,7 @@ describe('generateExpressPrediction', () => {
       expect(topicCall.prompt).toContain('Extract the main topic')
 
       // Should search for related articles using extracted topic
-      expect(mockSearchArticles).toHaveBeenCalledWith('Bitcoin price rally 2026', 30)
+      expect(mockSearchArticles).toHaveBeenCalledWith('Bitcoin price rally 2026', 15)
 
       // Primary article (the URL) should be the news anchor
       expect(result.newsAnchor!.url).toBe(testUrl)
@@ -216,7 +216,7 @@ describe('generateExpressPrediction', () => {
       const result = await generateExpressPrediction(testUrl)
 
       // Should fall back to using URL as search query
-      expect(mockSearchArticles).toHaveBeenCalledWith(testUrl, 30)
+      expect(mockSearchArticles).toHaveBeenCalledWith(testUrl, 15)
       expect(mockGenerateContent).toHaveBeenCalledTimes(2) 
       expect(result.newsAnchor!.url).toBe('https://cnn.com/btc')
     })
@@ -232,7 +232,7 @@ describe('generateExpressPrediction', () => {
       const result = await generateExpressPrediction(testUrl)
 
       // Should fall back to using the URL as search query
-      expect(mockSearchArticles).toHaveBeenCalledWith(testUrl, 30)
+      expect(mockSearchArticles).toHaveBeenCalledWith(testUrl, 15)
       expect(result.newsAnchor!.url).toBe(testUrl)
     })
 
@@ -260,7 +260,7 @@ describe('generateExpressPrediction', () => {
 
       await generateExpressPrediction(testUrl)
 
-      expect(mockSearchArticles).toHaveBeenCalledWith('Bitcoin rally 2026', 30)
+      expect(mockSearchArticles).toHaveBeenCalledWith('Bitcoin rally 2026', 15)
     })
   })
 

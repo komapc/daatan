@@ -81,7 +81,7 @@ const normalizeBaseUrl = (url: string) => url.replace(/\/$/, '')
  */
 export async function oracleSearch(
   query: string,
-  limit: number = 30,
+  limit: number = 20, // default for ad-hoc calls; use DEFAULT_MAX_ARTICLES for consistent budgets
   options?: { dateFrom?: Date; dateTo?: Date },
 ): Promise<SearchResult[] | null> {
   const baseUrl = env.ORACLE_URL
@@ -89,7 +89,7 @@ export async function oracleSearch(
 
   if (!baseUrl || !key) return null
 
-  const body: Record<string, unknown> = { query, limit: Math.min(limit, 20) }
+  const body: Record<string, unknown> = { query, limit }
   if (options?.dateFrom) body.date_from = options.dateFrom.toISOString().slice(0, 10)
   if (options?.dateTo) body.date_to = options.dateTo.toISOString().slice(0, 10)
 
