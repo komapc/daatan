@@ -631,7 +631,7 @@ export default function ExpressForecastClient({
                 <textarea
                   value={editForm?.claimText}
                   onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditForm(prev => prev ? ({ ...prev, claimText: e.target.value }) : null)}
-                  className="w-full p-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-3 rounded-lg border border-navy-600 bg-navy-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   rows={3}
                 />
               ) : (
@@ -655,7 +655,7 @@ export default function ExpressForecastClient({
                     const d = new Date(e.target.value)
                     setEditForm(prev => prev ? ({ ...prev, resolveByDatetime: isNaN(d.getTime()) ? e.target.value : d.toISOString() }) : null)
                   }}
-                  className={`w-full p-3 rounded-lg border bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 ${editForm?.resolveByDatetime && new Date(editForm.resolveByDatetime) <= new Date() ? 'border-red-500' : 'border-gray-300'}`}
+                  className={`w-full p-3 rounded-lg border bg-navy-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${editForm?.resolveByDatetime && new Date(editForm.resolveByDatetime) <= new Date() ? 'border-red-500' : 'border-navy-600'}`}
                 />
               ) : (
                 <p className="text-white">
@@ -686,7 +686,7 @@ export default function ExpressForecastClient({
                       onChange={e => setNewTag(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && addTag()}
                       placeholder={t('addTagPlaceholder')}
-                      className="px-3 py-1 rounded-full text-sm w-32 border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="px-3 py-1 rounded-full text-sm w-32 border border-navy-600 bg-navy-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     <button onClick={addTag} className="p-1 text-blue-600 hover:bg-cobalt/10 rounded-full">
                       <Plus className="w-4 h-4" />
@@ -726,7 +726,7 @@ export default function ExpressForecastClient({
                             value={option}
                             onChange={(e) => handleOptionChange(index, e.target.value)}
                             placeholder={t('optionPlaceholder', { n: index + 1 })}
-                            className="flex-1 px-3 py-2 rounded-lg text-sm border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="flex-1 px-3 py-2 rounded-lg text-sm border border-navy-600 bg-navy-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                             maxLength={500}
                           />
                           {(editForm?.options || []).length > 2 && (
@@ -775,7 +775,7 @@ export default function ExpressForecastClient({
                 <textarea
                   value={editForm?.detailsText}
                   onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditForm(prev => prev ? ({ ...prev, detailsText: e.target.value }) : null)}
-                  className="w-full p-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-3 rounded-lg border border-navy-600 bg-navy-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   rows={4}
                 />
               ) : (
@@ -790,7 +790,7 @@ export default function ExpressForecastClient({
                 <textarea
                   value={editForm?.resolutionRules}
                   onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditForm(prev => prev ? ({ ...prev, resolutionRules: e.target.value }) : null)}
-                  className="w-full p-3 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-3 rounded-lg border border-navy-600 bg-navy-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   rows={2}
                 />
               ) : (
