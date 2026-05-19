@@ -32,7 +32,7 @@ resource "aws_instance" "production" {
   root_block_device {
     volume_size           = 40
     volume_type           = "gp3"
-    delete_on_termination = false
+    delete_on_termination = true
     encrypted             = true
   }
 
@@ -73,7 +73,7 @@ resource "aws_instance" "production" {
     systemctl start docker
 
     # --- Zero Touch Setup ---
-    
+
     # 1. Setup App Directory
     mkdir -p /home/ubuntu/app
     chown ubuntu:ubuntu /home/ubuntu/app
@@ -208,7 +208,7 @@ resource "aws_instance" "staging" {
   root_block_device {
     volume_size           = 40
     volume_type           = "gp3"
-    delete_on_termination = false
+    delete_on_termination = true
     encrypted             = true
   }
 
