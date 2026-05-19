@@ -244,8 +244,12 @@ export default async function ForecastDetailPage({ params }: Props) {
     name: prediction.claimText,
     description: prediction.detailsText || undefined,
     url: `https://daatan.com/forecasts/${slug}`,
+    image: `https://daatan.com/forecasts/${slug}/opengraph-image`,
     startDate: prediction.publishedAt ?? prediction.createdAt,
     endDate: prediction.resolveByDatetime,
+    eventStatus: prediction.status === 'VOID'
+      ? 'https://schema.org/EventCancelled'
+      : 'https://schema.org/EventScheduled',
     organizer: {
       '@type': 'Person',
       name: prediction.author.name || prediction.author.username,
@@ -253,6 +257,7 @@ export default async function ForecastDetailPage({ params }: Props) {
     },
     location: {
       '@type': 'VirtualLocation',
+      name: 'DAATAN',
       url: `https://daatan.com/forecasts/${slug}`,
     },
   } : null
