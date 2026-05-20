@@ -93,6 +93,7 @@ export async function oracleSearch(
   if (options?.dateFrom) body.date_from = options.dateFrom.toISOString().slice(0, 10)
   if (options?.dateTo) body.date_to = options.dateTo.toISOString().slice(0, 10)
 
+  const t0 = Date.now()
   try {
     const res = await fetch(`${normalizeBaseUrl(baseUrl)}/search`, {
       method: 'POST',
@@ -106,7 +107,7 @@ export async function oracleSearch(
 
     if (!res.ok) {
       const errorBody = await res.text().catch(() => '(unreadable)')
-      log.warn({ status: res.status, body: errorBody, query }, 'oracle-search: non-OK response')
+      log.warn({ status: res.status, body: errorBody, query, durationMs: Date.now() - t0 }, 'oracle-search: non-OK response')
       notifyOracleSearchUnavailable(query)
       return null
     }
@@ -118,7 +119,7 @@ export async function oracleSearch(
       return null
     }
 
-    log.info({ query, count: data.count }, 'oracle-search: success')
+    log.info({ query, count: data.count, durationMs: Date.now() - t0 }, 'oracle-search: success')
 
     return data.results.map(r => ({
       title: r.title,
@@ -128,7 +129,7 @@ export async function oracleSearch(
       publishedDate: r.published_date || undefined,
     }))
   } catch (err) {
-    log.warn({ err, query }, 'oracle-search: request failed')
+    log.warn({ err, query, durationMs: Date.now() - t0 }, 'oracle-search: request failed')
     notifyOracleSearchUnavailable(query)
     return null
   }
