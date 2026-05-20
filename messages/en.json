@@ -405,7 +405,6 @@
     "updated": "Context updated!",
     "failed": "Failed to analyze context",
     "lastUpdated": "Last updated",
-    "sources": "Search results",
     "previousUpdates": "{count} previous update",
     "previousUpdatesPlural": "{count} previous updates"
   },

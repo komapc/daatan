@@ -405,7 +405,6 @@
     "updated": "ההקשר עודכן!",
     "failed": "ניתוח ההקשר נכשל",
     "lastUpdated": "עדכון אחרון",
-    "sources": "תוצאות חיפוש",
     "previousUpdates": "עדכון קודם אחד",
     "previousUpdatesPlural": "{count} עדכונים קודמים"
   },
