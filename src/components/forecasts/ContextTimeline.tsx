@@ -323,37 +323,6 @@ export default function ContextTimeline({
               </a>
             </div>
           )}
-          {/* Sources from latest snapshot.
-              We hide entries whose URL matches the news anchor to avoid the
-              "Based on: maariv / Sources: maariv" double-display when the
-              search returned the same article (or only that article). */}
-          {(() => {
-            const allSources = (snapshots[0]?.sources as Source[] | undefined) ?? []
-            const anchorUrl = newsAnchor?.url
-            const dedupedSources = anchorUrl
-              ? allSources.filter((s) => s.url !== anchorUrl)
-              : allSources
-            if (dedupedSources.length === 0) return null
-            return (
-              <div className="mt-3 pt-3 border-t border-navy-600">
-                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">{t('sources')}</p>
-                <div className="flex flex-wrap gap-2">
-                  {dedupedSources.map((src, i) => (
-                    <a
-                      key={i}
-                      href={src.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-cobalt-light hover:underline"
-                    >
-                      {src.source || src.title}
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )
-          })()}
           {/* AI probability estimate.
               Source badge ("Oracle" vs "LLM estimate") makes the provenance
               of the number explicit: when the Oracle is unreachable / has no
