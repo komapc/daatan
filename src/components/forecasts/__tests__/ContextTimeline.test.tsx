@@ -305,9 +305,9 @@ describe('ContextTimeline', () => {
     expect(screen.getByText('Reuters')).toBeInTheDocument()
     expect(screen.getByText('Random Blog')).toBeInTheDocument()
 
-    // Stance badges (YES for positive stance, NO for negative)
-    expect(screen.getAllByText('YES').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('NO').length).toBeGreaterThanOrEqual(1)
+    // Stance group headers (YES/NO are now section headers with counts)
+    expect(screen.getByText(/^YES \(\d+\)/)).toBeInTheDocument()
+    expect(screen.getByText(/^NO \(\d+\)/)).toBeInTheDocument()
 
     // Source chip links open in a new tab
     const reutersChip = screen.getByText('Reuters').closest('a')
