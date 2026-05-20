@@ -64,7 +64,7 @@ instance ID: `i-04ea44d4243d35624`).
    - `NEXTAUTH_URL` must be exactly `https://daatan.com` for production.
 
 2. **Optional: compare with staging**
-   Run the same command against the staging instance (`i-0286f62b47117b85c`). If the **same**
+   Run the same command against the staging instance (`i-0406d237ca5d92cdf`). If the **same**
    `GOOGLE_CLIENT_ID` is used for both, the OAuth client in Google must have **both** redirect
    URIs (see step 4).
 
@@ -99,7 +99,7 @@ aws ssm send-command \
 
 # Staging instance (if you changed staging .env)
 aws ssm send-command \
-  --instance-ids i-0286f62b47117b85c \
+  --instance-ids i-0406d237ca5d92cdf \
   --document-name AWS-RunShellScript \
   --parameters 'commands=["cd ~/app && docker compose -f docker-compose.prod.yml restart app-staging"]'
 ```

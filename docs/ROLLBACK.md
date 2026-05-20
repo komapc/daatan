@@ -74,7 +74,7 @@ Use this if GitHub Actions is down or the Actions runner cannot reach the instan
 
 1. Open AWS Systems Manager → Run Command
 2. Document: `AWS-RunShellScript`
-3. Target: instance `i-0286f62b47117b85c` (the staging/prod EC2)
+3. Target: instance `i-04ea44d4243d35624` (prod) or `i-0406d237ca5d92cdf` (staging)
 4. Commands (adjust `VERSION`, `ENV`, and `LOCAL_TAG` as needed):
 
 ```bash
@@ -103,7 +103,7 @@ export IMAGE_TAG="$VERSION"
 **Via AWS CLI (from your machine):**
 
 ```bash
-INSTANCE_ID="i-0286f62b47117b85c"
+INSTANCE_ID="i-04ea44d4243d35624"   # prod; use i-0406d237ca5d92cdf for staging
 aws ssm send-command \
   --document-name "AWS-RunShellScript" \
   --targets "Key=instanceids,Values=$INSTANCE_ID" \
