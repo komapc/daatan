@@ -13,6 +13,7 @@ type AdminUser = {
   cuAvailable: number
   createdAt: string
   image: string | null
+  isBot: boolean
 }
 
 export default function UsersTable() {
@@ -102,7 +103,7 @@ export default function UsersTable() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by name, email, or username..."
-              className="pl-10 pr-4 py-2 border rounded-lg w-full focus:ring-2 focus:ring-blue-500 outline-none"
+              className="pl-10 pr-4 py-2 border border-navy-600 rounded-lg w-full bg-navy-700 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 outline-none"
             />
           </div>
           <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
@@ -139,12 +140,17 @@ export default function UsersTable() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {users.map((u) => (
-                  <tr key={u.id} className="hover:bg-navy-800 transition-colors">
+                  <tr key={u.id} className={`hover:bg-navy-800 transition-colors ${u.isBot ? 'border-l-2 border-cobalt/40 bg-cobalt/5' : ''}`}>
                     <td className="p-3">
-                      <div className="font-medium text-white">{u.name}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-white">{u.name}</span>
+                        {u.isBot && (
+                          <span className="text-xs px-1.5 py-0.5 rounded bg-cobalt/20 text-cobalt-light font-mono">BOT</span>
+                        )}
+                      </div>
                       <div className="text-xs text-gray-500 font-mono">@{u.username || 'unknown'}</div>
                     </td>
-                    <td className="p-3 text-sm text-gray-600">{u.email}</td>
+                    <td className="p-3 text-sm text-gray-500">{u.email}</td>
                     <td className="p-3">
                       <select
                         value={u.role}

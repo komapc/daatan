@@ -154,8 +154,8 @@ export async function listAdminUsers({ search, page, limit }: AdminUsersQuery) {
     prisma.user.findMany({
       where,
       select: {
-        id: true, name: true, email: true, role: true,
-        cuAvailable: true, rs: true, createdAt: true,
+        id: true, name: true, username: true, email: true, role: true,
+        cuAvailable: true, rs: true, createdAt: true, isBot: true,
         _count: { select: { predictions: true, commitments: true } },
       },
       skip: (page - 1) * limit,
