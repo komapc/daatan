@@ -258,8 +258,8 @@ it('returns 400 when prediction is not ACTIVE', async () => {
     // Verify transaction was called
     expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1)
 
-    // Verify search used newsAnchor title
-    expect(mockSearchArticles).toHaveBeenCalledWith('Bitcoin Rally', 30)
+    // Verify search used claimText (not newsAnchor title)
+    expect(mockSearchArticles).toHaveBeenCalledWith('Bitcoin will reach $100k', 30)
   })
 
   it('denormalizes Oracle CI bounds onto Prediction when Oracle path runs', async () => {
