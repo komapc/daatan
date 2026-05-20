@@ -3,7 +3,10 @@ import { getOracleProbability } from '@/lib/services/oracle'
 import { z } from 'zod'
 import { handleRouteError } from '@/lib/api-error'
 import { withAuth } from '@/lib/api-middleware'
+import { createLogger } from '@/lib/logger'
 import { NextResponse } from 'next/server'
+
+const log = createLogger('express-guess')
 
 const guessSchema = z.object({
   claimText: z.string().min(5),
@@ -20,7 +23,9 @@ export const POST = withAuth(async (request) => {
     const body = await request.json()
     const { claimText, detailsText, articles } = guessSchema.parse(body)
 
+    const t0 = Date.now()
     const oracleProb = await getOracleProbability(claimText)
+    log.info({ durationMs: Date.now() - t0, source: oracleProb !== null ? 'oracle' : 'llm' }, 'express-guess: probability')
     if (oracleProb !== null) {
       return NextResponse.json({
         probability: Math.round(oracleProb * 100),

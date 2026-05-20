@@ -78,6 +78,7 @@ export const getOracleForecast = async (
     return null
   }
 
+  const t0 = Date.now()
   try {
     const res = await fetch(`${normalizeBaseUrl(url)}/forecast`, {
       method: 'POST',
@@ -92,7 +93,7 @@ export const getOracleForecast = async (
 
     if (!res.ok) {
       const errorBody = await res.text().catch(() => '(unreadable)')
-      log.warn({ status: res.status, body: errorBody }, 'Oracle returned non-OK status')
+      log.warn({ status: res.status, body: errorBody, durationMs: Date.now() - t0 }, 'Oracle returned non-OK status')
       return null
     }
 
@@ -114,12 +115,13 @@ export const getOracleForecast = async (
         mean: data.mean,
         articlesUsed: data.articles_used,
         sources: data.sources.length,
+        durationMs: Date.now() - t0,
       },
       'Oracle forecast',
     )
     return data
   } catch (err) {
-    log.warn({ err }, 'Oracle request failed')
+    log.warn({ err, durationMs: Date.now() - t0 }, 'Oracle request failed')
     return null
   }
 }
