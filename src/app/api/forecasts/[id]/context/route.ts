@@ -87,9 +87,10 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
         }
 
         // 1. Search for recent articles
-        // Clean up news anchor title: strip subtitle after " | " or " – " (common in Wikipedia-style titles)
+        // Use the forecast's own claim text as the search basis; the newsAnchor is the article
+        // that triggered the forecast, not the topic itself — using its title returns wrong results.
         // Also strip any leading emoji (e.g. "🤖 " prefix on bot-generated forecasts) that confuse search APIs.
-        const rawQuery = prediction.newsAnchor?.title || prediction.claimText
+        const rawQuery = prediction.claimText || prediction.newsAnchor?.title || ''
         const searchQuery = rawQuery.split(/\s+[|—–]\s+/)[0].replace(/^[\p{Emoji_Presentation}\p{Extended_Pictographic}]+\s*/gu, '').trim()
         // `searchArticles` throws "Search API not available" when every provider in the
         // fallback chain fails (e.g. transient ECONNRESET on DDG when paid providers are
