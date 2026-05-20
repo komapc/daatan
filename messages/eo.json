@@ -405,7 +405,7 @@
     "updated": "Kunteksto ĝisdatigita!",
     "failed": "Malsukcesis analizi kuntekston",
     "lastUpdated": "Laste ĝisdatigita",
-    "sources": "Fontoj",
+    "sources": "Serĉrezultoj",
     "previousUpdates": "{count} antaŭa ĝisdatigo",
     "previousUpdatesPlural": "{count} antaŭaj ĝisdatigoj"
   },
