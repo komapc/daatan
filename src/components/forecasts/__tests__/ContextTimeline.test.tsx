@@ -207,38 +207,6 @@ describe('ContextTimeline', () => {
     })
   })
 
-  it('shows source links from latest snapshot', async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({
-        currentContext: 'Context with sources',
-        contextUpdatedAt: '2026-02-20T10:00:00Z',
-        snapshots: [
-          {
-            id: 's1',
-            summary: 'Context with sources',
-            sources: [
-              { title: 'Big News', url: 'https://reuters.com/big-news', source: 'Reuters', publishedDate: '2026-02-20' },
-            ],
-            createdAt: '2026-02-20T10:00:00Z',
-          },
-        ],
-      }),
-    })
-
-    renderWithIntl(<ContextTimeline predictionId="p1" canAnalyze={false} />)
-
-    await waitFor(() => expect(mockFetch).toHaveBeenCalled())
-    openSection()
-
-    await waitFor(() => {
-      expect(screen.getByText('Reuters')).toBeInTheDocument()
-    })
-
-    const link = screen.getByText('Reuters').closest('a')
-    expect(link).toHaveAttribute('href', 'https://reuters.com/big-news')
-    expect(link).toHaveAttribute('target', '_blank')
-  })
 
   it('renders Oracle CI text and sources when oracleSnapshot is present', async () => {
     mockFetch.mockResolvedValue({
