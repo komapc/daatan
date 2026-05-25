@@ -56,7 +56,7 @@ export default async function Image() {
           marginBottom: '64px',
           display: 'flex',
         }}>
-          Stake reputation. Prove accuracy. Climb the leaderboard.
+          Track forecasts, measure accuracy over time, and build a public track record.
         </div>
 
         {/* Stats */}

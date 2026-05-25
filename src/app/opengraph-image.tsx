@@ -2,7 +2,7 @@ import { ImageResponse } from 'next/og'
 
 export const runtime = 'nodejs'
 
-export const alt = 'DAATAN — Prediction Market & Forecast Tracking'
+export const alt = 'DAATAN — Measurable Forecasts'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
@@ -17,30 +17,15 @@ export default async function Image() {
           flexDirection: 'column',
           alignItems: 'flex-start',
           justifyContent: 'center',
-          backgroundColor: '#0f172a',
-          backgroundImage: 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%)',
+          backgroundColor: '#0B1F33',
+          backgroundImage: 'linear-gradient(135deg, #0B1F33 0%, #0E2D4A 100%)',
           padding: '80px',
           fontFamily: 'sans-serif',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '40px' }}>
-          <div
-            style={{
-              width: '64px',
-              height: '64px',
-              backgroundColor: '#2563eb',
-              borderRadius: '12px',
-              marginRight: '20px',
-            }}
-          />
-          <span
-            style={{
-              fontSize: '56px',
-              fontWeight: 'bold',
-              color: '#ffffff',
-              letterSpacing: '-0.02em',
-            }}
-          >
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '48px' }}>
+          <div style={{ width: '52px', height: '52px', backgroundColor: '#2563eb', borderRadius: '10px', marginRight: '18px' }} />
+          <span style={{ fontSize: '42px', fontWeight: 'bold', color: '#ffffff', letterSpacing: '-0.02em' }}>
             DAATAN
           </span>
         </div>
@@ -53,22 +38,22 @@ export default async function Image() {
             lineHeight: 1.1,
             marginBottom: '32px',
             display: 'flex',
-            maxWidth: '900px',
+            maxWidth: '960px',
           }}
         >
-          Prediction Market & Forecast Tracking
+          Turn opinions into measurable forecasts.
         </div>
 
         <div
           style={{
-            fontSize: '32px',
-            color: '#cbd5e1',
-            lineHeight: 1.3,
+            fontSize: '30px',
+            color: '#7A9CC0',
+            lineHeight: 1.4,
             display: 'flex',
-            maxWidth: '900px',
+            maxWidth: '860px',
           }}
         >
-          Stake reputation. Prove accuracy. Climb the leaderboard.
+          Track forecasts, measure accuracy over time, and build a public track record.
         </div>
       </div>
     ),
