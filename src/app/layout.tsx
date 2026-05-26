@@ -30,11 +30,11 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     metadataBase: new URL(baseUrl),
     title: {
-      default: 'DAATAN — Prediction Market & Forecast Tracking',
+      default: 'DAATAN — Measurable Forecasts',
       template: '%s | DAATAN',
     },
     description:
-      'DAATAN is a prediction market and forecast tracking platform. Make calibrated forecasts, stake reputation, and prove your accuracy with Brier scores and head-to-head ELO.',
+      'Turn opinions into measurable forecasts. Track accuracy over time and build a public track record.',
     icons: {
       icon: [
         { url: '/favicon.ico', sizes: 'any' },
@@ -52,17 +52,17 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: {
       type: 'website',
       siteName: 'DAATAN',
-      title: 'DAATAN — Prediction Market & Forecast Tracking',
+      title: 'DAATAN — Measurable Forecasts',
       description:
-        'Make calibrated forecasts, stake reputation, and prove your accuracy with Brier scores and head-to-head ELO.',
+        'Turn opinions into measurable forecasts. Track accuracy over time and build a public track record.',
       url: 'https://daatan.com',
     },
     twitter: {
       card: 'summary_large_image',
       site: '@daatan_dev',
-      title: 'DAATAN — Prediction Market & Forecast Tracking',
+      title: 'DAATAN — Measurable Forecasts',
       description:
-        'Make calibrated forecasts, stake reputation, and prove your accuracy with Brier scores and head-to-head ELO.',
+        'Turn opinions into measurable forecasts. Track accuracy over time and build a public track record.',
     },
     alternates: {
       languages: {
