@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
+import { buildProfileUrl } from '@/components/profile/profile-url'
 
 interface Tag {
   name: string
@@ -15,13 +16,14 @@ interface TagFilterProps {
 
 export function TagFilter({ tags, selectedTag }: TagFilterProps) {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
 
   if (tags.length === 0) return null
 
   return (
     <div className="flex flex-wrap gap-2 mt-3">
       <Link
-        href={pathname}
+        href={buildProfileUrl(pathname, { tag: null }, searchParams)}
         className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
           !selectedTag
             ? 'bg-blue-600 text-white'
@@ -33,7 +35,7 @@ export function TagFilter({ tags, selectedTag }: TagFilterProps) {
       {tags.map(tag => (
         <Link
           key={tag.slug}
-          href={`${pathname}?tag=${tag.slug}`}
+          href={buildProfileUrl(pathname, { tag: tag.slug }, searchParams)}
           className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
             selectedTag === tag.slug
               ? 'bg-blue-600 text-white'

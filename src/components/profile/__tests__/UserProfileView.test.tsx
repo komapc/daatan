@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { UserProfileView } from '../UserProfileView'
 import { describe, it, expect, vi } from 'vitest'
+import type { ProfileScores, ProfileTabResult } from '@/lib/services/profile'
 
 // Mock next-intl
 vi.mock('next-intl/server', () => ({
@@ -10,34 +11,48 @@ vi.mock('next-intl/server', () => ({
 // Mock next/image
 vi.mock('next/image', () => ({
   // eslint-disable-next-line @next/next/no-img-element
-  default: ({ src, alt }: any) => <img src={src} alt={alt} />,
+  default: ({ src, alt }: { src: string; alt: string }) => <img src={src} alt={alt} />,
 }))
 
 // Mock next/link
 vi.mock('next/link', () => ({
-  default: ({ children, href }: any) => <a href={href}>{children}</a>,
+  default: ({ children, href }: { children: React.ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  ),
 }))
 
 // Mock RoleBadge
 vi.mock('@/components/RoleBadge', () => ({
-  RoleBadge: ({ role }: any) => <span data-testid="role-badge">{role}</span>,
+  RoleBadge: ({ role }: { role: string }) => <span data-testid="role-badge">{role}</span>,
 }))
 
 // Mock ForecastCard
 vi.mock('@/components/forecasts/ForecastCard', () => ({
-  default: ({ prediction }: any) => (
+  default: ({ prediction }: { prediction: { claimText: string } }) => (
     <div data-testid="forecast-card">{prediction.claimText}</div>
   ),
 }))
 
 // Mock EmptyState
 vi.mock('@/components/ui/EmptyState', () => ({
-  default: ({ description }: any) => <div>{description}</div>,
+  default: ({ description }: { description: string }) => <div>{description}</div>,
 }))
 
 // Mock TagFilter
 vi.mock('@/components/profile/TagFilter', () => ({
   TagFilter: () => null,
+}))
+
+// Mock ScoresGrid
+vi.mock('@/components/profile/ScoresGrid', () => ({
+  ScoresGrid: () => <div data-testid="scores-grid" />,
+}))
+
+// Mock ProfileTabs
+vi.mock('@/components/profile/ProfileTabs', () => ({
+  ProfileTabs: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="profile-tabs">{children}</div>
+  ),
 }))
 
 describe('UserProfileView Component', () => {
@@ -47,93 +62,135 @@ describe('UserProfileView Component', () => {
     username: 'testuser',
     image: 'https://example.com/image.jpg',
     role: 'USER',
+    website: null,
+    twitterHandle: null,
     rs: 150.5,
-    cuAvailable: 500,
+    mu: 1500,
+    sigma: 350,
+    eloRating: 1500,
+    cuAvailable: 200,
+    cuLocked: 0,
     createdAt: new Date('2025-01-01').toISOString(),
-    _count: { predictions: 10, commitments: 5 }
+    _count: { predictions: 10, commitments: 5 },
   }
 
-  const mockCommitments = [
-    {
-      id: 'c1',
-      cuCommitted: 100,
-      prediction: { id: 'p1', claimText: 'Forecast 1' }
-    }
-  ]
+  const mockScores: ProfileScores = {
+    avgBrierScore: null,
+    brierCount: 0,
+    peerScoreSum: null,
+    peerScoreCount: 0,
+    aiScoreSum: null,
+    aiScoreCount: 0,
+    rsTagDelta: null,
+    truthScore: null,
+    weightedPeerScore: null,
+    roi: null,
+    accuracy: null,
+    accuracyResolved: 0,
+    topicBreakdown: [],
+  }
 
-  const mockPredictions = [
-    { id: 'p2', claimText: 'Forecast 2' }
-  ]
+  const mockTabData: ProfileTabResult = {
+    tab: 'created',
+    page: 1,
+    createdTotal: 0,
+    participatedTotal: 0,
+    resolvedTotal: 0,
+    createdItems: [],
+    participatedItems: [],
+    resolvedItems: [],
+  }
 
   it('renders user information correctly', async () => {
     const component = await UserProfileView({
       user: mockUser,
-      commitments: [],
-      myPredictions: [],
-      avgBrierScore: 0.123,
-      brierCount: 2,
       isOwnProfile: true,
       userTags: [],
       selectedTag: null,
+      scores: mockScores,
+      tabData: { ...mockTabData, createdTotal: 3 },
     })
-    
+
     render(component)
 
     expect(screen.getByText('Test User')).toBeInTheDocument()
     expect(screen.getByText('@testuser')).toBeInTheDocument()
-    expect(screen.getByText('150.5')).toBeInTheDocument() // RS
-    expect(screen.getByText('0.123')).toBeInTheDocument() // Brier
+    expect(screen.getByText(/150\.5/)).toBeInTheDocument()
   })
 
   it('renders "Edit profile" link only for own profile', async () => {
     const ownProfile = await UserProfileView({
       user: mockUser,
-      commitments: [],
-      myPredictions: [],
-      avgBrierScore: null,
-      brierCount: 0,
       isOwnProfile: true,
       userTags: [],
       selectedTag: null,
+      scores: mockScores,
+      tabData: mockTabData,
     })
-    
+
     const { rerender } = render(ownProfile)
-    // Find the link by its href
     const editLink = screen.getAllByRole('link').find(l => l.getAttribute('href') === '/profile/edit')
     expect(editLink).toBeInTheDocument()
 
     const publicProfile = await UserProfileView({
       user: mockUser,
-      commitments: [],
-      myPredictions: [],
-      avgBrierScore: null,
-      brierCount: 0,
       isOwnProfile: false,
       userTags: [],
       selectedTag: null,
+      scores: mockScores,
+      tabData: mockTabData,
     })
-    
+
     rerender(publicProfile)
-    const publicEditLink = screen.queryAllByRole('link').find(l => l.getAttribute('href') === '/profile/edit')
+    const publicEditLink = screen
+      .queryAllByRole('link')
+      .find(l => l.getAttribute('href') === '/profile/edit')
     expect(publicEditLink).toBeUndefined()
   })
 
-  it('renders stakes and predictions', async () => {
+  it('renders created tab forecast list', async () => {
+    const withItems: ProfileTabResult = {
+      ...mockTabData,
+      createdTotal: 1,
+      createdItems: [{ id: 'p1', claimText: 'Forecast 1' } as never],
+    }
+
     const component = await UserProfileView({
       user: mockUser,
-      commitments: mockCommitments,
-      myPredictions: mockPredictions,
-      avgBrierScore: null,
-      brierCount: 0,
       isOwnProfile: false,
       userTags: [],
       selectedTag: null,
+      scores: mockScores,
+      tabData: withItems,
     })
-    
-    render(component)
 
+    render(component)
     expect(screen.getByText('Forecast 1')).toBeInTheDocument()
-    expect(screen.getByText('Forecast 2')).toBeInTheDocument()
-    expect(screen.getByText('staked')).toBeInTheDocument()
+  })
+
+  it('shows CU balance only for own profile', async () => {
+    const ownProfile = await UserProfileView({
+      user: mockUser,
+      isOwnProfile: true,
+      userTags: [],
+      selectedTag: null,
+      scores: mockScores,
+      tabData: mockTabData,
+    })
+
+    const { rerender } = render(ownProfile)
+    expect(screen.getByText(/200/)).toBeInTheDocument()
+
+    const publicProfile = await UserProfileView({
+      user: { ...mockUser, cuAvailable: undefined },
+      isOwnProfile: false,
+      userTags: [],
+      selectedTag: null,
+      scores: mockScores,
+      tabData: mockTabData,
+    })
+
+    rerender(publicProfile)
+    expect(screen.queryByText(/CU/)).not.toBeInTheDocument()
   })
 })
