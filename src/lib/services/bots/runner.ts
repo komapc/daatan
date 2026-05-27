@@ -337,8 +337,8 @@ async function runBot(bot: BotWithUser, dryRun: boolean, isManual: boolean = fal
         if (hotTopics.length === 0) {
           log.info({ botId: bot.id, fetchedCount: items.length }, 'No hot topics detected from fetched items')
 
-          if (bot.fallbackToLLMOnNoTopics && initialForecastCount < bot.maxForecastsPerDay) {
-            log.info({ botId: bot.id }, 'Falling back to LLM-only forecast generation (no sources)')
+          if (initialForecastCount < bot.maxForecastsPerDay) {
+            log.info({ botId: bot.id }, 'No hot topics — falling back to LLM-only forecast generation')
             const created = await processSourcelessForecast(bot, llm, dryRun, existingTitles)
             if (created === 'created') summary.forecastsCreated++
             else if (created === 'skipped') summary.skipped++
@@ -737,7 +737,6 @@ async function processTopic(
 
 /**
  * Fallback path: generate a forecast from the bot's knowledge alone, with no news anchor.
- * Used when RSS/search returns no hot topics and fallbackToLLMOnNoTopics is enabled.
  * Mirrors the manual "Create prediction without a URL" checkbox.
  */
 async function processSourcelessForecast(

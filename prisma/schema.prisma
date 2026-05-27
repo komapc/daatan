@@ -737,10 +737,6 @@ model BotConfig {
   // Rate limiting: max forecasts per hour (0 = unlimited)
   maxForecastsPerHour Int @default(0)
 
-  // When RSS/search returns no hot topics, fall back to generating a forecast
-  // using LLM knowledge alone (no news anchor), like the manual "without sources" checkbox.
-  fallbackToLLMOnNoTopics Boolean @default(false)
-
   isActive  Boolean   @default(true)
   lastRunAt DateTime?
   createdAt DateTime  @default(now())
