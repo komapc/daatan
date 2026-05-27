@@ -15,6 +15,7 @@ type PromptName =
     | 'update-context'
     | 'dedupe-check'
     | 'bot-forecast-generation'
+    | 'bot-sourceless-forecast-generation'
     | 'forecast-quality-validation'
     | 'bot-vote-decision'
     | 'bot-config-generation'
