@@ -1,4 +1,4 @@
-// Web search utility with fallback chain: DataForSEO → NewsDataIO → Serper → BrightData → Nimbleway → SerpAPI → ScrapingBee → DuckDuckGo
+// Web search utility with fallback chain: DataForSEO → NewsDataIO → Serper → BrightData → Nimbleway → SerpAPI → ScrapingBee → GDELT → DuckDuckGo
 // Provider order is determined by which env vars are set; provider functions stay
 // in place so any one can be re-enabled by populating its key in Secrets Manager.
 
@@ -404,6 +404,70 @@ async function searchWithScrapingBee(query: string, limit: number): Promise<Sear
 }
 
 // ──────────────────────────────────────────────
+// Provider: GDELT Doc API (free, no key, 3-month rolling window)
+// ──────────────────────────────────────────────
+
+// Set on HTTP 429 only — generic errors don't trigger cooldown
+let gdeltCooldownUntil = 0
+
+interface GDELTArticle {
+  title?: string
+  url?: string
+  domain?: string
+  seendate?: string
+}
+
+interface GDELTResponse {
+  articles?: GDELTArticle[]
+}
+
+async function searchWithGDELT(query: string, limit: number): Promise<SearchResult[]> {
+  if (Date.now() < gdeltCooldownUntil) {
+    throw new Error('GDELT: in cooldown period')
+  }
+
+  const url = new URL('https://api.gdeltproject.org/api/v2/doc/doc')
+  url.searchParams.set('query', query)
+  url.searchParams.set('mode', 'artlist')
+  url.searchParams.set('format', 'json')
+  url.searchParams.set('maxrecords', String(Math.min(limit, 25)))
+  url.searchParams.set('sort', 'DateDesc')
+
+  // 5s total timeout: GDELT stalls the TLS handshake for ~25s when rate-limiting
+  // an IP rather than returning 429 immediately, so we need to abort fast.
+  const response = await fetch(url.toString(), {
+    signal: AbortSignal.timeout(5_000),
+  })
+
+  if (response.status === 429) {
+    gdeltCooldownUntil = Date.now() + 60_000
+    throw new Error('GDELT 429: rate-limited; 60s cooldown set')
+  }
+
+  if (!response.ok) {
+    throw new Error(`GDELT error: ${response.status}`)
+  }
+
+  const data: GDELTResponse = await response.json()
+  const articles = data.articles ?? []
+
+  return articles.slice(0, limit).map(art => {
+    let publishedDate: string | undefined
+    if (art.seendate) {
+      const d = art.seendate.slice(0, 8)
+      publishedDate = `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}`
+    }
+    return {
+      title: art.title ?? '',
+      url: art.url ?? '',
+      snippet: '',
+      source: art.domain || extractDomain(art.url ?? ''),
+      publishedDate,
+    }
+  }).filter(r => r.url)
+}
+
+// ──────────────────────────────────────────────
 // Provider: DuckDuckGo (no API key, last resort)
 // ──────────────────────────────────────────────
 
@@ -413,7 +477,10 @@ async function searchWithDDG(query: string, limit: number): Promise<SearchResult
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
-      'User-Agent': 'Mozilla/5.0 (compatible; DaatanApp/1.0)',
+      // Realistic browser UA + headers — avoids bot-detection on cloud IPs
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'Accept-Language': 'en-US,en;q=0.5',
     },
     body: body.toString(),
   })
@@ -565,7 +632,19 @@ export async function searchArticles(
     }
   }
 
-  // 8. DuckDuckGo (free, no key)
+  // 8. GDELT Doc API (free, no key, 3-month rolling window; no body snippets)
+  try {
+    const results = await searchWithGDELT(query, limit)
+    if (results.length > 0) {
+      log.info({ provider: 'gdelt', count: results.length }, 'Search succeeded via GDELT fallback')
+      return results
+    }
+    log.warn('GDELT returned 0 results, trying DDG fallback')
+  } catch (error) {
+    log.warn({ err: error }, 'GDELT failed, trying DDG fallback')
+  }
+
+  // 9. DuckDuckGo (free, no key)
   try {
     const results = await searchWithDDG(query, limit)
     log.info({ provider: 'ddg', count: results.length }, 'Search succeeded via DDG fallback')
