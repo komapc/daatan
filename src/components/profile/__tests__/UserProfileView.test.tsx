@@ -115,7 +115,7 @@ describe('UserProfileView Component', () => {
 
     expect(screen.getByText('Test User')).toBeInTheDocument()
     expect(screen.getByText('@testuser')).toBeInTheDocument()
-    expect(screen.getByText(/150\.5/)).toBeInTheDocument()
+    expect(screen.getByText('1500')).toBeInTheDocument() // Glicko-2 μ in skill card
   })
 
   it('renders "Edit profile" link only for own profile', async () => {
@@ -168,21 +168,9 @@ describe('UserProfileView Component', () => {
     expect(screen.getByText('Forecast 1')).toBeInTheDocument()
   })
 
-  it('shows CU balance only for own profile', async () => {
-    const ownProfile = await UserProfileView({
+  it('shows Glicko-2 skill rating and no CU balance', async () => {
+    const component = await UserProfileView({
       user: mockUser,
-      isOwnProfile: true,
-      userTags: [],
-      selectedTag: null,
-      scores: mockScores,
-      tabData: mockTabData,
-    })
-
-    const { rerender } = render(ownProfile)
-    expect(screen.getByText(/200/)).toBeInTheDocument()
-
-    const publicProfile = await UserProfileView({
-      user: { ...mockUser, cuAvailable: undefined },
       isOwnProfile: false,
       userTags: [],
       selectedTag: null,
@@ -190,7 +178,9 @@ describe('UserProfileView Component', () => {
       tabData: mockTabData,
     })
 
-    rerender(publicProfile)
+    render(component)
+    expect(screen.getByText('1500')).toBeInTheDocument() // Glicko-2 μ
+    expect(screen.getByText(/Skill Rating/i)).toBeInTheDocument()
     expect(screen.queryByText(/CU/)).not.toBeInTheDocument()
   })
 })

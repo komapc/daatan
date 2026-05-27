@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server'
 import Image from 'next/image'
-import { TrendingUp, Award, Settings, Globe, Twitter, Sparkles, Wallet } from 'lucide-react'
+import { TrendingUp, Award, Settings, Globe, Twitter, Sparkles, Activity } from 'lucide-react'
 import ForecastCard, { type Prediction } from '@/components/forecasts/ForecastCard'
 import Link from 'next/link'
 import EmptyState from '@/components/ui/EmptyState'
@@ -118,7 +118,7 @@ export async function UserProfileView({
               </div>
             )}
 
-            <div className="flex flex-wrap justify-center md:justify-start gap-3">
+            <div className="flex flex-wrap justify-center md:justify-start gap-3 mb-3">
               <div className="px-4 py-2 bg-navy-800 rounded-xl border border-navy-600">
                 <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block">
                   {t('joined')}
@@ -130,59 +130,26 @@ export async function UserProfileView({
                   })}
                 </span>
               </div>
-              <div className="px-4 py-2 bg-navy-800 rounded-xl border border-navy-600">
-                <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block">
-                  Forecasts
-                </span>
-                <span className="text-sm font-bold text-text-secondary">
-                  {tabData.createdTotal} created
-                </span>
-                <span className="text-[10px] text-gray-400 block">
-                  {tabData.participatedTotal} participated
-                </span>
-              </div>
             </div>
 
             <TagFilter tags={userTags} selectedTag={selectedTag} />
           </div>
 
-          {/* RS + CU cards */}
-          <div className="flex flex-row md:flex-col gap-4 w-full md:w-auto">
-            <div className="flex-1 bg-gray-900 text-white p-6 rounded-3xl shadow-lg text-center">
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <TrendingUp className="w-4 h-4 text-green-400" />
-                <span className="text-xs font-bold uppercase tracking-widest text-gray-400">
-                  {t('reputation')}
-                </span>
-              </div>
-              <p className="text-3xl font-black">
-                {user.rs.toFixed(1)} <span className="text-xl font-medium">RS</span>
-              </p>
-              {user.mu != null && user.sigma != null && (
-                <p
-                  className="text-xs text-gray-400 mt-1"
-                  title="Glicko-2 μ − 3σ conservative rank"
-                >
-                  μ {Math.round(user.mu)} ± {Math.round(user.sigma)}
-                </p>
-              )}
+          {/* Skill Rating card */}
+          <div className="bg-gray-900 text-white p-6 rounded-3xl shadow-lg text-center flex-shrink-0 w-full md:w-auto md:min-w-[148px]">
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <Activity className="w-4 h-4 text-blue-400" />
+              <span className="text-xs font-bold uppercase tracking-widest text-gray-400">
+                Skill Rating
+              </span>
             </div>
-            {isOwnProfile && user.cuAvailable != null && (
-              <div className="flex-1 bg-navy-800 border border-navy-600 p-6 rounded-3xl text-center">
-                <div className="flex items-center justify-center gap-2 mb-1">
-                  <Wallet className="w-4 h-4 text-blue-400" />
-                  <span className="text-xs font-bold uppercase tracking-widest text-gray-400">
-                    {t('balance')}
-                  </span>
-                </div>
-                <p className="text-2xl font-black text-white">
-                  {user.cuAvailable} <span className="text-base font-medium text-gray-400">CU</span>
-                </p>
-                {user.cuLocked != null && user.cuLocked > 0 && (
-                  <p className="text-[10px] text-gray-500 mt-1">{user.cuLocked} locked</p>
-                )}
-              </div>
-            )}
+            <p className="text-3xl font-black" title="Glicko-2 μ (mean skill estimate)">
+              {Math.round(user.mu)}
+            </p>
+            <p className="text-xs text-gray-400 mt-1" title="Glicko-2 σ — lower means more data">
+              ± {Math.round(user.sigma)} uncertainty
+            </p>
+            <p className="text-[10px] text-gray-600 mt-0.5">Glicko-2 · 1500 = avg</p>
           </div>
         </div>
       </div>

@@ -2,7 +2,10 @@
 
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
+import { useState } from 'react'
 import { buildProfileUrl } from '@/components/profile/profile-url'
+
+const MAX_VISIBLE = 8
 
 interface Tag {
   name: string
@@ -17,34 +20,50 @@ interface TagFilterProps {
 export function TagFilter({ tags, selectedTag }: TagFilterProps) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const [expanded, setExpanded] = useState(false)
 
   if (tags.length === 0) return null
 
+  const visibleTags = expanded ? tags : tags.slice(0, MAX_VISIBLE)
+  const hiddenCount = tags.length - MAX_VISIBLE
+
+  const pillBase = 'px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider transition-all'
+  const active = 'bg-blue-600 text-white'
+  const inactive = 'bg-navy-800 text-gray-400 border border-navy-600 hover:border-blue-500 hover:text-blue-400'
+
   return (
-    <div className="flex flex-wrap gap-2 mt-3">
+    <div className="flex flex-wrap gap-2 mt-3 items-center">
       <Link
         href={buildProfileUrl(pathname, { tag: null }, searchParams)}
-        className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
-          !selectedTag
-            ? 'bg-blue-600 text-white'
-            : 'bg-navy-800 text-gray-400 border border-navy-600 hover:border-blue-500 hover:text-blue-400'
-        }`}
+        className={`${pillBase} ${!selectedTag ? active : inactive}`}
       >
         All
       </Link>
-      {tags.map(tag => (
+      {visibleTags.map(tag => (
         <Link
           key={tag.slug}
           href={buildProfileUrl(pathname, { tag: tag.slug }, searchParams)}
-          className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
-            selectedTag === tag.slug
-              ? 'bg-blue-600 text-white'
-              : 'bg-navy-800 text-gray-400 border border-navy-600 hover:border-blue-500 hover:text-blue-400'
-          }`}
+          className={`${pillBase} ${selectedTag === tag.slug ? active : inactive}`}
         >
           {tag.name}
         </Link>
       ))}
+      {!expanded && hiddenCount > 0 && (
+        <button
+          onClick={() => setExpanded(true)}
+          className="px-3 py-1 text-xs font-bold text-gray-500 hover:text-blue-400 transition-colors"
+        >
+          +{hiddenCount} more
+        </button>
+      )}
+      {expanded && hiddenCount > 0 && (
+        <button
+          onClick={() => setExpanded(false)}
+          className="px-3 py-1 text-xs font-bold text-gray-500 hover:text-blue-400 transition-colors"
+        >
+          Show less
+        </button>
+      )}
     </div>
   )
 }
