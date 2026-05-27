@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { X } from 'lucide-react'
-import { VERSION } from '@/lib/version'
 import { createClientLogger } from '@/lib/client-logger'
 
 const log = createClientLogger('PwaInstaller')
@@ -12,20 +11,39 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>
 }
 
-const DISMISS_KEY = 'pwa-install-dismissed-version'
+// Store a timestamp; re-prompt only after this many days
+const DISMISS_KEY = 'pwa-install-dismissed-until'
+const DISMISS_DAYS = 90
+
+function isRunningAsStandalone(): boolean {
+  if (typeof window === 'undefined') return false
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    // Safari iOS sets navigator.standalone
+    (window.navigator as Record<string, unknown>).standalone === true
+  )
+}
 
 const PwaInstaller = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [isInstalled, setIsInstalled] = useState(false)
   const [isDismissed, setIsDismissed] = useState(false)
   const isDismissedRef = useRef(false)
+  const isInstalledRef = useRef(false)
 
-  // On mount, check if user already dismissed for this version
   useEffect(() => {
     if (typeof window === 'undefined') return
+
+    // Already running as installed PWA — never show the banner
+    if (isRunningAsStandalone()) {
+      isInstalledRef.current = true
+      setIsInstalled(true)
+      return
+    }
+
     try {
-      const dismissedVersion = localStorage.getItem(DISMISS_KEY)
-      if (dismissedVersion === VERSION) {
+      const until = parseInt(localStorage.getItem(DISMISS_KEY) ?? '0', 10)
+      if (Date.now() < until) {
         isDismissedRef.current = true
         setIsDismissed(true)
       }
@@ -35,12 +53,10 @@ const PwaInstaller = () => {
   }, [])
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
-    }
+    if (typeof window === 'undefined') return
 
     const handleBeforeInstallPrompt = (event: Event) => {
-      if (isDismissedRef.current) return
+      if (isDismissedRef.current || isInstalledRef.current) return
       event.preventDefault()
       setDeferredPrompt(event as BeforeInstallPromptEvent)
     }
@@ -60,30 +76,17 @@ const PwaInstaller = () => {
   }, [])
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
-      return
-    }
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return
 
-    const register = async () => {
-      try {
-        await navigator.serviceWorker.register('/sw.js')
-      } catch (error) {
-        // eslint-disable-next-line no-console
-        log.error({ err: error }, 'Service worker registration failed')
-      }
-    }
-
-    register()
+    navigator.serviceWorker.register('/sw.js').catch(error => {
+      log.error({ err: error }, 'Service worker registration failed')
+    })
   }, [])
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) {
-      return
-    }
-
+    if (!deferredPrompt) return
     await deferredPrompt.prompt()
     const { outcome } = await deferredPrompt.userChoice
-
     if (outcome === 'accepted') {
       setDeferredPrompt(null)
     }
@@ -93,7 +96,8 @@ const PwaInstaller = () => {
     isDismissedRef.current = true
     setIsDismissed(true)
     try {
-      localStorage.setItem(DISMISS_KEY, VERSION)
+      const until = Date.now() + DISMISS_DAYS * 24 * 60 * 60 * 1000
+      localStorage.setItem(DISMISS_KEY, String(until))
     } catch {
       // localStorage unavailable — dismiss for this session only
     }
