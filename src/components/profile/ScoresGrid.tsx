@@ -3,7 +3,7 @@ import type { ProfileScores, TopicStat } from '@/lib/services/profile'
 
 interface ScoresGridProps {
   scores: ProfileScores
-  user: { eloRating: number; mu: number; sigma: number }
+  user: { eloRating: number; mu: number; sigma: number; rs: number }
   userId: string
   selectedTag: string | null
   tagName: string | null
@@ -15,12 +15,14 @@ function ScoreCard({
   sub,
   color = 'default',
   title,
+  muted,
 }: {
   label: string
   value: string
   sub?: string
-  color?: 'default' | 'purple' | 'blue' | 'teal' | 'red'
+  color?: 'default' | 'purple' | 'blue' | 'teal' | 'red' | 'muted'
   title?: string
+  muted?: boolean
 }) {
   const valueClass =
     color === 'purple'
@@ -31,11 +33,13 @@ function ScoreCard({
           ? 'text-teal'
           : color === 'red'
             ? 'text-red-400'
-            : 'text-text-secondary'
+            : color === 'muted'
+              ? 'text-gray-500'
+              : 'text-text-secondary'
 
   return (
     <div
-      className="px-4 py-3 bg-navy-800 rounded-xl border border-navy-600"
+      className={`px-4 py-3 bg-navy-800 rounded-xl border ${muted ? 'border-navy-700 opacity-70' : 'border-navy-600'}`}
       title={title}
     >
       <span className="text-xs text-gray-400 font-bold uppercase tracking-wider block leading-tight mb-1">
@@ -74,6 +78,8 @@ export function ScoresGrid({ scores, user, userId, selectedTag, tagName }: Score
 
   return (
     <div className="mb-8 space-y-4">
+      <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Performance</p>
+
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
         <ScoreCard
           label="ELO Rating"
@@ -87,13 +93,13 @@ export function ScoresGrid({ scores, user, userId, selectedTag, tagName }: Score
           value={`μ ${Math.round(user.mu)}`}
           sub={`± ${Math.round(user.sigma)} uncertainty`}
           color="blue"
-          title="Glicko-2 skill estimate. μ = mean skill, σ = uncertainty. Rank = μ − 3σ (volume-adjusted)."
+          title="Glicko-2 skill estimate. μ = mean skill, σ = uncertainty. Leaderboard rank = μ − 3σ (conservative floor)."
         />
         {scores.avgBrierScore !== null && (
           <ScoreCard
             label={`Brier Score${tag ? ` · ${tag}` : ''}`}
             value={scores.avgBrierScore.toFixed(3)}
-            sub={`${scores.brierCount} scored · lower is better`}
+            sub={`${scores.brierCount} scored · lower is better${scores.brierCount < 5 ? ' · limited data' : ''}`}
             color="purple"
             title="(probability − outcome)². Lower is better. Only computed when you enter a % YES estimate at stake time."
           />
@@ -103,15 +109,15 @@ export function ScoresGrid({ scores, user, userId, selectedTag, tagName }: Score
             label={`Accuracy${tag ? ` · ${tag}` : ''}`}
             value={`${Math.round(scores.accuracy * 100)}%`}
             sub={`${scores.accuracyResolved} resolved`}
-            title="% of resolved predictions where you outperformed the RS-neutral baseline."
+            title="% of resolved predictions where rsChange > 0 (you gained RS). Min 3 resolved to display."
           />
         )}
-        {scores.peerScoreSum !== null && (
+        {scores.truthScore !== null && (
           <SignedCard
-            label={`Peer Score${tag ? ` · ${tag}` : ''}`}
-            value={Number(scores.peerScoreSum.toFixed(2))}
-            sub={`${scores.peerScoreCount} scored`}
-            title="How much better you were than the community consensus at commit time. Positive = beat the crowd."
+            label="TruthScore"
+            value={Number(scores.truthScore.toFixed(4))}
+            sub="avg peer / prediction"
+            title="Average peer score per prediction. How consistently you beat community consensus. Min 3 to display."
           />
         )}
         {scores.weightedPeerScore !== null && (
@@ -122,20 +128,12 @@ export function ScoresGrid({ scores, user, userId, selectedTag, tagName }: Score
             title="Metaculus-style time-weighted peer score. Recent predictions count more (0.95^(days/30) decay)."
           />
         )}
-        {scores.truthScore !== null && (
+        {scores.peerScoreSum !== null && (
           <SignedCard
-            label="TruthScore"
-            value={Number(scores.truthScore.toFixed(4))}
-            sub="avg peer / prediction"
-            title="Average peer score per prediction. How consistently you beat the community consensus."
-          />
-        )}
-        {scores.aiScoreSum !== null && (
-          <SignedCard
-            label={`AI Score${tag ? ` · ${tag}` : ''}`}
-            value={Number(scores.aiScoreSum.toFixed(2))}
-            sub={`${scores.aiScoreCount} scored`}
-            title="How much better you were than the AI estimate at commit time. Positive = beat the AI."
+            label={`Peer Score${tag ? ` · ${tag}` : ''}`}
+            value={Number(scores.peerScoreSum.toFixed(2))}
+            sub={`${scores.peerScoreCount} scored`}
+            title="How much better you were than the community consensus at commit time. Positive = beat the crowd."
           />
         )}
         {scores.roi !== null && (
@@ -146,6 +144,14 @@ export function ScoresGrid({ scores, user, userId, selectedTag, tagName }: Score
             title="Average net RS change per resolved prediction. Min 3 resolved to display."
           />
         )}
+        {scores.aiScoreSum !== null && (
+          <SignedCard
+            label={`AI Score${tag ? ` · ${tag}` : ''}`}
+            value={Number(scores.aiScoreSum.toFixed(2))}
+            sub={`${scores.aiScoreCount} scored`}
+            title="How much better you were than the AI estimate at commit time. Positive = beat the AI."
+          />
+        )}
         {scores.rsTagDelta !== null && (
           <SignedCard
             label={`RS · ${tag}`}
@@ -153,6 +159,14 @@ export function ScoresGrid({ scores, user, userId, selectedTag, tagName }: Score
             title={`Net RS change for all resolved predictions in tag: ${tag}`}
           />
         )}
+        <ScoreCard
+          label="Reputation"
+          value={`${user.rs.toFixed(1)} RS`}
+          sub="global · pool-based"
+          color="muted"
+          muted
+          title="Legacy Reputation Score — earned from pool-weighted correct predictions. Global, not tag-filterable."
+        />
       </div>
 
       {scores.topicBreakdown.length > 0 && !selectedTag && (
@@ -161,7 +175,7 @@ export function ScoresGrid({ scores, user, userId, selectedTag, tagName }: Score
 
       <div className="bg-navy-800 rounded-xl border border-navy-600 p-3">
         <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-2">
-          Skill Rating History{tag ? ` · ${tag}` : ''}
+          Glicko-2 Skill History{tag ? ` · ${tag}` : ''}
         </p>
         <GlickoChart userId={userId} selectedTag={selectedTag} />
       </div>
