@@ -51,6 +51,7 @@ runDueBots()
     2. Skip (without updating lastRunAt) if outside activeHours window
     3. Fetch RSS feeds → detectHotTopics()
     4. For each hot topic: LLM dedup check → LLM forecast generation
+       If no hot topics: LLM-only sourceless forecast (draws on bot persona/knowledge, no RSS anchor)
     5. Create Prediction (DRAFT → ACTIVE or PENDING_APPROVAL)
     6. Auto-stake on own forecast
     7. Vote on other open forecasts
@@ -231,6 +232,7 @@ The app picks up the new prompt within 5 minutes (cache TTL).
 | `content-moderation` | `7DWWBJAS1O` | `:1` | Forecast + comment creation | Validate content against safety policies; geopolitical forecasts explicitly allowed |
 | `guess-chances` | fallback only | — | Express flow | Suggest probability (0–100%) for a forecast based on news context |
 | `bot-forecast-generation` | `4VVM1AE8WG` | `:2` | Bot runner | Create a verifiable forecast JSON from a hot RSS topic |
+| `bot-sourceless-forecast-generation` | fallback only | — | Bot runner | Create a forecast from bot persona/knowledge when no hot topics are detected |
 | `bot-vote-decision` | `FMSCSIWJ0N` | `:2` | Bot runner | Decide whether and how to vote on an open forecast |
 | `dedupe-check` | `E3UJXEIV39` | `:2` | Bot runner | Detect if a new topic duplicates an existing active forecast |
 | `express-prediction` | `0BXFPNKYL4` | `:3` | `/api/forecasts/express` | Convert a user's casual text into a structured prediction |
