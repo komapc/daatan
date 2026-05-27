@@ -460,23 +460,57 @@ describe('runDueBots — maxForecastsPerDay cap', () => {
     expect(summaries[0].forecastsCreated).toBe(0)
   })
 
-  it('increments skipped when there are no hot topics', async () => {
+  it('increments errors when no hot topics and LLM generation fails', async () => {
     const { prisma } = await import('@/lib/prisma')
     const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/bots/rss')
     const { runDueBots } = await import('@/lib/services/bots')
 
-    const bot = makeBot({ maxVotesPerDay: 0 })
+    const bot = makeBot({ maxForecastsPerDay: 5, maxVotesPerDay: 0 })
     vi.mocked(prisma.botConfig.findMany).mockResolvedValue([bot] as any)
     vi.mocked(prisma.botRunLog.count).mockResolvedValue(0)
     vi.mocked(fetchRssFeeds).mockResolvedValue([])
     vi.mocked(detectHotTopics).mockReturnValue([])
+    // LLM returns undefined → TypeError in processSourcelessForecast → errors++
+    mockGenerateContent.mockResolvedValue(undefined)
+    vi.mocked(prisma.prediction.findMany).mockResolvedValue([])
     vi.mocked(prisma.botRunLog.create).mockResolvedValue({} as any)
     vi.mocked(prisma.botConfig.update).mockResolvedValue({} as any)
 
     const summaries = await runDueBots()
 
-    expect(summaries[0].skipped).toBeGreaterThanOrEqual(1)
+    expect(summaries[0].errors).toBeGreaterThanOrEqual(1)
     expect(summaries[0].forecastsCreated).toBe(0)
+  })
+
+  it('creates a sourceless forecast when no hot topics and under daily cap', async () => {
+    const { prisma } = await import('@/lib/prisma')
+    const { fetchRssFeeds, detectHotTopics } = await import('@/lib/services/bots/rss')
+    const { runDueBots } = await import('@/lib/services/bots')
+    const { createCommitment } = await import('@/lib/services/commitment')
+
+    const bot = makeBot({ maxForecastsPerDay: 5, maxVotesPerDay: 0 })
+    vi.mocked(prisma.botConfig.findMany).mockResolvedValue([bot] as any)
+    vi.mocked(prisma.botRunLog.count).mockResolvedValue(0)
+    vi.mocked(fetchRssFeeds).mockResolvedValue([])
+    vi.mocked(detectHotTopics).mockReturnValue([])
+
+    // LLM sequence: (1) sourceless generation, (2) dedup check, (3) quality gate
+    mockGenerateContent
+      .mockResolvedValueOnce({ text: VALID_FORECAST_JSON })
+      .mockResolvedValueOnce({ text: 'no' })
+      .mockResolvedValueOnce({ text: QUALITY_PASS_JSON })
+
+    vi.mocked(prisma.prediction.findMany).mockResolvedValue([])
+    vi.mocked(prisma.prediction.create).mockResolvedValue({ id: 'pred-sourceless' } as any)
+    vi.mocked(prisma.prediction.update).mockResolvedValue({} as any)
+    vi.mocked(createCommitment).mockResolvedValue({ ok: true } as any)
+    vi.mocked(prisma.botRunLog.create).mockResolvedValue({} as any)
+    vi.mocked(prisma.botConfig.update).mockResolvedValue({} as any)
+
+    const summaries = await runDueBots()
+
+    expect(summaries[0].forecastsCreated).toBe(1)
+    expect(summaries[0].errors).toBe(0)
   })
 })
 
