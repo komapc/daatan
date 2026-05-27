@@ -215,6 +215,8 @@ ELO and Glicko-2 per-tag replays start all users at default ratings, so the tag 
 
 **Note:** Per-tag Glicko-2 requires ≥3 resolved predictions in the tag before a score is surfaced; users with fewer appear at the bottom (same as ROI and TruthScore). ELO has no minimum threshold.
 
+**Profile page vs leaderboard:** The profile scores grid (`ScoresGrid.tsx`) shows ELO and Glicko-2 from the globally stored `User.eloRating` / `User.mu` / `User.sigma` — it does **not** replay per-tag histories. Per-tag replays are leaderboard-only due to the O(n×users) cost of replaying all users.
+
 ---
 
 ## Implementation Files
@@ -223,7 +225,11 @@ ELO and Glicko-2 per-tag replays start all users at default ratings, so the tag 
 |------|------|
 | `src/lib/services/scoring-systems.ts` | `SortBy`, `ScoringContext`, `ScoringSystem` interface, `SCORING_SYSTEMS` registry |
 | `src/lib/services/leaderboard.ts` | Builds `ScoringContext`, runs aggregations, applies registry sort |
+| `src/lib/services/profile.ts` | `loadProfileScores` — computes all metrics for the profile scores grid |
 | `src/lib/services/elo.ts` | `calculateEloUpdates`, `replayEloHistory(tagSlug?)` |
 | `src/lib/services/expertise.ts` | `glicko2Update`, `applyGlicko2Update`, `replayGlicko2History(tagSlug?)` |
 | `src/app/leaderboard/page.tsx` | Client UI, sort tabs, tag filter, display columns |
 | `src/app/api/leaderboard/route.ts` | `GET /api/leaderboard?sortBy=&tag=&limit=` |
+| `src/components/profile/ScoresGrid.tsx` | Profile page scores grid — renders all metrics for a single user |
+
+See also: [`docs/PROFILE_PAGE.md`](./PROFILE_PAGE.md) for the profile page architecture and per-user score display.
