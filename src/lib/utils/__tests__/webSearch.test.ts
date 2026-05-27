@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 // Must be set before the module is imported so the guard inside searchArticles sees it
 process.env.SERPER_API_KEY = 'test-serper-key'
@@ -252,5 +252,99 @@ describe('searchArticles', () => {
     const ua = ddgCall[1]?.headers?.['User-Agent'] ?? ''
     expect(ua).toContain('Chrome/')
     expect(ua).not.toContain('compatible; DaatanApp')
+  })
+})
+
+// ──────────────────────────────────────────────
+// Brave Search tests
+// ──────────────────────────────────────────────
+
+const makeBraveResult = (overrides: Record<string, unknown> = {}) => ({
+  title: 'Brave Article',
+  url: 'https://reuters.com/article/brave-1',
+  description: 'A snippet from Brave Search.',
+  page_age: '2026-05-28T08:00:00',
+  meta_url: { hostname: 'reuters.com' },
+  ...overrides,
+})
+
+describe('searchArticles (Brave Search)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    process.env.BRAVE_SEARCH_API_KEY = 'test-brave-key'
+  })
+
+  afterEach(() => {
+    delete process.env.BRAVE_SEARCH_API_KEY
+  })
+
+  it('returns Brave results when paid providers return nothing', async () => {
+    fetchMock
+      .mockResolvedValueOnce(okResponse({})) // Serper: no results
+      .mockResolvedValueOnce(okResponse({ results: [makeBraveResult()] })) // Brave: results
+
+    const results = await searchArticles('test', 5)
+    expect(results).toHaveLength(1)
+    expect(results[0]).toMatchObject({
+      title: 'Brave Article',
+      url: 'https://reuters.com/article/brave-1',
+      snippet: 'A snippet from Brave Search.',
+      source: 'reuters.com',
+      publishedDate: '2026-05-28T08:00:00',
+    })
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('maps Brave results: strips www. from hostname, falls back to url domain', async () => {
+    fetchMock
+      .mockResolvedValueOnce(okResponse({})) // Serper: no results
+      .mockResolvedValueOnce(okResponse({
+        results: [
+          makeBraveResult({ meta_url: { hostname: 'www.bbc.com' } }),
+          makeBraveResult({ url: 'https://apnews.com/a', meta_url: undefined }),
+        ],
+      }))
+
+    const results = await searchArticles('test', 5)
+    expect(results[0].source).toBe('bbc.com')
+    expect(results[1].source).toBe('apnews.com')
+  })
+
+  it('falls through to GDELT when Brave returns no results', async () => {
+    fetchMock
+      .mockResolvedValueOnce(okResponse({}))          // Serper: no results
+      .mockResolvedValueOnce(okResponse({ results: [] })) // Brave: empty
+      .mockResolvedValueOnce(gdeltEmptyResponse())    // GDELT: no results
+      .mockResolvedValueOnce(ddgEmptyResponse())      // DDG: no results
+
+    const results = await searchArticles('test')
+    expect(results).toHaveLength(0)
+    expect(fetchMock).toHaveBeenCalledTimes(4)
+  })
+
+  it('falls through to GDELT when Brave throws', async () => {
+    fetchMock
+      .mockResolvedValueOnce(okResponse({}))              // Serper: no results
+      .mockResolvedValueOnce({ ok: false, status: 429, text: async () => 'rate limited' }) // Brave: error
+      .mockResolvedValueOnce(gdeltResultsResponse([
+        { url: 'https://bbc.com/a', title: 'BBC', domain: 'bbc.com', seendate: '20260528120000' },
+      ]))
+
+    const results = await searchArticles('test', 5)
+    expect(results).toHaveLength(1)
+    expect(results[0].title).toBe('BBC')
+  })
+
+  it('skips Brave step when BRAVE_SEARCH_API_KEY is not set', async () => {
+    delete process.env.BRAVE_SEARCH_API_KEY
+    fetchMock
+      .mockResolvedValueOnce(okResponse({}))       // Serper: no results
+      .mockResolvedValueOnce(gdeltEmptyResponse()) // GDELT (Brave skipped)
+      .mockResolvedValueOnce(ddgEmptyResponse())   // DDG
+
+    const results = await searchArticles('test')
+    expect(results).toHaveLength(0)
+    // Only 3 calls: Serper + GDELT + DDG (no Brave)
+    expect(fetchMock).toHaveBeenCalledTimes(3)
   })
 })

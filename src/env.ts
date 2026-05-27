@@ -42,6 +42,7 @@ export const env = createEnv({
     BRIGHTDATA_API_KEY: z.string().min(1).optional(),
     NIMBLEWAY_API_KEY: z.string().min(1).optional(),
     NEWSDATAIO_API_KEY: z.string().min(1).optional(),
+    BRAVE_SEARCH_API_KEY: z.string().min(1).optional(),
     GA_MEASUREMENT_ID: z.string().startsWith('G-').optional(),
 
     // Telegram notifications
@@ -87,6 +88,7 @@ export const env = createEnv({
     BRIGHTDATA_API_KEY: process.env.BRIGHTDATA_API_KEY,
     NIMBLEWAY_API_KEY: process.env.NIMBLEWAY_API_KEY,
     NEWSDATAIO_API_KEY: process.env.NEWSDATAIO_API_KEY,
+    BRAVE_SEARCH_API_KEY: process.env.BRAVE_SEARCH_API_KEY,
     GA_MEASUREMENT_ID: process.env.GA_MEASUREMENT_ID,
     TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
     TELEGRAM_CHAT_ID: process.env.TELEGRAM_CHAT_ID,

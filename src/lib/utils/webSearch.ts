@@ -1,4 +1,4 @@
-// Web search utility with fallback chain: DataForSEO → NewsDataIO → Serper → BrightData → Nimbleway → SerpAPI → ScrapingBee → GDELT → DuckDuckGo
+// Web search utility with fallback chain: DataForSEO → NewsDataIO → Serper → BrightData → Nimbleway → SerpAPI → ScrapingBee → BraveSearch → GDELT → DuckDuckGo
 // Provider order is determined by which env vars are set; provider functions stay
 // in place so any one can be re-enabled by populating its key in Secrets Manager.
 
@@ -404,6 +404,57 @@ async function searchWithScrapingBee(query: string, limit: number): Promise<Sear
 }
 
 // ──────────────────────────────────────────────
+// Provider: Brave Search (free tier 2000 req/month; EC2-compatible)
+// ──────────────────────────────────────────────
+
+interface BraveNewsResult {
+  title: string
+  url: string
+  description?: string
+  age?: string
+  page_age?: string
+  meta_url?: { hostname?: string }
+}
+
+interface BraveNewsResponse {
+  results?: BraveNewsResult[]
+}
+
+async function searchWithBrave(query: string, limit: number): Promise<SearchResult[]> {
+  const apiKey = process.env.BRAVE_SEARCH_API_KEY
+  if (!apiKey) throw new Error('Brave Search not configured')
+
+  const url = new URL('https://api.search.brave.com/res/v1/news/search')
+  url.searchParams.set('q', query)
+  url.searchParams.set('count', String(Math.min(limit, 20)))
+
+  const response = await fetch(url.toString(), {
+    headers: {
+      'Accept': 'application/json',
+      'Accept-Encoding': 'gzip',
+      'X-Subscription-Token': apiKey,
+    },
+  })
+
+  if (!response.ok) {
+    const errorBody = await response.text().catch(() => '(no body)')
+    log.error({ status: response.status, body: errorBody }, 'Brave Search API error')
+    throw new Error(`Brave Search error: ${response.status}`)
+  }
+
+  const data: BraveNewsResponse = await response.json()
+  const results = data.results ?? []
+
+  return results.slice(0, limit).map(item => ({
+    title: item.title,
+    url: item.url,
+    snippet: item.description ?? '',
+    source: item.meta_url?.hostname?.replace('www.', '') || extractDomain(item.url),
+    publishedDate: item.page_age ?? item.age,
+  })).filter(r => r.url)
+}
+
+// ──────────────────────────────────────────────
 // Provider: GDELT Doc API (free, no key, 3-month rolling window)
 // ──────────────────────────────────────────────
 
@@ -638,7 +689,21 @@ export async function searchArticles(
     }
   }
 
-  // 8. GDELT Doc API (free, no key, 3-month rolling window; no body snippets)
+  // 8. Brave Search (free tier 2000 req/month; EC2-compatible)
+  if (process.env.BRAVE_SEARCH_API_KEY) {
+    try {
+      const results = await searchWithBrave(query, limit)
+      if (results.length > 0) {
+        log.info({ provider: 'brave', count: results.length }, 'Search succeeded via Brave fallback')
+        return results
+      }
+      log.warn('Brave Search returned 0 results, trying GDELT fallback')
+    } catch (error) {
+      log.warn({ err: error }, 'Brave Search failed, trying GDELT fallback')
+    }
+  }
+
+  // 9. GDELT Doc API (free, no key, 3-month rolling window; no body snippets)
   try {
     const results = await searchWithGDELT(query, limit)
     if (results.length > 0) {
@@ -650,7 +715,7 @@ export async function searchArticles(
     log.warn({ err: error }, 'GDELT failed, trying DDG fallback')
   }
 
-  // 9. DuckDuckGo (free, no key)
+  // 10. DuckDuckGo (free, no key)
   try {
     const results = await searchWithDDG(query, limit)
     log.info({ provider: 'ddg', count: results.length }, 'Search succeeded via DDG fallback')

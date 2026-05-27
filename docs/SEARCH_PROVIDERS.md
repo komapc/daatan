@@ -11,7 +11,7 @@ Oracle gateway (try first, optional)            ← src/lib/services/oracleSearc
   ↓ (null/empty/disabled)
 searchArticles()                                 ← src/lib/utils/webSearch.ts
   ↓
-[DataForSEO → NewsData.io → Serper → BrightData → Nimbleway → SerpAPI → ScrapingBee → GDELT → DuckDuckGo]
+[DataForSEO → NewsData.io → Serper → BrightData → Nimbleway → SerpAPI → ScrapingBee → BraveSearch → GDELT → DuckDuckGo]
 ```
 
 **Oracle** is our internal proxy gateway (separate service). It runs its own provider chain server-side so credentials don't sit in every Next.js process. If `ORACLE_URL` + `ORACLE_API_KEY` are set, callers try it first; on `null`/empty/error/disabled, they fall back to the in-process chain.
@@ -20,17 +20,18 @@ searchArticles()                                 ← src/lib/utils/webSearch.ts
 
 ## Provider fallback chain
 
-| # | Provider     | Adapter (file:line)                   | Env vars                                  | Notes |
-|---|--------------|---------------------------------------|-------------------------------------------|-------|
-| 1 | DataForSEO   | `webSearch.ts:154`                    | `DATAFORSEO_LOGIN`, `DATAFORSEO_PASSWORD` | Google News API (HTTP basic auth). Primary as of 2026-05-05. |
-| 2 | NewsData.io  | `webSearch.ts:213`                    | `NEWSDATAIO_API_KEY`                      | News API; English-language filter. Added 2026-05-XX. |
-| 3 | Serper       | `webSearch.ts:35`                     | `SERPER_API_KEY`                          | News API; tries `news` → `topStories` → `organic`. **Disabled (empty key) — out of credits 2026-05-05.** |
-| 4 | BrightData   | `webSearch.ts:249`                    | `BRIGHTDATA_API_KEY`                      | Google SERP via proxy; HTML parsing. Not configured (no key in Secrets Manager). |
-| 5 | Nimbleway    | `webSearch.ts:318`                    | `NIMBLEWAY_API_KEY`                       | Google SERP API; structured JSON. **Disabled (empty key) — trial quota finished 2026-05-05.** |
-| 6 | SerpAPI      | `webSearch.ts:99`                     | `SERPAPI_API_KEY`                         | News results (`tbm=nws`). **Disabled (empty key) — exhausted 2026-05-05.** |
-| 7 | ScrapingBee  | `webSearch.ts:374`                    | `SCRAPINGBEE_API_KEY`                     | Google "store" API; news → top stories → organic. **Disabled (empty key) — exhausted 2026-05-05.** |
-| 8 | GDELT        | `webSearch.ts:424`                    | (none — free)                             | GDELT Doc API; 3-month rolling window; no body snippets. See [GDELT notes](#gdelt-notes) below. |
-| 9 | DuckDuckGo   | `webSearch.ts:480`                    | (none — free)                             | DDG Lite HTML scrape; last-resort, no quota. See [DDG notes](#ddg-notes) below. |
+| #  | Provider     | Adapter (file:line)                   | Env vars                                  | Notes |
+|----|--------------|---------------------------------------|-------------------------------------------|-------|
+| 1  | DataForSEO   | `webSearch.ts:154`                    | `DATAFORSEO_LOGIN`, `DATAFORSEO_PASSWORD` | Google News API (HTTP basic auth). Primary as of 2026-05-05. |
+| 2  | NewsData.io  | `webSearch.ts:213`                    | `NEWSDATAIO_API_KEY`                      | News API; English-language filter. Added 2026-05-XX. |
+| 3  | Serper       | `webSearch.ts:35`                     | `SERPER_API_KEY`                          | News API; tries `news` → `topStories` → `organic`. **Disabled (empty key) — out of credits 2026-05-05.** |
+| 4  | BrightData   | `webSearch.ts:249`                    | `BRIGHTDATA_API_KEY`                      | Google SERP via proxy; HTML parsing. Not configured (no key in Secrets Manager). |
+| 5  | Nimbleway    | `webSearch.ts:318`                    | `NIMBLEWAY_API_KEY`                       | Google SERP API; structured JSON. **Disabled (empty key) — trial quota finished 2026-05-05.** |
+| 6  | SerpAPI      | `webSearch.ts:99`                     | `SERPAPI_API_KEY`                         | News results (`tbm=nws`). **Disabled (empty key) — exhausted 2026-05-05.** |
+| 7  | ScrapingBee  | `webSearch.ts:374`                    | `SCRAPINGBEE_API_KEY`                     | Google "store" API; news → top stories → organic. **Disabled (empty key) — exhausted 2026-05-05.** |
+| 8  | Brave Search | `webSearch.ts:407`                    | `BRAVE_SEARCH_API_KEY`                    | News Search API; EC2-compatible (no IP block). Free tier: 2000 req/month. See [Brave notes](#brave-notes) below. |
+| 9  | GDELT        | `webSearch.ts:471`                    | (none — free)                             | GDELT Doc API; 3-month rolling window; no body snippets. See [GDELT notes](#gdelt-notes) below. |
+| 10 | DuckDuckGo   | `webSearch.ts:527`                    | (none — free)                             | DDG Lite HTML scrape; last-resort, no quota. See [DDG notes](#ddg-notes) below. |
 
 All adapters return the same shape:
 
@@ -45,6 +46,20 @@ interface SearchResult {
 ```
 
 Order matters and was tuned empirically — Serper has the highest quality-to-rate-limit ratio for breaking news; DataForSEO catches non-English well after the locale fix below; GDELT and DuckDuckGo are unmetered insurance.
+
+## Brave notes
+
+**API**: `GET https://api.search.brave.com/res/v1/news/search` — requires `X-Subscription-Token` header.
+
+**Free tier**: 2000 queries/month via the [Data for AI Free plan](https://api.search.brave.com/). No credit card required.
+
+**EC2 compatibility**: Unlike GDELT and DuckDuckGo, Brave does not block AWS EC2 IP ranges. This makes it the most reliable free-tier provider for server-side deployments.
+
+**Result shape**: Returns `title`, `url`, `description` (snippet), `page_age` (ISO datetime when available, else `age` string like "2 hours ago"), and `meta_url.hostname` for domain.
+
+**Max results**: 20 per request (API cap). The adapter passes `count=min(limit, 20)`.
+
+**To enable**: Set `BRAVE_SEARCH_API_KEY` in Secrets Manager. The adapter is skipped when the key is absent.
 
 ## GDELT notes
 
@@ -103,7 +118,7 @@ Telegram delivery requires `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID`. If unset, 
 
 ## Failure modes worth knowing
 
-- **All paid providers exhausted, only GDELT/DDG available from EC2** — both free fallbacks are IP-blocked on AWS; `searchArticles()` throws `Search API not available`. Top up credits for at least one paid provider (DataForSEO is the cheapest per-query).
+- **All paid providers exhausted, only Brave/GDELT/DDG available from EC2** — if `BRAVE_SEARCH_API_KEY` is set, Brave handles this gracefully (EC2-compatible, 2000 req/month free). Without Brave, GDELT and DDG are both IP-blocked on AWS and `searchArticles()` throws `Search API not available`. Top up DataForSEO (cheapest per-query) or enable Brave as a reliable free fallback.
 - **GDELT TLS stall** — happens when the EC2 IP is rate-limited. The 5s `AbortSignal.timeout` fires, GDELT is skipped for 60s, DDG is tried. No user-visible impact beyond reduced result quality.
 - **Provider returns HTTP 200 with garbage HTML** (BrightData under proxy stress) — the adapter's parser returns `[]`, chain falls through. Not visible to the user but worth grepping `web-search` logs for adapter-level errors during incident review.
 - **Oracle disabled, all in-process providers also down** — `searchArticles()` throws. Express Forecast surfaces `NO_ARTICLES_FOUND`; bot discovery skips the cycle.
