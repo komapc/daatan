@@ -29,6 +29,17 @@ const ddgEmptyResponse = () => ({
   text: async () => '<html><body><p>No results</p></body></html>',
 })
 
+// GDELT fallback helpers
+const gdeltEmptyResponse = () => ({
+  ok: true,
+  json: async () => ({ articles: [] }),
+})
+
+const gdeltResultsResponse = (items: Array<{ url: string; title: string; domain: string; seendate: string }>) => ({
+  ok: true,
+  json: async () => ({ articles: items }),
+})
+
 // DDG Lite actual HTML structure (single-quoted attributes, direct URLs)
 const ddgResultsResponse = (items: { url: string; title: string; snippet: string }[]) => ({
   ok: true,
@@ -126,8 +137,9 @@ describe('searchArticles', () => {
 
   it('falls through to DDG when serper returns no results', async () => {
     fetchMock
-      .mockResolvedValueOnce(okResponse({}))      // Serper: no results
-      .mockResolvedValueOnce(ddgEmptyResponse())  // DDG: no results
+      .mockResolvedValueOnce(okResponse({}))       // Serper: no results
+      .mockResolvedValueOnce(gdeltEmptyResponse()) // GDELT: no results
+      .mockResolvedValueOnce(ddgEmptyResponse())   // DDG: no results
 
     const results = await searchArticles('test')
     expect(results).toHaveLength(0)
@@ -135,7 +147,8 @@ describe('searchArticles', () => {
 
   it('parses DDG Lite results with single-quoted attributes and direct URLs', async () => {
     fetchMock
-      .mockResolvedValueOnce(okResponse({}))  // Serper: no results
+      .mockResolvedValueOnce(okResponse({}))       // Serper: no results
+      .mockResolvedValueOnce(gdeltEmptyResponse()) // GDELT: no results
       .mockResolvedValueOnce(ddgResultsResponse([
         { url: 'https://apnews.com/article/1', title: 'AP News Article', snippet: 'Some news snippet.' },
         { url: 'https://reuters.com/article/2', title: 'Reuters Article', snippet: 'Another snippet.' },
@@ -163,16 +176,15 @@ describe('searchArticles', () => {
   })
 
   it('falls back to DDG when Serper returns non-OK, returns results from DDG', async () => {
-    // Serper fails, DDG returns empty HTML (no matching patterns → empty results)
     fetchMock
       .mockResolvedValueOnce({ ok: false, status: 400, text: async () => 'Bad Request' })
+      .mockResolvedValueOnce(gdeltEmptyResponse()) // GDELT: no results
       .mockResolvedValueOnce(ddgEmptyResponse())
 
     const results = await searchArticles('test')
     expect(results).toHaveLength(0)
-    // Should have called fetch twice: once for Serper, once for DDG
-    expect(fetchMock).toHaveBeenCalledTimes(2)
-    const ddgCall = fetchMock.mock.calls[1]
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+    const ddgCall = fetchMock.mock.calls[2]
     expect(ddgCall[0]).toBe('https://lite.duckduckgo.com/lite/')
   })
 
@@ -197,11 +209,48 @@ describe('searchArticles', () => {
   })
 
   it('re-throws as Search API not available when Serper has a network error', async () => {
-    // Serper network error → DDG also fails
+    // Serper network error → GDELT also fails → DDG also fails
     fetchMock
+      .mockRejectedValueOnce(new Error('Network failure'))
       .mockRejectedValueOnce(new Error('Network failure'))
       .mockRejectedValueOnce(new Error('Network failure'))
 
     await expect(searchArticles('test')).rejects.toThrow('Search API not available')
+  })
+
+  it('returns GDELT results when paid providers return no results', async () => {
+    fetchMock
+      .mockResolvedValueOnce(okResponse({})) // Serper: no results
+      .mockResolvedValueOnce(gdeltResultsResponse([
+        { url: 'https://bbc.com/news/test-article', title: 'BBC Test Article', domain: 'bbc.com', seendate: '20260527120000' },
+        { url: 'https://reuters.com/world/test', title: 'Reuters Test', domain: 'reuters.com', seendate: '20260526090000' },
+      ]))
+
+    const results = await searchArticles('test', 5)
+    expect(results).toHaveLength(2)
+    expect(results[0]).toMatchObject({
+      title: 'BBC Test Article',
+      url: 'https://bbc.com/news/test-article',
+      snippet: '',
+      source: 'bbc.com',
+      publishedDate: '2026-05-27',
+    })
+    expect(results[1].publishedDate).toBe('2026-05-26')
+    // Should not have called DDG
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('uses a browser-like User-Agent for DDG requests', async () => {
+    fetchMock
+      .mockResolvedValueOnce(okResponse({}))       // Serper: no results
+      .mockResolvedValueOnce(gdeltEmptyResponse()) // GDELT: no results
+      .mockResolvedValueOnce(ddgEmptyResponse())   // DDG
+
+    await searchArticles('test')
+
+    const ddgCall = fetchMock.mock.calls[2]
+    const ua = ddgCall[1]?.headers?.['User-Agent'] ?? ''
+    expect(ua).toContain('Chrome/')
+    expect(ua).not.toContain('compatible; DaatanApp')
   })
 })
