@@ -63,15 +63,25 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
       redirect('/login')
     }
 
-    const userTags = await prisma.tag.findMany({
+    const userTagsRaw = await prisma.tag.findMany({
       where: {
         predictions: {
           some: { commitments: { some: { userId: user.id } } },
         },
       },
-      select: { name: true, slug: true },
-      orderBy: { name: 'asc' },
+      select: {
+        name: true,
+        slug: true,
+        _count: {
+          select: {
+            predictions: { where: { commitments: { some: { userId: user.id } } } },
+          },
+        },
+      },
     })
+    const userTags = userTagsRaw
+      .sort((a, b) => b._count.predictions - a._count.predictions)
+      .map(({ name, slug }) => ({ name, slug }))
 
     const [scores, tabData] = await Promise.all([
       loadProfileScores({ userId: user.id, selectedTag }),
