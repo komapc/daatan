@@ -7,16 +7,15 @@ import PwaInstaller from '../PwaInstaller'
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeInstallPromptEvent() {
-  const event = new Event('beforeinstallprompt') as Event & {
-    prompt: () => Promise<void>
-    userChoice: Promise<{ outcome: string; platform: string }>
-    preventDefault: ReturnType<typeof vi.fn>
-  }
-  event.preventDefault = vi.fn() as ReturnType<typeof vi.fn>
-  event.prompt = vi.fn().mockResolvedValue(undefined) as ReturnType<typeof vi.fn>
-  event.userChoice = Promise.resolve({ outcome: 'dismissed', platform: '' })
-  return event
+type FakeInstallEvent = Event & { preventDefault: ReturnType<typeof vi.fn> }
+
+function makeInstallPromptEvent(): FakeInstallEvent {
+  const event = Object.assign(new Event('beforeinstallprompt'), {
+    prompt: vi.fn().mockResolvedValue(undefined),
+    userChoice: Promise.resolve({ outcome: 'dismissed', platform: '' }),
+  })
+  const spy = vi.spyOn(event, 'preventDefault').mockImplementation(() => {})
+  return Object.assign(event, { preventDefault: spy }) as unknown as FakeInstallEvent
 }
 
 function fireInstallPrompt() {

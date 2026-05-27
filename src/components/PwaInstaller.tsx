@@ -20,7 +20,7 @@ function isRunningAsStandalone(): boolean {
   return (
     window.matchMedia('(display-mode: standalone)').matches ||
     // Safari iOS sets navigator.standalone
-    (window.navigator as Record<string, unknown>).standalone === true
+    (window.navigator as unknown as Record<string, unknown>).standalone === true
   )
 }
 
