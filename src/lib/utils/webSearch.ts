@@ -448,7 +448,13 @@ async function searchWithGDELT(query: string, limit: number): Promise<SearchResu
     throw new Error(`GDELT error: ${response.status}`)
   }
 
-  const data: GDELTResponse = await response.json()
+  // GDELT returns HTTP 200 + plain text (not JSON) for queries with short words (e.g. "EU")
+  let data: GDELTResponse
+  try {
+    data = await response.json()
+  } catch {
+    throw new Error('GDELT: non-JSON response (query may contain short keywords)')
+  }
   const articles = data.articles ?? []
 
   return articles.slice(0, limit).map(art => {

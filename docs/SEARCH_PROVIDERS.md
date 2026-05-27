@@ -11,24 +11,26 @@ Oracle gateway (try first, optional)            ← src/lib/services/oracleSearc
   ↓ (null/empty/disabled)
 searchArticles()                                 ← src/lib/utils/webSearch.ts
   ↓
-[DataForSEO → Serper → BrightData → Nimbleway → SerpAPI → ScrapingBee → DuckDuckGo]
+[DataForSEO → NewsData.io → Serper → BrightData → Nimbleway → SerpAPI → ScrapingBee → GDELT → DuckDuckGo]
 ```
 
 **Oracle** is our internal proxy gateway (separate service). It runs its own provider chain server-side so credentials don't sit in every Next.js process. If `ORACLE_URL` + `ORACLE_API_KEY` are set, callers try it first; on `null`/empty/error/disabled, they fall back to the in-process chain.
 
-**`searchArticles()`** in `src/lib/utils/webSearch.ts:406-509` is the in-process chain. It tries each provider in order until one returns ≥1 result, then returns. If all fail, returns an empty array (callers handle the empty case).
+**`searchArticles()`** in `src/lib/utils/webSearch.ts:537` is the in-process chain. It tries each provider in order until one returns ≥1 result, then returns. If all fail, throws `'Search API not available'` (callers surface this as an error; the Telegram alert fires via `notifyAllSearchProvidersFailed`).
 
 ## Provider fallback chain
 
 | # | Provider     | Adapter (file:line)                   | Env vars                                  | Notes |
 |---|--------------|---------------------------------------|-------------------------------------------|-------|
-| 1 | DataForSEO   | `webSearch.ts:150-185`                | `DATAFORSEO_LOGIN`, `DATAFORSEO_PASSWORD` | Google News API (HTTP basic auth). Primary as of 2026-05-05. |
-| 2 | Serper       | `webSearch.ts:33-75`                  | `SERPER_API_KEY`                          | News API; tries `news` → `topStories` → `organic`. **Disabled (empty key) — out of credits 2026-05-05.** |
-| 3 | BrightData   | `webSearch.ts:191-238`                | `BRIGHTDATA_API_KEY`                      | Google SERP via proxy; HTML parsing. Not configured (no key in Secrets Manager). |
-| 4 | Nimbleway    | `webSearch.ts:260-295`                | `NIMBLEWAY_API_KEY`                       | Google SERP API; structured JSON. **Disabled (empty key) — trial quota finished 2026-05-05.** |
-| 5 | SerpAPI      | `webSearch.ts:97-128`                 | `SERPAPI_API_KEY`                         | News results (`tbm=nws`). **Disabled (empty key) — exhausted 2026-05-05.** |
-| 6 | ScrapingBee  | `webSearch.ts:316-346`                | `SCRAPINGBEE_API_KEY`                     | Google "store" API; news → top stories → organic. **Disabled (empty key) — exhausted 2026-05-05.** |
-| 7 | DuckDuckGo   | `webSearch.ts:352-400`                | (none — free)                             | DDG lite HTML scrape; last-resort, no quota |
+| 1 | DataForSEO   | `webSearch.ts:154`                    | `DATAFORSEO_LOGIN`, `DATAFORSEO_PASSWORD` | Google News API (HTTP basic auth). Primary as of 2026-05-05. |
+| 2 | NewsData.io  | `webSearch.ts:213`                    | `NEWSDATAIO_API_KEY`                      | News API; English-language filter. Added 2026-05-XX. |
+| 3 | Serper       | `webSearch.ts:35`                     | `SERPER_API_KEY`                          | News API; tries `news` → `topStories` → `organic`. **Disabled (empty key) — out of credits 2026-05-05.** |
+| 4 | BrightData   | `webSearch.ts:249`                    | `BRIGHTDATA_API_KEY`                      | Google SERP via proxy; HTML parsing. Not configured (no key in Secrets Manager). |
+| 5 | Nimbleway    | `webSearch.ts:318`                    | `NIMBLEWAY_API_KEY`                       | Google SERP API; structured JSON. **Disabled (empty key) — trial quota finished 2026-05-05.** |
+| 6 | SerpAPI      | `webSearch.ts:99`                     | `SERPAPI_API_KEY`                         | News results (`tbm=nws`). **Disabled (empty key) — exhausted 2026-05-05.** |
+| 7 | ScrapingBee  | `webSearch.ts:374`                    | `SCRAPINGBEE_API_KEY`                     | Google "store" API; news → top stories → organic. **Disabled (empty key) — exhausted 2026-05-05.** |
+| 8 | GDELT        | `webSearch.ts:424`                    | (none — free)                             | GDELT Doc API; 3-month rolling window; no body snippets. See [GDELT notes](#gdelt-notes) below. |
+| 9 | DuckDuckGo   | `webSearch.ts:480`                    | (none — free)                             | DDG Lite HTML scrape; last-resort, no quota. See [DDG notes](#ddg-notes) below. |
 
 All adapters return the same shape:
 
@@ -42,7 +44,29 @@ interface SearchResult {
 }
 ```
 
-Order matters and was tuned empirically — Serper has the highest quality-to-rate-limit ratio for breaking news; DataForSEO catches non-English well after the locale fix below; DuckDuckGo is unmetered insurance.
+Order matters and was tuned empirically — Serper has the highest quality-to-rate-limit ratio for breaking news; DataForSEO catches non-English well after the locale fix below; GDELT and DuckDuckGo are unmetered insurance.
+
+## GDELT notes
+
+**API**: `GET https://api.gdeltproject.org/api/v2/doc/doc` — free, no key, no registration.
+
+**Coverage**: 3-month rolling window. Queries beyond that return 0 articles (no error). The Python Factum Atlas pipeline also uses GDELT BQ for historical data, but that requires GCP credentials and is not implemented here.
+
+**Rate limit behaviour**: GDELT enforces ~1 req/5s per IP. When rate-limited it **stalls the TLS handshake for ~25 seconds** rather than immediately returning 429. The adapter uses `AbortSignal.timeout(5_000)` to abort fast (confirmed from EC2: SSL handshake stalls 3s before timeout fires). After a 429 response, a 60-second per-process cooldown is set.
+
+**EC2 IP behaviour**: GDELT rate-limits AWS EC2 IPs aggressively — confirmed that new EC2 IPs hit the TLS stall on first contact. In practice this means GDELT is only useful when the in-process cooldown is not active. The adapter handles this gracefully: any error (stall/429/parse failure) logs a warning and falls through to DuckDuckGo.
+
+**Short-keyword quirk**: Queries containing words shorter than 3 characters (e.g. "EU", "US") cause GDELT to return HTTP 200 with a plain-text error message instead of JSON. The adapter catches the JSON parse failure and falls through.
+
+**Snippets**: GDELT `artlist` mode returns article URLs and titles only — no body text. `snippet` field will be empty for all GDELT results.
+
+## DDG notes
+
+**Endpoint**: `POST https://lite.duckduckgo.com/lite/` — free, no key.
+
+**EC2 IP behaviour**: DuckDuckGo blocks known AWS/datacenter IP ranges at the network level, regardless of User-Agent. From EC2, the request returns HTTP 200 with an empty result page (0 `result-link` elements). From residential/office IPs, the new Chrome-like UA and `Accept` headers work correctly (10 results confirmed). The UA fix is still worthwhile for self-hosted deployments and local development.
+
+**Last resort**: DDG is tried only after all 8 other providers fail or return 0 results. When GDELT is also blocked (EC2 IP), both free fallbacks return empty and the search returns `[]`.
 
 ## Multilingual fix (May 2026)
 
@@ -79,6 +103,7 @@ Telegram delivery requires `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID`. If unset, 
 
 ## Failure modes worth knowing
 
-- **All paid providers exhausted, only DDG returns** — quality drops noticeably. The `search-health` cron will have already paged before this happens if the alert thresholds are tuned right.
-- **Provider returns HTTP 200 with garbage HTML** (BrightData under proxy stress) — the adapter's parser returns `[]`, chain falls through. Not visible to the user but worth grepping `bot-runner` logs for adapter-level errors during incident review.
-- **Oracle disabled, all in-process providers also down** — `searchArticles()` returns `[]`. Express Forecast surfaces `NO_ARTICLES_FOUND`; bot discovery skips the cycle.
+- **All paid providers exhausted, only GDELT/DDG available from EC2** — both free fallbacks are IP-blocked on AWS; `searchArticles()` throws `Search API not available`. Top up credits for at least one paid provider (DataForSEO is the cheapest per-query).
+- **GDELT TLS stall** — happens when the EC2 IP is rate-limited. The 5s `AbortSignal.timeout` fires, GDELT is skipped for 60s, DDG is tried. No user-visible impact beyond reduced result quality.
+- **Provider returns HTTP 200 with garbage HTML** (BrightData under proxy stress) — the adapter's parser returns `[]`, chain falls through. Not visible to the user but worth grepping `web-search` logs for adapter-level errors during incident review.
+- **Oracle disabled, all in-process providers also down** — `searchArticles()` throws. Express Forecast surfaces `NO_ARTICLES_FOUND`; bot discovery skips the cycle.
