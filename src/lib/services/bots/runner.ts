@@ -335,18 +335,11 @@ async function runBot(bot: BotWithUser, dryRun: boolean, isManual: boolean = fal
         }
 
         if (hotTopics.length === 0) {
-          log.info({ botId: bot.id, fetchedCount: items.length }, 'No hot topics detected from fetched items')
-
-          if (initialForecastCount < bot.maxForecastsPerDay) {
-            log.info({ botId: bot.id }, 'No hot topics — falling back to LLM-only forecast generation')
-            const created = await processSourcelessForecast(bot, llm, dryRun, existingTitles)
-            if (created === 'created') summary.forecastsCreated++
-            else if (created === 'skipped') summary.skipped++
-            else summary.errors++
-          } else {
-            await logBotAction(bot.id, 'SKIPPED', { reason: 'No hot topics detected', fetchedCount: items.length }, null, 'no hot topics detected', dryRun)
-            summary.skipped++
-          }
+          log.info({ botId: bot.id, fetchedCount: items.length }, 'No hot topics detected — falling back to LLM-only forecast generation')
+          const created = await processSourcelessForecast(bot, llm, dryRun, existingTitles)
+          if (created === 'created') summary.forecastsCreated++
+          else if (created === 'skipped') summary.skipped++
+          else summary.errors++
         }
 
         // Log performance metrics

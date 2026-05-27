@@ -277,6 +277,30 @@ Instructions:
 
 Respond ONLY with a JSON object: { "probability": number, "reasoning": "one or two sentences explaining the number" }`,
 
+    'bot-sourceless-forecast-generation': `{{personaPrompt}}
+
+{{forecastPrompt}}
+
+Today's date: {{todayDate}}
+Note: No current news sources are available. Generate a forecast based on your area of expertise and general knowledge about ongoing trends.
+
+Create a concise, verifiable forecast as JSON with these exact fields:
+{
+  "claimText": "A testable prediction statement starting with 🤖 (max 200 chars)",
+  "detailsText": "2–4 sentences of background context and resolution criteria",
+  "outcomeType": "BINARY",
+  "resolveByDatetime": "ISO 8601 date, e.g. 2026-09-15T00:00:00Z (30–180 days from today)",
+  "resolutionRules": "1–2 sentences describing exactly how to decide the outcome",
+  "tags": ["tag1", "tag2"]
+}
+
+Requirements:
+- claimText MUST begin with "🤖 "
+- Be specific enough that a third party can verify the outcome objectively
+- Use English throughout
+- resolveByDatetime must be strictly in the future
+{{tagConstraint}}`,
+
     'content-moderation': `You are a content moderator for a civil prediction market platform.
 Your job is to analyze incoming content (forecasts or comments) and determine if it violates safety policies.
 
