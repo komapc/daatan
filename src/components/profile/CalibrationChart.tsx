@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import type { CalibrationPoint } from '@/lib/services/profile'
 
 interface CalibrationChartProps {
@@ -17,7 +18,7 @@ function cy(p: number) {
   return PAD.top + (1 - p) * PH
 }
 
-export function CalibrationChart({ calibration }: CalibrationChartProps) {
+export const CalibrationChart = memo(function CalibrationChart({ calibration }: CalibrationChartProps) {
   if (calibration.length < 2) {
     return (
       <p className="text-xs text-gray-500 py-4 text-center">
@@ -102,4 +103,4 @@ export function CalibrationChart({ calibration }: CalibrationChartProps) {
       ))}
     </svg>
   )
-}
+})
