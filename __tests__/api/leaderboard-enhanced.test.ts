@@ -2,6 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET } from '@/app/api/leaderboard/route'
 
+vi.mock('@/lib/rate-limit', () => ({
+  checkRateLimit: vi.fn().mockReturnValue({ allowed: true, remaining: 59, resetAt: Date.now() + 3600000 }),
+  rateLimitResponse: vi.fn().mockReturnValue(new Response(JSON.stringify({ error: 'Rate limit exceeded. Try again later.' }), { status: 429 })),
+  clientIp: vi.fn().mockReturnValue('127.0.0.1'),
+}))
+
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     user: {
@@ -75,6 +81,9 @@ const mockResolvedCommitments = [
 describe('GET /api/leaderboard (enhanced)', () => {
   beforeEach(async () => {
     vi.clearAllMocks()
+    const { checkRateLimit } = await import('@/lib/rate-limit')
+    vi.mocked(checkRateLimit).mockReturnValue({ allowed: true, remaining: 59, resetAt: Date.now() + 3600000 })
+
     const { prisma } = await import('@/lib/prisma')
     // groupBy order: cuSums, rsGainSums, brierScoreSums, peerScoreSums, aiScoreSums, rsChangeSums
     vi.mocked(prisma.commitment.groupBy)
@@ -197,5 +206,14 @@ describe('GET /api/leaderboard (enhanced)', () => {
 
     expect(response.status).toBe(500)
     expect(data.error).toBe('Failed to fetch leaderboard')
+  })
+
+  it('returns 429 when rate limit is exceeded', async () => {
+    const { checkRateLimit } = await import('@/lib/rate-limit')
+    vi.mocked(checkRateLimit).mockReturnValueOnce({ allowed: false, remaining: 0, resetAt: Date.now() + 3600000 })
+
+    const request = new NextRequest('http://localhost/api/leaderboard')
+    const response = await GET(request)
+    expect(response.status).toBe(429)
   })
 })

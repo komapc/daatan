@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { handleRouteError } from '@/lib/api-error'
 import { getLeaderboard, type SortBy } from '@/lib/services/leaderboard'
+import { checkRateLimit, rateLimitResponse, clientIp } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
 
 // GET /api/leaderboard - Enhanced leaderboard with multiple sort modes
 export async function GET(request: NextRequest) {
+  const rl = checkRateLimit(`leaderboard:${clientIp(request)}`, 60, 60 * 60 * 1000)
+  if (!rl.allowed) return rateLimitResponse(rl.resetAt)
+
   try {
     const { searchParams } = new URL(request.url)
     const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100)

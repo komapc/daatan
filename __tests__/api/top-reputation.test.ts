@@ -14,6 +14,12 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
+vi.mock('@/lib/rate-limit', () => ({
+  checkRateLimit: vi.fn().mockReturnValue({ allowed: true, remaining: 59, resetAt: Date.now() + 3600000 }),
+  rateLimitResponse: vi.fn().mockReturnValue(new Response(JSON.stringify({ error: 'Rate limit exceeded. Try again later.' }), { status: 429 })),
+  clientIp: vi.fn().mockReturnValue('127.0.0.1'),
+}))
+
 describe('Leaderboard API', () => {
   let prisma: { user: { findMany: ReturnType<typeof vi.fn> } }
 
@@ -21,6 +27,8 @@ describe('Leaderboard API', () => {
     vi.clearAllMocks()
     const mod = await import('@/lib/prisma')
     prisma = mod.prisma as unknown as typeof prisma
+    const { checkRateLimit } = await import('@/lib/rate-limit')
+    vi.mocked(checkRateLimit).mockReturnValue({ allowed: true, remaining: 59, resetAt: Date.now() + 3600000 })
   })
 
   it('returns a list of top users', async () => {
@@ -56,5 +64,14 @@ describe('Leaderboard API', () => {
 
     expect(response.status).toBe(500)
     expect(data).toHaveProperty('error', 'Failed to fetch leaderboard')
+  })
+
+  it('returns 429 when rate limit is exceeded', async () => {
+    const { checkRateLimit } = await import('@/lib/rate-limit')
+    vi.mocked(checkRateLimit).mockReturnValueOnce({ allowed: false, remaining: 0, resetAt: Date.now() + 3600000 })
+
+    const request = new NextRequest('http://localhost/api/top-reputation')
+    const response = await GET(request)
+    expect(response.status).toBe(429)
   })
 })
