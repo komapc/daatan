@@ -24,8 +24,11 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
-vi.mock('@/lib/utils/webSearch', () => ({
-  searchArticles: vi.fn(),
+vi.mock('@/lib/services/oracleSearch', () => ({
+  oracleSearch: vi.fn(),
+}))
+vi.mock('@/lib/utils/multilingualSearch', () => ({
+  searchArticlesMultilingual: vi.fn(),
 }))
 
 const generateContentMock = vi.hoisted(() => vi.fn())
@@ -50,7 +53,8 @@ vi.mock('@/lib/api-error', () => ({
 
 import { POST } from '../route'
 import { prisma } from '@/lib/prisma'
-import { searchArticles } from '@/lib/utils/webSearch'
+import { oracleSearch } from '@/lib/services/oracleSearch'
+import { searchArticlesMultilingual } from '@/lib/utils/multilingualSearch'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -87,8 +91,10 @@ describe('POST /api/forecasts/[id]/research', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     resetRateLimitStore()
+    // Main oracle returns null → falls through to three parallel searches
+    vi.mocked(oracleSearch).mockResolvedValue(null)
     // Default: three parallel searches all return relevant shekel articles
-    vi.mocked(searchArticles).mockResolvedValue([
+    vi.mocked(searchArticlesMultilingual).mockResolvedValue([
       makeArticle('Shekel hits 30-year high', 'timesofisrael.com'),
       makeArticle('Shekel continues rise', 'jns.org'),
       makeArticle('ILS strengthens against dollar', 'reuters.com'),
@@ -114,8 +120,8 @@ describe('POST /api/forecasts/[id]/research', () => {
 
     await POST(makeRequest(), { params: Promise.resolve({ id: 'pred-1' }) })
 
-    // Three searchArticles calls: dated, broad, simplified
-    expect(searchArticles).toHaveBeenCalledTimes(3)
+    // Three searchArticlesMultilingual calls: dated, broad, simplified
+    expect(searchArticlesMultilingual).toHaveBeenCalledTimes(3)
   })
 
   it('the simplified query strips stopwords and includes the resolution year', async () => {
@@ -123,7 +129,7 @@ describe('POST /api/forecasts/[id]/research', () => {
 
     await POST(makeRequest(), { params: Promise.resolve({ id: 'pred-1' }) })
 
-    const calls = vi.mocked(searchArticles).mock.calls
+    const calls = vi.mocked(searchArticlesMultilingual).mock.calls
     // The third call is the simplified/keyword query
     const simplifiedQuery: string = calls[2][0]
     expect(simplifiedQuery.toLowerCase()).not.toMatch(/\bwill\b/)
@@ -136,7 +142,7 @@ describe('POST /api/forecasts/[id]/research', () => {
 
     await POST(makeRequest(), { params: Promise.resolve({ id: 'pred-1' }) })
 
-    const calls = vi.mocked(searchArticles).mock.calls
+    const calls = vi.mocked(searchArticlesMultilingual).mock.calls
     // calls[0] = dated, calls[2] = simplified — both receive dateFrom/dateTo
     expect(calls[0][2]).toMatchObject({ dateFrom: expect.any(Date), dateTo: expect.any(Date) })
     expect(calls[2][2]).toMatchObject({ dateFrom: expect.any(Date), dateTo: expect.any(Date) })
@@ -160,7 +166,7 @@ describe('POST /api/forecasts/[id]/research', () => {
     vi.mocked(prisma.prediction.findUnique).mockResolvedValue(basePrediction as never)
 
     // Return only unrelated articles — no "Shekel"/"Israeli" capitalised nouns present
-    vi.mocked(searchArticles).mockResolvedValue([
+    vi.mocked(searchArticlesMultilingual).mockResolvedValue([
       makeArticle('US tariff ruling chaos'),
       makeArticle('Philippine peso update'),
     ])
@@ -172,8 +178,8 @@ describe('POST /api/forecasts/[id]/research', () => {
 
     await POST(makeRequest(), { params: Promise.resolve({ id: 'pred-1' }) })
 
-    // 3 initial + 2 fallback = 5 total searchArticles calls
-    expect(searchArticles).toHaveBeenCalledTimes(5)
+    // 3 initial + 2 fallback = 5 total searchArticlesMultilingual calls
+    expect(searchArticlesMultilingual).toHaveBeenCalledTimes(5)
     // LLM was called twice: once for query gen, once for evaluation
     expect(generateContentMock).toHaveBeenCalledTimes(2)
   })
@@ -181,7 +187,7 @@ describe('POST /api/forecasts/[id]/research', () => {
   it('does NOT trigger LLM fallback when initial results are relevant', async () => {
     vi.mocked(prisma.prediction.findUnique).mockResolvedValue(basePrediction as never)
     // Articles mention "Israeli" and "Shekel" — relevant
-    vi.mocked(searchArticles).mockResolvedValue([
+    vi.mocked(searchArticlesMultilingual).mockResolvedValue([
       makeArticle('Israeli Shekel hits high'),
       makeArticle('Israeli economy update'),
       makeArticle('Shekel dollar exchange'),
@@ -190,13 +196,13 @@ describe('POST /api/forecasts/[id]/research', () => {
     await POST(makeRequest(), { params: Promise.resolve({ id: 'pred-1' }) })
 
     // Only 3 initial searches, LLM called once for evaluation only
-    expect(searchArticles).toHaveBeenCalledTimes(3)
+    expect(searchArticlesMultilingual).toHaveBeenCalledTimes(3)
     expect(generateContentMock).toHaveBeenCalledTimes(1)
   })
 
   it('includes published dates in the LLM context', async () => {
     vi.mocked(prisma.prediction.findUnique).mockResolvedValue(basePrediction as never)
-    vi.mocked(searchArticles).mockResolvedValue([
+    vi.mocked(searchArticlesMultilingual).mockResolvedValue([
       makeArticle('Israeli Shekel strengthens', 'timesofisrael.com'),
       makeArticle('Shekel at 30-year high', 'jns.org'),
       makeArticle('Israeli currency rises', 'reuters.com'),
@@ -222,7 +228,7 @@ describe('POST /api/forecasts/[id]/research', () => {
 
   it('tells LLM to use its own knowledge when search context is empty', async () => {
     vi.mocked(prisma.prediction.findUnique).mockResolvedValue(basePrediction as never)
-    vi.mocked(searchArticles).mockResolvedValue([])
+    vi.mocked(searchArticlesMultilingual).mockResolvedValue([])
     // Fallback LLM queries also return nothing
     generateContentMock
       .mockResolvedValueOnce({ text: JSON.stringify({ queries: ['shekel usd'] }) })
@@ -245,7 +251,7 @@ describe('POST /api/forecasts/[id]/research', () => {
       ],
     }
     vi.mocked(prisma.prediction.findUnique).mockResolvedValue(mcPrediction as never)
-    vi.mocked(searchArticles).mockResolvedValue([
+    vi.mocked(searchArticlesMultilingual).mockResolvedValue([
       makeArticle('Israeli Shekel surges', 'timesofisrael.com'),
       makeArticle('Israeli economy boom', 'jns.org'),
       makeArticle('Shekel dollar rate rises', 'reuters.com'),
@@ -263,7 +269,7 @@ describe('POST /api/forecasts/[id]/research', () => {
 
   it('continues gracefully when the fallback LLM query generation fails', async () => {
     vi.mocked(prisma.prediction.findUnique).mockResolvedValue(basePrediction as never)
-    vi.mocked(searchArticles).mockResolvedValue([]) // triggers fallback
+    vi.mocked(searchArticlesMultilingual).mockResolvedValue([]) // triggers fallback
 
     // First call (query gen) throws, second call (evaluation) succeeds
     generateContentMock
@@ -279,7 +285,7 @@ describe('POST /api/forecasts/[id]/research', () => {
   it('continues gracefully when a fallback search call fails', async () => {
     vi.mocked(prisma.prediction.findUnique).mockResolvedValue(basePrediction as never)
     // Initial searches return irrelevant results → fallback triggered
-    vi.mocked(searchArticles)
+    vi.mocked(searchArticlesMultilingual)
       .mockResolvedValueOnce([makeArticle('Tariff news')])  // dated
       .mockResolvedValueOnce([makeArticle('Tariff court')])  // broad
       .mockResolvedValueOnce([makeArticle('Trade war')])     // simplified
@@ -297,7 +303,7 @@ describe('POST /api/forecasts/[id]/research', () => {
     // TEST-3: all three parallel .catch(() => []) searches reject simultaneously.
     // The route should still call the LLM with empty context and return 200.
     vi.mocked(prisma.prediction.findUnique).mockResolvedValue(basePrediction as never)
-    vi.mocked(searchArticles).mockRejectedValue(new Error('Search provider down'))
+    vi.mocked(searchArticlesMultilingual).mockRejectedValue(new Error('Search provider down'))
 
     generateContentMock.mockResolvedValue({
       text: JSON.stringify({

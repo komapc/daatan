@@ -4,9 +4,7 @@ import { apiError, handleRouteError } from '@/lib/api-error'
 import { withAuth, type RouteContext } from '@/lib/api-middleware'
 import { getPromptTemplate, fillPrompt } from '@/lib/llm/bedrock-prompts'
 import { llmService } from '@/lib/llm'
-import type { SearchResult } from '@/lib/utils/webSearch'
-import { searchArticlesMultilingual } from '@/lib/utils/multilingualSearch'
-import { oracleSearch } from '@/lib/services/oracleSearch'
+import { oracleSearch, type SearchResult } from '@/lib/services/oracleSearch'
 import { guessChances } from '@/lib/llm/expressPrediction'
 import { getOracleForecast, DEFAULT_MAX_ARTICLES, type OracleSource } from '@/lib/services/oracle'
 import { createLogger } from '@/lib/logger'
@@ -92,13 +90,10 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
         // Also strip any leading emoji (e.g. "🤖 " prefix on bot-generated forecasts) that confuse search APIs.
         const rawQuery = prediction.claimText || prediction.newsAnchor?.title || ''
         const searchQuery = rawQuery.split(/\s+[|—–]\s+/)[0].replace(/^[\p{Emoji_Presentation}\p{Extended_Pictographic}]+\s*/gu, '').trim()
-        // `searchArticles` throws "Search API not available" when every provider in the
-        // fallback chain fails (e.g. transient ECONNRESET on DDG when paid providers are
-        // unconfigured). Convert that into a clean 503 instead of leaking a 500 to the client.
         let searchResults: SearchResult[]
         const t0 = Date.now()
         try {
-            searchResults = await oracleSearch(searchQuery, DEFAULT_MAX_ARTICLES) ?? await searchArticlesMultilingual(searchQuery, DEFAULT_MAX_ARTICLES)
+            searchResults = (await oracleSearch(searchQuery, DEFAULT_MAX_ARTICLES)) ?? []
         } catch (err) {
             log.warn(
                 { predictionId: prediction.id, searchQuery, err },

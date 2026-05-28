@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { extractKeyTerms, hasRelevantResults } from '../helpers'
-import type { SearchResult } from '@/lib/utils/webSearch'
+import type { SearchResult } from '@/lib/services/oracleSearch'
 
 // ---------------------------------------------------------------------------
 // extractKeyTerms
