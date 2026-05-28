@@ -383,6 +383,27 @@ export function notifyHighLoad(
   sendChannelNotification(msg)
 }
 
+export function notifyOracleForecastUnavailable(): void {
+  if (isDevEnv()) return
+  if (!canNotify('oracle-forecast-unavailable')) return
+
+  const msg = [
+    `🚨 <b>Oracle /forecast unavailable</b>`,
+    `The TruthMachine Oracle is unreachable or failing health checks.`,
+    `Forecast context analysis is falling back to LLM-only estimates.`,
+  ].join('\n')
+
+  sendChannelNotification(msg)
+}
+
+export function notifyOracleForecastRecovered(): void {
+  if (isDevEnv()) return
+  if (!canNotify('oracle-forecast-recovered')) return
+
+  const msg = `✅ <b>Oracle /forecast recovered</b> — health check passing again.`
+  sendChannelNotification(msg)
+}
+
 export function notifyHeartbeat(version: string): void {
   if (isDevEnv()) return
   const msg = `✅ <b>Server heartbeat</b> — v${version} is alive.\n<i>Sent from the server (EC2 app process), not GitHub Actions.</i>`

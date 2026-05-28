@@ -55,6 +55,22 @@ interface OracleHealthResponse {
   leaderboard_sources?: number
 }
 
+/** One entry in the Oracle leaderboard. */
+export interface OracleLeaderboardEntry {
+  id: string
+  name?: string
+  trueskill_conservative?: number
+  elo?: number
+  brier_score?: number
+  [key: string]: unknown
+}
+
+/** Response from GET /leaderboard. */
+export interface OracleLeaderboardResponse {
+  sources: OracleLeaderboardEntry[]
+  count: number
+}
+
 /** Strip a single trailing slash so `${baseUrl}/path` doesn't produce a double slash. */
 const normalizeBaseUrl = (url: string): string => url.replace(/\/$/, '')
 
@@ -135,6 +151,31 @@ export const getOracleProbability = async (question: string): Promise<number | n
   const data = await getOracleForecast(question)
   if (!data) return null
   return (data.mean + 1) / 2
+}
+
+/**
+ * Fetch the live source credibility leaderboard from the Oracle API.
+ *
+ * The Oracle refreshes this from disk every N seconds, so the data is always
+ * current without requiring a server redeploy.  Returns null if the Oracle is
+ * not configured or the request fails.  Never throws.
+ */
+export const getOracleLeaderboard = async (): Promise<OracleLeaderboardResponse | null> => {
+  const url = env.ORACLE_URL
+  const key = env.ORACLE_API_KEY
+
+  if (!url || !key) return null
+
+  try {
+    const res = await fetch(`${normalizeBaseUrl(url)}/leaderboard`, {
+      headers: { 'x-api-key': key },
+      signal: AbortSignal.timeout(HEALTH_TIMEOUT_MS),
+    })
+    if (!res.ok) return null
+    return await res.json() as OracleLeaderboardResponse
+  } catch {
+    return null
+  }
 }
 
 /**
