@@ -3,6 +3,12 @@ import { NextRequest } from 'next/server'
 import { POST } from '@/app/api/auth/signup/route'
 import bcrypt from 'bcryptjs'
 
+vi.mock('@/lib/rate-limit', () => ({
+  checkRateLimit: vi.fn().mockReturnValue({ allowed: true, remaining: 4, resetAt: Date.now() + 3600000 }),
+  rateLimitResponse: vi.fn().mockReturnValue(new Response(JSON.stringify({ error: 'Rate limit exceeded. Try again later.' }), { status: 429 })),
+  clientIp: vi.fn().mockReturnValue('127.0.0.1'),
+}))
+
 // Mock dependencies
 vi.mock('@/lib/prisma', () => ({
   prisma: {
@@ -39,8 +45,22 @@ vi.mock('@/lib/logger', () => ({
 }))
 
 describe('POST /api/auth/signup', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
+    const { checkRateLimit } = await import('@/lib/rate-limit')
+    vi.mocked(checkRateLimit).mockReturnValue({ allowed: true, remaining: 4, resetAt: Date.now() + 3600000 })
+  })
+
+  it('returns 429 when rate limit is exceeded', async () => {
+    const { checkRateLimit } = await import('@/lib/rate-limit')
+    vi.mocked(checkRateLimit).mockReturnValueOnce({ allowed: false, remaining: 0, resetAt: Date.now() + 3600000 })
+
+    const req = new NextRequest('http://localhost/api/auth/signup', {
+      method: 'POST',
+      body: JSON.stringify({ name: 'Test', email: 'test@example.com', password: 'password123' }),
+    })
+    const res = await POST(req)
+    expect(res.status).toBe(429)
   })
 
   it('successfully creates a new user', async () => {

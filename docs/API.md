@@ -330,7 +330,7 @@ Set preferred display language.
 ## Leaderboard & Stats
 
 ### `GET /api/leaderboard`
-Top users ranked by the selected scoring system. Public.
+Top users ranked by the selected scoring system. Public. Rate-limited to 60 requests/hour per IP.
 
 | Query | Type | Default | Description |
 |-------|------|---------|-------------|
@@ -339,7 +339,7 @@ Top users ranked by the selected scoring system. Public.
 | `limit` | int | `50` | Max users to return (capped server-side). |
 
 ### `GET /api/top-reputation`
-Top users by reputation for sidebar widget. Public.
+Top users by reputation for sidebar widget. Public. Rate-limited to 60 requests/hour per IP.
 
 ### `GET /api/profile/[id]/glicko-history`
 Skill history (μ, σ, μ−3σ) over time for the user's profile chart. Public.
@@ -542,10 +542,10 @@ LLM-translate forecast claim/details/options to the user's preferred language.
 ## Auth
 
 ### `POST /api/auth/signup`
-Register a new account with email + password.
+Register a new account with email + password. Rate-limited to 5 requests/hour per IP.
 
 ### `POST /api/auth/forgot-password`
-Send a password reset email.
+Send a password reset email. Rate-limited to 5 requests/hour per IP. Always returns 200 to prevent email enumeration.
 
 ### `POST /api/auth/reset-password`
 Reset password using a token from the reset email.
