@@ -41,6 +41,7 @@ export interface ProfileScores {
   rsTagDelta: number | null
   truthScore: number | null
   weightedPeerScore: number | null
+  weightedPeerCount: number
   roi: number | null
   accuracy: number | null
   accuracyResolved: number
@@ -265,6 +266,7 @@ export async function loadProfileScores({
     rsTagDelta,
     truthScore,
     weightedPeerScore,
+    weightedPeerCount: weightedPeerRows.length,
     roi,
     accuracy,
     accuracyResolved,
