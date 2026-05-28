@@ -70,6 +70,7 @@ describe('loadProfileScores', () => {
     expect(scores.weightedPeerScore).toBeNull()
     expect(scores.accuracy).toBeNull()
     expect(scores.topicBreakdown).toEqual([])
+    expect(scores.calibration).toEqual([])
   })
 
   it('computes avgBrierScore correctly', async () => {
@@ -172,7 +173,7 @@ describe('loadProfileScores', () => {
 
   it('computes accuracy from rsChange > 0 rows', async () => {
     mockAggregate.mockResolvedValue(makeAggregateResult())
-    // findMany call order: weightedPeerRows, accuracyRows, topicStats (via tagFindMany)
+    // findMany call order: weightedPeerRows, accuracyRows, calibrationRows
     mockCommitmentFindMany
       .mockResolvedValueOnce([]) // weightedPeerRows
       .mockResolvedValueOnce([
@@ -182,6 +183,7 @@ describe('loadProfileScores', () => {
         { rsChange: 0.1 },
         { rsChange: 3 },
       ]) // accuracyRows
+      .mockResolvedValueOnce([]) // calibrationRows
     mockTagFindMany.mockResolvedValue([])
 
     const scores = await loadProfileScores({ userId: 'u1', selectedTag: null })
@@ -194,6 +196,7 @@ describe('loadProfileScores', () => {
     mockCommitmentFindMany
       .mockResolvedValueOnce([]) // weightedPeerRows
       .mockResolvedValueOnce([{ rsChange: 1 }, { rsChange: -1 }]) // accuracyRows (2 < 3)
+      .mockResolvedValueOnce([]) // calibrationRows
     mockTagFindMany.mockResolvedValue([])
 
     const scores = await loadProfileScores({ userId: 'u1', selectedTag: null })
@@ -210,6 +213,7 @@ describe('loadProfileScores', () => {
     mockCommitmentFindMany
       .mockResolvedValueOnce(todayRows) // weightedPeerRows
       .mockResolvedValueOnce([]) // accuracyRows
+      .mockResolvedValueOnce([]) // calibrationRows
     mockTagFindMany.mockResolvedValue([])
 
     const scores = await loadProfileScores({ userId: 'u1', selectedTag: null })
@@ -230,12 +234,42 @@ describe('loadProfileScores', () => {
     mockCommitmentFindMany
       .mockResolvedValueOnce(rows)
       .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([]) // calibrationRows
     mockTagFindMany.mockResolvedValue([])
 
     const scores = await loadProfileScores({ userId: 'u1', selectedTag: null })
     // Weighted average should be lower than the simple average (1+0+0)/3 = 0.333
     expect(scores.weightedPeerScore).not.toBeNull()
     expect(scores.weightedPeerScore!).toBeLessThan(1 / 3)
+  })
+
+  it('buckets calibration data and computes actual outcome rate', async () => {
+    mockAggregate.mockResolvedValue(makeAggregateResult())
+    mockCommitmentFindMany
+      .mockResolvedValueOnce([]) // weightedPeerRows
+      .mockResolvedValueOnce([]) // accuracyRows
+      .mockResolvedValueOnce([
+        // bucket 7 (0.7–0.8): 2 correct, 1 wrong → actual = 0.667
+        { probability: 0.75, prediction: { status: 'RESOLVED_CORRECT' } },
+        { probability: 0.72, prediction: { status: 'RESOLVED_CORRECT' } },
+        { probability: 0.78, prediction: { status: 'RESOLVED_WRONG' } },
+        // bucket 3 (0.3–0.4): 1 correct → actual = 1.0
+        { probability: 0.35, prediction: { status: 'RESOLVED_CORRECT' } },
+      ]) // calibrationRows
+    mockTagFindMany.mockResolvedValue([])
+
+    const scores = await loadProfileScores({ userId: 'u1', selectedTag: null })
+    expect(scores.calibration).toHaveLength(2)
+
+    const b7 = scores.calibration.find(c => Math.abs(c.predicted - 0.75) < 0.01)
+    expect(b7).toBeDefined()
+    expect(b7!.count).toBe(3)
+    expect(b7!.actual).toBeCloseTo(2 / 3, 5)
+
+    const b3 = scores.calibration.find(c => Math.abs(c.predicted - 0.35) < 0.01)
+    expect(b3).toBeDefined()
+    expect(b3!.count).toBe(1)
+    expect(b3!.actual).toBe(1)
   })
 })
 

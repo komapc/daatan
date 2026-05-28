@@ -108,7 +108,7 @@ export default async function PublicProfilePage({ params, searchParams }: Profil
     })
     const userTags = userTagsRaw
       .sort((a, b) => b._count.predictions - a._count.predictions)
-      .map(({ name, slug }) => ({ name, slug }))
+      .map(({ name, slug, _count }) => ({ name, slug, count: _count.predictions }))
 
     const [scores, tabData] = await Promise.all([
       loadProfileScores({ userId: user.id, selectedTag }),

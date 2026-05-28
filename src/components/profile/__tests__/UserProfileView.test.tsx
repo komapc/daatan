@@ -55,6 +55,13 @@ vi.mock('@/components/profile/ProfileTabs', () => ({
   ),
 }))
 
+// Mock ShareProfileButton
+vi.mock('@/components/profile/ShareProfileButton', () => ({
+  ShareProfileButton: ({ username }: { username: string }) => (
+    <button data-testid="share-profile-button">Share {username}</button>
+  ),
+}))
+
 describe('UserProfileView Component', () => {
   const mockUser = {
     id: 'user-1',
@@ -88,6 +95,7 @@ describe('UserProfileView Component', () => {
     accuracy: null,
     accuracyResolved: 0,
     topicBreakdown: [],
+    calibration: [],
   }
 
   const mockTabData: ProfileTabResult = {

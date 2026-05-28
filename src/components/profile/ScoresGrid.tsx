@@ -1,4 +1,5 @@
 import { GlickoChart } from './GlickoChart'
+import { CalibrationChart } from './CalibrationChart'
 import type { ProfileScores, TopicStat } from '@/lib/services/profile'
 
 interface ScoresGridProps {
@@ -179,6 +180,16 @@ export function ScoresGrid({ scores, user, userId, selectedTag, tagName }: Score
         </p>
         <GlickoChart userId={userId} selectedTag={selectedTag} />
       </div>
+
+      {scores.calibration.length >= 2 && (
+        <div className="bg-navy-800 rounded-xl border border-navy-600 p-3">
+          <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">
+            Calibration{tag ? ` · ${tag}` : ''}
+          </p>
+          <p className="text-[10px] text-gray-600 mb-2">How well predicted % matches actual outcomes — diagonal = perfect</p>
+          <CalibrationChart calibration={scores.calibration} />
+        </div>
+      )}
     </div>
   )
 }
