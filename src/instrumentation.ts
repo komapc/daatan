@@ -1,3 +1,7 @@
+import { createLogger } from '@/lib/logger'
+
+const log = createLogger('startup')
+
 /**
  * Next.js instrumentation hook — runs once on server startup.
  * Hard-fails in production if required env vars are missing so misconfigured
@@ -9,10 +13,10 @@ export async function register() {
   // Sync bot configurations to database on startup (non-blocking)
   import('@/lib/bots/sync').then(({ syncBotsToDatabase }) => {
     syncBotsToDatabase().catch(error => {
-      console.error('[startup] Failed to sync bots to database:', error)
+      log.error({ err: error }, '[startup] Failed to sync bots to database')
     })
   }).catch(err => {
-    console.error('[startup] Failed to load bot sync module:', err)
+    log.error({ err }, '[startup] Failed to load bot sync module')
   })
 
   if (process.env.NODE_ENV !== 'production') return
@@ -26,12 +30,7 @@ export async function register() {
   const missing = required.filter(({ key }) => !process.env[key])
 
   if (missing.length > 0) {
-    const lines = missing.map(({ key, feature }) => `  - ${key}  (required for ${feature})`).join('\n')
-    // eslint-disable-next-line no-console
-    console.warn(
-      `[startup] WARNING: Missing environment variables:\n${lines}\n` +
-      'Functionality requiring these keys will fail at runtime.',
-    )
+    log.warn({ missing: missing.map(({ key, feature }) => ({ key, feature })) }, '[startup] WARNING: Missing environment variables — functionality requiring these keys will fail at runtime')
   }
 
   // Validate critical SSM prompt params are not PLACEHOLDER.
@@ -70,19 +69,12 @@ export async function register() {
 
     if (missing2.length > 0) {
       // Warn only — hardcoded fallback prompts in bedrock-prompts.ts cover all PLACEHOLDER params
-      // eslint-disable-next-line no-console
-      console.warn(
-        `[startup] SSM params using hardcoded fallbacks (Bedrock not fully configured):\n` +
-        missing2.map((n) => `  - ${n}`).join('\n') +
-        '\nRun ./scripts/promote-prompt.sh to promote real Bedrock ARNs.',
-      )
+      log.warn({ missing: missing2 }, '[startup] SSM params using hardcoded fallbacks (Bedrock not fully configured)')
     } else {
-      // eslint-disable-next-line no-console
-      console.log(`[startup] SSM prompt params OK (${ssmEnv}, ${criticalPrompts.length} checked)`)
+      log.info({ env: ssmEnv, count: criticalPrompts.length }, '[startup] SSM prompt params OK')
     }
   } catch (error) {
     // SSM unreachable — log and continue
-    // eslint-disable-next-line no-console
-    console.warn('[startup] Could not validate SSM prompt params:', error)
+    log.warn({ err: error }, '[startup] Could not validate SSM prompt params')
   }
 }

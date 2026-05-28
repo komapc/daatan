@@ -6,10 +6,14 @@ import { slugify } from '@/lib/utils/slugify'
 import { createLogger } from '@/lib/logger'
 import { notifyNewUserRegistered } from '@/lib/services/telegram'
 import { findUserByEmail, findUsernameCollisions, registerUser } from '@/lib/services/user'
+import { checkRateLimit, rateLimitResponse, clientIp } from '@/lib/rate-limit'
 
 const log = createLogger('api-auth-signup')
 
 export async function POST(req: NextRequest) {
+  const rl = checkRateLimit(`signup:${clientIp(req)}`, 5, 60 * 60 * 1000)
+  if (!rl.allowed) return rateLimitResponse(rl.resetAt)
+
   try {
     const body = await req.json()
     const validatedData = registerSchema.parse(body)
