@@ -136,7 +136,7 @@ export async function UserProfileView({
               </div>
             </div>
 
-            <TagFilter tags={userTags} selectedTag={selectedTag} />
+            <TagFilter tags={userTags} selectedTag={selectedTag} totalCount={user._count.commitments} />
           </div>
 
           {/* Skill Rating card */}

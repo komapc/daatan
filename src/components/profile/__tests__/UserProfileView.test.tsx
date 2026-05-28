@@ -91,6 +91,7 @@ describe('UserProfileView Component', () => {
     rsTagDelta: null,
     truthScore: null,
     weightedPeerScore: null,
+    weightedPeerCount: 0,
     roi: null,
     accuracy: null,
     accuracyResolved: 0,

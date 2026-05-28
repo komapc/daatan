@@ -16,9 +16,10 @@ interface Tag {
 interface TagFilterProps {
   tags: Tag[]
   selectedTag: string | null
+  totalCount?: number
 }
 
-export function TagFilter({ tags, selectedTag }: TagFilterProps) {
+export function TagFilter({ tags, selectedTag, totalCount }: TagFilterProps) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const [expanded, setExpanded] = useState(false)
@@ -39,6 +40,9 @@ export function TagFilter({ tags, selectedTag }: TagFilterProps) {
         className={`${pillBase} ${!selectedTag ? active : inactive}`}
       >
         All
+        {totalCount != null && (
+          <span className="ml-1.5 opacity-60 font-normal normal-case tracking-normal">{totalCount}</span>
+        )}
       </Link>
       {visibleTags.map(tag => (
         <Link

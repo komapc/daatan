@@ -92,7 +92,7 @@ export function ScoresGrid({ scores, user, userId, selectedTag, tagName }: Score
         <ScoreCard
           label="Glicko-2"
           value={`μ ${Math.round(user.mu)}`}
-          sub={`± ${Math.round(user.sigma)} uncertainty`}
+          sub={`global · ± ${Math.round(user.sigma)} uncertainty`}
           color="blue"
           title="Glicko-2 skill estimate. μ = mean skill, σ = uncertainty. Leaderboard rank = μ − 3σ (conservative floor)."
         />
@@ -121,12 +121,21 @@ export function ScoresGrid({ scores, user, userId, selectedTag, tagName }: Score
             title="Average peer score per prediction. How consistently you beat community consensus. Min 3 to display."
           />
         )}
-        {scores.weightedPeerScore !== null && (
+        {scores.weightedPeerScore !== null ? (
           <SignedCard
             label={`Wtd. Peer Score${tag ? ` · ${tag}` : ''}`}
             value={Number(scores.weightedPeerScore.toFixed(4))}
             sub="Metaculus-style decay"
             title="Metaculus-style time-weighted peer score. Recent predictions count more (0.95^(days/30) decay)."
+          />
+        ) : scores.weightedPeerCount > 0 && (
+          <ScoreCard
+            label="Wtd. Peer Score"
+            value="—"
+            sub={`need ${3 - scores.weightedPeerCount} more peer-scored`}
+            color="muted"
+            muted
+            title="Metaculus-style time-weighted peer score. Requires 3+ peer-scored predictions to display."
           />
         )}
         {scores.peerScoreSum !== null && (
