@@ -201,6 +201,16 @@ export default async function ForecastDetailPage({ params }: Props) {
     notFound()
   }
 
+  // VOID/UNRESOLVABLE with no participants have no history worth preserving.
+  // Returning 404 prevents Google's "Soft 404" verdict (HTTP 200 + noindex + thin content).
+  // Forecasts that were active and have commitments stay reachable for participants.
+  if (
+    (prediction.status === 'VOID' || prediction.status === 'UNRESOLVABLE') &&
+    prediction._count.commitments === 0
+  ) {
+    notFound()
+  }
+
   const [initialComments, initialContextSnapshots] = await Promise.all([
     getInitialComments(prediction.id),
     getInitialContextSnapshots(prediction.id),
