@@ -1,38 +1,31 @@
 # Search Providers
 
-The Express Forecast wizard, Oracle research, and bot discovery all need to fetch news/SERP results for arbitrary user queries. We use a multi-provider fallback chain so a single rate-limit, outage, or zero-result query doesn't break the whole UX.
+The Express Forecast wizard, Oracle research, and bot discovery all fetch news/SERP results via **Oracle** — a separate internal search service running in the retro/api Python project. Daatan does not maintain its own provider chain.
 
-## Two-layer architecture
+## Architecture
 
 ```
-caller
+caller (daatan)
   ↓
-Oracle gateway (try first, optional)            ← src/lib/services/oracleSearch.ts
-  ↓ (null/empty/disabled)
-searchArticles()                                 ← src/lib/utils/webSearch.ts
+oracleSearch()                    ← src/lib/services/oracleSearch.ts
+  ↓ HTTP → ORACLE_URL
+Oracle API (retro/api)
   ↓
-[DataForSEO → NewsData.io → Serper → BrightData → Nimbleway → SerpAPI → ScrapingBee → GDELT → DuckDuckGo]
+[DataForSEO → Serper → Brave → Tavily → GDELT BQ → GDELT Doc → DuckDuckGo → ...]
 ```
 
-**Oracle** is our internal proxy gateway (separate service). It runs its own provider chain server-side so credentials don't sit in every Next.js process. If `ORACLE_URL` + `ORACLE_API_KEY` are set, callers try it first; on `null`/empty/error/disabled, they fall back to the in-process chain.
+All search logic — provider selection, fallback ordering, retries, rate-limit handling — lives in `retro/api`. Daatan's sole responsibility is calling `oracleSearch()` and handling `null` (Oracle unavailable or all providers exhausted).
 
-**`searchArticles()`** in `src/lib/utils/webSearch.ts:537` is the in-process chain. It tries each provider in order until one returns ≥1 result, then returns. If all fail, throws `'Search API not available'` (callers surface this as an error; the Telegram alert fires via `notifyAllSearchProvidersFailed`).
+## Daatan entry points
 
-## Provider fallback chain
+| Function | File | Returns |
+|---|---|---|
+| `oracleSearch(query, limit, opts?)` | `src/lib/services/oracleSearch.ts` | `SearchResult[] \| null` |
+| `searchArticlesMultilingual(query, limit, opts?)` | `src/lib/utils/multilingualSearch.ts` | `SearchResult[]` |
 
-| # | Provider     | Adapter (file:line)                   | Env vars                                  | Notes |
-|---|--------------|---------------------------------------|-------------------------------------------|-------|
-| 1 | DataForSEO   | `webSearch.ts:154`                    | `DATAFORSEO_LOGIN`, `DATAFORSEO_PASSWORD` | Google News API (HTTP basic auth). Primary as of 2026-05-05. |
-| 2 | NewsData.io  | `webSearch.ts:213`                    | `NEWSDATAIO_API_KEY`                      | News API; English-language filter. Added 2026-05-XX. |
-| 3 | Serper       | `webSearch.ts:35`                     | `SERPER_API_KEY`                          | News API; tries `news` → `topStories` → `organic`. **Disabled (empty key) — out of credits 2026-05-05.** |
-| 4 | BrightData   | `webSearch.ts:249`                    | `BRIGHTDATA_API_KEY`                      | Google SERP via proxy; HTML parsing. Not configured (no key in Secrets Manager). |
-| 5 | Nimbleway    | `webSearch.ts:318`                    | `NIMBLEWAY_API_KEY`                       | Google SERP API; structured JSON. **Disabled (empty key) — trial quota finished 2026-05-05.** |
-| 6 | SerpAPI      | `webSearch.ts:99`                     | `SERPAPI_API_KEY`                         | News results (`tbm=nws`). **Disabled (empty key) — exhausted 2026-05-05.** |
-| 7 | ScrapingBee  | `webSearch.ts:374`                    | `SCRAPINGBEE_API_KEY`                     | Google "store" API; news → top stories → organic. **Disabled (empty key) — exhausted 2026-05-05.** |
-| 8 | GDELT        | `webSearch.ts:424`                    | (none — free)                             | GDELT Doc API; 3-month rolling window; no body snippets. See [GDELT notes](#gdelt-notes) below. |
-| 9 | DuckDuckGo   | `webSearch.ts:480`                    | (none — free)                             | DDG Lite HTML scrape; last-resort, no quota. See [DDG notes](#ddg-notes) below. |
+`searchArticlesMultilingual` wraps `oracleSearch` with non-Latin script detection (Cyrillic, Hebrew, Arabic, CJK). When detected, it translates the query to English via Gemini and runs both queries in parallel, deduplicating results. Use this wrapper for any user-supplied search query.
 
-All adapters return the same shape:
+## SearchResult shape
 
 ```ts
 interface SearchResult {
@@ -44,66 +37,41 @@ interface SearchResult {
 }
 ```
 
-Order matters and was tuned empirically — Serper has the highest quality-to-rate-limit ratio for breaking news; DataForSEO catches non-English well after the locale fix below; GDELT and DuckDuckGo are unmetered insurance.
+## Configuration
 
-## GDELT notes
+| Env var | Required | Purpose |
+|---|---|---|
+| `ORACLE_URL` | Yes (in prod) | Base URL of the Oracle API |
+| `ORACLE_API_KEY` | Yes (in prod) | Bearer token for Oracle |
 
-**API**: `GET https://api.gdeltproject.org/api/v2/doc/doc` — free, no key, no registration.
+If `ORACLE_URL` is unset, `oracleSearch()` returns `null` immediately (no HTTP call). Callers treat `null` as "no results available."
 
-**Coverage**: 3-month rolling window. Queries beyond that return 0 articles (no error). The Python Factum Atlas pipeline also uses GDELT BQ for historical data, but that requires GCP credentials and is not implemented here.
+## Multilingual search
 
-**Rate limit behaviour**: GDELT enforces ~1 req/5s per IP. When rate-limited it **stalls the TLS handshake for ~25 seconds** rather than immediately returning 429. The adapter uses `AbortSignal.timeout(5_000)` to abort fast (confirmed from EC2: SSL handshake stalls 3s before timeout fires). After a 429 response, a 60-second per-process cooldown is set.
+`searchArticlesMultilingual` detects non-Latin scripts and translates before searching. The translation is cached in-process (LRU, 500 entries) keyed by a content hash, so repeated queries for the same Cyrillic/Hebrew/Arabic text make only one Gemini call.
 
-**EC2 IP behaviour**: GDELT rate-limits AWS EC2 IPs aggressively — confirmed that new EC2 IPs hit the TLS stall on first contact. In practice this means GDELT is only useful when the in-process cooldown is not active. The adapter handles this gracefully: any error (stall/429/parse failure) logs a warning and falls through to DuckDuckGo.
+Requires `GEMINI_API_KEY` for translation. If unset or translation fails, the original query is used as a single-language fallback.
 
-**Short-keyword quirk**: Queries containing words shorter than 3 characters (e.g. "EU", "US") cause GDELT to return HTTP 200 with a plain-text error message instead of JSON. The adapter catches the JSON parse failure and falls through.
+## Oracle provider chain
 
-**Snippets**: GDELT `artlist` mode returns article URLs and titles only — no body text. `snippet` field will be empty for all GDELT results.
-
-## DDG notes
-
-**Endpoint**: `POST https://lite.duckduckgo.com/lite/` — free, no key.
-
-**EC2 IP behaviour**: DuckDuckGo blocks known AWS/datacenter IP ranges at the network level, regardless of User-Agent. From EC2, the request returns HTTP 200 with an empty result page (0 `result-link` elements). From residential/office IPs, the new Chrome-like UA and `Accept` headers work correctly (10 results confirmed). The UA fix is still worthwhile for self-hosted deployments and local development.
-
-**Last resort**: DDG is tried only after all 8 other providers fail or return 0 results. When GDELT is also blocked (EC2 IP), both free fallbacks return empty and the search returns `[]`.
-
-## Multilingual fix (May 2026)
-
-Earlier providers had hard-coded English/US locale params, which silently returned 0 results for queries in other scripts (Hebrew, Russian, Arabic, etc.) — falling through to DDG every time. Stripped:
-
-- DDG: `kl=us-en` removed
-- BrightData: `gl=us`, `hl=en` removed
-- Nimbleway: `country=US` removed
-- DataForSEO: English-only locale restriction removed
-
-Commits: `7ece1bbb`, `eaa7caaa`. After this, all providers detect the query's script and let the upstream API auto-localize.
-
-If you reintroduce per-language tuning, do it via a per-call option (e.g., `searchArticles(query, limit, { locale })`), not a hard-coded default.
+The full provider chain is maintained in `retro/api`. Refer to that project's documentation for provider details, API key management, and health monitoring.
 
 ## Health monitoring
 
-`GET /api/cron/search-health` (header `x-cron-secret: $BOT_RUNNER_SECRET`) — fired periodically. It calls Oracle's `/search/health` and emits Telegram alerts when:
+`GET /api/cron/search-health` (header `x-cron-secret: $BOT_RUNNER_SECRET`) — calls Oracle's `/search/health` and emits Telegram alerts when:
 
-- a single provider is `exhausted: true` → `notifyExhausted(name)`
-- a single provider's `credits < 100` → `notifySearchCreditsLow(name, credits)`
-- aggregate `overall: 'unhealthy'` (all providers down/exhausted) → `notifyAllSearchProvidersFailed()`
+- a single provider is `exhausted: true`
+- a single provider's `credits < 100`
+- aggregate `overall: 'unhealthy'` (all providers down/exhausted)
 
-Threshold for "low credits" is `100`, defined at `src/lib/services/oracleSearch.ts:12`. Adjust if a provider's credit unit differs significantly (some count requests, others count results).
+Threshold for "low credits" is `100`, defined at `src/lib/services/oracleSearch.ts`. Telegram delivery requires `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID`.
 
-Telegram delivery requires `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID`. If unset, alerts no-op silently — don't rely on this path for ops without confirming the bot token in `.env` is current (the one in the repo .env example has been invalid since 2026; refresh from BotFather as needed).
+## Failure modes
+
+- **Oracle unavailable** (`ORACLE_URL` unset or service down) — `oracleSearch()` returns `null`. Express Forecast throws `NO_ARTICLES_FOUND`; context updates return 503; bot discovery skips the cycle.
+- **Oracle returns empty results** — callers receive `[]` and handle it as "no articles found."
+- **Translation failure** (Gemini API error or quota) — `searchArticlesMultilingual` falls back to the original-language query. No user-visible impact beyond reduced result quality for non-Latin queries.
 
 ## Adding a new provider
 
-1. Add an adapter function in `src/lib/utils/webSearch.ts` returning `SearchResult[]` (or `[]` on failure — never throw out of the adapter, the chain handles fall-through).
-2. Insert it into the fallback array in `searchArticles()` — earlier = higher priority.
-3. Add the API key env var to `.env.example` and to the t3-env validation in `src/env.ts` (mark optional unless mandatory).
-4. If the provider has a credits/quota endpoint, plumb it into Oracle's `/search/health` so the cron alerts pick it up.
-5. Update this table.
-
-## Failure modes worth knowing
-
-- **All paid providers exhausted, only GDELT/DDG available from EC2** — both free fallbacks are IP-blocked on AWS; `searchArticles()` throws `Search API not available`. Top up credits for at least one paid provider (DataForSEO is the cheapest per-query).
-- **GDELT TLS stall** — happens when the EC2 IP is rate-limited. The 5s `AbortSignal.timeout` fires, GDELT is skipped for 60s, DDG is tried. No user-visible impact beyond reduced result quality.
-- **Provider returns HTTP 200 with garbage HTML** (BrightData under proxy stress) — the adapter's parser returns `[]`, chain falls through. Not visible to the user but worth grepping `web-search` logs for adapter-level errors during incident review.
-- **Oracle disabled, all in-process providers also down** — `searchArticles()` throws. Express Forecast surfaces `NO_ARTICLES_FOUND`; bot discovery skips the cycle.
+Add providers in `retro/api`, not in daatan. The Oracle service manages the full provider chain. After deploying the updated Oracle API, daatan picks up the new provider automatically — no daatan changes needed.

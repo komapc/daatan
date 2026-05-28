@@ -5,7 +5,7 @@
  *   npx tsx scripts/test-resolution.ts <slug-or-id>    # look up from DB
  */
 import { PrismaClient } from '@prisma/client'
-import { searchArticles, SearchResult } from '../src/lib/utils/webSearch'
+import { oracleSearch, type SearchResult } from '../src/lib/services/oracleSearch'
 import { llmService } from '../src/lib/llm'
 import { SchemaType } from '@google/generative-ai'
 
@@ -130,12 +130,12 @@ async function main() {
 
     // Step 1: Three parallel searches
     const [dated, broad, simplified] = await Promise.all([
-        searchArticles(claimText, 6, { dateFrom: forecastStart, dateTo: searchDateTo })
-            .catch(e => { console.warn('  Dated search failed:', e.message); return [] as SearchResult[] }),
-        searchArticles(claimText, 4)
-            .catch(e => { console.warn('  Broad search failed:', e.message); return [] as SearchResult[] }),
-        searchArticles(simplifiedQuery, 6, { dateFrom: forecastStart, dateTo: searchDateTo })
-            .catch(e => { console.warn('  Simplified search failed:', e.message); return [] as SearchResult[] }),
+        oracleSearch(claimText, 6, { dateFrom: forecastStart, dateTo: searchDateTo })
+            .then(r => r ?? []).catch(e => { console.warn('  Dated search failed:', e.message); return [] as SearchResult[] }),
+        oracleSearch(claimText, 4)
+            .then(r => r ?? []).catch(e => { console.warn('  Broad search failed:', e.message); return [] as SearchResult[] }),
+        oracleSearch(simplifiedQuery, 6, { dateFrom: forecastStart, dateTo: searchDateTo })
+            .then(r => r ?? []).catch(e => { console.warn('  Simplified search failed:', e.message); return [] as SearchResult[] }),
     ])
     console.log(`  Dated: ${dated.length}, Broad: ${broad.length}, Simplified: ${simplified.length}`)
 
@@ -164,8 +164,8 @@ Generate 2-3 short web search queries (3-7 words each) that a journalist would u
 
         const fallbackResults = await Promise.all(
             queries.slice(0, 3).map(q =>
-                searchArticles(q, 5, { dateFrom: forecastStart, dateTo: searchDateTo })
-                    .catch(e => { console.warn(`  Query "${q}" failed:`, e.message); return [] as SearchResult[] })
+                oracleSearch(q, 5, { dateFrom: forecastStart, dateTo: searchDateTo })
+                    .then(r => r ?? []).catch(e => { console.warn(`  Query "${q}" failed:`, e.message); return [] as SearchResult[] })
             )
         )
         results = dedup([...results, ...fallbackResults.flat()]).slice(0, 12)

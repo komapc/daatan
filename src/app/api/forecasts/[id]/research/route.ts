@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-middleware'
 import { apiError, handleRouteError } from '@/lib/api-error'
 import { getForecastForResearch } from '@/lib/services/forecast'
-import { searchArticles, SearchResult } from '@/lib/utils/webSearch'
+import { oracleSearch, type SearchResult } from '@/lib/services/oracleSearch'
 import { searchArticlesMultilingual } from '@/lib/utils/multilingualSearch'
-import { oracleSearch } from '@/lib/services/oracleSearch'
 import { llmService } from '@/lib/llm'
 import { getPromptTemplate, fillPrompt } from '@/lib/llm/bedrock-prompts'
 import { queryGenerationSchema, researchSchema } from '@/lib/llm/schemas'
@@ -56,7 +55,7 @@ export const POST = withAuth(async (request: NextRequest, user, { params }) => {
                     .catch(() => [] as SearchResult[]),
                 searchArticlesMultilingual(prediction.claimText, 4)
                     .catch(() => [] as SearchResult[]),
-                searchArticles(simplifiedQuery, 6, { dateFrom: forecastStart, dateTo: searchDateTo })
+                searchArticlesMultilingual(simplifiedQuery, 6, { dateFrom: forecastStart, dateTo: searchDateTo })
                     .catch(() => [] as SearchResult[]),
             ])
             results = dedup([...simplified, ...dated, ...broad])
@@ -90,7 +89,7 @@ export const POST = withAuth(async (request: NextRequest, user, { params }) => {
                 const { queries } = JSON.parse(qRes.text) as { queries: string[] }
                 const fallbackResults = await Promise.all(
                     queries.slice(0, 3).map(q =>
-                        searchArticles(q, 5, { dateFrom: forecastStart, dateTo: searchDateTo })
+                        searchArticlesMultilingual(q, 5, { dateFrom: forecastStart, dateTo: searchDateTo })
                             .catch(() => [] as SearchResult[])
                     )
                 )

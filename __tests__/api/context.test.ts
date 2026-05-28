@@ -8,8 +8,8 @@ const { mockAuth } = vi.hoisted(() => ({
 }))
 vi.mock('@/auth', () => ({ auth: mockAuth }))
 
-const { mockSearchArticles, mockGenerateContent, mockPrisma, mockGetOracleForecast } = vi.hoisted(() => ({
-  mockSearchArticles: vi.fn(),
+const { mockOracleSearch, mockGenerateContent, mockPrisma, mockGetOracleForecast } = vi.hoisted(() => ({
+  mockOracleSearch: vi.fn(),
   mockGenerateContent: vi.fn(),
   mockGetOracleForecast: vi.fn().mockResolvedValue(null),
   mockPrisma: {
@@ -34,8 +34,8 @@ vi.mock('@/lib/services/oracle', () => ({
   getOracleForecast: (...args: unknown[]) => mockGetOracleForecast(...args),
 }))
 
-vi.mock('@/lib/utils/webSearch', () => ({
-  searchArticles: (...args: unknown[]) => mockSearchArticles(...args),
+vi.mock('@/lib/services/oracleSearch', () => ({
+  oracleSearch: (...args: unknown[]) => mockOracleSearch(...args),
 }))
 
 vi.mock('@/lib/llm', () => ({
@@ -198,7 +198,7 @@ it('returns 400 when prediction is not ACTIVE', async () => {
       contextUpdatedAt: null,
       newsAnchor: null,
     })
-    mockSearchArticles.mockResolvedValue([])
+    mockOracleSearch.mockResolvedValue([])
 
     const res = await POST(makeRequest('pred1', 'POST'), routeParams('pred1'))
     expect(res.status).toBe(503)
@@ -217,7 +217,7 @@ it('returns 400 when prediction is not ACTIVE', async () => {
       contextUpdatedAt: null,
       newsAnchor: null,
     })
-    mockSearchArticles.mockRejectedValue(new Error('Search API not available'))
+    mockOracleSearch.mockRejectedValue(new Error('Search API not available'))
 
     const res = await POST(makeRequest('pred1', 'POST'), routeParams('pred1'))
     expect(res.status).toBe(503)
@@ -237,7 +237,7 @@ it('returns 400 when prediction is not ACTIVE', async () => {
       newsAnchor: { title: 'Bitcoin Rally' },
     })
 
-    mockSearchArticles.mockResolvedValue([
+    mockOracleSearch.mockResolvedValue([
       { title: 'Bitcoin at 95k', url: 'https://example.com/1', source: 'Reuters', publishedDate: '2026-02-20', snippet: 'Bitcoin surges.' },
     ])
 
@@ -259,7 +259,7 @@ it('returns 400 when prediction is not ACTIVE', async () => {
     expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1)
 
     // Verify search used claimText (not newsAnchor title)
-    expect(mockSearchArticles).toHaveBeenCalledWith('Bitcoin will reach $100k', 30)
+    expect(mockOracleSearch).toHaveBeenCalledWith('Bitcoin will reach $100k', 30)
   })
 
   it('denormalizes Oracle CI bounds onto Prediction when Oracle path runs', async () => {
@@ -275,7 +275,7 @@ it('returns 400 when prediction is not ACTIVE', async () => {
       contextUpdatedAt: null,
       newsAnchor: null,
     })
-    mockSearchArticles.mockResolvedValue([
+    mockOracleSearch.mockResolvedValue([
       { title: 'BTC', url: 'https://example.com/1', source: 'Reuters', publishedDate: '2026-02-20', snippet: '.' },
     ])
     mockGenerateContent.mockResolvedValue({ text: 'Summary' })
@@ -318,7 +318,7 @@ it('returns 400 when prediction is not ACTIVE', async () => {
       contextUpdatedAt: null,
       newsAnchor: null,
     })
-    mockSearchArticles.mockResolvedValue([
+    mockOracleSearch.mockResolvedValue([
       { title: 'N', url: 'https://example.com', source: 'X', publishedDate: '2026-02-20', snippet: '.' },
     ])
     mockGenerateContent.mockResolvedValue({ text: 'Summary' })
@@ -346,7 +346,7 @@ it('returns 400 when prediction is not ACTIVE', async () => {
       newsAnchor: null,
     })
 
-    mockSearchArticles.mockResolvedValue([
+    mockOracleSearch.mockResolvedValue([
       { title: 'News', url: 'https://example.com', source: 'BBC', publishedDate: '2026-02-20', snippet: 'Something happened.' },
     ])
 
@@ -376,7 +376,7 @@ it('returns 400 when prediction is not ACTIVE', async () => {
       newsAnchor: null,
     })
 
-    mockSearchArticles.mockResolvedValue([
+    mockOracleSearch.mockResolvedValue([
       { title: 'News', url: 'https://example.com', source: 'BBC', publishedDate: '2026-02-20', snippet: 'News.' },
     ])
 

@@ -1,4 +1,4 @@
-import { searchArticles, type SearchResult } from '@/lib/utils/webSearch'
+import { oracleSearch, type SearchResult } from '@/lib/services/oracleSearch'
 import { callGeminiTranslate } from '@/lib/services/translation'
 import { createLogger } from '@/lib/logger'
 import crypto from 'crypto'
@@ -62,10 +62,8 @@ export async function searchArticlesMultilingual(
   limit: number = 10,
   options?: { dateFrom?: Date; dateTo?: Date }
 ): Promise<SearchResult[]> {
-  // Preserve the upstream call signature when no date window — some callers
-  // assert on argument arity in tests.
-  const callSearch = (q: string, n: number) =>
-    options ? searchArticles(q, n, options) : searchArticles(q, n)
+  const callSearch = (q: string, n: number): Promise<SearchResult[]> =>
+    oracleSearch(q, n, options).then(r => r ?? [])
 
   if (!NON_LATIN.test(query)) {
     return callSearch(query, limit)

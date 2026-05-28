@@ -1,9 +1,8 @@
 import { SchemaType, type Schema } from '@google/generative-ai'
 import { getPromptTemplate, fillPrompt } from './bedrock-prompts'
 import { llmService } from './index'
-import { searchArticles, type SearchResult } from '../utils/webSearch'
-import { searchArticlesMultilingual, NON_LATIN } from '../utils/multilingualSearch'
-import { oracleSearch } from '../services/oracleSearch'
+import { oracleSearch, type SearchResult } from '../services/oracleSearch'
+import { NON_LATIN } from '../utils/multilingualSearch'
 import { DEFAULT_MAX_ARTICLES } from '../services/oracle'
 import { fetchUrlContent } from '../utils/scraper'
 import { hashUrl } from '../utils/hash'
@@ -235,7 +234,7 @@ export async function generateExpressPrediction(
     if (!articleContent) {
       // Fallback: use the URL as a search query
       onProgress?.('searching', { message: 'Searching for relevant articles...' })
-      searchResults = await oracleSearch(url, DEFAULT_MAX_ARTICLES) ?? await searchArticles(url, DEFAULT_MAX_ARTICLES)
+      searchResults = (await oracleSearch(url, DEFAULT_MAX_ARTICLES)) ?? []
       if (searchResults.length === 0) {
         throw new NoArticlesFoundError({ searchedFor: url, isUrl: true, isNonLatin: false })
       }
@@ -274,7 +273,7 @@ export async function generateExpressPrediction(
       onProgress?.('searching', { message: `Finding related articles for: "${topic}"` })
 
       try {
-        searchResults = await oracleSearch(topic, DEFAULT_MAX_ARTICLES) ?? await searchArticlesMultilingual(topic, DEFAULT_MAX_ARTICLES)
+        searchResults = (await oracleSearch(topic, DEFAULT_MAX_ARTICLES)) ?? []
       } catch {
         searchResults = []
       }
@@ -288,7 +287,7 @@ export async function generateExpressPrediction(
   } else {
     // Normal text flow: search for articles
     onProgress?.('searching', { message: 'Searching for relevant articles...' })
-    searchResults = await oracleSearch(userInput, DEFAULT_MAX_ARTICLES) ?? await searchArticlesMultilingual(userInput, DEFAULT_MAX_ARTICLES)
+    searchResults = (await oracleSearch(userInput, DEFAULT_MAX_ARTICLES)) ?? []
 
     if (searchResults.length === 0) {
       throw new NoArticlesFoundError({

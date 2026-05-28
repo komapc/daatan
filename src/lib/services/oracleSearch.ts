@@ -1,7 +1,14 @@
 import { env } from '@/env'
 import { createLogger } from '@/lib/logger'
 import { notifyOracleSearchUnavailable } from '@/lib/services/telegram'
-import type { SearchResult } from '@/lib/utils/webSearch'
+
+export interface SearchResult {
+  title: string
+  url: string
+  snippet: string
+  source?: string
+  publishedDate?: string
+}
 
 const log = createLogger('oracle-search')
 
@@ -77,7 +84,7 @@ const normalizeBaseUrl = (url: string) => url.replace(/\/$/, '')
  * - The request times out, returns a non-OK status, or throws
  * - The response contains zero results
  *
- * Never throws — safe to use as a drop-in try-first before searchArticles().
+ * Never throws.
  */
 export async function oracleSearch(
   query: string,

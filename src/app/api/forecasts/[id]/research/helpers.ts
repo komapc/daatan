@@ -1,4 +1,4 @@
-import type { SearchResult } from '@/lib/utils/webSearch'
+import type { SearchResult } from '@/lib/services/oracleSearch'
 
 /**
  * Strip common English stopwords and future-tense helpers from a claim to get

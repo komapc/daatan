@@ -10,9 +10,9 @@ vi.mock('@/lib/logger', () => ({
   }),
 }))
 
-const mockSearchArticles = vi.fn()
-vi.mock('@/lib/utils/webSearch', () => ({
-  searchArticles: (...args: unknown[]) => mockSearchArticles(...args),
+const mockOracleSearch = vi.fn()
+vi.mock('@/lib/services/oracleSearch', () => ({
+  oracleSearch: (...args: unknown[]) => mockOracleSearch(...args),
 }))
 
 const mockFetchUrlContent = vi.fn()
@@ -37,7 +37,7 @@ vi.mock('@/lib/llm/bedrock-prompts', () => ({
 }))
 
 import { generateExpressPrediction, extractDomainFromUrl } from '@/lib/llm/expressPrediction'
-import type { SearchResult } from '@/lib/utils/webSearch'
+import type { SearchResult } from '@/lib/services/oracleSearch'
 
 // Standard mock data
 const mockArticles: SearchResult[] = [
@@ -105,12 +105,12 @@ describe('generateExpressPrediction', () => {
 
   describe('text input flow', () => {
     it('searches articles using user text and returns prediction', async () => {
-      mockSearchArticles.mockResolvedValue(mockArticles)
+      mockOracleSearch.mockResolvedValue(mockArticles)
       setupLlmMock()
 
       const result = await generateExpressPrediction('Bitcoin price prediction')
 
-      expect(mockSearchArticles).toHaveBeenCalledWith('Bitcoin price prediction', 15)
+      expect(mockOracleSearch).toHaveBeenCalledWith('Bitcoin price prediction', 15)
       expect(mockFetchUrlContent).not.toHaveBeenCalled()
       expect(result.claimText).toBe(mockLlmPrediction.claimText)
       expect(result.newsAnchor!.url).toBe('https://cnn.com/btc')
@@ -122,21 +122,21 @@ describe('generateExpressPrediction', () => {
       mockGenerateContent.mockResolvedValueOnce({
         text: JSON.stringify(mockModerationPass),
       })
-      mockSearchArticles.mockResolvedValue([])
+      mockOracleSearch.mockResolvedValue([])
 
       await expect(generateExpressPrediction('obscure topic xyz'))
         .rejects.toThrow('NO_ARTICLES_FOUND')
     })
 
     it('does not treat text with URL-like substrings as URL input', async () => {
-      mockSearchArticles.mockResolvedValue(mockArticles)
+      mockOracleSearch.mockResolvedValue(mockArticles)
       setupLlmMock()
 
       await generateExpressPrediction('check https://cnn.com for news about bitcoin')
 
       // Should use text search, not URL fetch (input has spaces, not a pure URL)
       expect(mockFetchUrlContent).not.toHaveBeenCalled()
-      expect(mockSearchArticles).toHaveBeenCalledWith(
+      expect(mockOracleSearch).toHaveBeenCalledWith(
         'check https://cnn.com for news about bitcoin', 15
       )
     })
@@ -154,7 +154,7 @@ describe('generateExpressPrediction', () => {
         .mockResolvedValueOnce({ text: 'Bitcoin price rally 2026' })
         .mockResolvedValueOnce({ text: JSON.stringify(mockLlmPrediction) })
       
-      mockSearchArticles.mockResolvedValue(mockArticles)
+      mockOracleSearch.mockResolvedValue(mockArticles)
 
       const result = await generateExpressPrediction(testUrl)
 
@@ -167,7 +167,7 @@ describe('generateExpressPrediction', () => {
       expect(topicCall.prompt).toContain('Extract the main topic')
 
       // Should search for related articles using extracted topic
-      expect(mockSearchArticles).toHaveBeenCalledWith('Bitcoin price rally 2026', 15)
+      expect(mockOracleSearch).toHaveBeenCalledWith('Bitcoin price rally 2026', 15)
 
       // Primary article (the URL) should be the news anchor
       expect(result.newsAnchor!.url).toBe(testUrl)
@@ -179,7 +179,7 @@ describe('generateExpressPrediction', () => {
         .mockResolvedValueOnce({ text: JSON.stringify(mockModerationPass) })
         .mockResolvedValueOnce({ text: 'European climate policy' })
         .mockResolvedValueOnce({ text: JSON.stringify(mockLlmPrediction) })
-      mockSearchArticles.mockResolvedValue(mockArticles)
+      mockOracleSearch.mockResolvedValue(mockArticles)
 
       const result = await generateExpressPrediction(testUrl)
 
@@ -193,7 +193,7 @@ describe('generateExpressPrediction', () => {
         .mockResolvedValueOnce({ text: 'test topic' })
         .mockResolvedValueOnce({ text: JSON.stringify(mockLlmPrediction) })
       
-      mockSearchArticles.mockResolvedValue([
+      mockOracleSearch.mockResolvedValue([
         { title: 'Same article', url: testUrl, snippet: 'Same content', source: 'cnn.com' },
         ...mockArticles,
       ])
@@ -207,7 +207,7 @@ describe('generateExpressPrediction', () => {
 
     it('falls back to search when URL fetch fails', async () => {
       mockFetchUrlContent.mockRejectedValue(new Error('Network error'))
-      mockSearchArticles.mockResolvedValue(mockArticles)
+      mockOracleSearch.mockResolvedValue(mockArticles)
       
       mockGenerateContent
         .mockResolvedValueOnce({ text: JSON.stringify(mockModerationPass) })
@@ -216,7 +216,7 @@ describe('generateExpressPrediction', () => {
       const result = await generateExpressPrediction(testUrl)
 
       // Should fall back to using URL as search query
-      expect(mockSearchArticles).toHaveBeenCalledWith(testUrl, 15)
+      expect(mockOracleSearch).toHaveBeenCalledWith(testUrl, 15)
       expect(mockGenerateContent).toHaveBeenCalledTimes(2) 
       expect(result.newsAnchor!.url).toBe('https://cnn.com/btc')
     })
@@ -227,12 +227,12 @@ describe('generateExpressPrediction', () => {
         .mockResolvedValueOnce({ text: JSON.stringify(mockModerationPass) })
         .mockRejectedValueOnce(new Error('LLM error')) // topic extraction fails
         .mockResolvedValueOnce({ text: JSON.stringify(mockLlmPrediction) }) 
-      mockSearchArticles.mockResolvedValue(mockArticles)
+      mockOracleSearch.mockResolvedValue(mockArticles)
 
       const result = await generateExpressPrediction(testUrl)
 
       // Should fall back to using the URL as search query
-      expect(mockSearchArticles).toHaveBeenCalledWith(testUrl, 15)
+      expect(mockOracleSearch).toHaveBeenCalledWith(testUrl, 15)
       expect(result.newsAnchor!.url).toBe(testUrl)
     })
 
@@ -242,7 +242,7 @@ describe('generateExpressPrediction', () => {
         .mockResolvedValueOnce({ text: JSON.stringify(mockModerationPass) })
         .mockResolvedValueOnce({ text: 'niche topic' })
         .mockResolvedValueOnce({ text: JSON.stringify(mockLlmPrediction) })
-      mockSearchArticles.mockResolvedValue([])
+      mockOracleSearch.mockResolvedValue([])
 
       const result = await generateExpressPrediction(testUrl)
 
@@ -256,17 +256,17 @@ describe('generateExpressPrediction', () => {
         .mockResolvedValueOnce({ text: JSON.stringify(mockModerationPass) })
         .mockResolvedValueOnce({ text: '"Bitcoin rally 2026"' }) 
         .mockResolvedValueOnce({ text: JSON.stringify(mockLlmPrediction) })
-      mockSearchArticles.mockResolvedValue(mockArticles)
+      mockOracleSearch.mockResolvedValue(mockArticles)
 
       await generateExpressPrediction(testUrl)
 
-      expect(mockSearchArticles).toHaveBeenCalledWith('Bitcoin rally 2026', 15)
+      expect(mockOracleSearch).toHaveBeenCalledWith('Bitcoin rally 2026', 15)
     })
   })
 
   describe('progress callbacks', () => {
     it('emits source summary in found_articles stage', async () => {
-      mockSearchArticles.mockResolvedValue(mockArticles)
+      mockOracleSearch.mockResolvedValue(mockArticles)
       setupLlmMock()
 
       const stages: Array<{ stage: string; data?: Record<string, unknown> }> = []
@@ -285,7 +285,7 @@ describe('generateExpressPrediction', () => {
       ['https://cnn.com/article', true],
       ['Bitcoin will reach $100k', false],
     ])('input "%s" detected as URL: %s', async (input, isUrl) => {
-      mockSearchArticles.mockResolvedValue(mockArticles)
+      mockOracleSearch.mockResolvedValue(mockArticles)
       mockFetchUrlContent.mockResolvedValue('Some fetched content.')
       
       // 1. Moderation
