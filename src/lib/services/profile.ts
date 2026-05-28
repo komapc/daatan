@@ -25,6 +25,12 @@ export interface CommitmentForList {
   prediction: Prediction
 }
 
+export interface CalibrationPoint {
+  predicted: number // bucket midpoint, e.g. 0.05, 0.15, …, 0.95
+  actual: number    // fraction of YES outcomes in this bucket
+  count: number
+}
+
 export interface ProfileScores {
   avgBrierScore: number | null
   brierCount: number
@@ -39,6 +45,7 @@ export interface ProfileScores {
   accuracy: number | null
   accuracyResolved: number
   topicBreakdown: TopicStat[]
+  calibration: CalibrationPoint[]
 }
 
 export interface ProfileTabResult {
@@ -90,6 +97,7 @@ export async function loadProfileScores({
     weightedPeerRows,
     accuracyRows,
     topicStats,
+    calibrationRows,
   ] = await Promise.all([
     prisma.commitment.aggregate({
       where: { userId, brierScore: { not: null as null }, ...tagFilter },
@@ -161,6 +169,20 @@ export async function loadProfileScores({
       },
       take: 8,
     }),
+    prisma.commitment.findMany({
+      where: {
+        userId,
+        probability: { not: null as null },
+        prediction: {
+          status: { in: ['RESOLVED_CORRECT', 'RESOLVED_WRONG'] },
+          ...predTagFilter,
+        },
+      },
+      select: {
+        probability: true,
+        prediction: { select: { status: true } },
+      },
+    }),
   ])
 
   const avgBrierScore =
@@ -222,6 +244,17 @@ export async function loadProfileScores({
     })
     .sort((a, b) => b.count - a.count)
 
+  const buckets = Array.from({ length: 10 }, (_, i) => ({ sum: 0, count: 0, midpoint: (i + 0.5) / 10 }))
+  for (const row of calibrationRows) {
+    if (row.probability === null) continue
+    const b = Math.min(Math.floor(row.probability * 10), 9)
+    buckets[b].sum += row.prediction.status === 'RESOLVED_CORRECT' ? 1 : 0
+    buckets[b].count++
+  }
+  const calibration: CalibrationPoint[] = buckets
+    .filter(b => b.count > 0)
+    .map(b => ({ predicted: b.midpoint, actual: b.sum / b.count, count: b.count }))
+
   return {
     avgBrierScore,
     brierCount: brierStats._count.brierScore,
@@ -236,6 +269,7 @@ export async function loadProfileScores({
     accuracy,
     accuracyResolved,
     topicBreakdown,
+    calibration,
   }
 }
 

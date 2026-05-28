@@ -10,6 +10,7 @@ const MAX_VISIBLE = 8
 interface Tag {
   name: string
   slug: string
+  count?: number
 }
 
 interface TagFilterProps {
@@ -46,6 +47,9 @@ export function TagFilter({ tags, selectedTag }: TagFilterProps) {
           className={`${pillBase} ${selectedTag === tag.slug ? active : inactive}`}
         >
           {tag.name}
+          {tag.count != null && (
+            <span className="ml-1.5 opacity-60 font-normal normal-case tracking-normal">{tag.count}</span>
+          )}
         </Link>
       ))}
       {!expanded && hiddenCount > 0 && (

@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server'
 import Image from 'next/image'
 import { TrendingUp, Award, Settings, Globe, Twitter, Sparkles, Activity } from 'lucide-react'
+import { ShareProfileButton } from '@/components/profile/ShareProfileButton'
 import ForecastCard, { type Prediction } from '@/components/forecasts/ForecastCard'
 import Link from 'next/link'
 import EmptyState from '@/components/ui/EmptyState'
@@ -29,7 +30,7 @@ interface UserProfileViewProps {
     email?: string | null
     _count: { predictions: number; commitments: number }
   }
-  userTags: { name: string; slug: string }[]
+  userTags: { name: string; slug: string; count?: number }[]
   selectedTag: string | null
   isOwnProfile: boolean
   scores: ProfileScores
@@ -78,13 +79,16 @@ export async function UserProfileView({
               <h1 className="text-3xl sm:text-4xl font-black text-white">{user.name || 'Anonymous'}</h1>
               {user.role && <RoleBadge role={user.role as 'USER' | 'RESOLVER' | 'ADMIN'} size="md" />}
               {isOwnProfile && (
-                <Link
-                  href="/profile/edit"
-                  className="p-2 hover:bg-navy-600 rounded-lg transition-colors"
-                  title="Edit profile"
-                >
-                  <Settings className="w-5 h-5 text-gray-400 hover:text-gray-200" />
-                </Link>
+                <>
+                  <Link
+                    href="/profile/edit"
+                    className="p-2 hover:bg-navy-600 rounded-lg transition-colors"
+                    title="Edit profile"
+                  >
+                    <Settings className="w-5 h-5 text-gray-400 hover:text-gray-200" />
+                  </Link>
+                  {user.username && <ShareProfileButton username={user.username} />}
+                </>
               )}
             </div>
             <p className="text-gray-500 font-medium mb-3">
