@@ -32,10 +32,41 @@ interface SearchResult {
   title: string
   url: string
   snippet: string
-  source?: string
+  source?: string       // news source / publication name (e.g. "Reuters"), not the search provider
   publishedDate?: string
 }
 ```
+
+## Oracle response fields: provider and provider_chain
+
+The Oracle's `/search` response includes two diagnostic fields that Daatan now captures:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `provider` | `string` | The provider that successfully served the request (e.g. `"dataforseo"`, `"gdelt"`, `"ddg"`). `"none"` means no named provider set the value — typically happens when results come from a fallback path that does not explicitly claim ownership. |
+| `provider_chain` | `string[]` | Ordered list of providers that were attempted before the successful one (e.g. `["serpapi", "serper"]` if those were exhausted first). Empty when the first provider in the chain succeeds. |
+
+These are logged in every `oracle-search: success` pino entry and persisted in the `OracleCallLog` table (see below).
+
+### What `provider=none` means
+
+When the Oracle returns `provider=none` and `provider_chain=[]`, results still came back — the fallback chain found articles without any single provider explicitly claiming the call (e.g. an internal cache hit, or a code path that does not write to `_provider_local`). This is expected behaviour and does not indicate an error.
+
+## Call log and admin UI
+
+Every successful `oracleSearch()` call writes a row to the `oracle_call_logs` DB table:
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | `cuid` | Row ID |
+| `provider` | `text` | Provider that served the request |
+| `providerChain` | `text[]` | Providers tried before success |
+| `query` | `text` | Search query |
+| `resultCount` | `int` | Number of results returned |
+| `durationMs` | `int` | End-to-end Oracle HTTP latency |
+| `createdAt` | `timestamptz` | When the call completed |
+
+Rows older than 30 days are pruned on every write. Admins can inspect per-provider summary stats and the recent call log in the **Oracle** tab of the Admin dashboard (`/admin`).
 
 ## Configuration
 

@@ -834,3 +834,17 @@ model ContextTiming {
   @@index([createdAt])
   @@map("context_timings")
 }
+
+model OracleCallLog {
+  id            String   @id @default(cuid())
+  provider      String
+  providerChain String[]
+  query         String
+  resultCount   Int
+  durationMs    Int
+  createdAt     DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([provider])
+  @@map("oracle_call_logs")
+}
