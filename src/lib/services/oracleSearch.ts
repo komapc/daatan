@@ -1,5 +1,6 @@
 import { env } from '@/env'
 import { createLogger } from '@/lib/logger'
+import { prisma } from '@/lib/prisma'
 import { notifyOracleSearchUnavailable } from '@/lib/services/telegram'
 
 export interface SearchResult {
@@ -70,6 +71,10 @@ interface OracleSearchResponse {
   query: string
   results: OracleSearchResult[]
   count: number
+  /** Provider that served this request (e.g. "dataforseo", "gdelt", "ddg"). "none" means no named provider claimed the result. */
+  provider: string
+  /** Ordered list of providers attempted before the successful one. */
+  provider_chain: string[]
 }
 
 /** Strip a single trailing slash so `${baseUrl}/path` never gets a double slash. */
@@ -126,7 +131,10 @@ export async function oracleSearch(
       return null
     }
 
-    log.info({ query, count: data.count, durationMs: Date.now() - t0 }, 'oracle-search: success')
+    const durationMs = Date.now() - t0
+    log.info({ query, count: data.count, provider: data.provider, providerChain: data.provider_chain, durationMs }, 'oracle-search: success')
+
+    void writeCallLog(query, data.provider, data.provider_chain, data.results.length, durationMs)
 
     return data.results.map(r => ({
       title: r.title,
@@ -139,5 +147,27 @@ export async function oracleSearch(
     log.warn({ err, query, durationMs: Date.now() - t0 }, 'oracle-search: request failed')
     notifyOracleSearchUnavailable(query)
     return null
+  }
+}
+
+const PRUNE_DAYS = 30
+
+async function writeCallLog(
+  query: string,
+  provider: string,
+  providerChain: string[],
+  resultCount: number,
+  durationMs: number,
+): Promise<void> {
+  try {
+    const cutoff = new Date(Date.now() - PRUNE_DAYS * 24 * 60 * 60 * 1000)
+    await prisma.$transaction([
+      prisma.oracleCallLog.create({
+        data: { provider, providerChain, query, resultCount, durationMs },
+      }),
+      prisma.oracleCallLog.deleteMany({ where: { createdAt: { lt: cutoff } } }),
+    ])
+  } catch (err) {
+    log.warn({ err }, 'oracle-search: failed to write call log')
   }
 }

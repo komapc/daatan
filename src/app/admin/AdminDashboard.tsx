@@ -6,8 +6,9 @@ import ForecastsTable from './ForecastsTable'
 import UsersTable from './UsersTable'
 import CommentsTable from './CommentsTable'
 import BotsTable from './BotsTable'
+import OracleTab from './OracleTab'
 
-type Tab = 'forecasts' | 'users' | 'comments' | 'bots'
+type Tab = 'forecasts' | 'users' | 'comments' | 'bots' | 'oracle'
 
 export default function AdminDashboard() {
   const { data: session } = useSession()
@@ -36,12 +37,14 @@ export default function AdminDashboard() {
         {tab('users', t('tabUsers'), true)}
         {tab('comments', t('tabComments'))}
         {tab('bots', t('tabBots'), true)}
+        {tab('oracle', t('tabOracle'), true)}
       </div>
 
       {activeTab === 'forecasts' && <ForecastsTable />}
       {activeTab === 'users' && isAdmin && <UsersTable />}
       {activeTab === 'comments' && <CommentsTable />}
       {activeTab === 'bots' && isAdmin && <BotsTable />}
+      {activeTab === 'oracle' && isAdmin && <OracleTab />}
     </div>
   )
 }
