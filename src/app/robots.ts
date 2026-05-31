@@ -32,6 +32,11 @@ export default function robots(): MetadataRoute.Robots {
         '/forecasts/express/',
         '/forecasts/*/edit/',
         '/retroanalysis/',
+        // OG image generation routes — image/png responses, not indexable pages.
+        // Social platforms (Twitter, LinkedIn, etc.) ignore robots.txt so sharing
+        // previews are unaffected; this stops Google treating them as soft-404 pages.
+        '/opengraph-image',
+        '/*/opengraph-image',
       ],
     },
     sitemap: `${baseUrl}/sitemap.xml`,
