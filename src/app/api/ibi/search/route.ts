@@ -31,4 +31,4 @@ export const POST = withAuth(async (request) => {
   } catch (error) {
     return handleRouteError(error, 'search proxy failed')
   }
-})
+}, { roles: ['ADMIN'] })

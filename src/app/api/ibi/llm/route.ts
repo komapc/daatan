@@ -31,4 +31,4 @@ export const POST = withAuth(async (request) => {
   } catch (error) {
     return handleRouteError(error, 'llm proxy failed')
   }
-})
+}, { roles: ['ADMIN'] })
