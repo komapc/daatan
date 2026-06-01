@@ -78,7 +78,7 @@ function cleanJson(raw: string): string {
 
 export default function IbiTool() {
   const [state, setState] = useState<State>({
-    articleUrl: 'https://regnum.ru/article/1362313',
+    articleUrl: '',
     articleDate: '',
     articleText: '',
     articleTitle: '',
