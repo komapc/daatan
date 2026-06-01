@@ -61,12 +61,19 @@ const mockLlmPrediction = {
 
 const mockModerationPass = { isOffensive: false, reason: '' }
 
+// The text flow extracts a focused search query via an LLM call before searching.
+const MOCK_EXTRACTED_QUERY = 'bitcoin 100k 2026'
+
 function setupLlmMock() {
   // 1. Moderation check
   mockGenerateContent.mockResolvedValueOnce({
     text: JSON.stringify(mockModerationPass),
   })
-  // 2. The structured prediction call (with schema)
+  // 2. Search-query extraction (text flow only)
+  mockGenerateContent.mockResolvedValueOnce({
+    text: MOCK_EXTRACTED_QUERY,
+  })
+  // 3. The structured prediction call (with schema)
   mockGenerateContent.mockResolvedValueOnce({
     text: JSON.stringify(mockLlmPrediction),
   })
@@ -110,7 +117,7 @@ describe('generateExpressPrediction', () => {
 
       const result = await generateExpressPrediction('Bitcoin price prediction')
 
-      expect(mockOracleSearch).toHaveBeenCalledWith('Bitcoin price prediction', 15)
+      expect(mockOracleSearch).toHaveBeenCalledWith(MOCK_EXTRACTED_QUERY, 15)
       expect(mockFetchUrlContent).not.toHaveBeenCalled()
       expect(result.claimText).toBe(mockLlmPrediction.claimText)
       expect(result.newsAnchor!.url).toBe('https://cnn.com/btc')
@@ -136,9 +143,42 @@ describe('generateExpressPrediction', () => {
 
       // Should use text search, not URL fetch (input has spaces, not a pure URL)
       expect(mockFetchUrlContent).not.toHaveBeenCalled()
-      expect(mockOracleSearch).toHaveBeenCalledWith(
-        'check https://cnn.com for news about bitcoin', 15
-      )
+      expect(mockOracleSearch).toHaveBeenCalledWith(MOCK_EXTRACTED_QUERY, 15)
+    })
+
+    it('anchors on the model-selected relevant article, not the first result', async () => {
+      mockOracleSearch.mockResolvedValue(mockArticles) // [cnn, bloomberg, coindesk]
+      mockGenerateContent
+        .mockResolvedValueOnce({ text: JSON.stringify(mockModerationPass) })
+        .mockResolvedValueOnce({ text: MOCK_EXTRACTED_QUERY })
+        // relevantArticleIndices is 1-based → [2] selects the 2nd article (bloomberg)
+        .mockResolvedValueOnce({ text: JSON.stringify({ ...mockLlmPrediction, relevantArticleIndices: [2] }) })
+
+      const result = await generateExpressPrediction('Bitcoin price')
+
+      expect(result.newsAnchor!.url).toBe('https://bloomberg.com/crypto')
+      expect(result.additionalLinks).toHaveLength(0) // only one relevant article
+    })
+
+    it('creates the forecast source-free when no articles are relevant', async () => {
+      mockOracleSearch.mockResolvedValue(mockArticles)
+      mockGenerateContent
+        .mockResolvedValueOnce({ text: JSON.stringify(mockModerationPass) })
+        .mockResolvedValueOnce({ text: MOCK_EXTRACTED_QUERY })
+        .mockResolvedValueOnce({
+          text: JSON.stringify({
+            ...mockLlmPrediction,
+            detailsText: 'The provided articles do not contain specific information about this topic.',
+            relevantArticleIndices: [], // explicit: none relevant
+          }),
+        })
+
+      const result = await generateExpressPrediction('EU will admit two new members by 2028')
+
+      expect(result.newsAnchor).toBeNull()
+      expect(result.additionalLinks).toHaveLength(0)
+      // Article-derived "no info" description is dropped deterministically.
+      expect(result.detailsText).toBe('')
     })
   })
 
@@ -297,8 +337,10 @@ describe('generateExpressPrediction', () => {
           .mockResolvedValueOnce({ text: 'extracted topic' })
           .mockResolvedValueOnce({ text: JSON.stringify(mockLlmPrediction) })
       } else {
-        // 2. Prediction
-        mockGenerateContent.mockResolvedValueOnce({ text: JSON.stringify(mockLlmPrediction) })
+        // 2. Search-query extraction, 3. Prediction
+        mockGenerateContent
+          .mockResolvedValueOnce({ text: MOCK_EXTRACTED_QUERY })
+          .mockResolvedValueOnce({ text: JSON.stringify(mockLlmPrediction) })
       }
 
       await generateExpressPrediction(input)

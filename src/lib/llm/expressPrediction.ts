@@ -2,6 +2,7 @@ import { SchemaType, type Schema } from '@google/generative-ai'
 import { getPromptTemplate, fillPrompt } from './bedrock-prompts'
 import { llmService } from './index'
 import { oracleSearch, type SearchResult } from '../services/oracleSearch'
+import { buildSearchQuery } from './searchQuery'
 import { NON_LATIN } from '../utils/multilingualSearch'
 import { DEFAULT_MAX_ARTICLES } from '../services/oracle'
 import { fetchUrlContent } from '../utils/scraper'
@@ -41,7 +42,7 @@ export const expressPredictionSchema: Schema = {
     },
     detailsText: {
       type: SchemaType.STRING,
-      description: "2-3 sentence summary of current situation based on articles",
+      description: "2-3 sentence neutral summary of the current situation. Base it on the articles ONLY when they are actually about this claim's topic. If the articles are not relevant to the claim, briefly frame the claim itself instead — never state that the articles lack information.",
     },
     tags: {
       type: SchemaType.ARRAY,
@@ -69,8 +70,13 @@ export const expressPredictionSchema: Schema = {
       type: SchemaType.STRING,
       description: "One sentence explanation for the probability suggestion",
     },
+    relevantArticleIndices: {
+      type: SchemaType.ARRAY,
+      items: { type: SchemaType.NUMBER },
+      description: "1-based indices of the [Article N] entries above that are genuinely about this claim's topic. Empty array if none of the articles are relevant.",
+    },
   },
-  required: ["claimText", "resolveByDatetime", "detailsText", "tags", "resolutionRules", "outcomeType", "options", "probabilitySuggestion", "probabilityReasoning"],
+  required: ["claimText", "resolveByDatetime", "detailsText", "tags", "resolutionRules", "outcomeType", "options", "probabilitySuggestion", "probabilityReasoning", "relevantArticleIndices"],
 }
 
 export const guessChancesSchema: Schema = {
@@ -124,6 +130,9 @@ interface ParsedPrediction {
   options: string[]
   probabilitySuggestion: number
   probabilityReasoning: string
+  // Required in the schema, but optional here: an absent value means "no judgment"
+  // (fall back to retrieval order) vs an explicit [] meaning "none relevant".
+  relevantArticleIndices?: number[]
 }
 
 export function getFiveYearsFromNow(now: Date) {
@@ -285,13 +294,15 @@ export async function generateExpressPrediction(
       searchResults = [primaryArticle, ...searchResults.slice(0, 4)]
     }
   } else {
-    // Normal text flow: search for articles
+    // Normal text flow: extract a focused query from the claim, then search.
+    // Sentence-style claims retrieve poorly; key entities/topic do much better.
+    const searchQuery = await buildSearchQuery(userInput)
     onProgress?.('searching', { message: 'Searching for relevant articles...' })
-    searchResults = (await oracleSearch(userInput, DEFAULT_MAX_ARTICLES)) ?? []
+    searchResults = (await oracleSearch(searchQuery, DEFAULT_MAX_ARTICLES)) ?? []
 
     if (searchResults.length === 0) {
       throw new NoArticlesFoundError({
-        searchedFor: userInput,
+        searchedFor: searchQuery,
         isUrl: false,
         isNonLatin: NON_LATIN.test(userInput),
       })
@@ -401,11 +412,48 @@ URL: ${article.url}
     }
   })
 
-  // Step 4: Select best article as NewsAnchor
-  const bestArticle = searchResults[0] // Most relevant (first result)
+  // Step 4: Relevance gate — only keep articles the model judged on-topic for the
+  // claim, so an irrelevant top search result never gets bound as the news anchor.
+  // An absent judgment means "no opinion" → trust retrieval order (prior behavior);
+  // an explicit empty list means "none are relevant" → create the forecast source-free.
+  const hasRelevanceJudgment = Array.isArray(prediction.relevantArticleIndices)
+  const relevantIdx = new Set(
+    (prediction.relevantArticleIndices ?? [])
+      .map(i => i - 1) // 1-based ([Article N]) → 0-based
+      .filter(i => i >= 0 && i < searchResults.length),
+  )
 
-  // Step 5: Prepare additional links
-  const additionalLinks = searchResults.slice(1, 4).map(article => ({
+  let anchorArticle: SearchResult | null
+  let linkPool: SearchResult[]
+  if (primaryArticle) {
+    // URL flow: the user's own article is the anchor by definition.
+    anchorArticle = primaryArticle
+    linkPool = searchResults.filter(
+      (a, i) => a !== primaryArticle && (!hasRelevanceJudgment || relevantIdx.has(i)),
+    )
+  } else if (!hasRelevanceJudgment) {
+    // No judgment available — fall back to prior behavior (most relevant = first result).
+    anchorArticle = searchResults[0] ?? null
+    linkPool = searchResults.slice(1)
+  } else {
+    const relevantArticles = searchResults.filter((_, i) => relevantIdx.has(i))
+    anchorArticle = relevantArticles[0] ?? null
+    linkPool = relevantArticles.slice(1)
+    if (anchorArticle === null) {
+      log.info(
+        { searchResultCount: searchResults.length },
+        'express: no relevant articles — creating forecast source-free (no anchor)',
+      )
+      // The draft summary was written from articles we just judged irrelevant; it
+      // tends to be a meta "the articles don't contain info" sentence. Drop it
+      // deterministically rather than ship a description that contradicts the
+      // (now null) news anchor — the claim stands on its own.
+      prediction.detailsText = ''
+    }
+  }
+
+  // Step 5: Prepare additional links (relevant articles only)
+  const additionalLinks = linkPool.slice(0, 3).map(article => ({
     url: article.url,
     title: article.title
   }))
@@ -414,14 +462,16 @@ URL: ${article.url}
 
   return {
     ...prediction,
-    newsAnchor: {
-      url: bestArticle.url,
-      urlHash: hashUrl(bestArticle.url),
-      title: bestArticle.title,
-      snippet: bestArticle.snippet,
-      source: bestArticle.source,
-      publishedAt: bestArticle.publishedDate ? new Date(bestArticle.publishedDate) : undefined
-    },
+    newsAnchor: anchorArticle
+      ? {
+        url: anchorArticle.url,
+        urlHash: hashUrl(anchorArticle.url),
+        title: anchorArticle.title,
+        snippet: anchorArticle.snippet,
+        source: anchorArticle.source,
+        publishedAt: anchorArticle.publishedDate ? new Date(anchorArticle.publishedDate) : undefined
+      }
+      : null,
     additionalLinks
   }
 }
