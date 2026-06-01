@@ -61,12 +61,19 @@ const mockLlmPrediction = {
 
 const mockModerationPass = { isOffensive: false, reason: '' }
 
+// The text flow extracts a focused search query via an LLM call before searching.
+const MOCK_EXTRACTED_QUERY = 'bitcoin 100k 2026'
+
 function setupLlmMock() {
   // 1. Moderation check
   mockGenerateContent.mockResolvedValueOnce({
     text: JSON.stringify(mockModerationPass),
   })
-  // 2. The structured prediction call (with schema)
+  // 2. Search-query extraction (text flow only)
+  mockGenerateContent.mockResolvedValueOnce({
+    text: MOCK_EXTRACTED_QUERY,
+  })
+  // 3. The structured prediction call (with schema)
   mockGenerateContent.mockResolvedValueOnce({
     text: JSON.stringify(mockLlmPrediction),
   })
@@ -110,7 +117,7 @@ describe('generateExpressPrediction', () => {
 
       const result = await generateExpressPrediction('Bitcoin price prediction')
 
-      expect(mockOracleSearch).toHaveBeenCalledWith('Bitcoin price prediction', 15)
+      expect(mockOracleSearch).toHaveBeenCalledWith(MOCK_EXTRACTED_QUERY, 15)
       expect(mockFetchUrlContent).not.toHaveBeenCalled()
       expect(result.claimText).toBe(mockLlmPrediction.claimText)
       expect(result.newsAnchor!.url).toBe('https://cnn.com/btc')
@@ -136,9 +143,7 @@ describe('generateExpressPrediction', () => {
 
       // Should use text search, not URL fetch (input has spaces, not a pure URL)
       expect(mockFetchUrlContent).not.toHaveBeenCalled()
-      expect(mockOracleSearch).toHaveBeenCalledWith(
-        'check https://cnn.com for news about bitcoin', 15
-      )
+      expect(mockOracleSearch).toHaveBeenCalledWith(MOCK_EXTRACTED_QUERY, 15)
     })
   })
 
@@ -297,8 +302,10 @@ describe('generateExpressPrediction', () => {
           .mockResolvedValueOnce({ text: 'extracted topic' })
           .mockResolvedValueOnce({ text: JSON.stringify(mockLlmPrediction) })
       } else {
-        // 2. Prediction
-        mockGenerateContent.mockResolvedValueOnce({ text: JSON.stringify(mockLlmPrediction) })
+        // 2. Search-query extraction, 3. Prediction
+        mockGenerateContent
+          .mockResolvedValueOnce({ text: MOCK_EXTRACTED_QUERY })
+          .mockResolvedValueOnce({ text: JSON.stringify(mockLlmPrediction) })
       }
 
       await generateExpressPrediction(input)

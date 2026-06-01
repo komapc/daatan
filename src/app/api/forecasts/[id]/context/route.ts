@@ -6,6 +6,7 @@ import { getPromptTemplate, fillPrompt } from '@/lib/llm/bedrock-prompts'
 import { llmService } from '@/lib/llm'
 import { oracleSearch, type SearchResult } from '@/lib/services/oracleSearch'
 import { guessChances } from '@/lib/llm/expressPrediction'
+import { buildSearchQuery } from '@/lib/llm/searchQuery'
 import { getOracleForecast, DEFAULT_MAX_ARTICLES, type OracleSource } from '@/lib/services/oracle'
 import { createLogger } from '@/lib/logger'
 import { prisma } from '@/lib/prisma'
@@ -84,12 +85,13 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
             return apiError('Daily context update limit reached (10 per day). Please try again tomorrow.', 429)
         }
 
-        // 1. Search for recent articles
-        // Use the forecast's own claim text as the search basis; the newsAnchor is the article
+        // 1. Search for recent articles.
+        // Use the forecast's own claim as the search basis; the newsAnchor is the article
         // that triggered the forecast, not the topic itself — using its title returns wrong results.
-        // Also strip any leading emoji (e.g. "🤖 " prefix on bot-generated forecasts) that confuse search APIs.
+        // buildSearchQuery extracts focused keywords from the claim (sentence-style claims
+        // retrieve poorly) and strips any leading emoji, with a timeout fallback to the claim.
         const rawQuery = prediction.claimText || prediction.newsAnchor?.title || ''
-        const searchQuery = rawQuery.split(/\s+[|—–]\s+/)[0].replace(/^[\p{Emoji_Presentation}\p{Extended_Pictographic}]+\s*/gu, '').trim()
+        const searchQuery = await buildSearchQuery(rawQuery)
         let searchResults: SearchResult[]
         const t0 = Date.now()
         try {

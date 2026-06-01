@@ -44,6 +44,12 @@ vi.mock('@/lib/llm', () => ({
   },
 }))
 
+// Query extraction is covered by its own unit test; here it's a pass-through so
+// the route searches with the claim text and the generateContent mocks line up.
+vi.mock('@/lib/llm/searchQuery', () => ({
+  buildSearchQuery: (claim: string) => Promise.resolve(claim),
+}))
+
 vi.mock('@/lib/llm/bedrock-prompts', () => ({
   getPromptTemplate: vi.fn().mockResolvedValue('Mock template: {{claimText}} {{changeInstruction}} {{articlesText}}'),
   fillPrompt: vi.fn().mockImplementation((t, v) => Object.values(v).join(' ')),
