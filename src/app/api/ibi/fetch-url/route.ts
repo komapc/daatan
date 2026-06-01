@@ -26,4 +26,4 @@ export const POST = withAuth(async (request) => {
   } catch (error) {
     return handleRouteError(error, 'fetch-url proxy failed')
   }
-})
+}, { roles: ['ADMIN'] })
