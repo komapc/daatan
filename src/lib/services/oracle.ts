@@ -59,6 +59,8 @@ interface OracleHealthResponse {
 export interface OracleLeaderboardEntry {
   id: string
   name?: string
+  skill_conservative?: number
+  /** @deprecated renamed to skill_conservative */
   trueskill_conservative?: number
   elo?: number
   brier_score?: number
