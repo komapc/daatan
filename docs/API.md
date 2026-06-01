@@ -399,6 +399,18 @@ LLM-generate resolution rules for all forecasts that are missing them. Long-runn
 ### `POST /api/admin/backfill-embeddings` — Admin
 Generate vector embeddings (gemini-embedding-2, 768 dims) for predictions that don't yet have one. Used to power similar-forecasts lookup. Long-running.
 
+### `GET /api/admin/forecast-attempts` — Admin
+Analytics for Express forecast creation attempts. Returns success rate, daily breakdown, top moderation rejection reasons, and per-user attempt patterns over the last 30 days. Useful for tuning LLM moderation prompts.
+
+```json
+{
+  "summary": { "total": 1240, "successRate": 0.71, "byOutcome": { "SUCCESS": 884, "MODERATED": 248, "DUPLICATE": 108 } },
+  "daily": [{ "date": "2026-05-28", "outcome": "SUCCESS", "count": 42 }],
+  "moderationReasons": [{ "reason": "too_vague", "count": 112 }],
+  "topUsers": [{ "userId": "...", "name": "Alice", "total": 38, "successCount": 29 }]
+}
+```
+
 ### `POST /api/admin/recalculate-elo` — Admin
 Replay ELO history from scratch over all resolved commitments. Used after data corrections.
 
@@ -497,6 +509,16 @@ Liveness probe used by external monitoring. Verifies app + DB and emits a metric
 
 ### `GET /api/cron/search-health`
 Periodic search-provider health check. Triggers a Telegram alert if a provider is degraded.
+
+### `GET /api/cron/oracle-health`
+Checks Oracle API reachability and version compatibility. Fires a Telegram alert (`notifyOracleForecastUnavailable`) when the Oracle is down. Rate-limited to one alert per 5-minute window. Intended to run every 30 minutes via EC2 crontab.
+
+**EC2 crontab:** `0,30 * * * * curl -sf -H "x-cron-secret: $BOT_RUNNER_SECRET" https://daatan.com/api/cron/oracle-health`
+
+### `GET /api/cron/backfill-embeddings`
+Generates missing vector embeddings in batches of 20. Picks up predictions where `embedding IS NULL` and calls the Gemini embedding API. Returns `{ ok, done, failed, remaining }`. Intended to run nightly.
+
+**EC2 crontab:** `30 2 * * * curl -sf -H "x-cron-secret: $BOT_RUNNER_SECRET" https://daatan.com/api/cron/backfill-embeddings`
 
 ---
 
