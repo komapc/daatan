@@ -455,6 +455,33 @@ Fetch recent bot run logs.
 
 ---
 
+## IBI Analysis (Admin only)
+
+Server-side proxy routes for the IBI retro analysis tool at `/ibi`. All three routes require an authenticated ADMIN session. Oracle calls are made server-side using `ORACLE_API_KEY` — the key is never exposed to the browser.
+
+### `POST /api/ibi/fetch-url` — Admin
+Fetch and extract text/title/date from a URL. Proxies to Oracle `/fetch-url`.
+
+**Body** `{ "url": "https://..." }`
+
+**Response** `{ "text": "...", "title": "...", "date": "YYYY-MM-DD" }`
+
+### `POST /api/ibi/search` — Admin
+Article search via Oracle's provider fallback chain. Proxies to Oracle `/search`.
+
+**Body** `{ "query": "string", "limit": 10, "date_to": "YYYY-MM-DD" }`
+
+**Response** `{ "results": [{ "title", "url", "snippet", "source", "published_date" }] }`
+
+### `POST /api/ibi/llm` — Admin
+LLM call via Oracle's OpenRouter proxy. Proxies to Oracle `/llm`.
+
+**Body** `{ "model": "google/gemini-2.5-flash", "messages": [{ "role": "user", "content": "..." }], "temperature": 0.1 }`
+
+**Response** `{ "content": "..." }`
+
+---
+
 ## Bots
 
 ### `POST /api/bots/run` — Bot secret
