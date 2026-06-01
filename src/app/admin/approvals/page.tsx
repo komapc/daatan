@@ -31,7 +31,9 @@ export default function ApprovalsPage() {
     const [total, setTotal] = useState(0)
     const [isLoading, setIsLoading] = useState(true)
     const [actioningId, setActioningId] = useState<string | null>(null)
+    const [isBulkActioning, setIsBulkActioning] = useState(false)
     const [resolvedIds, setResolvedIds] = useState<Record<string, 'approved' | 'rejected'>>({})
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
     const fetchPending = useCallback(async () => {
         setIsLoading(true)
@@ -51,21 +53,44 @@ export default function ApprovalsPage() {
 
     useEffect(() => { fetchPending() }, [fetchPending])
 
+    const unresolvedIds = predictions
+        .filter((p) => !resolvedIds[p.id])
+        .map((p) => p.id)
+
+    const allSelected = unresolvedIds.length > 0 && unresolvedIds.every((id) => selectedIds.has(id))
+
+    const toggleSelectAll = () => {
+        if (allSelected) {
+            setSelectedIds(new Set())
+        } else {
+            setSelectedIds(new Set(unresolvedIds))
+        }
+    }
+
+    const toggleSelect = (id: string) => {
+        setSelectedIds((prev) => {
+            const next = new Set(prev)
+            next.has(id) ? next.delete(id) : next.add(id)
+            return next
+        })
+    }
+
+    const removeResolved = (id: string) => {
+        setTimeout(() => {
+            setPredictions((prev) => prev.filter((p) => p.id !== id))
+            setSelectedIds((prev) => { const next = new Set(prev); next.delete(id); return next })
+        }, 800)
+    }
+
     const handleApprove = async (id: string) => {
         setActioningId(id)
         try {
-            const res = await fetch(`/api/forecasts/${id}/approve`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-            })
+            const res = await fetch(`/api/forecasts/${id}/approve`, { method: 'POST' })
             if (res.ok) {
                 setResolvedIds((prev) => ({ ...prev, [id]: 'approved' }))
                 setTotal((prev) => prev - 1)
                 toast.success('Forecast approved')
-                // Remove from list after a brief delay so user sees the green state
-                setTimeout(() => {
-                    setPredictions((prev) => prev.filter((p) => p.id !== id))
-                }, 800)
+                removeResolved(id)
             } else {
                 const data = await res.json().catch(() => ({}))
                 toast.error(data.error || 'Failed to approve forecast')
@@ -90,9 +115,7 @@ export default function ApprovalsPage() {
                 setResolvedIds((prev) => ({ ...prev, [id]: 'rejected' }))
                 setTotal((prev) => prev - 1)
                 toast.success('Forecast rejected')
-                setTimeout(() => {
-                    setPredictions((prev) => prev.filter((p) => p.id !== id))
-                }, 800)
+                removeResolved(id)
             } else {
                 const data = await res.json().catch(() => ({}))
                 toast.error(data.error || 'Failed to reject forecast')
@@ -104,33 +127,133 @@ export default function ApprovalsPage() {
         }
     }
 
-    const handleApproveAll = async () => {
-        if (!confirm(`Approve all ${predictions.length} pending forecasts?`)) return
-        for (const p of predictions) {
-            await handleApprove(p.id)
+    const handleBulkApprove = async () => {
+        const ids = [...selectedIds]
+        if (!confirm(`Approve ${ids.length} selected forecast${ids.length !== 1 ? 's' : ''}?`)) return
+        setIsBulkActioning(true)
+        setSelectedIds(new Set())
+        let approved = 0
+        for (const id of ids) {
+            try {
+                const res = await fetch(`/api/forecasts/${id}/approve`, { method: 'POST' })
+                if (res.ok) {
+                    setResolvedIds((prev) => ({ ...prev, [id]: 'approved' }))
+                    setTotal((prev) => prev - 1)
+                    removeResolved(id)
+                    approved++
+                }
+            } catch { /* continue */ }
         }
+        toast.success(`Approved ${approved} of ${ids.length} forecasts`)
+        setIsBulkActioning(false)
     }
+
+    const handleBulkReject = async () => {
+        const ids = [...selectedIds]
+        if (!confirm(`Reject ${ids.length} selected forecast${ids.length !== 1 ? 's' : ''}? They will be moved to VOID status.`)) return
+        setIsBulkActioning(true)
+        setSelectedIds(new Set())
+        let rejected = 0
+        for (const id of ids) {
+            try {
+                const res = await fetch(`/api/forecasts/${id}/reject`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ keywords: [], description: '' }),
+                })
+                if (res.ok) {
+                    setResolvedIds((prev) => ({ ...prev, [id]: 'rejected' }))
+                    setTotal((prev) => prev - 1)
+                    removeResolved(id)
+                    rejected++
+                }
+            } catch { /* continue */ }
+        }
+        toast.success(`Rejected ${rejected} of ${ids.length} forecasts`)
+        setIsBulkActioning(false)
+    }
+
+    const handleApproveAll = async () => {
+        if (!confirm(`Approve all ${unresolvedIds.length} pending forecasts?`)) return
+        setIsBulkActioning(true)
+        setSelectedIds(new Set())
+        let approved = 0
+        for (const id of unresolvedIds) {
+            try {
+                const res = await fetch(`/api/forecasts/${id}/approve`, { method: 'POST' })
+                if (res.ok) {
+                    setResolvedIds((prev) => ({ ...prev, [id]: 'approved' }))
+                    setTotal((prev) => prev - 1)
+                    removeResolved(id)
+                    approved++
+                }
+            } catch { /* continue */ }
+        }
+        toast.success(`Approved ${approved} forecasts`)
+        setIsBulkActioning(false)
+    }
+
+    const isActioning = isBulkActioning || actioningId !== null
 
     return (
         <div>
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-4">
                 <div>
                     <h2 className="text-xl font-bold text-white">Pending Approvals</h2>
                     <p className="text-sm text-gray-500 mt-1">
                         Bot-generated forecasts awaiting human review before going live.
                     </p>
                 </div>
-                {predictions.length > 1 && (
-                    <button
-                        onClick={handleApproveAll}
-                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
-                    >
-                        <CheckCircle className="w-4 h-4" />
-                        Approve All ({predictions.length})
-                    </button>
-                )}
+                <div className="flex items-center gap-2">
+                    {selectedIds.size > 0 && (
+                        <>
+                            <button
+                                onClick={handleBulkApprove}
+                                disabled={isActioning}
+                                className="flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+                            >
+                                {isBulkActioning ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                                Approve selected ({selectedIds.size})
+                            </button>
+                            <button
+                                onClick={handleBulkReject}
+                                disabled={isActioning}
+                                className="flex items-center gap-1.5 px-4 py-2 bg-navy-700 border border-red-800/50 text-red-500 text-sm font-medium rounded-lg hover:bg-red-900/20 disabled:opacity-50 transition-colors"
+                            >
+                                <XCircle className="w-4 h-4" />
+                                Reject selected ({selectedIds.size})
+                            </button>
+                        </>
+                    )}
+                    {selectedIds.size === 0 && unresolvedIds.length > 1 && (
+                        <button
+                            onClick={handleApproveAll}
+                            disabled={isActioning}
+                            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+                        >
+                            {isBulkActioning ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                            Approve All ({unresolvedIds.length})
+                        </button>
+                    )}
+                </div>
             </div>
+
+            {/* Select-all row */}
+            {!isLoading && unresolvedIds.length > 0 && (
+                <div className="flex items-center gap-2 mb-3 px-1">
+                    <input
+                        type="checkbox"
+                        id="select-all"
+                        checked={allSelected}
+                        onChange={toggleSelectAll}
+                        className="w-4 h-4 accent-blue-500 cursor-pointer"
+                    />
+                    <label htmlFor="select-all" className="text-sm text-gray-400 cursor-pointer select-none">
+                        {allSelected ? 'Deselect all' : `Select all (${unresolvedIds.length})`}
+                    </label>
+                </div>
+            )}
 
             {isLoading ? (
                 <div className="flex justify-center py-16">
@@ -148,6 +271,7 @@ export default function ApprovalsPage() {
                         const resolved = resolvedIds[p.id]
                         const isApproved = resolved === 'approved'
                         const isRejected = resolved === 'rejected'
+                        const isSelected = selectedIds.has(p.id)
 
                         return (
                         <div
@@ -157,6 +281,8 @@ export default function ApprovalsPage() {
                                     ? 'bg-teal/10 border-2 border-green-400 opacity-75'
                                     : isRejected
                                     ? 'bg-red-900/20 border-2 border-red-300 opacity-75'
+                                    : isSelected
+                                    ? 'bg-navy-700 border-2 border-blue-500'
                                     : 'bg-navy-700 border border-amber-700/40 hover:border-amber-300'
                             }`}
                         >
@@ -173,11 +299,21 @@ export default function ApprovalsPage() {
                                 </div>
                             )}
 
-                            <div className="flex items-start justify-between gap-4">
+                            <div className="flex items-start gap-3">
+                                {/* Checkbox */}
+                                {!resolved && (
+                                    <input
+                                        type="checkbox"
+                                        checked={isSelected}
+                                        onChange={() => toggleSelect(p.id)}
+                                        className="mt-1 w-4 h-4 accent-blue-500 cursor-pointer shrink-0"
+                                    />
+                                )}
+
                                 {/* Content */}
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-1.5">
-                                        <UserLink 
+                                        <UserLink
                                             userId={p.author.id}
                                             username={p.author.username}
                                             name={p.author.name}
@@ -218,39 +354,39 @@ export default function ApprovalsPage() {
                                     </div>
                                 </div>
 
-                                {/* Actions — hidden once resolved */}
+                                {/* Per-item actions — hidden once resolved */}
                                 {!resolved && (
-                                <div className="flex items-center gap-2 shrink-0">
-                                    <Link
-                                        href={`/forecasts/${p.slug || p.id}`}
-                                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-cobalt/10 rounded-lg transition-colors"
-                                        title="View forecast"
-                                    >
-                                        <ExternalLink className="w-4 h-4" />
-                                    </Link>
-                                    <button
-                                        onClick={() => handleApprove(p.id)}
-                                        disabled={actioningId === p.id}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
-                                        title="Approve — set to ACTIVE"
-                                    >
-                                        {actioningId === p.id ? (
-                                            <Loader2 className="w-4 h-4 animate-spin" />
-                                        ) : (
-                                            <CheckCircle className="w-4 h-4" />
-                                        )}
-                                        Approve
-                                    </button>
-                                    <button
-                                        onClick={() => handleReject(p.id)}
-                                        disabled={actioningId === p.id}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-navy-700 border border-red-800/50 text-red-600 text-sm font-medium rounded-lg hover:bg-red-900/20 disabled:opacity-50 transition-colors"
-                                        title="Reject — set to VOID"
-                                    >
-                                        <XCircle className="w-4 h-4" />
-                                        Reject
-                                    </button>
-                                </div>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        <Link
+                                            href={`/forecasts/${p.slug || p.id}`}
+                                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-cobalt/10 rounded-lg transition-colors"
+                                            title="View forecast"
+                                        >
+                                            <ExternalLink className="w-4 h-4" />
+                                        </Link>
+                                        <button
+                                            onClick={() => handleApprove(p.id)}
+                                            disabled={isActioning}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+                                            title="Approve — set to ACTIVE"
+                                        >
+                                            {actioningId === p.id ? (
+                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                            ) : (
+                                                <CheckCircle className="w-4 h-4" />
+                                            )}
+                                            Approve
+                                        </button>
+                                        <button
+                                            onClick={() => handleReject(p.id)}
+                                            disabled={isActioning}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-navy-700 border border-red-800/50 text-red-600 text-sm font-medium rounded-lg hover:bg-red-900/20 disabled:opacity-50 transition-colors"
+                                            title="Reject — set to VOID"
+                                        >
+                                            <XCircle className="w-4 h-4" />
+                                            Reject
+                                        </button>
+                                    </div>
                                 )}
                             </div>
                         </div>
