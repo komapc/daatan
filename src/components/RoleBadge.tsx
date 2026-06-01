@@ -1,4 +1,6 @@
-type Role = 'USER' | 'RESOLVER' | 'APPROVER' | 'ADMIN' | null | undefined
+import type { UserRole } from '@prisma/client'
+
+type Role = UserRole | null | undefined
 
 interface RoleBadgeProps {
   role: Role

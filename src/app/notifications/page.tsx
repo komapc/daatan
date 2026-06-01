@@ -39,8 +39,15 @@ export default async function NotificationsPage() {
   const actorMap = Object.fromEntries(actors.map(a => [a.id, a]))
 
   const enrichedNotifications = notifications.map(n => ({
-    ...n,
-    actor: n.actorId ? actorMap[n.actorId] : null
+    id: n.id,
+    type: n.type,
+    title: n.title,
+    message: n.message,
+    link: n.link,
+    read: n.read,
+    createdAt: n.createdAt.toISOString(),
+    actorId: n.actorId,
+    actor: n.actorId ? (actorMap[n.actorId] ?? null) : null,
   }))
 
   return (
@@ -51,7 +58,7 @@ export default async function NotificationsPage() {
       </div>
 
       <NotificationList
-        initialNotifications={enrichedNotifications as any}
+        initialNotifications={enrichedNotifications}
         initialTotal={total}
         initialUnreadCount={unreadCount}
       />

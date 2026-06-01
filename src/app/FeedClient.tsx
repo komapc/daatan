@@ -363,8 +363,8 @@ export default function FeedClient({ initialPredictions }: FeedClientProps) {
           variant="card"
           icon={<TrendingUp className="w-10 h-10 text-blue-500" />}
           iconBgClass="bg-cobalt/10"
-          title={t(`empty_${filter}` as any)}
-          description={t(`emptyDesc_${filter}` as any)}
+          title={t(`empty_${filter}`)}
+          description={t(`emptyDesc_${filter}`)}
           action={{ label: t('createFirst'), href: '/create', icon: <Plus className="w-4 h-4" /> }}
         />
       ) : (

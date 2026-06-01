@@ -10,6 +10,16 @@ import { notifyIndexNow } from '@/lib/services/indexnow'
 
 const log = createLogger('forecast')
 
+/** True when `err` is a Prisma P2002 unique-constraint violation on the `slug` column. */
+function isSlugUniqueConstraintError(err: unknown): boolean {
+  if (typeof err !== 'object' || err === null) return false
+  if (!('code' in err) || err.code !== 'P2002') return false
+  if (!('meta' in err) || typeof err.meta !== 'object' || err.meta === null) return false
+  if (!('target' in err.meta)) return false
+  const target = err.meta.target
+  return Array.isArray(target) && target.includes('slug')
+}
+
 const PREDICTION_AUTHOR_SELECT = {
   id: true,
   name: true,
@@ -192,8 +202,11 @@ export async function createForecast(input: CreateForecastInput) {
         select: { id: true },
       })
       break
-    } catch (err: any) {
-      if (err.code === 'P2002' && err.meta?.target?.includes('slug')) {
+    } catch (err) {
+      // Structural check (not `instanceof`): Prisma throws a real
+      // PrismaClientKnownRequestError in prod, but callers/tests may surface a
+      // plain error carrying the same { code, meta } shape.
+      if (isSlugUniqueConstraintError(err)) {
         retries++
         uniqueSlug = `${baseSlug}-${crypto.randomBytes(3).toString('hex')}`
         continue

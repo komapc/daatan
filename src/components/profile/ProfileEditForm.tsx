@@ -11,9 +11,7 @@ import { toast } from 'react-hot-toast'
 
 interface ProfileEditFormProps {
   user: {
-    id: string
     name: string | null
-    email: string
     image: string | null
     avatarUrl?: string | null
     username: string | null
@@ -94,8 +92,8 @@ export default function ProfileEditForm({ user }: ProfileEditFormProps) {
 
     try {
       // The update endpoint ignores avatarUrl because it's handled by its own endpoint
-      const updateData = { ...formData }
-      delete (updateData as any).avatarUrl
+      const updateData: Partial<typeof formData> = { ...formData }
+      delete updateData.avatarUrl
 
       const response = await fetch('/api/profile/update', {
         method: 'PATCH',

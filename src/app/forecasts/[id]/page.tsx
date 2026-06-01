@@ -85,7 +85,8 @@ async function getPrediction(idOrSlug: string) {
 
   if (!prediction) return null
 
-  // Format date to ISO string for JSON serialization
+  // Format dates to ISO strings and normalize Json columns to the client view-model shape.
+  const { outcomePayload, evidenceLinks } = prediction
   return {
     ...prediction,
     resolveByDatetime: prediction.resolveByDatetime.toISOString(),
@@ -93,6 +94,13 @@ async function getPrediction(idOrSlug: string) {
     publishedAt: prediction.publishedAt?.toISOString(),
     resolvedAt: prediction.resolvedAt?.toISOString(),
     lockedAt: prediction.lockedAt?.toISOString(),
+    outcomePayload:
+      outcomePayload && typeof outcomePayload === 'object' && !Array.isArray(outcomePayload)
+        ? outcomePayload
+        : undefined,
+    evidenceLinks: Array.isArray(evidenceLinks)
+      ? evidenceLinks.filter((x): x is string => typeof x === 'string')
+      : undefined,
     commitments: prediction.commitments.map(c => ({
       ...c,
       createdAt: c.createdAt.toISOString(),
@@ -313,7 +321,7 @@ export default async function ForecastDetailPage({ params }: Props) {
       {eventJsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(eventJsonLd) }} />}
       {claimReviewJsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(claimReviewJsonLd) }} />}
       <ForecastDetailClient
-        initialData={prediction as any}
+        initialData={prediction}
         initialComments={initialComments}
         initialContextSnapshots={initialContextSnapshots}
       />

@@ -27,7 +27,7 @@ Detailed architecture and feature docs: see [`docs/`](./docs/).
 
 ## Code style
 
-- TypeScript strict; no `as any` / `as unknown as X` (audited and cleaned April 2026)
+- TypeScript strict; no `as any` / `as unknown as X` in app code, except 4 documented, unavoidable cases (re-audited June 2026): the two NextAuth callback-bridging casts in `src/auth.ts`, the polymorphic `as`-prop spread in `src/components/ui/Button.tsx`, and the non-standard `navigator.standalone` read in `src/components/PwaInstaller.tsx`. Don't add new ones.
 - Default to no comments; only add when WHY is non-obvious
 - Don't add error handling, fallbacks, or validation for impossible scenarios — trust internal callers
 - Tests use vitest. Run `npm test` (no extra flags needed). 990+ tests, ~45s.

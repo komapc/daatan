@@ -1,10 +1,12 @@
+import type { UserRole } from '@prisma/client'
+
 export type Prediction = {
   id: string
-  slug?: string
+  slug?: string | null
   isPublic: boolean
   shareToken: string
   claimText: string
-  detailsText?: string
+  detailsText?: string | null
   outcomeType: 'BINARY' | 'MULTIPLE_CHOICE' | 'NUMERIC_THRESHOLD'
   outcomePayload?: Record<string, unknown>
   status: string
@@ -13,8 +15,8 @@ export type Prediction = {
   contextUpdatedAt?: string
   publishedAt?: string
   resolvedAt?: string
-  resolutionOutcome?: string
-  resolutionNote?: string
+  resolutionOutcome?: string | null
+  resolutionNote?: string | null
   evidenceLinks?: string[]
   resolutionRules?: string | null
   sentiment?: string | null
@@ -27,27 +29,27 @@ export type Prediction = {
   source?: string | null
   author: {
     id: string
-    name: string
-    username?: string
-    image?: string
+    name: string | null
+    username?: string | null
+    image?: string | null
     rs: number
-    role?: 'USER' | 'RESOLVER' | 'ADMIN'
+    role?: UserRole
   }
   newsAnchor?: {
     id: string
     title: string
     url: string
-    source?: string
-  }
+    source?: string | null
+  } | null
   options: Array<{
     id: string
     text: string
-    isCorrect?: boolean
+    isCorrect?: boolean | null
   }>
   commitments: Array<{
     id: string
     cuCommitted: number
-    binaryChoice?: boolean
+    binaryChoice?: boolean | null
     rsSnapshot: number
     createdAt: string
     cuReturned?: number | null
@@ -55,16 +57,16 @@ export type Prediction = {
     probability?: number | null
     user: {
       id: string
-      name: string
-      username?: string
-      image?: string
+      name: string | null
+      username?: string | null
+      image?: string | null
     }
     option?: {
       id: string
       text: string
-    }
+    } | null
   }>
-  totalCuCommitted: number
+  totalCuCommitted?: number
   userCommitment?: {
     id: string
     cuCommitted: number
