@@ -83,8 +83,8 @@ jobs:
           SKIP_ENV_VALIDATION: 1
         run: npm run build
 
-      - name: Security audit
-        run: npm audit --audit-level=critical || echo "⚠️ Audit found vulnerabilities — review before production deploy"
+      - name: Security audit (fail on critical)
+        run: npm audit --audit-level=critical
 
       - name: Check env var parity (blue-green-deploy.sh vs docker-compose.prod.yml)
         run: ./scripts/check-env-parity.sh

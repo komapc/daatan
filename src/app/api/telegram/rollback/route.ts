@@ -20,6 +20,7 @@
 
 import { NextResponse } from 'next/server'
 import { createLogger } from '@/lib/logger'
+import { secretsMatch } from '@/lib/cron-auth'
 
 const log = createLogger('telegram-rollback')
 
@@ -144,7 +145,7 @@ export async function POST(request: Request) {
     // Validate Telegram webhook secret header
     if (WEBHOOK_SECRET) {
       const secretHeader = request.headers.get('x-telegram-bot-api-secret-token') ?? ''
-      if (secretHeader !== WEBHOOK_SECRET) {
+      if (!secretsMatch(secretHeader, WEBHOOK_SECRET)) {
         return NextResponse.json({ ok: true }) // Return 200 to avoid Telegram retries
       }
     }

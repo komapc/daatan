@@ -105,7 +105,7 @@ export const createNotification = async (input: CreateNotificationInput) => {
         title: input.title,
         message: input.message,
         link: input.link,
-      }).catch(() => {})
+      }).catch(err => log.warn({ err, userId: input.userId }, 'notification email dispatch failed'))
     }
 
     return notification
