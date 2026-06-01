@@ -92,6 +92,8 @@ Sent by API routes and services on business and operational events.
 | LLM provider error | 🤖 | 5 min per `provider` | `src/lib/llm/index.ts` |
 | All search providers failed | ⚠️ | 5 min (global) | `src/lib/utils/webSearch.ts` |
 | Oracle search unavailable | ⚠️ | 5 min (global) | `src/lib/services/oracleSearch.ts` |
+| Oracle forecast unavailable | 🚨 | 5 min (global) | `GET /api/cron/oracle-health` |
+| Oracle forecast recovered | ✅ | 5 min (global) | `GET /api/cron/oracle-health` |
 | Search credits low | ⚠️ | 5 min per provider | `src/lib/utils/webSearch.ts` |
 
 **Rate limiting:** Error notifications use a 5-minute in-memory cooldown. Cooldown resets on process restart.
