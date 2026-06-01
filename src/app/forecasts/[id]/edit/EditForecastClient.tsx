@@ -101,7 +101,7 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
     fetchPrediction()
   }, [id, t])
 
-  const handleChange = (field: string, value: any) => {
+  const handleChange = <K extends keyof typeof formData>(field: K, value: (typeof formData)[K]) => {
     setFormData(prev => ({ ...prev, [field]: value }))
     setSaveSuccess(false)
     setSaveError(null)
@@ -133,14 +133,12 @@ export default function EditForecastClient({ id }: EditForecastClientProps) {
     setSaveSuccess(false)
 
     try {
-      const payload: any = {
-        ...formData,
-        resolveByDatetime: new Date(formData.resolveByDatetime).toISOString()
-      }
-
+      const { options, ...rest } = formData
       // Only send options if MULTIPLE_CHOICE
-      if (prediction.outcomeType !== 'MULTIPLE_CHOICE') {
-        delete payload.options
+      const payload = {
+        ...rest,
+        resolveByDatetime: new Date(formData.resolveByDatetime).toISOString(),
+        ...(prediction.outcomeType === 'MULTIPLE_CHOICE' ? { options } : {}),
       }
 
       const response = await fetch(`/api/forecasts/${prediction.id}`, {

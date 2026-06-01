@@ -192,8 +192,13 @@ export async function createForecast(input: CreateForecastInput) {
         select: { id: true },
       })
       break
-    } catch (err: any) {
-      if (err.code === 'P2002' && err.meta?.target?.includes('slug')) {
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2002' &&
+        Array.isArray(err.meta?.target) &&
+        err.meta.target.includes('slug')
+      ) {
         retries++
         uniqueSlug = `${baseSlug}-${crypto.randomBytes(3).toString('hex')}`
         continue

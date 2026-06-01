@@ -72,7 +72,7 @@ export default function ForecastDetailClient({
   // Translation state — pre-populate from initialData when the server already localized it
   const [translatedFields, setTranslatedFields] = useState<Record<string, string> | null>(
     isLocalized && initialData
-      ? { claimText: initialData.claimText, detailsText: initialData.detailsText ?? '', resolutionRules: (initialData as any).resolutionRules ?? '' }
+      ? { claimText: initialData.claimText, detailsText: initialData.detailsText ?? '', resolutionRules: initialData.resolutionRules ?? '' }
       : null,
   )
   const [isTranslating, setIsTranslating] = useState(false)

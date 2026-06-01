@@ -18,8 +18,10 @@ export default async function EditProfilePage() {
       name: true,
       username: true,
       image: true,
+      avatarUrl: true,
       website: true,
       twitterHandle: true,
+      emailNotifications: true,
     }
   })
 
@@ -33,7 +35,7 @@ export default async function EditProfilePage() {
         <h1 className="text-3xl font-black text-white tracking-tight">Edit Profile</h1>
         <p className="text-gray-500 mt-2">Update your public profile information.</p>
       </div>
-      <ProfileEditForm user={user as any} />
+      <ProfileEditForm user={user} />
     </div>
   )
 }
