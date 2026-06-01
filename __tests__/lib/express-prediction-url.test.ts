@@ -145,6 +145,41 @@ describe('generateExpressPrediction', () => {
       expect(mockFetchUrlContent).not.toHaveBeenCalled()
       expect(mockOracleSearch).toHaveBeenCalledWith(MOCK_EXTRACTED_QUERY, 15)
     })
+
+    it('anchors on the model-selected relevant article, not the first result', async () => {
+      mockOracleSearch.mockResolvedValue(mockArticles) // [cnn, bloomberg, coindesk]
+      mockGenerateContent
+        .mockResolvedValueOnce({ text: JSON.stringify(mockModerationPass) })
+        .mockResolvedValueOnce({ text: MOCK_EXTRACTED_QUERY })
+        // relevantArticleIndices is 1-based → [2] selects the 2nd article (bloomberg)
+        .mockResolvedValueOnce({ text: JSON.stringify({ ...mockLlmPrediction, relevantArticleIndices: [2] }) })
+
+      const result = await generateExpressPrediction('Bitcoin price')
+
+      expect(result.newsAnchor!.url).toBe('https://bloomberg.com/crypto')
+      expect(result.additionalLinks).toHaveLength(0) // only one relevant article
+    })
+
+    it('creates the forecast source-free when no articles are relevant', async () => {
+      mockOracleSearch.mockResolvedValue(mockArticles)
+      mockGenerateContent
+        .mockResolvedValueOnce({ text: JSON.stringify(mockModerationPass) })
+        .mockResolvedValueOnce({ text: MOCK_EXTRACTED_QUERY })
+        .mockResolvedValueOnce({
+          text: JSON.stringify({
+            ...mockLlmPrediction,
+            detailsText: 'The provided articles do not contain specific information about this topic.',
+            relevantArticleIndices: [], // explicit: none relevant
+          }),
+        })
+
+      const result = await generateExpressPrediction('EU will admit two new members by 2028')
+
+      expect(result.newsAnchor).toBeNull()
+      expect(result.additionalLinks).toHaveLength(0)
+      // Article-derived "no info" description is dropped deterministically.
+      expect(result.detailsText).toBe('')
+    })
   })
 
   describe('URL input flow', () => {

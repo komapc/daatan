@@ -444,6 +444,11 @@ URL: ${article.url}
         { searchResultCount: searchResults.length },
         'express: no relevant articles — creating forecast source-free (no anchor)',
       )
+      // The draft summary was written from articles we just judged irrelevant; it
+      // tends to be a meta "the articles don't contain info" sentence. Drop it
+      // deterministically rather than ship a description that contradicts the
+      // (now null) news anchor — the claim stands on its own.
+      prediction.detailsText = ''
     }
   }
 
