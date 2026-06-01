@@ -72,7 +72,7 @@ export default async function LocaleHomePage() {
 
   return (
     <Suspense fallback={<FeedLoading />}>
-      <FeedClient initialPredictions={initialPredictions as any} />
+      <FeedClient initialPredictions={initialPredictions} />
     </Suspense>
   )
 }

@@ -1,5 +1,6 @@
 'use client'
 
+import type { UserRole } from '@prisma/client'
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -45,7 +46,7 @@ export type Prediction = {
     username?: string | null
     image?: string | null
     rs?: number
-    role?: 'USER' | 'RESOLVER' | 'ADMIN'
+    role?: UserRole
   }
   newsAnchor?: {
     id: string

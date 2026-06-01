@@ -325,7 +325,7 @@ export async function loadProfileTab({
       createdTotal,
       participatedTotal,
       resolvedTotal,
-      createdItems: items as unknown as Prediction[],
+      createdItems: items,
       participatedItems: [],
       resolvedItems: [],
     }
@@ -345,7 +345,7 @@ export async function loadProfileTab({
     skip,
   })
 
-  const commitItems = items as unknown as CommitmentForList[]
+  const commitItems = items
 
   return {
     tab,

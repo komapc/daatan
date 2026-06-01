@@ -32,7 +32,7 @@ const fetchInitialFeed = unstable_cache(
       limit: 20,
       sortOrder: 'desc',
       isCuSort: false,
-    }) as unknown as Prediction[]
+    })
   },
   ['forecasts-page-initial-feed'],
   { revalidate: 60, tags: ['forecasts'] },

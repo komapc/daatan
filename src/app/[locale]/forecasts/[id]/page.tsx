@@ -76,6 +76,7 @@ async function getPrediction(idOrSlug: string) {
 
   if (!prediction) return null
 
+  const { outcomePayload, evidenceLinks } = prediction
   return {
     ...prediction,
     resolveByDatetime: prediction.resolveByDatetime.toISOString(),
@@ -83,6 +84,13 @@ async function getPrediction(idOrSlug: string) {
     publishedAt: prediction.publishedAt?.toISOString(),
     resolvedAt: prediction.resolvedAt?.toISOString(),
     lockedAt: prediction.lockedAt?.toISOString(),
+    outcomePayload:
+      outcomePayload && typeof outcomePayload === 'object' && !Array.isArray(outcomePayload)
+        ? outcomePayload
+        : undefined,
+    evidenceLinks: Array.isArray(evidenceLinks)
+      ? evidenceLinks.filter((x): x is string => typeof x === 'string')
+      : undefined,
     commitments: prediction.commitments.map((c) => ({
       ...c,
       createdAt: c.createdAt.toISOString(),
@@ -244,7 +252,7 @@ export default async function LocaleForecastDetailPage({ params }: Props) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
       <Suspense fallback={<ForecastLoading />}>
         <ForecastDetailClient
-          initialData={localizedPrediction as any}
+          initialData={localizedPrediction}
           isLocalized={isLocalized}
           initialComments={initialComments}
           initialContextSnapshots={initialContextSnapshots}

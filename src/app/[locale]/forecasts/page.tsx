@@ -59,5 +59,5 @@ export default async function LocaleForecastsPage() {
     isCuSort: false,
   })
 
-  return <PredictionsPage initialPredictions={initialPredictions as any} />
+  return <PredictionsPage initialPredictions={initialPredictions} />
 }
