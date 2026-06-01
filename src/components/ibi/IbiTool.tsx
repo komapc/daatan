@@ -56,6 +56,8 @@ interface ConsensusResult {
   title: string
   source: string
   published_date?: string
+  /** The prediction claim this probability was computed for. */
+  claim: string
   probability: number | null
   reasoning: string
 }
@@ -76,7 +78,7 @@ function cleanJson(raw: string): string {
 
 export default function IbiTool() {
   const [state, setState] = useState<State>({
-    articleUrl: 'https://regnum.ru/article/1362313',
+    articleUrl: '',
     articleDate: '',
     articleText: '',
     articleTitle: '',
@@ -139,8 +141,8 @@ export default function IbiTool() {
       setArticlePreview(text.slice(0, 600))
       setS1Prompt(
         EXTRACT_PROMPT
-          .replace('{date}', date)
-          .replace('{article_text}', text.slice(0, 6000)),
+          .replace('{date}', () => date)
+          .replace('{article_text}', () => text.slice(0, 6000)),
       )
       setStage(1)
     } catch (e) {
@@ -226,9 +228,9 @@ export default function IbiTool() {
         }
         for (const pred of state.predictions) {
           const prompt = s2ConsensusPrompt
-            .replace('{date}', art.published_date ?? '')
-            .replace('{article_text}', text)
-            .replace('{claim}', pred.claim)
+            .replace('{date}', () => art.published_date ?? '')
+            .replace('{article_text}', () => text)
+            .replace('{claim}', () => pred.claim)
           try {
             const raw = await callLLM(model, prompt)
             const parsed = JSON.parse(raw)
@@ -237,11 +239,12 @@ export default function IbiTool() {
               title: art.title,
               source: art.source,
               published_date: art.published_date,
+              claim: pred.claim,
               probability: parsed.probability ?? null,
               reasoning: parsed.reasoning ?? '',
             })
           } catch {
-            results.push({ url: art.url, title: art.title, source: art.source, published_date: art.published_date, probability: null, reasoning: 'parse error' })
+            results.push({ url: art.url, title: art.title, source: art.source, published_date: art.published_date, claim: pred.claim, probability: null, reasoning: 'parse error' })
           }
         }
       }
@@ -264,13 +267,15 @@ export default function IbiTool() {
     a.click()
   }
 
-  const consensusFor = (pred: Prediction) => {
-    const relevant = state.consensusResults.filter(r =>
-      state.searchResults.some(s => s.url === r.url && selectedUrls.has(s.url))
-    )
-    const probs = relevant.map(r => r.probability).filter((p): p is number => p !== null)
+  /** Average consensus probability for a single prediction, plus the number of
+   *  articles that scored it. Only results computed for *this* claim are counted. */
+  const consensusFor = (pred: Prediction): { avg: number; count: number } | null => {
+    const probs = state.consensusResults
+      .filter(r => r.claim === pred.claim && selectedUrls.has(r.url))
+      .map(r => r.probability)
+      .filter((p): p is number => p !== null)
     if (!probs.length) return null
-    return Math.round(probs.reduce((a, b) => a + b, 0) / probs.length)
+    return { avg: Math.round(probs.reduce((a, b) => a + b, 0) / probs.length), count: probs.length }
   }
 
   const probColor = (p: number) =>
@@ -442,7 +447,7 @@ export default function IbiTool() {
         <h2 className="font-semibold text-gray-300">Stage 3 — Compare</h2>
         {stage === 3 && state.predictions.map((pred, i) => {
           const consensus = consensusFor(pred)
-          const delta = consensus !== null ? pred.author_probability - consensus : null
+          const delta = consensus !== null ? pred.author_probability - consensus.avg : null
           return (
             <div key={i} className="bg-gray-800 rounded-lg p-4 space-y-2">
               <p className="font-bold text-white">{pred.claim}</p>
@@ -454,8 +459,8 @@ export default function IbiTool() {
                 </div>
                 {consensus !== null && (
                   <div>
-                    <p className="text-xs text-gray-500">Consensus ({state.consensusResults.filter(r => r.probability !== null).length} articles)</p>
-                    <p className={`text-2xl font-bold ${probColor(consensus)}`}>{consensus}%</p>
+                    <p className="text-xs text-gray-500">Consensus ({consensus.count} {consensus.count === 1 ? 'article' : 'articles'})</p>
+                    <p className={`text-2xl font-bold ${probColor(consensus.avg)}`}>{consensus.avg}%</p>
                   </div>
                 )}
               </div>

@@ -21,9 +21,16 @@ export const POST = withAuth(async (request) => {
       signal: AbortSignal.timeout(15_000),
     })
 
-    const data = await res.json()
-    return NextResponse.json(data, { status: res.status })
+    const text = await res.text()
+    try {
+      return NextResponse.json(JSON.parse(text), { status: res.status })
+    } catch {
+      return NextResponse.json(
+        { error: 'Oracle returned a non-JSON response' },
+        { status: res.status >= 400 ? res.status : 502 },
+      )
+    }
   } catch (error) {
     return handleRouteError(error, 'fetch-url proxy failed')
   }
-})
+}, { roles: ['ADMIN'] })
