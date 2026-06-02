@@ -14,7 +14,7 @@ import { createLogger } from '@/lib/logger'
 const log = createLogger('auth-email')
 
 const APP_URL    = process.env.NEXTAUTH_URL ?? 'https://daatan.com'
-const FROM       = process.env.EMAIL_FROM   ?? 'Daatan <noreply@daatan.app>'
+const FROM       = process.env.EMAIL_FROM   ?? 'Daatan <noreply@daatan.com>'
 const isStaging  = process.env.NEXT_PUBLIC_ENV === 'staging'
 
 let _resend: Resend | null = null
