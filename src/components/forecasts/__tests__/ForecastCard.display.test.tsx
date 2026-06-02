@@ -132,3 +132,23 @@ describe('ForecastCard AI estimate pill', () => {
     expect(screen.getByText('AI: 55%')).toBeInTheDocument()
   })
 })
+
+describe('ForecastCard navigation link', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+    vi.mocked(useSession).mockReturnValue({ data: null, status: 'unauthenticated' } as any)
+  })
+
+  it('renders the card as a real link to the forecast (so Ctrl/Cmd/middle-click open a new tab)', () => {
+    renderWithIntl(<ForecastCard prediction={basePrediction} />)
+    const link = screen.getByRole('link', { name: basePrediction.claimText })
+    expect(link).toHaveAttribute('href', '/forecasts/pred-1')
+  })
+
+  it('prefers the slug over the id in the link href', () => {
+    const prediction = { ...basePrediction, slug: 'will-x-happen' }
+    renderWithIntl(<ForecastCard prediction={prediction} />)
+    const link = screen.getByRole('link', { name: basePrediction.claimText })
+    expect(link).toHaveAttribute('href', '/forecasts/will-x-happen')
+  })
+})
