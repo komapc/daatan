@@ -8,7 +8,8 @@
  * 3. Deduplicates against existing forecast titles (LLM-based)
  * 4. Generates and posts a new forecast (with 🤖 in title)
  * 5. Stakes on the forecast immediately (or defers if requireApprovalForForecasts)
- * 6. Optionally votes on existing ACTIVE forecasts
+ * 6. Optionally votes on existing ACTIVE forecasts (informed by the Oracle's
+ *    P(YES) estimate when the Oracle is configured and reachable)
  * 7. Logs all actions to BotRunLog
  */
 
@@ -23,6 +24,7 @@ import {
   emitCreateCommitmentSideEffects,
   type CommitmentPrediction,
 } from '@/lib/services/commitment'
+import { getOracleProbability } from '@/lib/services/oracle'
 import { createLogger } from '@/lib/logger'
 import { slugify, generateUniqueSlug } from '@/lib/utils/slugify'
 import { BotAction } from '@prisma/client'
@@ -75,6 +77,13 @@ const LLM_RETRY_DELAY_MS = 1000 // 1 second delay before retry
 // future dates as "too far in the future" using its training cutoff as now.
 const MIN_RESOLVE_DAYS = 14
 const MAX_RESOLVE_DAYS = 365
+
+// Per-run cap on Oracle consultations during voting. Each getOracleProbability
+// call hits the Oracle's /forecast endpoint (article search + analysis, up to a
+// 12s timeout), so consulting it for every vote candidate could push a bot run
+// past its cron interval. We consult the first N candidates and let the rest
+// vote on the LLM's judgement alone.
+const MAX_ORACLE_CONSULTS_PER_VOTE_RUN = 5
 
 interface LLMCallOptions {
   prompt: string
@@ -977,19 +986,39 @@ async function runVoting(
       : ''
 
   let voted = 0
+  let oracleConsults = 0
 
   for (const forecast of candidates.slice(0, Math.min(maxVotes, candidates.length))) {
     if (voted >= maxVotes) break
 
     try {
       const voteTemplate = await getPromptTemplate('bot-vote-decision')
-      const votePrompt = fillPrompt(voteTemplate, {
+      let votePrompt = fillPrompt(voteTemplate, {
         personaPrompt: bot.personaPrompt,
         votePrompt: bot.votePrompt,
         claimText: forecast.claimText,
         detailsText: forecast.detailsText ?? 'No additional details provided',
         biasHint,
       })
+
+      // ── Oracle signal ──────────────────────────────────────────────────
+      // Consult the TruthMachine Oracle for an external P(YES) estimate and
+      // surface it to the LLM. Appended in code rather than via a {{oracleHint}}
+      // template placeholder so it works regardless of whether the template is
+      // served from Bedrock or the local fallback. getOracleProbability never
+      // throws and returns null when the Oracle is unconfigured/unavailable, so
+      // this is fail-open: no signal → unchanged behaviour.
+      if (oracleConsults < MAX_ORACLE_CONSULTS_PER_VOTE_RUN) {
+        oracleConsults++
+        // Strip the 🤖 author prefix; it's noise in the Oracle's search query.
+        const oracleQuestion = forecast.claimText.replace(/^🤖\s*/, '')
+        const oracleProbability = await getOracleProbability(oracleQuestion)
+        if (oracleProbability !== null) {
+          const pct = Math.round(oracleProbability * 100)
+          votePrompt += `\n\nAn external forecasting Oracle estimates the probability that this resolves YES at ${pct}%. Weigh this signal alongside your own judgement.`
+          log.debug({ botId: bot.id, forecastId: forecast.id, oraclePct: pct }, 'Oracle signal added to vote prompt')
+        }
+      }
 
       let response
       try {
