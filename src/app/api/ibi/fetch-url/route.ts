@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { withAuth } from '@/lib/api-middleware'
 import { handleRouteError } from '@/lib/api-error'
-import { env } from '@/env'
+import { getOracleBaseUrl } from '@/lib/services/oracleClient'
 
 const schema = z.object({ url: z.string().url() })
 
@@ -11,10 +11,11 @@ export const POST = withAuth(async (request) => {
     const body = await request.json()
     const { url } = schema.parse(body)
 
-    const oracleUrl = env.ORACLE_URL
-    if (!oracleUrl) return NextResponse.json({ error: 'Oracle not configured' }, { status: 503 })
+    // This endpoint is unauthenticated on the Oracle side (no x-api-key).
+    const baseUrl = getOracleBaseUrl()
+    if (!baseUrl) return NextResponse.json({ error: 'Oracle not configured' }, { status: 503 })
 
-    const res = await fetch(`${oracleUrl.replace(/\/$/, '')}/fetch-url`, {
+    const res = await fetch(`${baseUrl}/fetch-url`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url }),
