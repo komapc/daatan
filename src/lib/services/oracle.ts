@@ -1,5 +1,5 @@
-import { env } from '@/env'
 import { createLogger } from '@/lib/logger'
+import { getOracleBaseUrl, getOracleConfig, oracleFetch } from '@/lib/services/oracleClient'
 
 const log = createLogger('oracle')
 
@@ -73,9 +73,6 @@ export interface OracleLeaderboardResponse {
   count: number
 }
 
-/** Strip a single trailing slash so `${baseUrl}/path` doesn't produce a double slash. */
-const normalizeBaseUrl = (url: string): string => url.replace(/\/$/, '')
-
 /**
  * Call the TruthMachine Oracle API and return the full forecast payload.
  *
@@ -88,25 +85,23 @@ export const getOracleForecast = async (
   question: string,
   options?: { articles?: ArticleInput[] },
 ): Promise<OracleForecastResponse | null> => {
-  const url = env.ORACLE_URL
-  const key = env.ORACLE_API_KEY
-
-  if (!url || !key) {
+  const cfg = getOracleConfig()
+  if (!cfg) {
     log.debug('Oracle not configured — skipping')
     return null
   }
 
   const t0 = Date.now()
   try {
-    const res = await fetch(`${normalizeBaseUrl(url)}/forecast`, {
+    const res = await oracleFetch(cfg, '/forecast', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': key },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         question,
         max_articles: DEFAULT_MAX_ARTICLES,
         ...(options?.articles?.length ? { articles: options.articles } : {}),
       }),
-      signal: AbortSignal.timeout(FORECAST_TIMEOUT_MS),
+      timeoutMs: FORECAST_TIMEOUT_MS,
     })
 
     if (!res.ok) {
@@ -163,16 +158,11 @@ export const getOracleProbability = async (question: string): Promise<number | n
  * not configured or the request fails.  Never throws.
  */
 export const getOracleLeaderboard = async (): Promise<OracleLeaderboardResponse | null> => {
-  const url = env.ORACLE_URL
-  const key = env.ORACLE_API_KEY
-
-  if (!url || !key) return null
+  const cfg = getOracleConfig()
+  if (!cfg) return null
 
   try {
-    const res = await fetch(`${normalizeBaseUrl(url)}/leaderboard`, {
-      headers: { 'x-api-key': key },
-      signal: AbortSignal.timeout(HEALTH_TIMEOUT_MS),
-    })
+    const res = await oracleFetch(cfg, '/leaderboard', { timeoutMs: HEALTH_TIMEOUT_MS })
     if (!res.ok) return null
     return await res.json() as OracleLeaderboardResponse
   } catch {
@@ -186,11 +176,11 @@ export const getOracleLeaderboard = async (): Promise<OracleLeaderboardResponse 
  * Never throws.
  */
 export const checkOracleHealth = async (): Promise<boolean> => {
-  const url = env.ORACLE_URL
-  if (!url) return false
+  const baseUrl = getOracleBaseUrl()
+  if (!baseUrl) return false
 
   try {
-    const res = await fetch(`${normalizeBaseUrl(url)}/health`, {
+    const res = await fetch(`${baseUrl}/health`, {
       signal: AbortSignal.timeout(HEALTH_TIMEOUT_MS),
     })
     if (!res.ok) return false

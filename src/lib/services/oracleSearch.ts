@@ -1,7 +1,7 @@
-import { env } from '@/env'
 import { createLogger } from '@/lib/logger'
 import { prisma } from '@/lib/prisma'
 import { notifyOracleSearchUnavailable } from '@/lib/services/telegram'
+import { getOracleConfig, oracleFetch } from '@/lib/services/oracleClient'
 
 export interface SearchResult {
   title: string
@@ -39,15 +39,11 @@ export interface OracleSearchHealthResponse {
  * Never throws.
  */
 export async function getOracleSearchHealth(): Promise<OracleSearchHealthResponse | null> {
-  const baseUrl = env.ORACLE_URL
-  const key = env.ORACLE_API_KEY
-  if (!baseUrl || !key) return null
+  const cfg = getOracleConfig()
+  if (!cfg) return null
 
   try {
-    const res = await fetch(`${normalizeBaseUrl(baseUrl)}/search/health`, {
-      headers: { 'x-api-key': key },
-      signal: AbortSignal.timeout(HEALTH_TIMEOUT_MS),
-    })
+    const res = await oracleFetch(cfg, '/search/health', { timeoutMs: HEALTH_TIMEOUT_MS })
     if (!res.ok) {
       log.warn({ status: res.status }, 'oracle-search-health: non-OK response')
       return null
@@ -77,9 +73,6 @@ interface OracleSearchResponse {
   provider_chain: string[]
 }
 
-/** Strip a single trailing slash so `${baseUrl}/path` never gets a double slash. */
-const normalizeBaseUrl = (url: string) => url.replace(/\/$/, '')
-
 /**
  * Search via the Oracle's /search endpoint, sharing the oracle's provider
  * fallback chain and quota counter with the oracle's own forecast calls.
@@ -96,10 +89,8 @@ export async function oracleSearch(
   limit: number = 20, // default for ad-hoc calls; use DEFAULT_MAX_ARTICLES for consistent budgets
   options?: { dateFrom?: Date; dateTo?: Date },
 ): Promise<SearchResult[] | null> {
-  const baseUrl = env.ORACLE_URL
-  const key = env.ORACLE_API_KEY
-
-  if (!baseUrl || !key) return null
+  const cfg = getOracleConfig()
+  if (!cfg) return null
 
   const body: Record<string, unknown> = { query, limit }
   if (options?.dateFrom) body.date_from = options.dateFrom.toISOString().slice(0, 10)
@@ -107,14 +98,11 @@ export async function oracleSearch(
 
   const t0 = Date.now()
   try {
-    const res = await fetch(`${normalizeBaseUrl(baseUrl)}/search`, {
+    const res = await oracleFetch(cfg, '/search', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': key,
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(SEARCH_TIMEOUT_MS),
+      timeoutMs: SEARCH_TIMEOUT_MS,
     })
 
     if (!res.ok) {
