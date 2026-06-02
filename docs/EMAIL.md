@@ -46,15 +46,21 @@ Gmail → Settings → Accounts and Import → **Send mail as** settings:
 
 ## Creating / rotating SES SMTP credentials for a person
 
-The SMTP password is **not** the IAM secret access key — it is derived from it with an SES-specific algorithm. Easiest path:
+The SMTP password is **not** the IAM secret access key — it is derived from it with an SES-specific algorithm. Pick one path:
 
-**Console (recommended):** AWS Console → SES (eu-central-1) → **SMTP settings → Create SMTP credentials**. It outputs a ready-to-use SMTP username + password. (This creates its own IAM user; for a named, reusable identity prefer the rotation flow below.)
+**Script (recommended):** rotate a named `ses-smtp-<name>-prod` user with [`scripts/rotate-ses-smtp-credentials.sh`](../scripts/rotate-ses-smtp-credentials.sh):
+```bash
+scripts/rotate-ses-smtp-credentials.sh ses-smtp-andrey-prod
+```
+It mints a new access key, derives the SMTP password, and writes a `chmod 600`
+file (secret never printed to the terminal), then prints the delete-old-key
+command to run once the sender confirms it works. Requires awscli + python3.
 
-**Rotate an existing `ses-smtp-<name>-prod` user (keeps the named identity):**
-1. Create a new access key for the IAM user (max 2 keys; delete the stale one after).
-2. Convert the secret to an SMTP password using AWS's documented algorithm (HMAC-SHA256 chain over `11111111` → region → `ses` → `aws4_request` → `SendRawEmail`, prefixed with version byte `0x04`, base64). See AWS docs: *"Obtaining Amazon SES SMTP credentials by converting existing credentials."*
-3. Deliver username + SMTP password to the person over a secure channel (not chat/email). Have them paste into Gmail's Send mail as.
-4. After they confirm sending works, **delete the old access key**.
+**Console:** AWS Console → SES (eu-central-1) → **SMTP settings → Create SMTP credentials** — outputs a ready-to-use username + password. (Creates its own IAM user; prefer the script for a named, reusable identity.)
+
+**Manual:** create a new access key for the IAM user (max 2 keys), then convert the secret with AWS's documented algorithm (HMAC-SHA256 chain over `11111111` → region → `ses` → `aws4_request` → `SendRawEmail`, prefixed with version byte `0x04`, base64). See AWS docs: *"Obtaining Amazon SES SMTP credentials by converting existing credentials."*
+
+In all cases: deliver username + SMTP password over a secure channel (not chat/email), have the person paste them into Gmail's Send mail as, and **delete the old access key** after they confirm sending works.
 
 ---
 
