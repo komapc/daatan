@@ -63,6 +63,14 @@ vi.mock('@/lib/services/commitment', () => ({
   emitCreateCommitmentSideEffects: vi.fn(),
 }))
 
+// ─── Oracle mock ─────────────────────────────────────────────────────────────
+// Default: Oracle unconfigured/unavailable → null → no behaviour change.
+// Individual tests override with mockResolvedValueOnce. clearAllMocks() keeps
+// this factory implementation (it clears call history, not implementations).
+vi.mock('@/lib/services/oracle', () => ({
+  getOracleProbability: vi.fn().mockResolvedValue(null),
+}))
+
 // ─── Logger mock ─────────────────────────────────────────────────────────────
 vi.mock('@/lib/logger', () => ({
   createLogger: () => ({
@@ -1268,6 +1276,90 @@ describe('runDueBots — voting', () => {
 
     const votePromptArg = mockGenerateContent.mock.calls[0][0]
     expect(votePromptArg.prompt).not.toContain('disposition')
+  })
+
+  it('consults the Oracle and surfaces its P(YES) estimate in the vote prompt', async () => {
+    const { prisma } = await import('@/lib/prisma')
+    const { createCommitment } = await import('@/lib/services/commitment')
+    const { getOracleProbability } = await import('@/lib/services/oracle')
+    const { runDueBots } = await import('@/lib/services/bots')
+
+    const bot = makeBot({ canCreateForecasts: false, maxVotesPerDay: 5 })
+    vi.mocked(prisma.botConfig.findMany).mockResolvedValue([bot] as any)
+    vi.mocked(prisma.botRunLog.count).mockResolvedValue(0)
+    vi.mocked(prisma.prediction.findMany).mockResolvedValue([
+      { id: 'forecast-1', claimText: '🤖 Bitcoin tops $100k', detailsText: 'Details', outcomeType: 'BINARY' },
+    ] as any)
+    // 0.84 → "84%" in the prompt
+    vi.mocked(getOracleProbability).mockResolvedValueOnce(0.84)
+    mockGenerateContent.mockResolvedValueOnce({ text: VALID_VOTE_YES_JSON })
+    vi.mocked(createCommitment).mockResolvedValue({ ok: true } as any)
+    vi.mocked(prisma.botRunLog.create).mockResolvedValue({} as any)
+    vi.mocked(prisma.botConfig.update).mockResolvedValue({} as any)
+
+    await runDueBots()
+
+    // Oracle was asked about the claim with the 🤖 prefix stripped
+    expect(getOracleProbability).toHaveBeenCalledWith('Bitcoin tops $100k')
+    // …and the estimate reached the LLM vote prompt
+    const votePromptArg = mockGenerateContent.mock.calls[0][0]
+    expect(votePromptArg.prompt).toContain('84%')
+    expect(votePromptArg.prompt).toContain('external forecasting Oracle')
+  })
+
+  it('votes normally without an Oracle hint when the Oracle is unavailable', async () => {
+    const { prisma } = await import('@/lib/prisma')
+    const { createCommitment } = await import('@/lib/services/commitment')
+    const { getOracleProbability } = await import('@/lib/services/oracle')
+    const { runDueBots } = await import('@/lib/services/bots')
+
+    const bot = makeBot({ canCreateForecasts: false, maxVotesPerDay: 5 })
+    vi.mocked(prisma.botConfig.findMany).mockResolvedValue([bot] as any)
+    vi.mocked(prisma.botRunLog.count).mockResolvedValue(0)
+    vi.mocked(prisma.prediction.findMany).mockResolvedValue([
+      { id: 'forecast-1', claimText: '🤖 Some forecast', detailsText: 'Details', outcomeType: 'BINARY' },
+    ] as any)
+    // Default mock returns null (unconfigured); be explicit here.
+    vi.mocked(getOracleProbability).mockResolvedValueOnce(null)
+    mockGenerateContent.mockResolvedValueOnce({ text: VALID_VOTE_YES_JSON })
+    vi.mocked(createCommitment).mockResolvedValue({ ok: true } as any)
+    vi.mocked(prisma.botRunLog.create).mockResolvedValue({} as any)
+    vi.mocked(prisma.botConfig.update).mockResolvedValue({} as any)
+
+    const summaries = await runDueBots()
+
+    const votePromptArg = mockGenerateContent.mock.calls[0][0]
+    expect(votePromptArg.prompt).not.toContain('external forecasting Oracle')
+    expect(summaries[0].votes).toBe(1)
+  })
+
+  it('caps Oracle consultations per run even with many vote candidates', async () => {
+    const { prisma } = await import('@/lib/prisma')
+    const { createCommitment } = await import('@/lib/services/commitment')
+    const { getOracleProbability } = await import('@/lib/services/oracle')
+    const { runDueBots } = await import('@/lib/services/bots')
+
+    // 8 candidates, all votable → loop would consult 8× without the cap (5).
+    const bot = makeBot({ canCreateForecasts: false, maxVotesPerDay: 8 })
+    vi.mocked(prisma.botConfig.findMany).mockResolvedValue([bot] as any)
+    vi.mocked(prisma.botRunLog.count).mockResolvedValue(0)
+    vi.mocked(prisma.prediction.findMany).mockResolvedValue(
+      Array.from({ length: 8 }, (_, i) => ({
+        id: `f-${i}`,
+        claimText: `🤖 Forecast ${i}`,
+        detailsText: 'D',
+        outcomeType: 'BINARY',
+      })) as any,
+    )
+    vi.mocked(getOracleProbability).mockResolvedValue(0.6)
+    mockGenerateContent.mockResolvedValue({ text: VALID_VOTE_YES_JSON })
+    vi.mocked(createCommitment).mockResolvedValue({ ok: true } as any)
+    vi.mocked(prisma.botRunLog.create).mockResolvedValue({} as any)
+    vi.mocked(prisma.botConfig.update).mockResolvedValue({} as any)
+
+    await runDueBots()
+
+    expect(vi.mocked(getOracleProbability).mock.calls.length).toBe(5)
   })
 
   it('respects maxVotesPerDay cap and does not vote more than allowed', async () => {
