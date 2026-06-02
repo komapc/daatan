@@ -55,13 +55,13 @@ Sent by shell scripts **executing on the EC2 server** via SSM from `watchdog.yml
 
 ---
 
-## Heartbeat (`heartbeat.yml` — daily 09:00 UTC)
+## Daily summary (`heartbeat.yml` — daily 09:00 UTC)
 
-Sent by the **EC2 app process** via `GET /api/cron/heartbeat` (triggered by `heartbeat.yml`). Because the Telegram message originates from the server — not from GitHub Actions — a silent heartbeat means the server itself has a problem, not just that GitHub Actions is down.
+Sent by the **EC2 app process** via `GET /api/cron/heartbeat` (triggered by `heartbeat.yml`). Because the Telegram message originates from the server — not from GitHub Actions — a silent daily summary means the server itself has a problem, not just that GitHub Actions is down. The message also doubles as the liveness heartbeat (it replaced the old bare "server alive" ping).
 
 | Event | Icon | Message |
 |---|---|---|
-| Server alive | ✅ | `Server heartbeat — vX.Y.Z is alive. Sent from the server (EC2 app process), not GitHub Actions.` |
+| Daily summary | 📊 | `Daily summary — vX.Y.Z · N new users · N forecasts · N commitments · N resolved · search U/T providers usable` (last 24h, from Prisma counts + Oracle `/search/health`) |
 | Backup restore failed | 🚨 | `Backup Verification FAILED — reason — Manual investigation required` (sent from `scripts/verify-backup.sh` on EC2) |
 
 ---
@@ -94,7 +94,9 @@ Sent by API routes and services on business and operational events.
 | Oracle search unavailable | ⚠️ | 5 min (global) | `src/lib/services/oracleSearch.ts` |
 | Oracle forecast unavailable | 🚨 | 5 min (global) | `GET /api/cron/oracle-health` |
 | Oracle forecast recovered | ✅ | 5 min (global) | `GET /api/cron/oracle-health` |
-| Search credits low | ⚠️ | 5 min per provider | `src/lib/utils/webSearch.ts` |
+| Search provider health digest | ⚠️/🚨 | 5 min (global, one key) | `GET /api/cron/search-health` (hourly) + `GET /api/health/search` |
+
+**Search health is grouped:** instead of one "credits low" message per provider, `notifySearchHealthDigest()` emits a **single** message per check listing every exhausted/low provider (`🚨 All search providers failed` header when none are usable, `⚠️ Search provider health` otherwise). This replaced the previous per-provider fan-out (`notifySearchCreditsLow` / `notifyAllSearchProvidersFailed`, still exported for back-compat but no longer called by the crons).
 
 **Rate limiting:** Error notifications use a 5-minute in-memory cooldown. Cooldown resets on process restart.
 

@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createLogger } from '@/lib/logger'
 import { env } from '@/env'
-import { notifyHeartbeat } from '@/lib/services/telegram'
+import { notifyDailySummary } from '@/lib/services/telegram'
+import { getOracleSearchHealth } from '@/lib/services/oracleSearch'
+import { prisma } from '@/lib/prisma'
 import { secretsMatch } from '@/lib/cron-auth'
 
 const log = createLogger('cron-heartbeat')
@@ -30,8 +32,22 @@ export async function GET(request: NextRequest) {
   }
 
   const version = env.NEXT_PUBLIC_APP_VERSION || 'unknown'
-  notifyHeartbeat(version)
-  log.info({ version }, 'Heartbeat sent')
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000)
 
-  return NextResponse.json({ ok: true, version })
+  const [newUsers, published, commitments, resolutions, health] = await Promise.all([
+    prisma.user.count({ where: { createdAt: { gte: since } } }),
+    prisma.prediction.count({ where: { publishedAt: { gte: since } } }),
+    prisma.commitment.count({ where: { createdAt: { gte: since } } }),
+    prisma.prediction.count({ where: { resolvedAt: { gte: since } } }),
+    getOracleSearchHealth(),
+  ])
+
+  const search = health
+    ? { usable: health.usable_count, total: Object.keys(health.providers).length }
+    : null
+
+  notifyDailySummary({ version, newUsers, published, commitments, resolutions, search })
+  log.info({ version, newUsers, published, commitments, resolutions }, 'Daily summary sent')
+
+  return NextResponse.json({ ok: true, version, newUsers, published, commitments, resolutions })
 }

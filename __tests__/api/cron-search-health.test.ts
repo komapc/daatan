@@ -1,10 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
-const { mockGetOracleSearchHealth, mockNotifySearchCreditsLow, mockNotifyAllSearchProvidersFailed } = vi.hoisted(() => ({
+const { mockGetOracleSearchHealth, mockNotifySearchHealthDigest } = vi.hoisted(() => ({
   mockGetOracleSearchHealth: vi.fn(),
-  mockNotifySearchCreditsLow: vi.fn(),
-  mockNotifyAllSearchProvidersFailed: vi.fn(),
+  mockNotifySearchHealthDigest: vi.fn(),
 }))
 
 vi.mock('@/lib/services/oracleSearch', () => ({
@@ -13,8 +12,7 @@ vi.mock('@/lib/services/oracleSearch', () => ({
 }))
 
 vi.mock('@/lib/services/telegram', () => ({
-  notifySearchCreditsLow: (...args: unknown[]) => mockNotifySearchCreditsLow(...args),
-  notifyAllSearchProvidersFailed: (...args: unknown[]) => mockNotifyAllSearchProvidersFailed(...args),
+  notifySearchHealthDigest: (...args: unknown[]) => mockNotifySearchHealthDigest(...args),
 }))
 
 vi.mock('@/env', () => ({
@@ -56,39 +54,35 @@ describe('GET /api/cron/search-health', () => {
     const data = await res.json()
     expect(data.ok).toBe(true)
     expect(data.skipped).toBe(true)
+    expect(mockNotifySearchHealthDigest).not.toHaveBeenCalled()
   })
 
-  it('fires notifySearchCreditsLow for exhausted provider', async () => {
+  it('sends ONE grouped digest covering exhausted + low providers, skipping healthy/unconfigured', async () => {
     mockGetOracleSearchHealth.mockResolvedValue({
       overall: 'degraded',
       usable_count: 1,
       providers: {
         serper: { configured: true, exhausted: true, status: 'error' },
-        serpapi: { configured: true, exhausted: false, status: 'ok', credits: 500 },
+        brave: { configured: true, exhausted: false, status: 'ok', credits: 40 },
+        serpapi: { configured: true, exhausted: false, status: 'ok', credits: 999 }, // healthy → excluded
+        newsdata: { configured: false, exhausted: false, status: 'not_configured' }, // unconfigured → excluded
       },
     })
     const { GET } = await import('@/app/api/cron/search-health/route')
     await GET(makeRequest('test-secret'))
-    expect(mockNotifySearchCreditsLow).toHaveBeenCalledWith('serper', 0)
-    expect(mockNotifySearchCreditsLow).not.toHaveBeenCalledWith('serpapi', expect.anything())
-  })
 
-  it('fires notifySearchCreditsLow for low-credit provider', async () => {
-    mockGetOracleSearchHealth.mockResolvedValue({
-      overall: 'healthy',
-      usable_count: 2,
-      providers: {
-        serper: { configured: true, exhausted: false, status: 'ok', credits: 50 },
-        serpapi: { configured: true, exhausted: false, status: 'ok', credits: 999 },
-      },
+    expect(mockNotifySearchHealthDigest).toHaveBeenCalledTimes(1)
+    expect(mockNotifySearchHealthDigest).toHaveBeenCalledWith({
+      issues: [
+        { provider: 'serper', kind: 'exhausted' },
+        { provider: 'brave', kind: 'low', credits: 40 },
+      ],
+      overall: 'degraded',
+      usableCount: 1,
     })
-    const { GET } = await import('@/app/api/cron/search-health/route')
-    await GET(makeRequest('test-secret'))
-    expect(mockNotifySearchCreditsLow).toHaveBeenCalledWith('serper', 50)
-    expect(mockNotifySearchCreditsLow).not.toHaveBeenCalledWith('serpapi', expect.anything())
   })
 
-  it('fires notifyAllSearchProvidersFailed when overall is unhealthy', async () => {
+  it('marks the digest critical (unhealthy) when no providers are usable', async () => {
     mockGetOracleSearchHealth.mockResolvedValue({
       overall: 'unhealthy',
       usable_count: 0,
@@ -98,10 +92,14 @@ describe('GET /api/cron/search-health', () => {
     })
     const { GET } = await import('@/app/api/cron/search-health/route')
     await GET(makeRequest('test-secret'))
-    expect(mockNotifyAllSearchProvidersFailed).toHaveBeenCalledTimes(1)
+
+    expect(mockNotifySearchHealthDigest).toHaveBeenCalledTimes(1)
+    const arg = mockNotifySearchHealthDigest.mock.calls[0][0]
+    expect(arg.overall).toBe('unhealthy')
+    expect(arg.usableCount).toBe(0)
   })
 
-  it('does not fire alerts when all providers are healthy', async () => {
+  it('still calls the digest (which no-ops) when all providers are healthy', async () => {
     mockGetOracleSearchHealth.mockResolvedValue({
       overall: 'healthy',
       usable_count: 2,
@@ -112,24 +110,13 @@ describe('GET /api/cron/search-health', () => {
     })
     const { GET } = await import('@/app/api/cron/search-health/route')
     const res = await GET(makeRequest('test-secret'))
-    expect(res.status).toBe(200)
     const data = await res.json()
     expect(data.alerts).toHaveLength(0)
-    expect(mockNotifySearchCreditsLow).not.toHaveBeenCalled()
-    expect(mockNotifyAllSearchProvidersFailed).not.toHaveBeenCalled()
-  })
-
-  it('skips unconfigured providers', async () => {
-    mockGetOracleSearchHealth.mockResolvedValue({
+    // The route always calls the digest; suppression of the empty/healthy case is the digest's own job.
+    expect(mockNotifySearchHealthDigest).toHaveBeenCalledWith({
+      issues: [],
       overall: 'healthy',
-      usable_count: 1,
-      providers: {
-        serper: { configured: false, exhausted: false, status: 'not_configured' },
-        serpapi: { configured: true, exhausted: false, status: 'ok', credits: 500 },
-      },
+      usableCount: 2,
     })
-    const { GET } = await import('@/app/api/cron/search-health/route')
-    await GET(makeRequest('test-secret'))
-    expect(mockNotifySearchCreditsLow).not.toHaveBeenCalled()
   })
 })

@@ -118,6 +118,47 @@ export function notifySearchCreditsLow(provider: string, remaining: number): voi
   sendChannelNotification(msg)
 }
 
+export interface SearchHealthIssue {
+  provider: string
+  kind: 'exhausted' | 'low'
+  credits?: number
+}
+
+/**
+ * One grouped message for search-provider health, replacing the previous
+ * per-provider flood (one alert per low/exhausted provider). Critical when no
+ * usable providers remain.
+ */
+export function notifySearchHealthDigest(report: {
+  issues: SearchHealthIssue[]
+  overall: string
+  usableCount: number
+}): void {
+  if (isDevEnv()) return
+  if (report.issues.length === 0 && report.overall !== 'unhealthy') return
+  if (!canNotify('search-health-digest')) return
+
+  const critical = report.overall === 'unhealthy' || report.usableCount === 0
+  const header = critical
+    ? `🚨 <b>All search providers failed</b>`
+    : `⚠️ <b>Search provider health</b>`
+
+  const lines = report.issues.map((i) =>
+    i.kind === 'exhausted'
+      ? `• <b>${i.provider}</b>: exhausted`
+      : `• <b>${i.provider}</b>: ${i.credits ?? '?'} credits left`,
+  )
+
+  const msg = [
+    header,
+    `Usable providers: <b>${report.usableCount}</b>`,
+    ...lines,
+    critical ? `Express forecast generation is degraded — top up / investigate.` : '',
+  ].filter(Boolean).join('\n')
+
+  sendChannelNotification(msg)
+}
+
 // ============================================
 // Event-specific notification helpers
 // ============================================
@@ -404,9 +445,35 @@ export function notifyOracleForecastRecovered(): void {
   sendChannelNotification(msg)
 }
 
-export function notifyHeartbeat(version: string): void {
+/**
+ * One daily rollup of activity + provider health, replacing the bare heartbeat.
+ * Still proves the server is alive (it's emitted by the app process), but the
+ * single message carries the day's numbers instead of just "alive".
+ */
+export function notifyDailySummary(stats: {
+  version: string
+  newUsers: number
+  published: number
+  commitments: number
+  resolutions: number
+  search: { usable: number; total: number } | null
+}): void {
   if (isDevEnv()) return
-  const msg = `✅ <b>Server heartbeat</b> — v${version} is alive.\n<i>Sent from the server (EC2 app process), not GitHub Actions.</i>`
+
+  const searchLine = stats.search
+    ? `🔎 Search providers: <b>${stats.search.usable}/${stats.search.total}</b> usable`
+    : `🔎 Search providers: <i>unknown</i>`
+
+  const msg = [
+    `📊 <b>Daily summary</b> — v${stats.version}`,
+    `🆕 New users: <b>${stats.newUsers}</b>`,
+    `📢 Forecasts published: <b>${stats.published}</b>`,
+    `🎯 New commitments: <b>${stats.commitments}</b>`,
+    `⚖️ Resolved: <b>${stats.resolutions}</b>`,
+    searchLine,
+    `<i>Last 24h · sent from the server (EC2 app process).</i>`,
+  ].join('\n')
+
   sendChannelNotification(msg)
 }
 

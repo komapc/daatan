@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createLogger } from '@/lib/logger'
 import { env } from '@/env'
 import { getOracleSearchHealth, SEARCH_LOW_CREDITS_THRESHOLD } from '@/lib/services/oracleSearch'
-import { notifySearchCreditsLow, notifyAllSearchProvidersFailed } from '@/lib/services/telegram'
+import { notifySearchHealthDigest, type SearchHealthIssue } from '@/lib/services/telegram'
 import { secretsMatch } from '@/lib/cron-auth'
 
 const log = createLogger('cron-search-health')
@@ -31,25 +31,28 @@ export async function GET(request: NextRequest) {
 
   log.info({ overall: health.overall, usable_count: health.usable_count }, 'Oracle search health check')
 
-  const alerts: string[] = []
+  const issues: SearchHealthIssue[] = []
 
   for (const [name, provider] of Object.entries(health.providers)) {
     if (!provider.configured) continue
 
     if (provider.exhausted) {
-      notifySearchCreditsLow(name, 0)
-      alerts.push(`${name}: exhausted`)
+      issues.push({ provider: name, kind: 'exhausted' })
       continue
     }
 
     if (typeof provider.credits === 'number' && provider.credits < SEARCH_LOW_CREDITS_THRESHOLD) {
-      notifySearchCreditsLow(name, provider.credits)
-      alerts.push(`${name}: ${provider.credits} credits remaining`)
+      issues.push({ provider: name, kind: 'low', credits: provider.credits })
     }
   }
 
+  // One grouped message instead of one per provider.
+  notifySearchHealthDigest({ issues, overall: health.overall, usableCount: health.usable_count })
+
+  const alerts = issues.map((i) =>
+    i.kind === 'exhausted' ? `${i.provider}: exhausted` : `${i.provider}: ${i.credits} credits remaining`,
+  )
   if (health.overall === 'unhealthy' || health.usable_count === 0) {
-    notifyAllSearchProvidersFailed()
     alerts.push('all providers failed')
   }
 
