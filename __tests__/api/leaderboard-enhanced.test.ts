@@ -196,6 +196,33 @@ describe('GET /api/leaderboard (enhanced)', () => {
     expect(bob.totalRsGained).toBe(6)
   })
 
+  it('does not replay ELO for the default (no-tag) board and uses stored eloRating', async () => {
+    const { prisma } = await import('@/lib/prisma')
+    vi.mocked(prisma.user.findMany).mockResolvedValue(mockUsers as any)
+    const { replayEloHistory } = await import('@/lib/services/elo')
+
+    const request = new NextRequest('http://localhost/api/leaderboard?sortBy=elo')
+    const response = await GET(request)
+    const data = await response.json()
+
+    // No tag → replay skipped; stored eloRating drives the ranking (Bob 1520 > Alice 1500)
+    expect(replayEloHistory).not.toHaveBeenCalled()
+    expect(data.leaderboard[0].username).toBe('bob')
+    expect(data.leaderboard[0].eloRating).toBe(1520)
+    expect(data.leaderboard[1].eloRating).toBe(1500)
+  })
+
+  it('replays ELO for the selected tag when a tag is provided', async () => {
+    const { prisma } = await import('@/lib/prisma')
+    vi.mocked(prisma.user.findMany).mockResolvedValue(mockUsers as any)
+    const { replayEloHistory } = await import('@/lib/services/elo')
+
+    const request = new NextRequest('http://localhost/api/leaderboard?sortBy=elo&tag=crypto')
+    await GET(request)
+
+    expect(replayEloHistory).toHaveBeenCalledWith('crypto')
+  })
+
   it('handles database errors gracefully', async () => {
     const { prisma } = await import('@/lib/prisma')
     vi.mocked(prisma.user.findMany).mockRejectedValue(new Error('DB error'))

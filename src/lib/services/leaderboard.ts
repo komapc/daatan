@@ -107,10 +107,12 @@ export const getLeaderboard = async (limit: number, sortBy: SortBy, tagSlug?: st
         prediction: { select: { resolvedAt: true } },
       },
     }),
-    // Per-tag ELO replay — when no tag, replay full history (same as stored incremental)
-    replayEloHistory(tagSlug),
+    // Per-tag ELO replay only when a tag is selected. With no tag the stored
+    // eloRating (maintained incrementally at resolution) is identical to a full
+    // replay, so we skip the O(all-commitments) replay on the default board.
+    tagSlug ? replayEloHistory(tagSlug) : Promise.resolve(null),
     // Per-tag Glicko-2 replay — only when tag is selected; uses stored values otherwise
-    tagSlug ? replayGlicko2History(tagSlug) : Promise.resolve(null as null),
+    tagSlug ? replayGlicko2History(tagSlug) : Promise.resolve(null),
   ])
 
   // --- Build lookup maps ---
