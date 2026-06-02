@@ -30,8 +30,8 @@ Detailed architecture and feature docs: see [`docs/`](./docs/).
 - TypeScript strict; no `as any` / `as unknown as X` in app code, except 4 documented, unavoidable cases (re-audited June 2026): the two NextAuth callback-bridging casts in `src/auth.ts`, the polymorphic `as`-prop spread in `src/components/ui/Button.tsx`, and the non-standard `navigator.standalone` read in `src/components/PwaInstaller.tsx`. Don't add new ones.
 - Default to no comments; only add when WHY is non-obvious
 - Don't add error handling, fallbacks, or validation for impossible scenarios — trust internal callers
-- Tests use vitest. Run `npm test` (no extra flags needed). 990+ tests, ~45s.
-- `npm run lint` and `npx tsc --noEmit` must both be clean before any commit
+- Tests use vitest. Run `npm test` (no extra flags needed). 1000+ tests across two projects (node integration + happy-dom).
+- `npm run lint` and `npx tsc --noEmit` must both be clean before any commit. Note: `npm run lint` still uses `next lint`, which is deprecated and removed in Next.js 16 — migrate to the ESLint CLI before that bump.
 
 ## Where to look
 
