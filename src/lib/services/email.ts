@@ -10,7 +10,7 @@ function getResend(): Resend | null {
   return (_resend ??= new Resend(process.env.RESEND_API_KEY))
 }
 
-const APP_URL = process.env.NEXTAUTH_URL ?? 'https://daatan.app'
+const APP_URL = process.env.NEXTAUTH_URL ?? 'https://daatan.com'
 const isStaging = process.env.NEXT_PUBLIC_ENV === 'staging'
 
 /**
@@ -34,7 +34,7 @@ export async function dispatchEmail(params: {
     if (!user?.email || !user.emailNotifications) return
 
     const subject = isStaging ? `[staging] ${params.title}` : params.title
-    const from = process.env.EMAIL_FROM ?? 'Daatan <noreply@daatan.app>'
+    const from = process.env.EMAIL_FROM ?? 'Daatan <noreply@daatan.com>'
 
     await client.emails.send({
       from,
