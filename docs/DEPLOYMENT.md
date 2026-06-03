@@ -293,6 +293,16 @@ git tag v1.8.X <commit-sha>
 git push origin v1.8.X
 ```
 
+### Restarting the app on prod — do NOT force-recreate
+
+⚠️ **Never run `docker compose up --force-recreate app` directly on production.**
+It recreates the container in-place under live load and can spike CPU/memory — on
+2026-05-05 this took daatan.com down for ~22 min and killed the SSM agent for ~20 min.
+
+- **Deploy a new image:** use `scripts/blue-green-deploy.sh production` — the standard,
+  health-checked, zero-downtime path.
+- **Restart the running container (no rebuild):** `docker compose restart app`.
+
 ### View live logs
 
 Use the `/logs` slash command in Claude Code, or the `/prod-status` command for a
