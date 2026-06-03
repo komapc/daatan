@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daatan — Forecast Pipeline</title>
+<style>
+  :root{
+    --bg:#0a0f1e; --panel:#0f1629; --panel2:#131c33; --line:#24304d;
+    --ink:#e8edf7; --mut:#8a99b8; --faint:#5b6a8a;
+    --mod:#ef5a6b; --mod-bg:#2a121a;
+    --llm:#5b9cff; --llm-bg:#0f1c36;
+    --ext:#b07bff; --ext-bg:#1c1336;
+    --db:#36d399; --db-bg:#0c2418;
+    --bg2:#7d8aa8; --bg2-bg:#161d2e;
+    --api:#fcd34d; --api-bg:#241f0c;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  body{padding:32px clamp(16px,4vw,56px) 80px}
+  code,.mono{font-family:"SF Mono",ui-monospace,"Cascadia Code",Menlo,Consolas,monospace}
+
+  header.page{max-width:1240px;margin:0 auto 28px}
+  .kicker{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--faint);font-weight:600}
+  h1{margin:6px 0 4px;font-size:clamp(26px,3.4vw,40px);font-weight:800;letter-spacing:-.02em;
+    background:linear-gradient(92deg,#fff,#9fb6e6);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{color:var(--mut);font-size:15px;max-width:70ch;line-height:1.5}
+
+  .legend{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0 0}
+  .chip{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink);
+    background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:5px 11px}
+  .dot{width:9px;height:9px;border-radius:50%}
+  .dot.mod{background:var(--mod)} .dot.llm{background:var(--llm)} .dot.ext{background:var(--ext)}
+  .dot.db{background:var(--db)} .dot.bg{background:var(--bg2)} .dot.api{background:var(--api)}
+
+  .grid{max-width:1240px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:26px}
+  @media (max-width:980px){.grid{grid-template-columns:1fr}}
+
+  .lane{background:linear-gradient(180deg,var(--panel),#0c1324);border:1px solid var(--line);
+    border-radius:20px;padding:20px 20px 26px;position:relative;overflow:hidden}
+  .lane::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;
+    background:linear-gradient(90deg,var(--accent),transparent)}
+  .lane.create{--accent:var(--api)} .lane.analyze{--accent:var(--ext)}
+  .lane h2{display:flex;align-items:center;gap:11px;margin:4px 2px 6px;font-size:18px;font-weight:750}
+  .lane h2 .num{display:grid;place-items:center;width:26px;height:26px;border-radius:8px;
+    background:var(--accent);color:#0a0f1e;font-weight:850;font-size:14px}
+  .lane .tag{font-size:12px;color:var(--mut);margin:0 2px 18px;line-height:1.5}
+
+  .flow{display:flex;flex-direction:column;gap:0}
+  .node{position:relative;border:1px solid var(--line);border-radius:14px;
+    background:var(--panel2);padding:12px 14px 12px 16px;transition:.16s}
+  .node:hover{transform:translateY(-1px);border-color:var(--nb);box-shadow:0 8px 28px -14px var(--nb)}
+  .node::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:4px;border-radius:4px;background:var(--nb)}
+  .node .row{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .node .kind{font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:800;
+    color:var(--nb);background:var(--nbg);border:1px solid var(--nb);border-radius:6px;padding:2px 7px}
+  .node .snum{display:inline-grid;place-items:center;width:19px;height:19px;border-radius:6px;
+    background:var(--nb);color:#06101f;font-weight:850;font-size:11.5px;flex:0 0 auto}
+  .node .ttl{font-weight:700;font-size:14.5px}
+  .node .desc{color:var(--mut);font-size:12.5px;margin-top:5px;line-height:1.5}
+  .node .ref{color:var(--faint);font-size:11.5px}
+  .node code{color:#cbd8f5;background:#0b1326;border:1px solid var(--line);
+    border-radius:5px;padding:1px 5px;font-size:11.5px}
+
+  .mod{--nb:var(--mod);--nbg:var(--mod-bg)}
+  .llm{--nb:var(--llm);--nbg:var(--llm-bg)}
+  .ext{--nb:var(--ext);--nbg:var(--ext-bg)}
+  .db{--nb:var(--db);--nbg:var(--db-bg)}
+  .api{--nb:var(--api);--nbg:var(--api-bg)}
+  .bgn{--nb:var(--bg2);--nbg:var(--bg2-bg);border-style:dashed}
+
+  .conn{height:26px;display:flex;justify-content:center;align-items:center;position:relative}
+  .conn::before{content:"";width:2px;height:100%;background:linear-gradient(var(--line),var(--mut))}
+  .conn .lab{position:absolute;background:var(--panel2);border:1px solid var(--line);border-radius:999px;
+    font-size:10.5px;color:var(--mut);padding:2px 9px;white-space:nowrap}
+  .conn.arrow::after{content:"▼";position:absolute;bottom:-2px;color:var(--mut);font-size:11px}
+
+  /* side branch (background work) */
+  .branch{display:flex;gap:10px;align-items:stretch;margin-top:0}
+  .branch .spur{flex:0 0 26px;position:relative}
+  .branch .spur::before{content:"";position:absolute;left:50%;top:-26px;height:calc(100% + 26px);width:2px;
+    background:repeating-linear-gradient(var(--bg2) 0 4px,transparent 4px 8px)}
+  .branch .spur::after{content:"";position:absolute;left:50%;top:50%;width:14px;height:2px;
+    background:repeating-linear-gradient(90deg,var(--bg2) 0 4px,transparent 4px 8px)}
+
+  /* parallel fork (two side by side) */
+  .fork{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media (max-width:520px){.fork{grid-template-columns:1fr}}
+  .forklabel{text-align:center;font-size:11px;color:var(--faint);letter-spacing:.1em;
+    text-transform:uppercase;margin:14px 0 8px}
+
+  .handoff{max-width:1240px;margin:22px auto 0;display:flex;justify-content:center}
+  .handoff .pill{display:inline-flex;align-items:center;gap:10px;font-size:13px;color:var(--ink);
+    background:linear-gradient(90deg,var(--api-bg),var(--ext-bg));border:1px solid var(--line);
+    border-radius:999px;padding:9px 18px}
+  .handoff .pill b{color:#fff}
+
+  .insights{max-width:1240px;margin:30px auto 0;display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  @media (max-width:980px){.insights{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px 17px}
+  .card h3{margin:0 0 7px;font-size:14px;display:flex;align-items:center;gap:8px}
+  .card p{margin:0;color:var(--mut);font-size:13px;line-height:1.55}
+  .card .em{color:#fff;font-weight:600}
+
+  footer{max-width:1240px;margin:34px auto 0;color:var(--faint);font-size:12px;
+    border-top:1px solid var(--line);padding-top:16px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+</style>
+</head>
+<body>
+<header class="page">
+  <div class="kicker">Daatan · architecture</div>
+  <h1>The Forecast Pipeline</h1>
+  <p class="sub">Two distinct flows. <b style="color:#fff">Create</b> drafts and persists a forecast; <b style="color:#fff">Analyze</b> is a separate, repeatable step that fetches fresh context and produces the calibrated Oracle estimate. Hover any node for the exact function &amp; file.</p>
+  <div class="legend">
+    <span class="chip"><i class="dot mod"></i> moderation / gate</span>
+    <span class="chip"><i class="dot llm"></i> LLM &nbsp;<span style="color:var(--faint)">(Gemini → Ollama)</span></span>
+    <span class="chip"><i class="dot ext"></i> external Oracle <span style="color:var(--faint)">(retro repo)</span></span>
+    <span class="chip"><i class="dot db"></i> DB write</span>
+    <span class="chip"><i class="dot bg"></i> background (not awaited)</span>
+    <span class="chip"><i class="dot api"></i> API / route</span>
+  </div>
+</header>
+
+<div class="grid">
+
+  <!-- ============ CREATE ============ -->
+  <section class="lane create">
+    <h2><span class="num">1</span> Create — make a forecast</h2>
+    <div class="tag">Express idea · paste a link · or fill the manual wizard → draft → persist → publish</div>
+    <div class="flow">
+
+      <div class="node api" title="ExpressForecastClient → POST /api/forecasts/express/generate (SSE)">
+        <div class="row"><span class="kind">entry</span><span class="ttl">💬 Express · 🔗 Link · 📝 Manual</span></div>
+        <div class="desc">Express &amp; link drafts run through <code>/express/generate</code> (SSE). Manual entry skips drafting → straight to the wizard.</div>
+      </div>
+
+      <div class="conn arrow"><span class="lab">express draft · 5 user-visible steps</span></div>
+
+      <div class="node mod" title="checkContent() · src/lib/services/moderation.ts">
+        <div class="row"><span class="snum">1</span><span class="kind">censor</span><span class="ttl">Checking content</span></div>
+        <div class="desc">LLM moderation; offensive input is rejected up front.</div>
+        <div class="ref mono">checkContent()</div>
+      </div>
+
+      <div class="conn arrow"></div>
+
+      <div class="node llm" title="buildSearchQuery() → oracleSearch() · src/lib/llm/searchQuery.ts">
+        <div class="row"><span class="snum">2</span><span class="kind">llm + oracle</span><span class="ttl">Searching articles</span></div>
+        <div class="desc">Keyword query (2 s timeout → cleaned claim) → Oracle <code>/search</code> (dataforseo → gdelt → ddg).</div>
+        <div class="ref mono">buildSearchQuery() · oracleSearch()</div>
+      </div>
+
+      <div class="branch">
+        <div class="spur"></div>
+        <div class="node llm" style="flex:1;border-style:dashed" title="link path only — fetchUrlContent + topic-extraction">
+          <div class="row"><span class="kind">link path only</span><span class="ttl">Scrape + extract topic</span></div>
+          <div class="desc">For a pasted URL: fetch the page, LLM extracts the topic, then search related — the original article becomes the anchor.</div>
+          <div class="ref mono">fetchUrlContent() · topic-extraction</div>
+        </div>
+      </div>
+
+      <div class="conn arrow"></div>
+
+      <div class="node ext" title="found_articles stage — sourceSummary built from results">
+        <div class="row"><span class="snum">3</span><span class="kind">oracle</span><span class="ttl">Found sources</span></div>
+        <div class="desc">Confirms hits — e.g. “8 sources (CNN×2, BBC…)”. <span class="em">Skipped on the source-free path.</span></div>
+      </div>
+
+      <div class="conn arrow"></div>
+
+      <div class="node llm" title="generateExpressPrediction() → llmService 'express-prediction' + relevance gate">
+        <div class="row"><span class="snum">4</span><span class="kind">llm</span><span class="ttl">Analyzing &amp; drafting</span></div>
+        <div class="desc">Drafts claim, resolve-by, tags, outcome, a probability <em>suggestion</em>; relevance gate picks the news anchor.</div>
+        <div class="ref mono">generateExpressPrediction()</div>
+      </div>
+
+      <div class="conn arrow"></div>
+
+      <div class="node" style="--nb:var(--bg2);--nbg:var(--bg2-bg)" title="finalizing stage — assemble draft + sources">
+        <div class="row"><span class="snum">5</span><span class="kind">finalize</span><span class="ttl">Finalizing for review</span></div>
+        <div class="desc">Assembles the draft and its sources, then streams the result back.</div>
+      </div>
+
+      <div class="conn arrow"><span class="lab">draft → localStorage → wizard</span></div>
+
+      <div class="node" style="--nb:var(--faint);--nbg:#141b2c" title="ForecastWizard.tsx — manual entry also starts here">
+        <div class="row"><span class="kind" style="color:var(--mut);border-color:var(--line);background:#141b2c">review</span><span class="ttl">🧙 Wizard — review &amp; edit</span></div>
+        <div class="desc">Pre-filled for express/link; <span class="em">manual creation begins right here</span> with an empty form.</div>
+      </div>
+
+      <div class="conn arrow"></div>
+
+      <div class="node api" title="POST /api/forecasts · src/app/api/forecasts/route.ts">
+        <div class="row"><span class="kind">persist</span><span class="ttl">POST /api/forecasts</span></div>
+        <div class="desc">The only DB-writing step.</div>
+      </div>
+
+      <div class="conn arrow"></div>
+
+      <div class="node mod" title="checkContent() — runs again on save">
+        <div class="row"><span class="kind">censor</span><span class="ttl">Moderation — again</span></div>
+        <div class="desc">Re-checks on persist (also the <em>only</em> moderation for the manual path).</div>
+      </div>
+
+      <div class="conn arrow"></div>
+
+      <div class="node db" title="createForecast() · src/lib/services/forecast.ts">
+        <div class="row"><span class="kind">db</span><span class="ttl">createForecast → DRAFT</span></div>
+        <div class="desc">Writes the prediction row (status DRAFT) + connect/create tags.</div>
+      </div>
+
+      <div class="branch">
+        <div class="spur"></div>
+        <div class="node bgn" style="flex:1" title="embedAndStoreForecast() + translatePredictionToAllLocales() — fire-and-forget">
+          <div class="row"><span class="kind">background</span><span class="ttl">Embed + Translate</span></div>
+          <div class="desc"><span class="em">Fire-and-forget</span> — kicked off after the row is created, <em>not awaited</em>. Embedding (pgvector, Gemini) for similar-forecasts; translation to every locale.</div>
+          <div class="ref mono">embedAndStoreForecast() · translatePredictionToAllLocales()</div>
+        </div>
+      </div>
+
+      <div class="conn arrow"></div>
+
+      <div class="node db" title="POST /api/forecasts/[id]/publish → publishForecast()">
+        <div class="row"><span class="kind">db</span><span class="ttl">Publish → ACTIVE</span></div>
+        <div class="desc">DRAFT → ACTIVE, then a Telegram notification.</div>
+        <div class="ref mono">publishForecast() · notifyForecastPublished()</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ ANALYZE ============ -->
+  <section class="lane analyze">
+    <h2><span class="num">2</span> Analyze — context &amp; Oracle estimate</h2>
+    <div class="tag">On-demand on an ACTIVE forecast — repeatable. This is where the real probability <em>math</em> lives.</div>
+    <div class="flow">
+
+      <div class="node api" title="POST /api/forecasts/[id]/context (SSE) · src/app/api/forecasts/[id]/context/route.ts">
+        <div class="row"><span class="kind">entry</span><span class="ttl">🔄 Update Context</span></div>
+        <div class="desc">Triggered by the user on an ACTIVE forecast; streams results back over SSE.</div>
+      </div>
+
+      <div class="conn arrow"></div>
+
+      <div class="node mod" title="cooldown + daily cap">
+        <div class="row"><span class="kind">gate</span><span class="ttl">Rate limit</span></div>
+        <div class="desc">1 h cooldown per forecast · max 10 updates per user per day.</div>
+      </div>
+
+      <div class="conn arrow"></div>
+
+      <div class="node llm" title="buildSearchQuery(claimText)">
+        <div class="row"><span class="kind">llm</span><span class="ttl">Build search query</span></div>
+        <div class="desc">From the forecast's own claim (not the news anchor title).</div>
+        <div class="ref mono">buildSearchQuery()</div>
+      </div>
+
+      <div class="conn arrow"></div>
+
+      <div class="node ext" title="oracleSearch() → Oracle /search">
+        <div class="row"><span class="kind">oracle</span><span class="ttl">Web search</span></div>
+        <div class="desc">Fresh articles for the topic; same Oracle <code>/search</code> + provider chain.</div>
+        <div class="ref mono">oracleSearch()</div>
+      </div>
+
+      <div class="forklabel">— run concurrently (15 s race) —</div>
+      <div class="fork">
+        <div class="node llm" title="llmService 'update-context' — streamed first">
+          <div class="row"><span class="kind">llm</span><span class="ttl">Summary</span></div>
+          <div class="desc">LLM <code>update-context</code> — what has changed. Streamed to the client first.</div>
+        </div>
+        <div class="node ext" title="getOracleForecast() → Oracle /forecast">
+          <div class="row"><span class="kind">math</span><span class="ttl">Oracle /forecast</span></div>
+          <div class="desc">Per-source <em>stance · certainty · credibility</em> → <code>mean/std/CI</code>. Prob = (mean+1)/2.</div>
+          <div class="ref mono">getOracleForecast()</div>
+        </div>
+      </div>
+
+      <div class="conn arrow"><span class="lab">if Oracle returns null → guessChances() (LLM)</span></div>
+
+      <div class="node db" title="saveContextUpdate() · src/lib/services/context.ts">
+        <div class="row"><span class="kind">db</span><span class="ttl">Save snapshot + prob/CI</span></div>
+        <div class="desc">Writes a <code>contextSnapshot</code> and updates the prediction's summary, confidence &amp; CI. Logs <code>ContextTiming</code>.</div>
+        <div class="ref mono">saveContextUpdate()</div>
+      </div>
+
+    </div>
+  </section>
+</div>
+
+<div class="handoff">
+  <span class="pill">⟶ <b>Create</b> ends at an ACTIVE forecast &nbsp;·&nbsp; <b>Analyze</b> runs later, on demand, as many times as you like</span>
+</div>
+
+<div class="insights">
+  <div class="card"><h3>🟥 Moderation runs twice</h3><p>Once when the express draft is generated, and <span class="em">again</span> on persist. The manual path skips the draft, so its only moderation is on <code>POST /api/forecasts</code>.</p></div>
+  <div class="card"><h3>🟪 The "math" is in Analyze</h3><p>The draft's probability is just an <span class="em">LLM suggestion</span>. The calibrated, credibility-weighted estimate (mean/std/CI) comes from the external Oracle's <code>/forecast</code> — only in the Analyze flow.</p></div>
+  <div class="card"><h3>▦ Translate &amp; embed are background</h3><p>They're <span class="em">fire-and-forget</span> jobs fired after the row is saved — the response returns before they finish. They are not an inline stage between censorship and search.</p></div>
+</div>
+
+<footer>
+  <span>Generated from source · <span class="mono">oracle.ts · oracleSearch.ts · searchQuery.ts · expressPrediction.ts · context/route.ts · forecast.ts</span></span>
+  <span>Oracle = external TruthMachine (retro repo) · LLM = Gemini → Ollama</span>
+</footer>
+</body>
+</html>

@@ -537,6 +537,8 @@
     "finalizingMsg": "Завершение...",
     "aiAnalysisStep": "ИИ-анализ",
     "buildingStep": "Построение прогноза",
+    "foundStep": "Источники найдены",
+    "finalizeStep": "Завершение",
     "previewLabel": "Предпросмотр:",
     "resolvesOn": "Разрешается: {date}",
     "analyzingReading": "Чтение исходных статей…",

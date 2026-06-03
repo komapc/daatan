@@ -537,6 +537,8 @@
     "finalizingMsg": "מסיים...",
     "aiAnalysisStep": "ניתוח בינה מלאכותית",
     "buildingStep": "בונה תחזית",
+    "foundStep": "מקורות נמצאו",
+    "finalizeStep": "מסיים",
     "previewLabel": "תצוגה מקדימה:",
     "resolvesOn": "מוכרע: {date}",
     "analyzingReading": "קורא מאמרי מקור…",
