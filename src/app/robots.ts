@@ -32,6 +32,9 @@ export default function robots(): MetadataRoute.Robots {
         '/forecasts/express/',
         '/forecasts/*/edit/',
         '/retroanalysis/',
+        // Internal architecture docs served as static HTML (also carry a
+        // noindex meta tag) — not indexable content.
+        '/docs/',
         // OG image generation routes — image/png responses, not indexable pages.
         // Social platforms (Twitter, LinkedIn, etc.) ignore robots.txt so sharing
         // previews are unaffected; this stops Google treating them as soft-404 pages.
