@@ -537,6 +537,8 @@
     "finalizingMsg": "Finalizing...",
     "aiAnalysisStep": "AI analysis",
     "buildingStep": "Building forecast",
+    "foundStep": "Sources found",
+    "finalizeStep": "Finalizing",
     "previewLabel": "Preview:",
     "resolvesOn": "Resolves: {date}",
     "analyzingReading": "Reading source articles…",

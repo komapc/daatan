@@ -537,6 +537,8 @@
     "finalizingMsg": "Finigante...",
     "aiAnalysisStep": "AI-analizo",
     "buildingStep": "Konstruante prognozon",
+    "foundStep": "Fontoj trovitaj",
+    "finalizeStep": "Finpretigado",
     "previewLabel": "Antaŭrigardo:",
     "resolvesOn": "Decidiĝas: {date}",
     "analyzingReading": "Legante fontajn artikolojn…",

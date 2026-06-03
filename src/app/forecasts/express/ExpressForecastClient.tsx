@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Sparkles, Search, FileText, Loader2, AlertCircle, Edit2, RotateCcw, ArrowLeft, X, Plus, List, Trash2, Eye, EyeOff, ShieldCheck } from 'lucide-react'
+import { Sparkles, Search, FileText, Loader2, AlertCircle, Edit2, RotateCcw, ArrowLeft, X, Plus, List, Trash2, Eye, EyeOff, ShieldCheck, Newspaper, type LucideIcon } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/Button'
 import { SimilarForecastsWarning } from '@/components/forecasts/SimilarForecastsWarning'
@@ -66,6 +66,9 @@ export default function ExpressForecastClient({
     onInputChange?.(val)
   }
   const [step, setStep] = useState<Step>('input')
+  // 1..5 honest progress phase for the stepper (0 = idle):
+  // 1 check · 2 search · 3 found · 4 analyze+draft · 5 finalize
+  const [phase, setPhase] = useState(0)
   const [error, setError] = useState('')
   const [generated, setGenerated] = useState<GeneratedPrediction | null>(null)
   const [progressMessage, setProgressMessage] = useState('')
@@ -124,6 +127,7 @@ export default function ExpressForecastClient({
 
     setError('')
     setStep('checking')
+    setPhase(1)
     setProgressMessage(t('checkingMsg'))
     setArticlesFound(0)
     setSourcesSummary('')
@@ -160,25 +164,31 @@ export default function ExpressForecastClient({
 
             if (data.stage === 'checking') {
               setStep('checking')
+              setPhase(1)
               setProgressMessage(data.data?.message || t('checkingMsg'))
             } else if (data.stage === 'searching') {
               setStep('searching')
+              setPhase(2)
               setProgressMessage(data.data?.message || t('searchingMsg'))
             } else if (data.stage === 'found_articles') {
               setArticlesFound(data.data?.count || 0)
               setSourcesSummary(data.data?.sources || '')
               setProgressMessage(data.data?.message || t('foundSources', { count: data.data?.count ?? 0 }))
               setStep('analyzing')
+              setPhase(3)
             } else if (data.stage === 'analyzing') {
               setStep('analyzing')
+              setPhase(4)
               setProgressMessage(data.data?.message || t('analyzingMsg'))
             } else if (data.stage === 'prediction_formed') {
               setStep('generating')
+              setPhase(5)
               setProgressMessage(data.data?.message || t('predictionFormed'))
               if (data.data?.preview) {
                 setPredictionPreview(data.data.preview)
               }
             } else if (data.stage === 'finalizing') {
+              setPhase(5)
               setProgressMessage(data.data?.message || t('finalizingMsg'))
             } else if (data.stage === 'complete') {
               setGenerated(data.data)
@@ -211,6 +221,7 @@ export default function ExpressForecastClient({
 
   const handleTryAgain = () => {
     setStep('input')
+    setPhase(0)
     setError('')
     setGenerated(null)
     setEditForm(null)
@@ -384,6 +395,26 @@ export default function ExpressForecastClient({
     setEditForm({ ...editForm, options: newOptions })
   }
 
+  // Five honest progress rows. The search + found rows drop out for the
+  // source-free path (skipSources), which goes check → analyze → finalize.
+  type StepperRow = { n: number; Icon: LucideIcon; label: string; detail?: string | null; pulse?: boolean }
+  const stepperRows: StepperRow[] = [
+    { n: 1, Icon: ShieldCheck, label: t('checkingStep') },
+    ...(!skipSources
+      ? [
+          { n: 2, Icon: Search, label: t('searchingStep') },
+          {
+            n: 3,
+            Icon: Newspaper,
+            label: t('foundStep'),
+            detail: articlesFound > 0 ? (sourcesSummary || t('sourcesFound', { count: articlesFound })) : null,
+          },
+        ]
+      : []),
+    { n: 4, Icon: FileText, label: t('aiAnalysisStep'), detail: phase === 4 ? ANALYZING_MESSAGES[analyzingMsgIdx] : null, pulse: true },
+    { n: 5, Icon: Sparkles, label: t('finalizeStep') },
+  ]
+
   return (
     <div className="space-y-6">
       {/* Input Step */}
@@ -465,54 +496,28 @@ export default function ExpressForecastClient({
             </div>
 
             <div className="space-y-4">
-              {/* Step 1: Content check */}
-              <div className={`flex items-center gap-3 ${step === 'checking' ? 'text-blue-600' : 'text-green-600'}`}>
-                <ShieldCheck className="w-5 h-5" />
-                <span className="font-medium flex-1">{t('checkingStep')}</span>
-                {step !== 'checking' && <span className="text-green-600 text-sm">✓</span>}
-              </div>
-
-              {/* Step 2: Searching (only when using sources) */}
-              {!skipSources && (
-                <div className={`flex items-center gap-3 ${
-                  step === 'checking' ? 'text-gray-500' :
-                  step === 'searching' ? 'text-blue-600' : 'text-green-600'
-                }`}>
-                  <Search className="w-5 h-5" />
-                  <div className="flex-1">
-                    <span className="font-medium">{t('searchingStep')}</span>
-                    {articlesFound > 0 && (
-                      <span className="ml-2 text-sm text-gray-400">
-                        ({sourcesSummary || t('sourcesFound', { count: articlesFound })})
-                      </span>
-                    )}
+              {stepperRows.map((row) => {
+                const state = phase > row.n ? 'done' : phase === row.n ? 'active' : 'pending'
+                const Icon = row.Icon
+                return (
+                  <div
+                    key={row.n}
+                    className={`flex items-center gap-3 ${
+                      state === 'active' ? 'text-blue-600' : state === 'done' ? 'text-green-600' : 'text-gray-500'
+                    }`}
+                  >
+                    <Icon className="w-5 h-5" />
+                    <div className="flex-1">
+                      <span className="font-medium">{row.label}</span>
+                      {row.detail && (row.pulse
+                        ? <p className="text-xs text-gray-400 mt-0.5 animate-pulse">{row.detail}</p>
+                        : <span className="ml-2 text-sm text-gray-400">({row.detail})</span>
+                      )}
+                    </div>
+                    {state === 'done' && <span className="text-green-600 text-sm">✓</span>}
                   </div>
-                  {!['checking', 'searching'].includes(step) && <span className="text-green-600 text-sm">✓</span>}
-                </div>
-              )}
-
-              {/* Step 3: AI analysis */}
-              <div className={`flex items-center gap-3 ${
-                ['checking', 'searching'].includes(step) ? 'text-gray-500' :
-                step === 'analyzing' ? 'text-blue-600' : 'text-green-600'
-              }`}>
-                <FileText className="w-5 h-5" />
-                <div className="flex-1">
-                  <span className="font-medium">{t('aiAnalysisStep')}</span>
-                  {step === 'analyzing' && (
-                    <p className="text-xs text-gray-400 mt-0.5 animate-pulse">
-                      {ANALYZING_MESSAGES[analyzingMsgIdx]}
-                    </p>
-                  )}
-                </div>
-                {step === 'generating' && <span className="text-green-600 text-sm">✓</span>}
-              </div>
-
-              {/* Step 4: Generating */}
-              <div className={`flex items-center gap-3 ${step === 'generating' ? 'text-blue-600' : 'text-gray-500'}`}>
-                <Sparkles className="w-5 h-5" />
-                <span className="font-medium">{t('buildingStep')}</span>
-              </div>
+                )
+              })}
             </div>
 
             {/* Current status message + elapsed timer */}
