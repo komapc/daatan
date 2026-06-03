@@ -53,10 +53,10 @@ export interface OracleForecastResponse {
   sources: OracleSource[]
   /** True if the Oracle couldn't produce a real forecast (stub response). */
   placeholder: boolean
-  /** Search engine/provider retro used for the underlying article search (added retro-side). */
-  search_engine?: string
-  /** Ordered providers retro tried for the underlying article search (added retro-side). */
-  providers_used?: string[]
+  /** Search provider that served the underlying article search (retro /forecast & /search; may be 'caller'/'search_cache'/'none'). */
+  provider?: string
+  /** Ordered search fallback chain retro tried, in order. */
+  provider_chain?: string[]
 }
 
 interface OracleHealthResponse {
@@ -123,7 +123,7 @@ export const getOracleForecast = async (
     }
 
     const data: OracleForecastResponse = await res.json()
-    const searchEngine = data.search_engine ?? data.providers_used?.join(', ') ?? null
+    const searchEngine = data.provider ?? data.provider_chain?.join(', ') ?? null
 
     if (data.placeholder) {
       log.debug('Oracle returned placeholder response — no real forecast available')
