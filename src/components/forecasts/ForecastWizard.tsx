@@ -19,6 +19,8 @@ import { StepNewsAnchor } from './steps/StepNewsAnchor'
 import { StepPrediction } from './steps/StepPrediction'
 import { StepOutcome } from './steps/StepOutcome'
 import { StepPublish } from './steps/StepPublish'
+import { SubmitProgress, type SubmitPhase } from './SubmitProgress'
+import { getEstimate, recordDuration } from '@/lib/forecast-timing'
 
 export type PredictionFormData = {
   // Step 1: News Anchor
@@ -65,6 +67,9 @@ export const ForecastWizard = ({ isExpressFlow = false, initialClaim = '' }: For
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(isExpressFlow ? 2 : 1)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitPhase, setSubmitPhase] = useState<SubmitPhase>('creating')
+  const [submitMode, setSubmitMode] = useState<'draft' | 'publish'>('publish')
+  const [estimates, setEstimates] = useState({ create: 5000, publish: 1500 })
   const [error, setError] = useState<string | null>(null)
 
   const [formData, setFormData] = useState<PredictionFormData>({
@@ -178,6 +183,9 @@ export const ForecastWizard = ({ isExpressFlow = false, initialClaim = '' }: For
       }
     }
 
+    setSubmitMode(asDraft ? 'draft' : 'publish')
+    setSubmitPhase('creating')
+    setEstimates({ create: getEstimate('forecast-create'), publish: getEstimate('forecast-publish') })
     setIsSubmitting(true)
     setError(null)
 
@@ -193,6 +201,7 @@ export const ForecastWizard = ({ isExpressFlow = false, initialClaim = '' }: For
       }
 
       // Create prediction
+      const createStart = performance.now()
       const response = await fetch('/api/forecasts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -228,9 +237,12 @@ export const ForecastWizard = ({ isExpressFlow = false, initialClaim = '' }: For
       }
 
       const prediction = await response.json()
+      recordDuration('forecast-create', performance.now() - createStart)
 
       // If not draft, publish immediately
       if (!asDraft) {
+        setSubmitPhase('publishing')
+        const publishStart = performance.now()
         const publishResponse = await fetch(`/api/forecasts/${prediction.id}/publish`, {
           method: 'POST',
         })
@@ -239,7 +251,10 @@ export const ForecastWizard = ({ isExpressFlow = false, initialClaim = '' }: For
           const data = await publishResponse.json()
           throw new Error(data.error || 'Failed to publish prediction')
         }
+        recordDuration('forecast-publish', performance.now() - publishStart)
       }
+
+      setSubmitPhase('done')
 
       window.dispatchEvent(new CustomEvent('daatan:first-action'))
       analytics.forecastCreated({
@@ -389,6 +404,15 @@ export const ForecastWizard = ({ isExpressFlow = false, initialClaim = '' }: For
           )}
         </div>
       </div>
+
+      {isSubmitting && currentStep === 4 && (
+        <SubmitProgress
+          mode={submitMode}
+          phase={submitPhase}
+          createEstimateMs={estimates.create}
+          publishEstimateMs={estimates.publish}
+        />
+      )}
     </div>
   )
 }
