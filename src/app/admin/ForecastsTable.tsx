@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Loader2, Search } from 'lucide-react'
 import ForecastCard, { Prediction } from '@/components/forecasts/ForecastCard'
+import BackfillTagsButton from './BackfillTagsButton'
 
 export default function ForecastsTable() {
   const [predictions, setPredictions] = useState<Prediction[]>([])
@@ -51,6 +52,7 @@ export default function ForecastsTable() {
             Search
           </button>
         </form>
+        <BackfillTagsButton />
       </div>
 
       {isLoading ? (
