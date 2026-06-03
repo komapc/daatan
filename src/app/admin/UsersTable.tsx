@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import { Loader2, Search } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 
@@ -103,13 +104,15 @@ export default function UsersTable() {
                 {users.map((u) => (
                   <tr key={u.id} className={`hover:bg-navy-800 transition-colors ${u.isBot ? 'border-l-2 border-cobalt/40 bg-cobalt/5' : ''}`}>
                     <td className="p-3">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-white">{u.name}</span>
-                        {u.isBot && (
-                          <span className="text-xs px-1.5 py-0.5 rounded bg-cobalt/20 text-cobalt-light font-mono">BOT</span>
-                        )}
-                      </div>
-                      <div className="text-xs text-gray-500 font-mono">@{u.username || 'unknown'}</div>
+                      <Link href={`/profile/${u.id}`} className="group inline-block hover:opacity-80 transition-opacity">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-white group-hover:underline">{u.name}</span>
+                          {u.isBot && (
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-cobalt/20 text-cobalt-light font-mono">BOT</span>
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-500 font-mono">@{u.username || 'unknown'}</div>
+                      </Link>
                     </td>
                     <td className="p-3 text-sm text-gray-500">{u.email}</td>
                     <td className="p-3">

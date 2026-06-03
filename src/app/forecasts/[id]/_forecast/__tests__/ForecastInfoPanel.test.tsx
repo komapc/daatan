@@ -24,24 +24,28 @@ const wrap = (prediction: Prediction) =>
   )
 
 describe('ForecastInfoPanel — Tags box', () => {
-  it('renders "None" when extractedEntities is an empty array', () => {
+  it('renders "None" when the forecast has an empty tags array', () => {
     // Regression: `[].map() || None` left a bare, empty Tags box because an
     // empty array is truthy. The fallback must fire on length 0 too.
-    wrap({ ...basePrediction, extractedEntities: [] })
+    wrap({ ...basePrediction, tags: [] })
     expect(screen.getByText('None')).toBeInTheDocument()
   })
 
-  it('renders "None" when extractedEntities is undefined', () => {
-    wrap({ ...basePrediction, extractedEntities: undefined })
+  it('renders "None" when tags is undefined', () => {
+    wrap({ ...basePrediction, tags: undefined })
     expect(screen.getByText('None')).toBeInTheDocument()
   })
 
-  it('renders the entity chips (capped at 3) when present', () => {
-    wrap({ ...basePrediction, extractedEntities: ['Armenia', 'EU', 'Accession', 'Extra'] })
-    expect(screen.getByText('Armenia')).toBeInTheDocument()
-    expect(screen.getByText('EU')).toBeInTheDocument()
-    expect(screen.getByText('Accession')).toBeInTheDocument()
-    expect(screen.queryByText('Extra')).toBeNull()
+  it('renders the real topic tags as chips', () => {
+    wrap({
+      ...basePrediction,
+      tags: [
+        { id: 't1', name: 'Politics', slug: 'politics' },
+        { id: 't2', name: 'Crypto', slug: 'crypto' },
+      ],
+    })
+    expect(screen.getByText('Politics')).toBeInTheDocument()
+    expect(screen.getByText('Crypto')).toBeInTheDocument()
     expect(screen.queryByText('None')).toBeNull()
   })
 })

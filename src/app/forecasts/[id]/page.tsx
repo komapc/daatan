@@ -63,6 +63,9 @@ async function getPrediction(idOrSlug: string) {
         },
       },
       newsAnchor: true,
+      tags: {
+        select: { id: true, name: true, slug: true },
+      },
       options: {
         orderBy: { displayOrder: 'asc' },
       },
