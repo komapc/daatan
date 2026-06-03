@@ -231,10 +231,6 @@ export default function ForecastCard({
     }
   }
 
-  const handleCardClick = () => {
-    router.push(`/forecasts/${prediction.slug || prediction.id}`)
-  }
-
   useEffect(() => {
     if (!showAdminMenu) return
     const handleClickOutside = (e: MouseEvent) => {
@@ -310,12 +306,18 @@ export default function ForecastCard({
   }
 
   const badge = getStatusBadge(prediction.status)
+  const forecastUrl = `/forecasts/${prediction.slug || prediction.id}`
 
   return (
-    <div
-      onClick={handleCardClick}
-      className="group block p-4 sm:p-5 bg-navy-700 border border-navy-600 rounded-xl hover:border-blue-300 hover:shadow-md transition-all duration-200 cursor-pointer"
-    >
+    <div className="group relative block p-4 sm:p-5 bg-navy-700 border border-navy-600 rounded-xl hover:border-blue-300 hover:shadow-md transition-all duration-200 cursor-pointer">
+      {/* Stretched overlay link: makes the whole card a real anchor, so
+          Ctrl/Cmd/middle-click open it in a (background) tab and right-click
+          offers "open in new tab". Interactive children sit above it via z-[2]. */}
+      <Link
+        href={forecastUrl}
+        aria-label={prediction.claimText}
+        className="absolute inset-0 z-[1]"
+      />
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           {/* Header: Status, Confidence, Deadline */}
@@ -417,7 +419,7 @@ export default function ForecastCard({
             {locale !== 'en' && translatedClaim && (
               <button
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowTranslated(!showTranslated); }}
-                className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider border transition-colors ${
+                className={`relative z-[2] flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider border transition-colors ${
                   showTranslated ? 'bg-blue-100 text-cobalt-light border-cobalt/30' : 'bg-navy-800 text-gray-500 border-navy-600'
                 }`}
                 title={showTranslated ? tt('showOriginal') : tt('translate')}
@@ -473,7 +475,7 @@ export default function ForecastCard({
               image={prediction.author.image}
               showAvatar={true}
               avatarSize={20}
-              className="last:border-0"
+              className="relative z-[2] last:border-0"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center gap-2">
@@ -489,7 +491,7 @@ export default function ForecastCard({
         </div>
 
         {(canAdminister || canResolve || canApprove) && (
-          <div className="flex-shrink-0 self-start mt-1" ref={menuRef}>
+          <div className="relative z-[2] flex-shrink-0 self-start mt-1" ref={menuRef}>
             {canApprove ? (
               <div className="flex gap-2">
                 <button
