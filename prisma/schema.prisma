@@ -84,6 +84,9 @@ model User {
   // Express Forecast attempt audit log
   forecastCreationAttempts ForecastCreationAttempt[]
 
+  // Oracle calls this user (or bot) triggered
+  oracleCallLogs OracleCallLog[]
+
   // Comments & reactions
   comments         Comment[]
   commentReactions CommentReaction[]
@@ -835,16 +838,51 @@ model ContextTiming {
   @@map("context_timings")
 }
 
+enum OracleCallType {
+  SEARCH
+  FORECAST
+  LEADERBOARD
+  HEALTH
+  SEARCH_HEALTH
+  LLM
+  FETCH_URL
+}
+
+enum OracleCallStatus {
+  OK
+  EMPTY
+  ERROR
+}
+
 model OracleCallLog {
-  id            String   @id @default(cuid())
-  provider      String
+  id       String           @id @default(cuid())
+  callType OracleCallType   @default(SEARCH)
+  // Daatan workflow that triggered the call (e.g. "context-update", "bot-voting").
+  // Plain string (not enum) so new sources don't require a migration.
+  source   String           @default("legacy")
+  status   OracleCallStatus @default(OK)
+
+  // Search engine used: search calls → provider; forecast calls → engine from retro; else null.
+  searchEngine String?
+  httpStatus   Int?
+  // User/bot that triggered the call; null for system/cron.
+  userId       String?
+  user         User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // Search-specific (null for non-search calls). `query` doubles as the forecast question.
+  provider      String?
   providerChain String[]
-  query         String
-  resultCount   Int
-  durationMs    Int
-  createdAt     DateTime @default(now())
+  query         String?
+  resultCount   Int?
+
+  durationMs Int
+  createdAt  DateTime @default(now())
 
   @@index([createdAt])
   @@index([provider])
+  @@index([callType])
+  @@index([source])
+  @@index([status])
+  @@index([userId])
   @@map("oracle_call_logs")
 }

@@ -40,7 +40,7 @@ export const POST = withAuth(async (request: NextRequest, user, { params }) => {
         const oracleResults = await oracleSearch(prediction.claimText, 12, {
             dateFrom: forecastStart,
             dateTo: searchDateTo,
-        })
+        }, { source: 'research', userId: user.id })
 
         let results: SearchResult[]
         if (oracleResults && oracleResults.length >= 3) {
@@ -50,12 +50,13 @@ export const POST = withAuth(async (request: NextRequest, user, { params }) => {
             //    a) Date-scoped with raw claim text
             //    b) Broad (no date) with raw claim text — catches older or wider coverage
             //    c) Date-scoped with simplified key-term query — targets the actual topic
+            const researchMeta = { source: 'research' as const, userId: user.id }
             const [dated, broad, simplified] = await Promise.all([
-                searchArticlesMultilingual(prediction.claimText, 6, { dateFrom: forecastStart, dateTo: searchDateTo })
+                searchArticlesMultilingual(prediction.claimText, 6, { dateFrom: forecastStart, dateTo: searchDateTo }, researchMeta)
                     .catch(() => [] as SearchResult[]),
-                searchArticlesMultilingual(prediction.claimText, 4)
+                searchArticlesMultilingual(prediction.claimText, 4, undefined, researchMeta)
                     .catch(() => [] as SearchResult[]),
-                searchArticlesMultilingual(simplifiedQuery, 6, { dateFrom: forecastStart, dateTo: searchDateTo })
+                searchArticlesMultilingual(simplifiedQuery, 6, { dateFrom: forecastStart, dateTo: searchDateTo }, researchMeta)
                     .catch(() => [] as SearchResult[]),
             ])
             results = dedup([...simplified, ...dated, ...broad])
@@ -89,7 +90,7 @@ export const POST = withAuth(async (request: NextRequest, user, { params }) => {
                 const { queries } = JSON.parse(qRes.text) as { queries: string[] }
                 const fallbackResults = await Promise.all(
                     queries.slice(0, 3).map(q =>
-                        searchArticlesMultilingual(q, 5, { dateFrom: forecastStart, dateTo: searchDateTo })
+                        searchArticlesMultilingual(q, 5, { dateFrom: forecastStart, dateTo: searchDateTo }, { source: 'research', userId: user.id })
                             .catch(() => [] as SearchResult[])
                     )
                 )

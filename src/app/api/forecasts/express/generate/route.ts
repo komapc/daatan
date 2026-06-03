@@ -60,7 +60,7 @@ export const POST = withAuth(async (request, user) => {
         }
 
         // Generate prediction with progress updates
-        const result = await generateExpressPrediction(userInput, onProgress, skipSources)
+        const result = await generateExpressPrediction(userInput, onProgress, skipSources, { source: 'express-creation', userId: user.id })
 
         // Send final result
         const finalMessage = JSON.stringify({ stage: 'complete', data: result }) + '\n'

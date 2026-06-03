@@ -34,7 +34,7 @@ describe('searchArticlesMultilingual', () => {
 
     expect(callGeminiTranslate).not.toHaveBeenCalled()
     expect(oracleSearch).toHaveBeenCalledOnce()
-    expect(oracleSearch).toHaveBeenCalledWith('Bitcoin will reach $200k', 5, undefined)
+    expect(oracleSearch).toHaveBeenCalledWith('Bitcoin will reach $200k', 5, undefined, { source: 'multilingual-search' })
   })
 
   it('translates Cyrillic queries and runs both searches in parallel', async () => {

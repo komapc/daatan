@@ -2,6 +2,7 @@ import { SchemaType, type Schema } from '@google/generative-ai'
 import { getPromptTemplate, fillPrompt } from './bedrock-prompts'
 import { llmService } from './index'
 import { oracleSearch, type SearchResult } from '../services/oracleSearch'
+import { type OracleCallMeta } from '../services/oracleClient'
 import { buildSearchQuery } from './searchQuery'
 import { NON_LATIN } from '../utils/multilingualSearch'
 import { DEFAULT_MAX_ARTICLES } from '../services/oracle'
@@ -146,7 +147,8 @@ export function getFiveYearsFromNow(now: Date) {
 export async function generateExpressPrediction(
   userInput: string,
   onProgress?: (stage: string, data?: Record<string, unknown>) => void,
-  skipSources?: boolean
+  skipSources?: boolean,
+  meta: OracleCallMeta = { source: 'express-creation' }
 ): Promise<ExpressPredictionResult> {
   // Proactive Content Moderation
   onProgress?.('checking', { message: 'Checking content…' })
@@ -243,7 +245,7 @@ export async function generateExpressPrediction(
     if (!articleContent) {
       // Fallback: use the URL as a search query
       onProgress?.('searching', { message: 'Searching for relevant articles...' })
-      searchResults = (await oracleSearch(url, DEFAULT_MAX_ARTICLES)) ?? []
+      searchResults = (await oracleSearch(url, DEFAULT_MAX_ARTICLES, undefined, meta)) ?? []
       if (searchResults.length === 0) {
         throw new NoArticlesFoundError({ searchedFor: url, isUrl: true, isNonLatin: false })
       }
@@ -282,7 +284,7 @@ export async function generateExpressPrediction(
       onProgress?.('searching', { message: `Finding related articles for: "${topic}"` })
 
       try {
-        searchResults = (await oracleSearch(topic, DEFAULT_MAX_ARTICLES)) ?? []
+        searchResults = (await oracleSearch(topic, DEFAULT_MAX_ARTICLES, undefined, meta)) ?? []
       } catch {
         searchResults = []
       }
@@ -298,7 +300,7 @@ export async function generateExpressPrediction(
     // Sentence-style claims retrieve poorly; key entities/topic do much better.
     const searchQuery = await buildSearchQuery(userInput)
     onProgress?.('searching', { message: 'Searching for relevant articles...' })
-    searchResults = (await oracleSearch(searchQuery, DEFAULT_MAX_ARTICLES)) ?? []
+    searchResults = (await oracleSearch(searchQuery, DEFAULT_MAX_ARTICLES, undefined, meta)) ?? []
 
     if (searchResults.length === 0) {
       throw new NoArticlesFoundError({

@@ -1,0 +1,93 @@
+import { prisma } from '@/lib/prisma'
+import type { OracleCallStatus } from '@prisma/client'
+
+const RECENT_LIMIT = 50
+
+export interface OracleUsageBreakdown {
+  key: string
+  callCount: number
+  errorCount: number
+  avgDurationMs: number | null
+  lastSeenAt: Date | null
+}
+
+/** Rows from a `groupBy([<dimension>, 'status'])` with count/avg/max selected. */
+interface GroupedRow {
+  status: OracleCallStatus
+  _count: { _all: number }
+  _avg: { durationMs: number | null }
+  _max: { createdAt: Date | null }
+}
+
+/** Fold `[dimension, status]` groups into one row per dimension key. */
+function fold<T extends GroupedRow>(rows: T[], keyOf: (r: T) => string): OracleUsageBreakdown[] {
+  const map = new Map<string, { callCount: number; errorCount: number; durSum: number; durN: number; lastSeen: Date | null }>()
+  for (const r of rows) {
+    const k = keyOf(r)
+    const e = map.get(k) ?? { callCount: 0, errorCount: 0, durSum: 0, durN: 0, lastSeen: null }
+    e.callCount += r._count._all
+    if (r.status === 'ERROR') e.errorCount += r._count._all
+    if (r._avg.durationMs != null) {
+      e.durSum += r._avg.durationMs * r._count._all
+      e.durN += r._count._all
+    }
+    if (r._max.createdAt && (!e.lastSeen || r._max.createdAt > e.lastSeen)) e.lastSeen = r._max.createdAt
+    map.set(k, e)
+  }
+  return [...map.entries()]
+    .map(([key, v]) => ({
+      key,
+      callCount: v.callCount,
+      errorCount: v.errorCount,
+      avgDurationMs: v.durN > 0 ? Math.round(v.durSum / v.durN) : null,
+      lastSeenAt: v.lastSeen,
+    }))
+    .sort((a, b) => b.callCount - a.callCount)
+}
+
+/**
+ * Aggregate Oracle call usage over the given window for the admin stats view:
+ * breakdowns by source / call type / search engine / status, plus totals and
+ * the most recent calls.
+ */
+export async function getOracleUsageStats(windowDays = 30) {
+  const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000)
+  const where = { createdAt: { gte: since } }
+
+  const [bySourceRows, byTypeRows, byEngineRows, byStatusRows, totalsRows, recent] = await Promise.all([
+    prisma.oracleCallLog.groupBy({ by: ['source', 'status'], where, _count: { _all: true }, _avg: { durationMs: true }, _max: { createdAt: true } }),
+    prisma.oracleCallLog.groupBy({ by: ['callType', 'status'], where, _count: { _all: true }, _avg: { durationMs: true }, _max: { createdAt: true } }),
+    prisma.oracleCallLog.groupBy({ by: ['searchEngine', 'status'], where, _count: { _all: true }, _avg: { durationMs: true }, _max: { createdAt: true } }),
+    prisma.oracleCallLog.groupBy({ by: ['status'], where, _count: { _all: true } }),
+    prisma.oracleCallLog.aggregate({ where, _count: { _all: true }, _avg: { durationMs: true } }),
+    prisma.oracleCallLog.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: RECENT_LIMIT,
+      select: {
+        id: true, callType: true, source: true, status: true, httpStatus: true,
+        searchEngine: true, provider: true, providerChain: true, query: true,
+        resultCount: true, durationMs: true, createdAt: true,
+        user: { select: { name: true, username: true } },
+      },
+    }),
+  ])
+
+  const totalCalls = totalsRows._count._all
+  const errorCalls = byStatusRows.find(r => r.status === 'ERROR')?._count._all ?? 0
+
+  return {
+    windowDays,
+    totals: {
+      totalCalls,
+      errorCalls,
+      errorRate: totalCalls > 0 ? Math.round((errorCalls / totalCalls) * 100) : 0,
+      avgDurationMs: totalsRows._avg.durationMs != null ? Math.round(totalsRows._avg.durationMs) : null,
+    },
+    bySource: fold(bySourceRows, r => r.source),
+    byCallType: fold(byTypeRows, r => r.callType),
+    byEngine: fold(byEngineRows, r => r.searchEngine ?? '—'),
+    byStatus: byStatusRows.map(r => ({ key: r.status, callCount: r._count._all })),
+    recent,
+  }
+}
