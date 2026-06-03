@@ -78,7 +78,7 @@ export async function runVoting(
         oracleConsults++
         // Strip the 🤖 author prefix; it's noise in the Oracle's search query.
         const oracleQuestion = forecast.claimText.replace(/^🤖\s*/, '')
-        const oracleProbability = await getOracleProbability(oracleQuestion)
+        const oracleProbability = await getOracleProbability(oracleQuestion, { source: 'bot-voting', userId: bot.userId })
         if (oracleProbability !== null) {
           const pct = Math.round(oracleProbability * 100)
           votePrompt += `\n\nAn external forecasting Oracle estimates the probability that this resolves YES at ${pct}%. Weigh this signal alongside your own judgement.`

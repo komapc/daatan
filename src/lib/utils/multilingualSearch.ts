@@ -1,4 +1,5 @@
 import { oracleSearch, type SearchResult } from '@/lib/services/oracleSearch'
+import { type OracleCallMeta } from '@/lib/services/oracleClient'
 import { callGeminiTranslate } from '@/lib/services/translation'
 import { createLogger } from '@/lib/logger'
 import crypto from 'crypto'
@@ -60,10 +61,11 @@ function dedupByUrl(items: SearchResult[]): SearchResult[] {
 export async function searchArticlesMultilingual(
   query: string,
   limit: number = 10,
-  options?: { dateFrom?: Date; dateTo?: Date }
+  options?: { dateFrom?: Date; dateTo?: Date },
+  meta: OracleCallMeta = { source: 'multilingual-search' }
 ): Promise<SearchResult[]> {
   const callSearch = (q: string, n: number): Promise<SearchResult[]> =>
-    oracleSearch(q, n, options).then(r => r ?? [])
+    oracleSearch(q, n, options, meta).then(r => r ?? [])
 
   if (!NON_LATIN.test(query)) {
     return callSearch(query, limit)

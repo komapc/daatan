@@ -1300,7 +1300,7 @@ describe('runDueBots — voting', () => {
     await runDueBots()
 
     // Oracle was asked about the claim with the 🤖 prefix stripped
-    expect(getOracleProbability).toHaveBeenCalledWith('Bitcoin tops $100k')
+    expect(getOracleProbability).toHaveBeenCalledWith('Bitcoin tops $100k', expect.objectContaining({ source: 'bot-voting' }))
     // …and the estimate reached the LLM vote prompt
     const votePromptArg = mockGenerateContent.mock.calls[0][0]
     expect(votePromptArg.prompt).toContain('84%')

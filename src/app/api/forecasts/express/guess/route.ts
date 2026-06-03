@@ -18,13 +18,13 @@ const guessSchema = z.object({
   })),
 })
 
-export const POST = withAuth(async (request) => {
+export const POST = withAuth(async (request, user) => {
   try {
     const body = await request.json()
     const { claimText, detailsText, articles } = guessSchema.parse(body)
 
     const t0 = Date.now()
-    const oracleProb = await getOracleProbability(claimText)
+    const oracleProb = await getOracleProbability(claimText, { source: 'express-guess', userId: user.id })
     log.info({ durationMs: Date.now() - t0, source: oracleProb !== null ? 'oracle' : 'llm' }, 'express-guess: probability')
     if (oracleProb !== null) {
       return NextResponse.json({

@@ -402,6 +402,10 @@ Generate vector embeddings (gemini-embedding-2, 768 dims) for predictions that d
 ### `POST /api/admin/backfill-tags` — Admin
 Assign LLM-suggested topic tags (`suggestTags`) to forecasts that currently have zero tags. Cursor-paginated so each call is bounded — call repeatedly, passing back `nextCursor`, until it returns `null`. Body: `{ dryRun?: boolean; limit?: number; cursor?: string }`. With `dryRun: true` it returns the proposed tags per forecast without writing anything. Response: `{ dryRun, scanned, updated, skipped, nextCursor, totalUntagged, items }`.
 
+### `GET /api/admin/oracle-stats` — Admin
+Oracle usage statistics for the admin **Oracle** tab. Every Oracle call (all call types, success **and** failure) is recorded in `OracleCallLog` with its `callType` (SEARCH, FORECAST, LEADERBOARD, HEALTH, SEARCH_HEALTH, LLM, FETCH_URL), `source` (the Daatan workflow that triggered it — e.g. `context-update`, `bot-voting`, `express-creation`), `status` (OK/EMPTY/ERROR), search engine, latency, and the triggering user/bot. The log self-prunes to 30 days.
+Query: `?windowDays=` (1–30, default 30). Response: `{ windowDays, totals: { totalCalls, errorCalls, errorRate, avgDurationMs }, bySource[], byCallType[], byEngine[], byStatus[], recent[] }` — each breakdown row is `{ key, callCount, errorCount, avgDurationMs, lastSeenAt }`.
+
 ### `GET /api/admin/forecast-attempts` — Admin
 Analytics for Express forecast creation attempts. Returns success rate, daily breakdown, top moderation rejection reasons, and per-user attempt patterns over the last 30 days. Useful for tuning LLM moderation prompts.
 

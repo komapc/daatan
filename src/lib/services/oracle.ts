@@ -1,5 +1,11 @@
 import { createLogger } from '@/lib/logger'
-import { getOracleBaseUrl, getOracleConfig, oracleFetch } from '@/lib/services/oracleClient'
+import {
+  getOracleBaseUrl,
+  getOracleConfig,
+  oracleFetch,
+  logOracleCall,
+  type OracleCallMeta,
+} from '@/lib/services/oracleClient'
 
 const log = createLogger('oracle')
 
@@ -47,6 +53,10 @@ export interface OracleForecastResponse {
   sources: OracleSource[]
   /** True if the Oracle couldn't produce a real forecast (stub response). */
   placeholder: boolean
+  /** Search engine/provider retro used for the underlying article search (added retro-side). */
+  search_engine?: string
+  /** Ordered providers retro tried for the underlying article search (added retro-side). */
+  providers_used?: string[]
 }
 
 interface OracleHealthResponse {
@@ -84,6 +94,7 @@ export interface OracleLeaderboardResponse {
 export const getOracleForecast = async (
   question: string,
   options?: { articles?: ArticleInput[] },
+  meta: OracleCallMeta = { source: 'other' },
 ): Promise<OracleForecastResponse | null> => {
   const cfg = getOracleConfig()
   if (!cfg) {
@@ -107,18 +118,22 @@ export const getOracleForecast = async (
     if (!res.ok) {
       const errorBody = await res.text().catch(() => '(unreadable)')
       log.warn({ status: res.status, body: errorBody, durationMs: Date.now() - t0 }, 'Oracle returned non-OK status')
+      void logOracleCall({ callType: 'FORECAST', status: 'ERROR', meta, durationMs: Date.now() - t0, httpStatus: res.status, query: question })
       return null
     }
 
     const data: OracleForecastResponse = await res.json()
+    const searchEngine = data.search_engine ?? data.providers_used?.join(', ') ?? null
 
     if (data.placeholder) {
       log.debug('Oracle returned placeholder response — no real forecast available')
+      void logOracleCall({ callType: 'FORECAST', status: 'EMPTY', meta, durationMs: Date.now() - t0, httpStatus: res.status, query: question, searchEngine })
       return null
     }
 
     if (typeof data.mean !== 'number' || data.articles_used === 0) {
       log.debug({ articlesUsed: data.articles_used }, 'Oracle returned no usable articles')
+      void logOracleCall({ callType: 'FORECAST', status: 'EMPTY', meta, durationMs: Date.now() - t0, httpStatus: res.status, query: question, searchEngine, resultCount: data.articles_used })
       return null
     }
 
@@ -132,9 +147,11 @@ export const getOracleForecast = async (
       },
       'Oracle forecast',
     )
+    void logOracleCall({ callType: 'FORECAST', status: 'OK', meta, durationMs: Date.now() - t0, httpStatus: res.status, query: question, searchEngine, resultCount: data.articles_used })
     return data
   } catch (err) {
     log.warn({ err, durationMs: Date.now() - t0 }, 'Oracle request failed')
+    void logOracleCall({ callType: 'FORECAST', status: 'ERROR', meta, durationMs: Date.now() - t0, query: question })
     return null
   }
 }
@@ -144,8 +161,11 @@ export const getOracleForecast = async (
  * or null if the Oracle path wasn't usable. Prefer `getOracleForecast` when
  * you also want the sources or confidence interval.
  */
-export const getOracleProbability = async (question: string): Promise<number | null> => {
-  const data = await getOracleForecast(question)
+export const getOracleProbability = async (
+  question: string,
+  meta: OracleCallMeta = { source: 'other' },
+): Promise<number | null> => {
+  const data = await getOracleForecast(question, undefined, meta)
   if (!data) return null
   return (data.mean + 1) / 2
 }
@@ -157,15 +177,24 @@ export const getOracleProbability = async (question: string): Promise<number | n
  * current without requiring a server redeploy.  Returns null if the Oracle is
  * not configured or the request fails.  Never throws.
  */
-export const getOracleLeaderboard = async (): Promise<OracleLeaderboardResponse | null> => {
+export const getOracleLeaderboard = async (
+  meta: OracleCallMeta = { source: 'leaderboard' },
+): Promise<OracleLeaderboardResponse | null> => {
   const cfg = getOracleConfig()
   if (!cfg) return null
 
+  const t0 = Date.now()
   try {
     const res = await oracleFetch(cfg, '/leaderboard', { timeoutMs: HEALTH_TIMEOUT_MS })
-    if (!res.ok) return null
-    return await res.json() as OracleLeaderboardResponse
+    if (!res.ok) {
+      void logOracleCall({ callType: 'LEADERBOARD', status: 'ERROR', meta, durationMs: Date.now() - t0, httpStatus: res.status })
+      return null
+    }
+    const data = await res.json() as OracleLeaderboardResponse
+    void logOracleCall({ callType: 'LEADERBOARD', status: 'OK', meta, durationMs: Date.now() - t0, httpStatus: res.status, resultCount: data.count })
+    return data
   } catch {
+    void logOracleCall({ callType: 'LEADERBOARD', status: 'ERROR', meta, durationMs: Date.now() - t0 })
     return null
   }
 }
@@ -175,29 +204,41 @@ export const getOracleLeaderboard = async (): Promise<OracleLeaderboardResponse 
  * Returns true if Oracle is reachable and version-compatible.
  * Never throws.
  */
-export const checkOracleHealth = async (): Promise<boolean> => {
+export const checkOracleHealth = async (
+  meta: OracleCallMeta = { source: 'health-cron' },
+): Promise<boolean> => {
   const baseUrl = getOracleBaseUrl()
   if (!baseUrl) return false
 
+  const t0 = Date.now()
   try {
     const res = await fetch(`${baseUrl}/health`, {
       signal: AbortSignal.timeout(HEALTH_TIMEOUT_MS),
     })
-    if (!res.ok) return false
+    if (!res.ok) {
+      void logOracleCall({ callType: 'HEALTH', status: 'ERROR', meta, durationMs: Date.now() - t0, httpStatus: res.status })
+      return false
+    }
 
     const data: OracleHealthResponse = await res.json()
-    if (data.status !== 'ok') return false
+    if (data.status !== 'ok') {
+      void logOracleCall({ callType: 'HEALTH', status: 'EMPTY', meta, durationMs: Date.now() - t0, httpStatus: res.status })
+      return false
+    }
 
     if (data.version && !data.version.startsWith(EXPECTED_API_VERSION)) {
       log.warn(
         { expected: EXPECTED_API_VERSION, actual: data.version },
         'Oracle API version mismatch — falling back to LLM',
       )
+      void logOracleCall({ callType: 'HEALTH', status: 'EMPTY', meta, durationMs: Date.now() - t0, httpStatus: res.status })
       return false
     }
 
+    void logOracleCall({ callType: 'HEALTH', status: 'OK', meta, durationMs: Date.now() - t0, httpStatus: res.status })
     return true
   } catch {
+    void logOracleCall({ callType: 'HEALTH', status: 'ERROR', meta, durationMs: Date.now() - t0 })
     return false
   }
 }

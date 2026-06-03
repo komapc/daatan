@@ -95,7 +95,7 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
         let searchResults: SearchResult[]
         const t0 = Date.now()
         try {
-            searchResults = (await oracleSearch(searchQuery, DEFAULT_MAX_ARTICLES)) ?? []
+            searchResults = (await oracleSearch(searchQuery, DEFAULT_MAX_ARTICLES, undefined, { source: 'context-update', userId: user.id })) ?? []
         } catch (err) {
             log.warn(
                 { predictionId: prediction.id, searchQuery, err },
@@ -171,7 +171,7 @@ export const POST = withAuth(async (request: NextRequest, user, { params }: Rout
                     source: r.source,
                     publishedDate: r.publishedDate,
                 })),
-            })
+            }, { source: 'context-update', userId: user.id })
             if (oracleForecast !== null) {
                 const toPercent = (v: number) => Math.round(((v + 1) / 2) * 100)
                 const prob = toPercent(oracleForecast.mean)

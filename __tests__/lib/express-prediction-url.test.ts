@@ -117,7 +117,7 @@ describe('generateExpressPrediction', () => {
 
       const result = await generateExpressPrediction('Bitcoin price prediction')
 
-      expect(mockOracleSearch).toHaveBeenCalledWith(MOCK_EXTRACTED_QUERY, 15)
+      expect(mockOracleSearch).toHaveBeenCalledWith(MOCK_EXTRACTED_QUERY, 15, undefined, { source: 'express-creation' })
       expect(mockFetchUrlContent).not.toHaveBeenCalled()
       expect(result.claimText).toBe(mockLlmPrediction.claimText)
       expect(result.newsAnchor!.url).toBe('https://cnn.com/btc')
@@ -143,7 +143,7 @@ describe('generateExpressPrediction', () => {
 
       // Should use text search, not URL fetch (input has spaces, not a pure URL)
       expect(mockFetchUrlContent).not.toHaveBeenCalled()
-      expect(mockOracleSearch).toHaveBeenCalledWith(MOCK_EXTRACTED_QUERY, 15)
+      expect(mockOracleSearch).toHaveBeenCalledWith(MOCK_EXTRACTED_QUERY, 15, undefined, { source: 'express-creation' })
     })
 
     it('anchors on the model-selected relevant article, not the first result', async () => {
@@ -207,7 +207,7 @@ describe('generateExpressPrediction', () => {
       expect(topicCall.prompt).toContain('Extract the main topic')
 
       // Should search for related articles using extracted topic
-      expect(mockOracleSearch).toHaveBeenCalledWith('Bitcoin price rally 2026', 15)
+      expect(mockOracleSearch).toHaveBeenCalledWith('Bitcoin price rally 2026', 15, undefined, { source: 'express-creation' })
 
       // Primary article (the URL) should be the news anchor
       expect(result.newsAnchor!.url).toBe(testUrl)
@@ -256,7 +256,7 @@ describe('generateExpressPrediction', () => {
       const result = await generateExpressPrediction(testUrl)
 
       // Should fall back to using URL as search query
-      expect(mockOracleSearch).toHaveBeenCalledWith(testUrl, 15)
+      expect(mockOracleSearch).toHaveBeenCalledWith(testUrl, 15, undefined, { source: 'express-creation' })
       expect(mockGenerateContent).toHaveBeenCalledTimes(2) 
       expect(result.newsAnchor!.url).toBe('https://cnn.com/btc')
     })
@@ -272,7 +272,7 @@ describe('generateExpressPrediction', () => {
       const result = await generateExpressPrediction(testUrl)
 
       // Should fall back to using the URL as search query
-      expect(mockOracleSearch).toHaveBeenCalledWith(testUrl, 15)
+      expect(mockOracleSearch).toHaveBeenCalledWith(testUrl, 15, undefined, { source: 'express-creation' })
       expect(result.newsAnchor!.url).toBe(testUrl)
     })
 
@@ -300,7 +300,7 @@ describe('generateExpressPrediction', () => {
 
       await generateExpressPrediction(testUrl)
 
-      expect(mockOracleSearch).toHaveBeenCalledWith('Bitcoin rally 2026', 15)
+      expect(mockOracleSearch).toHaveBeenCalledWith('Bitcoin rally 2026', 15, undefined, { source: 'express-creation' })
     })
   })
 
