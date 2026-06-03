@@ -344,6 +344,7 @@ export async function getForecastById(idOrSlug: string) {
     include: {
       author: { select: { id: true, name: true, username: true, image: true, rs: true, role: true, isBot: true } },
       newsAnchor: true,
+      tags: { select: { id: true, name: true, slug: true } },
       options: { orderBy: { displayOrder: 'asc' } },
       commitments: {
         orderBy: { createdAt: 'desc' },

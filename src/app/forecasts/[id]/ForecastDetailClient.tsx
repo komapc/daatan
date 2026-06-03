@@ -422,7 +422,10 @@ export default function ForecastDetailClient({
         onAiEstimate={setAiEstimate}
       />
 
-      <SimilarForecasts predictionId={prediction.id} />
+      {/* Related forecasts: inline on mobile/tablet, in the right column on desktop */}
+      <div className="xl:hidden">
+        <SimilarForecasts predictionId={prediction.id} />
+      </div>
 
       {/* Probability Display (Interactive Gauge) */}
       <div className="mb-12">
@@ -709,7 +712,7 @@ export default function ForecastDetailClient({
             prediction={prediction}
             isMounted={isMounted}
           />
-          
+          <SimilarForecasts predictionId={prediction.id} />
         </div>
       </div>
     </div>
