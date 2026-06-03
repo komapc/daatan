@@ -37,11 +37,15 @@ export function ForecastInfoPanel({ prediction, variant = 'desktop', isMounted }
             Tags
           </div>
           <div className="flex flex-wrap gap-1">
-            {prediction.extractedEntities?.slice(0, 3).map((tag, i) => (
-              <span key={i} className="px-2 py-0.5 bg-navy-800 text-gray-400 text-[10px] font-bold uppercase tracking-wider rounded border border-navy-600">
-                {tag}
-              </span>
-            )) || <span className="text-gray-400 italic text-xs">None</span>}
+            {prediction.extractedEntities && prediction.extractedEntities.length > 0 ? (
+              prediction.extractedEntities.slice(0, 3).map((tag, i) => (
+                <span key={i} className="px-2 py-0.5 bg-navy-800 text-gray-400 text-[10px] font-bold uppercase tracking-wider rounded border border-navy-600">
+                  {tag}
+                </span>
+              ))
+            ) : (
+              <span className="text-gray-400 italic text-xs">None</span>
+            )}
           </div>
         </div>
       </div>
