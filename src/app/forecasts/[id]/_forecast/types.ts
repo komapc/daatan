@@ -41,6 +41,11 @@ export type Prediction = {
     url: string
     source?: string | null
   } | null
+  tags?: Array<{
+    id: string
+    name: string
+    slug: string
+  }>
   options: Array<{
     id: string
     text: string

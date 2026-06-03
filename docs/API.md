@@ -399,6 +399,9 @@ LLM-generate resolution rules for all forecasts that are missing them. Long-runn
 ### `POST /api/admin/backfill-embeddings` — Admin
 Generate vector embeddings (gemini-embedding-2, 768 dims) for predictions that don't yet have one. Used to power similar-forecasts lookup. Long-running.
 
+### `POST /api/admin/backfill-tags` — Admin
+Assign LLM-suggested topic tags (`suggestTags`) to forecasts that currently have zero tags. Cursor-paginated so each call is bounded — call repeatedly, passing back `nextCursor`, until it returns `null`. Body: `{ dryRun?: boolean; limit?: number; cursor?: string }`. With `dryRun: true` it returns the proposed tags per forecast without writing anything. Response: `{ dryRun, scanned, updated, skipped, nextCursor, totalUntagged, items }`.
+
 ### `GET /api/admin/forecast-attempts` — Admin
 Analytics for Express forecast creation attempts. Returns success rate, daily breakdown, top moderation rejection reasons, and per-user attempt patterns over the last 30 days. Useful for tuning LLM moderation prompts.
 
