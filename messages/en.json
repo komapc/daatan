@@ -146,6 +146,7 @@
     "unlistedBadge": "Unlisted",
     "personalBadge": "Personal",
     "legendCommunity": "Community",
+    "communityProbabilityTooltip": "Community consensus — the token-weighted probability across all votes",
     "legendYou": "You",
     "legendAI": "AI",
     "signInToVote": "Sign in to vote",

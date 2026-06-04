@@ -146,6 +146,7 @@
     "unlistedBadge": "Скрытый",
     "personalBadge": "Личный",
     "legendCommunity": "Сообщество",
+    "communityProbabilityTooltip": "Консенсус сообщества — вероятность, взвешенная по токенам по всем голосам",
     "legendYou": "Вы",
     "legendAI": "ИИ",
     "signInToVote": "Войдите, чтобы голосовать",
