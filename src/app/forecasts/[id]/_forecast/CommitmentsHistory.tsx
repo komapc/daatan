@@ -8,6 +8,7 @@ import type { Prediction } from './types'
 interface Props {
   prediction: Prediction
   currentUserId?: string
+  authorId?: string
   onRemove?: () => void
 }
 
@@ -21,6 +22,7 @@ function VoterRow({
   commitment,
   pct,
   isCurrentUser,
+  isAuthor,
   canRemove,
   isConfirming,
   isRemoving,
@@ -33,6 +35,7 @@ function VoterRow({
   commitment: Commitment
   pct: number
   isCurrentUser: boolean
+  isAuthor: boolean
   canRemove: boolean
   isConfirming: boolean
   isRemoving: boolean
@@ -61,6 +64,11 @@ function VoterRow({
             {isCurrentUser && (
               <span className="text-[10px] font-semibold px-1 py-0.5 rounded bg-blue-900/40 text-blue-300 border border-blue-700/50 shrink-0">
                 {t('youBadge')}
+              </span>
+            )}
+            {isAuthor && (
+              <span className="text-[10px] font-semibold px-1 py-0.5 rounded bg-amber-900/30 text-amber-300/90 border border-amber-700/40 shrink-0 uppercase tracking-wide">
+                {t('author')}
               </span>
             )}
           </div>
@@ -112,7 +120,7 @@ function VoterRow({
   )
 }
 
-export function CommitmentsHistory({ prediction, currentUserId, onRemove }: Props) {
+export function CommitmentsHistory({ prediction, currentUserId, authorId, onRemove }: Props) {
   const t = useTranslations('forecast')
   const [isRemoving, setIsRemoving] = useState(false)
   const [isConfirming, setIsConfirming] = useState(false)
@@ -181,6 +189,7 @@ export function CommitmentsHistory({ prediction, currentUserId, onRemove }: Prop
                     commitment={c}
                     pct={toPct(c.cuCommitted)}
                     isCurrentUser={c.user.id === currentUserId}
+                    isAuthor={c.user.id === authorId}
                     canRemove={c.user.id === currentUserId && prediction.status === 'ACTIVE' && !!onRemove}
                     isConfirming={isConfirming && c.user.id === currentUserId}
                     isRemoving={isRemoving}
@@ -215,6 +224,7 @@ export function CommitmentsHistory({ prediction, currentUserId, onRemove }: Prop
                     commitment={c}
                     pct={toPct(c.cuCommitted)}
                     isCurrentUser={c.user.id === currentUserId}
+                    isAuthor={c.user.id === authorId}
                     canRemove={c.user.id === currentUserId && prediction.status === 'ACTIVE' && !!onRemove}
                     isConfirming={isConfirming && c.user.id === currentUserId}
                     isRemoving={isRemoving}
@@ -270,6 +280,11 @@ export function CommitmentsHistory({ prediction, currentUserId, onRemove }: Prop
                     {isCurrentUser && (
                       <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-blue-900/40 text-blue-300 border border-blue-700/50">
                         {t('youBadge')}
+                      </span>
+                    )}
+                    {commitment.user.id === authorId && (
+                      <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-amber-900/30 text-amber-300/90 border border-amber-700/40 uppercase tracking-wide">
+                        {t('author')}
                       </span>
                     )}
                   </div>

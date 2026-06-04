@@ -667,37 +667,39 @@ export default function ForecastDetailClient({
       <CommitmentsHistory
         prediction={prediction}
         currentUserId={session?.user?.id}
+        authorId={prediction.author.id}
         onRemove={prediction.status === 'ACTIVE'
           ? () => fetch(`/api/forecasts/${prediction.id}`).then(r => r.json()).then(setPrediction)
           : undefined}
       />
 
-      {/* Author Section - Moved to bottom */}
-      <div className="mt-12 p-6 border border-navy-600 rounded-xl bg-navy-700 shadow-sm flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      {/* Author credit. If the author also voted, they're already tagged
+          "author" in the Forecasts History list above, so skip this. */}
+      {!prediction.commitments.some(c => c.user.id === prediction.author.id) && (
+        <div className="mt-8 flex items-center gap-2.5 text-sm text-gray-400">
+          <span className="text-xs font-medium uppercase tracking-wide text-gray-500 shrink-0">
+            {t('author')}
+          </span>
+          <span className="text-gray-600">·</span>
           <UserLink
             userId={prediction.author.id}
             username={prediction.author.username}
             name={prediction.author.name}
             image={prediction.author.image}
             showAvatar={true}
-            avatarSize={48}
+            avatarSize={24}
           >
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-semibold text-white">{prediction.author.name}</span>
-                {prediction.author.role && (
-                  <RoleBadge role={prediction.author.role} size="sm" />
-                )}
-              </div>
-              <div className="text-sm text-gray-500">{t('forecasterLabel')} · {t('reputationShort')}: {prediction.author.rs.toFixed(0)}</div>
-            </div>
+            <span className="flex items-center gap-1.5 min-w-0">
+              <span className="font-medium text-white truncate">{prediction.author.name}</span>
+              {prediction.author.role && (
+                <RoleBadge role={prediction.author.role} size="sm" />
+              )}
+            </span>
           </UserLink>
+          <span className="text-gray-600 shrink-0">·</span>
+          <span className="text-xs text-gray-500 shrink-0">{t('reputationShort')} {prediction.author.rs.toFixed(0)}</span>
         </div>
-        <div className="text-right text-xs text-gray-500 font-medium uppercase tracking-wide">
-          {t('author')}
-        </div>
-      </div>
+      )}
 
       {/* Comments Section */}
       <div className="border-t border-navy-600 mt-12 pt-8">
