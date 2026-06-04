@@ -306,9 +306,12 @@ export default function ForecastDetailClient({
               const noTokens = prediction.commitments.filter(c => c.binaryChoice === false).reduce((sum, c) => sum + Math.abs(c.cuCommitted), 0)
               const prob = (yesTokens + noTokens) > 0 ? Math.round((yesTokens / (yesTokens + noTokens)) * 100) : 50
               return (
-                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-navy-700 text-teal text-sm font-medium border border-teal/20">
+                <div
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-navy-700 text-teal text-sm font-medium border border-teal/20"
+                  title={t('communityProbabilityTooltip')}
+                >
                   <TrendingUp className="w-4 h-4" />
-                  <span>{prob}%</span>
+                  <span>{t('legendCommunity')} {prob}%</span>
                 </div>
               )
             })()}
@@ -433,7 +436,8 @@ export default function ForecastDetailClient({
           const yesTokens = prediction.commitments.filter(c => c.binaryChoice === true).reduce((sum, c) => sum + c.cuCommitted, 0)
           const noTokens = prediction.commitments.filter(c => c.binaryChoice === false).reduce((sum, c) => sum + Math.abs(c.cuCommitted), 0)
           const marketProb = (yesTokens + noTokens) > 0 ? Math.round((yesTokens / (yesTokens + noTokens)) * 100) : 50
-          
+          const aiVal = aiEstimate?.probability ?? prediction.confidence ?? null
+
           return (
             <div className="flex flex-col items-center">
               <div className="w-full max-w-lg relative rounded-3xl border border-navy-600 bg-navy-700 p-8 sm:p-12 flex flex-col items-center justify-center shadow-2xl overflow-hidden">
@@ -443,6 +447,7 @@ export default function ForecastDetailClient({
                 <Speedometer
                   percentage={marketProb}
                   userPercentage={userConfidence}
+                  centerLabel={t('legendYou')}
                   aiPercentage={aiEstimate?.probability ?? prediction.confidence ?? undefined}
                   aiCiLow={aiEstimate?.ciLow ?? prediction.aiCiLow ?? undefined}
                   aiCiHigh={aiEstimate?.ciHigh ?? prediction.aiCiHigh ?? undefined}
@@ -456,16 +461,16 @@ export default function ForecastDetailClient({
                 <div className="flex justify-center gap-6 mt-10 text-[10px] font-bold uppercase tracking-widest border-t border-navy-600 pt-8 w-full">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-1 bg-[#A0AEC0] rounded-full" />
-                    <span className="text-gray-400">{t('legendCommunity')}</span>
+                    <span className="text-gray-400">{t('legendCommunity')} {marketProb}%</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-1.5 bg-[#3B82F6] rounded-full" />
-                    <span className="text-blue-400">{t('legendYou')}</span>
+                    <span className="text-blue-400">{t('legendYou')} {userConfidence}%</span>
                   </div>
-                  {(aiEstimate?.probability ?? prediction.confidence) != null && (
+                  {aiVal != null && (
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-1 bg-[#FBBF24] rounded-full" />
-                      <span className="text-amber-400">{t('legendAI')}</span>
+                      <span className="text-amber-400">{t('legendAI')} {aiVal}%</span>
                     </div>
                   )}
                 </div>

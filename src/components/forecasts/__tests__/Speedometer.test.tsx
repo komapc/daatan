@@ -133,4 +133,15 @@ describe('Speedometer component', () => {
     expect(container.querySelector('[data-testid="ai-ci-tick-low"]')).toBeNull()
     expect(container.querySelector('[data-testid="ai-ci-tick-high"]')).toBeNull()
   })
+
+  it('renders the center caption when centerLabel is provided', () => {
+    render(<Speedometer percentage={5} userPercentage={15} centerLabel="You" size="xl" />)
+    expect(screen.getByText('You')).toBeInTheDocument()
+    expect(screen.getByText('15%')).toBeInTheDocument()
+  })
+
+  it('renders no center caption when centerLabel is omitted (the card path)', () => {
+    render(<Speedometer percentage={5} userPercentage={15} size="sm" />)
+    expect(screen.queryByText('You')).toBeNull()
+  })
 })

@@ -9,6 +9,8 @@ interface SpeedometerProps {
   /** Upper bound of AI confidence interval (0–100). */
   aiCiHigh?: number
   label?: string
+  /** Small caption rendered under the central percentage (e.g. "You"). Omit to render nothing. */
+  centerLabel?: string
   color?: 'green' | 'red'
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
   onUserPercentageChange?: (pct: number) => void
@@ -21,6 +23,7 @@ export default function Speedometer({
   aiCiLow,
   aiCiHigh,
   label,
+  centerLabel,
   color = 'green',
   size = 'md',
   onUserPercentageChange,
@@ -285,6 +288,20 @@ export default function Speedometer({
         >
           {userPercentage !== undefined ? Math.round(userPercentage) : Math.round(safeMarketPct)}%
         </text>
+
+        {/* Optional caption under the central number (e.g. "You") */}
+        {centerLabel && (
+          <text
+            x={center.x}
+            y={center.y - radius * 0.42 + parseInt(fontSize, 10) * 0.85}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            className="font-bold uppercase"
+            style={{ fontSize: `${Math.round(parseInt(fontSize, 10) * 0.42)}px`, fill: theme.needleUser, letterSpacing: '0.08em' }}
+          >
+            {centerLabel}
+          </text>
+        )}
       </svg>
 
       {label && (
