@@ -79,4 +79,19 @@ describe('getOracleUsageStats', () => {
     expect(stats.recent).toHaveLength(1)
     expect(stats.recent[0].user).toEqual({ name: 'A', username: 'a' })
   })
+
+  it('applies source and callType filters to every query where-clause', async () => {
+    await getOracleUsageStats(7, { source: 'bot-voting', callType: 'FORECAST' })
+    const expected = { source: 'bot-voting', callType: 'FORECAST' }
+    expect(mockFindMany.mock.calls[0]?.[0]?.where).toMatchObject(expected)
+    expect(mockGroupBy.mock.calls[0]?.[0]?.where).toMatchObject(expected)
+    expect(mockAggregate.mock.calls[0]?.[0]?.where).toMatchObject(expected)
+  })
+
+  it('omits source/callType from the where-clause when no filters are given', async () => {
+    await getOracleUsageStats(7)
+    const where = mockFindMany.mock.calls[0]?.[0]?.where
+    expect(where?.source).toBeUndefined()
+    expect(where?.callType).toBeUndefined()
+  })
 })
