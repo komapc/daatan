@@ -23,7 +23,8 @@ type RecentCall = {
   resultCount: number | null
   durationMs: number
   createdAt: string
-  user: { name: string | null; username: string | null } | null
+  user: { id: string; name: string | null; username: string | null } | null
+  prediction: { id: string; slug: string | null; claimText: string } | null
 }
 
 type OracleStats = {
@@ -175,7 +176,8 @@ export default function OracleTab() {
                       <th className="py-2 pr-4 font-medium">By</th>
                       <th className="py-2 pr-4 font-medium text-right">Results</th>
                       <th className="py-2 pr-4 font-medium text-right">Duration</th>
-                      <th className="py-2 font-medium">Query</th>
+                      <th className="py-2 pr-4 font-medium">Query</th>
+                      <th className="py-2 font-medium">Forecast</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -189,11 +191,28 @@ export default function OracleTab() {
                         </td>
                         <td className="py-2 pr-4 font-mono text-gray-400 whitespace-nowrap">{entry.searchEngine ?? '—'}</td>
                         <td className="py-2 pr-4 text-gray-500 whitespace-nowrap">
-                          {entry.user ? (entry.user.username ? `@${entry.user.username}` : entry.user.name || '—') : '—'}
+                          {entry.user ? (
+                            <a href={`/profile/${entry.user.id}`} className="text-blue-500 hover:underline">
+                              {entry.user.username ? `@${entry.user.username}` : entry.user.name || '—'}
+                            </a>
+                          ) : '—'}
                         </td>
                         <td className="py-2 pr-4 tabular-nums text-right">{entry.resultCount ?? '—'}</td>
                         <td className="py-2 pr-4 tabular-nums text-right whitespace-nowrap">{entry.durationMs} ms</td>
-                        <td className="py-2 text-gray-600 max-w-xs truncate" title={entry.query ?? ''}>{entry.query ?? '—'}</td>
+                        <td className="py-2 pr-4 text-gray-600 max-w-xs truncate" title={entry.query ?? ''}>{entry.query ?? '—'}</td>
+                        <td className="py-2 whitespace-nowrap">
+                          {entry.prediction ? (
+                            <a
+                              href={`/forecasts/${entry.prediction.slug ?? entry.prediction.id}`}
+                              className="text-blue-500 hover:underline"
+                              title={entry.prediction.claimText}
+                            >
+                              ↗ open
+                            </a>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

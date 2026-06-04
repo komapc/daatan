@@ -29,6 +29,8 @@ export interface OracleCallMeta {
   source: OracleCallSource
   /** User/bot that triggered the call; null for system/cron. */
   userId?: string | null
+  /** Forecast the call relates to, when known; null for express drafting/cron. */
+  predictionId?: string | null
 }
 
 interface LogOracleCallInput {
@@ -61,6 +63,7 @@ export async function logOracleCall(input: LogOracleCallInput): Promise<void> {
           status: input.status,
           source: input.meta.source,
           userId: input.meta.userId ?? null,
+          predictionId: input.meta.predictionId ?? null,
           durationMs: input.durationMs,
           httpStatus: input.httpStatus ?? null,
           searchEngine: input.searchEngine ?? null,

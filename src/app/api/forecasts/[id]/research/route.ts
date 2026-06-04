@@ -40,7 +40,7 @@ export const POST = withAuth(async (request: NextRequest, user, { params }) => {
         const oracleResults = await oracleSearch(prediction.claimText, 12, {
             dateFrom: forecastStart,
             dateTo: searchDateTo,
-        }, { source: 'research', userId: user.id })
+        }, { source: 'research', userId: user.id, predictionId: prediction.id })
 
         let results: SearchResult[]
         if (oracleResults && oracleResults.length >= 3) {

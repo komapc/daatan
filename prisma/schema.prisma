@@ -279,6 +279,7 @@ model Prediction {
   comments         Comment[]
   contextSnapshots ContextSnapshot[]
   translations     PredictionTranslation[]
+  oracleCallLogs   OracleCallLog[]
 
   @@index([status])
   @@index([authorId])
@@ -869,6 +870,11 @@ model OracleCallLog {
   userId       String?
   user         User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 
+  // Forecast this call relates to, when known (context-update, bot-voting,
+  // research). Null for express drafting (no forecast yet), cron, leaderboard.
+  predictionId String?
+  prediction   Prediction? @relation(fields: [predictionId], references: [id], onDelete: SetNull)
+
   // Search-specific (null for non-search calls). `query` doubles as the forecast question.
   provider      String?
   providerChain String[]
@@ -884,5 +890,6 @@ model OracleCallLog {
   @@index([source])
   @@index([status])
   @@index([userId])
+  @@index([predictionId])
   @@map("oracle_call_logs")
 }

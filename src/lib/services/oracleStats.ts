@@ -68,7 +68,8 @@ export async function getOracleUsageStats(windowDays = 30) {
         id: true, callType: true, source: true, status: true, httpStatus: true,
         searchEngine: true, provider: true, providerChain: true, query: true,
         resultCount: true, durationMs: true, createdAt: true,
-        user: { select: { name: true, username: true } },
+        user: { select: { id: true, name: true, username: true } },
+        prediction: { select: { id: true, slug: true, claimText: true } },
       },
     }),
   ])
