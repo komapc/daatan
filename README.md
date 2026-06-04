@@ -122,6 +122,7 @@ git push origin v1.1.1
 | [SECRETS.md](./SECRETS.md) | Secrets management and security |
 | [PRODUCT.md](./PRODUCT.md) | Product vision and feature documentation |
 | [FORECASTS_FLOW.md](./FORECASTS_FLOW.md) | End-to-end forecast creation and resolution flow |
+| [public/docs/forecast-pipeline.html](./public/docs/forecast-pipeline.html) | Visual diagram of the Create + Analyze pipelines — served live (noindex) at [daatan.com/docs/forecast-pipeline.html](https://daatan.com/docs/forecast-pipeline.html) ([staging](https://staging.daatan.com/docs/forecast-pipeline.html)) |
 | [GLOSSARY.md](./GLOSSARY.md) | Terminology definitions |
 | [VERSIONING.md](./VERSIONING.md) | Semantic versioning rules |
 | [TESTING.md](./TESTING.md) | Testing strategy and guidelines |
