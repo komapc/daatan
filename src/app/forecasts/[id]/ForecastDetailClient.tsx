@@ -701,20 +701,22 @@ export default function ForecastDetailClient({
         </div>
       )}
 
-      {/* Comments Section */}
-      <div className="border-t border-navy-600 mt-12 pt-8">
+      {/* Comments Section — inline on mobile/tablet; in the right column on desktop */}
+      <div className="xl:hidden border-t border-navy-600 mt-12 pt-8">
         <CommentThread predictionId={prediction.id} initialComments={initialComments} />
       </div>
 
         </div>{/* end left column */}
 
-        {/* Right column — sticky on desktop */}
-        <div className="hidden xl:block xl:sticky xl:top-8 space-y-4">
+        {/* Right column (desktop). Not sticky: it holds related forecasts and
+            the full discussion, which can be taller than the viewport. */}
+        <div className="hidden xl:block space-y-4">
           <ForecastInfoPanel
             prediction={prediction}
             isMounted={isMounted}
           />
           <SimilarForecasts predictionId={prediction.id} />
+          <CommentThread predictionId={prediction.id} initialComments={initialComments} />
         </div>
       </div>
     </div>
