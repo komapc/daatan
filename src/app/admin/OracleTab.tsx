@@ -46,6 +46,7 @@ const SOURCE_OPTIONS = [
   'health-cron', 'leaderboard', 'other',
 ]
 const CALLTYPE_OPTIONS = ['SEARCH', 'FORECAST', 'LEADERBOARD', 'HEALTH', 'SEARCH_HEALTH', 'LLM', 'FETCH_URL']
+const STATUS_OPTIONS = ['OK', 'EMPTY', 'ERROR']
 
 function statusClass(status: string): string {
   if (status === 'OK') return 'text-green-400'
@@ -101,6 +102,7 @@ export default function OracleTab() {
   const [windowDays, setWindowDays] = useState(30)
   const [source, setSource] = useState('')
   const [callType, setCallType] = useState('')
+  const [status, setStatus] = useState('')
 
   const fetchStats = useCallback(async () => {
     setIsLoading(true)
@@ -108,12 +110,13 @@ export default function OracleTab() {
       const params = new URLSearchParams({ windowDays: String(windowDays) })
       if (source) params.set('source', source)
       if (callType) params.set('callType', callType)
+      if (status) params.set('status', status)
       const res = await fetch(`/api/admin/oracle-stats?${params}`)
       if (res.ok) setStats(await res.json())
     } finally {
       setIsLoading(false)
     }
-  }, [windowDays, source, callType])
+  }, [windowDays, source, callType, status])
 
   useEffect(() => { fetchStats() }, [fetchStats])
 
@@ -151,6 +154,17 @@ export default function OracleTab() {
             <option value="">All types</option>
             {CALLTYPE_OPTIONS.map(t => (
               <option key={t} value={t}>{t}</option>
+            ))}
+          </select>
+          <select
+            value={status}
+            onChange={e => setStatus(e.target.value)}
+            className="border border-navy-600 bg-navy-700 rounded p-1 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+            title="Filter by call status"
+          >
+            <option value="">All statuses</option>
+            {STATUS_OPTIONS.map(s => (
+              <option key={s} value={s}>{s}</option>
             ))}
           </select>
           <button onClick={fetchStats} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">

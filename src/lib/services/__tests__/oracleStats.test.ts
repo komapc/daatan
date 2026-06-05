@@ -80,18 +80,19 @@ describe('getOracleUsageStats', () => {
     expect(stats.recent[0].user).toEqual({ name: 'A', username: 'a' })
   })
 
-  it('applies source and callType filters to every query where-clause', async () => {
-    await getOracleUsageStats(7, { source: 'bot-voting', callType: 'FORECAST' })
-    const expected = { source: 'bot-voting', callType: 'FORECAST' }
+  it('applies source, callType and status filters to every query where-clause', async () => {
+    await getOracleUsageStats(7, { source: 'bot-voting', callType: 'FORECAST', status: 'ERROR' })
+    const expected = { source: 'bot-voting', callType: 'FORECAST', status: 'ERROR' }
     expect(mockFindMany.mock.calls[0]?.[0]?.where).toMatchObject(expected)
     expect(mockGroupBy.mock.calls[0]?.[0]?.where).toMatchObject(expected)
     expect(mockAggregate.mock.calls[0]?.[0]?.where).toMatchObject(expected)
   })
 
-  it('omits source/callType from the where-clause when no filters are given', async () => {
+  it('omits source/callType/status from the where-clause when no filters are given', async () => {
     await getOracleUsageStats(7)
     const where = mockFindMany.mock.calls[0]?.[0]?.where
     expect(where?.source).toBeUndefined()
     expect(where?.callType).toBeUndefined()
+    expect(where?.status).toBeUndefined()
   })
 })
