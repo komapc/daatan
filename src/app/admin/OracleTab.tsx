@@ -23,7 +23,8 @@ type RecentCall = {
   resultCount: number | null
   durationMs: number
   createdAt: string
-  user: { name: string | null; username: string | null } | null
+  user: { id: string; name: string | null; username: string | null } | null
+  prediction: { id: string; slug: string | null; claimText: string } | null
 }
 
 type OracleStats = {
@@ -37,6 +38,14 @@ type OracleStats = {
 }
 
 const WINDOW_OPTIONS = [1, 7, 30]
+
+// Known workflows (OracleCallMeta source) and call types, for the filter dropdowns.
+const SOURCE_OPTIONS = [
+  'context-update', 'research', 'bot-voting', 'express-creation', 'express-guess',
+  'multilingual-search', 'ibi-search', 'ibi-llm', 'ibi-fetch-url',
+  'health-cron', 'leaderboard', 'other',
+]
+const CALLTYPE_OPTIONS = ['SEARCH', 'FORECAST', 'LEADERBOARD', 'HEALTH', 'SEARCH_HEALTH', 'LLM', 'FETCH_URL']
 
 function statusClass(status: string): string {
   if (status === 'OK') return 'text-green-400'
@@ -90,16 +99,21 @@ export default function OracleTab() {
   const [stats, setStats] = useState<OracleStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [windowDays, setWindowDays] = useState(30)
+  const [source, setSource] = useState('')
+  const [callType, setCallType] = useState('')
 
   const fetchStats = useCallback(async () => {
     setIsLoading(true)
     try {
-      const res = await fetch(`/api/admin/oracle-stats?windowDays=${windowDays}`)
+      const params = new URLSearchParams({ windowDays: String(windowDays) })
+      if (source) params.set('source', source)
+      if (callType) params.set('callType', callType)
+      const res = await fetch(`/api/admin/oracle-stats?${params}`)
       if (res.ok) setStats(await res.json())
     } finally {
       setIsLoading(false)
     }
-  }, [windowDays])
+  }, [windowDays, source, callType])
 
   useEffect(() => { fetchStats() }, [fetchStats])
 
@@ -115,6 +129,28 @@ export default function OracleTab() {
           >
             {WINDOW_OPTIONS.map(d => (
               <option key={d} value={d}>Last {d} {d === 1 ? 'day' : 'days'}</option>
+            ))}
+          </select>
+          <select
+            value={source}
+            onChange={e => setSource(e.target.value)}
+            className="border border-navy-600 bg-navy-700 rounded p-1 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+            title="Filter by source workflow"
+          >
+            <option value="">All sources</option>
+            {SOURCE_OPTIONS.map(s => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+          <select
+            value={callType}
+            onChange={e => setCallType(e.target.value)}
+            className="border border-navy-600 bg-navy-700 rounded p-1 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+            title="Filter by call type"
+          >
+            <option value="">All types</option>
+            {CALLTYPE_OPTIONS.map(t => (
+              <option key={t} value={t}>{t}</option>
             ))}
           </select>
           <button onClick={fetchStats} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
@@ -175,7 +211,8 @@ export default function OracleTab() {
                       <th className="py-2 pr-4 font-medium">By</th>
                       <th className="py-2 pr-4 font-medium text-right">Results</th>
                       <th className="py-2 pr-4 font-medium text-right">Duration</th>
-                      <th className="py-2 font-medium">Query</th>
+                      <th className="py-2 pr-4 font-medium">Query</th>
+                      <th className="py-2 font-medium">Forecast</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -189,11 +226,28 @@ export default function OracleTab() {
                         </td>
                         <td className="py-2 pr-4 font-mono text-gray-400 whitespace-nowrap">{entry.searchEngine ?? '—'}</td>
                         <td className="py-2 pr-4 text-gray-500 whitespace-nowrap">
-                          {entry.user ? (entry.user.username ? `@${entry.user.username}` : entry.user.name || '—') : '—'}
+                          {entry.user ? (
+                            <a href={`/profile/${entry.user.id}`} className="text-blue-500 hover:underline">
+                              {entry.user.username ? `@${entry.user.username}` : entry.user.name || '—'}
+                            </a>
+                          ) : '—'}
                         </td>
                         <td className="py-2 pr-4 tabular-nums text-right">{entry.resultCount ?? '—'}</td>
                         <td className="py-2 pr-4 tabular-nums text-right whitespace-nowrap">{entry.durationMs} ms</td>
-                        <td className="py-2 text-gray-600 max-w-xs truncate" title={entry.query ?? ''}>{entry.query ?? '—'}</td>
+                        <td className="py-2 pr-4 text-gray-600 max-w-xs truncate" title={entry.query ?? ''}>{entry.query ?? '—'}</td>
+                        <td className="py-2 whitespace-nowrap">
+                          {entry.prediction ? (
+                            <a
+                              href={`/forecasts/${entry.prediction.slug ?? entry.prediction.id}`}
+                              className="text-blue-500 hover:underline"
+                              title={entry.prediction.claimText}
+                            >
+                              ↗ open
+                            </a>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

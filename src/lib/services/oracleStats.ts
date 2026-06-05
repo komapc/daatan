@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import type { OracleCallStatus } from '@prisma/client'
+import type { OracleCallStatus, OracleCallType, Prisma } from '@prisma/client'
 
 const RECENT_LIMIT = 50
 
@@ -50,9 +50,14 @@ function fold<T extends GroupedRow>(rows: T[], keyOf: (r: T) => string): OracleU
  * breakdowns by source / call type / search engine / status, plus totals and
  * the most recent calls.
  */
-export async function getOracleUsageStats(windowDays = 30) {
+export async function getOracleUsageStats(
+  windowDays = 30,
+  filters?: { source?: string; callType?: OracleCallType },
+) {
   const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000)
-  const where = { createdAt: { gte: since } }
+  const where: Prisma.OracleCallLogWhereInput = { createdAt: { gte: since } }
+  if (filters?.source) where.source = filters.source
+  if (filters?.callType) where.callType = filters.callType
 
   const [bySourceRows, byTypeRows, byEngineRows, byStatusRows, totalsRows, recent] = await Promise.all([
     prisma.oracleCallLog.groupBy({ by: ['source', 'status'], where, _count: { _all: true }, _avg: { durationMs: true }, _max: { createdAt: true } }),
@@ -68,7 +73,8 @@ export async function getOracleUsageStats(windowDays = 30) {
         id: true, callType: true, source: true, status: true, httpStatus: true,
         searchEngine: true, provider: true, providerChain: true, query: true,
         resultCount: true, durationMs: true, createdAt: true,
-        user: { select: { name: true, username: true } },
+        user: { select: { id: true, name: true, username: true } },
+        prediction: { select: { id: true, slug: true, claimText: true } },
       },
     }),
   ])

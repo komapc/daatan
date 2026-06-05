@@ -90,7 +90,7 @@ describe('logOracleCall', () => {
     await logOracleCall({
       callType: 'FORECAST',
       status: 'OK',
-      meta: { source: 'context-update', userId: 'u1' },
+      meta: { source: 'context-update', userId: 'u1', predictionId: 'p1' },
       durationMs: 321,
       httpStatus: 200,
       searchEngine: 'gdelt',
@@ -105,6 +105,7 @@ describe('logOracleCall', () => {
         status: 'OK',
         source: 'context-update',
         userId: 'u1',
+        predictionId: 'p1',
         durationMs: 321,
         httpStatus: 200,
         searchEngine: 'gdelt',
@@ -122,6 +123,7 @@ describe('logOracleCall', () => {
     await logOracleCall({ callType: 'HEALTH', status: 'ERROR', meta: { source: 'health-cron' }, durationMs: 10 })
     const data = mockCreate.mock.calls[0][0].data
     expect(data.userId).toBeNull()
+    expect(data.predictionId).toBeNull()
     expect(data.searchEngine).toBeNull()
     expect(data.provider).toBeNull()
     expect(data.query).toBeNull()
