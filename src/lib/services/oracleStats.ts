@@ -52,12 +52,13 @@ function fold<T extends GroupedRow>(rows: T[], keyOf: (r: T) => string): OracleU
  */
 export async function getOracleUsageStats(
   windowDays = 30,
-  filters?: { source?: string; callType?: OracleCallType },
+  filters?: { source?: string; callType?: OracleCallType; status?: OracleCallStatus },
 ) {
   const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000)
   const where: Prisma.OracleCallLogWhereInput = { createdAt: { gte: since } }
   if (filters?.source) where.source = filters.source
   if (filters?.callType) where.callType = filters.callType
+  if (filters?.status) where.status = filters.status
 
   const [bySourceRows, byTypeRows, byEngineRows, byStatusRows, totalsRows, recent] = await Promise.all([
     prisma.oracleCallLog.groupBy({ by: ['source', 'status'], where, _count: { _all: true }, _avg: { durationMs: true }, _max: { createdAt: true } }),
