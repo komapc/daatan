@@ -18,7 +18,7 @@ vi.mock('@/env', () => ({
   },
 }))
 
-import { getOracleForecast, getOracleProbability } from '../oracle'
+import { getOracleForecast, getOracleProbability, BOT_FORECAST_TIMEOUT_MS } from '../oracle'
 
 const sampleSources = [
   {
@@ -146,5 +146,38 @@ describe('getOracleProbability', () => {
   it('returns null when the full forecast is unavailable', async () => {
     fetchMock.mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({}) })
     expect(await getOracleProbability('Q?')).toBeNull()
+  })
+})
+
+describe('forecast request timeout', () => {
+  const fetchMock = vi.fn()
+  let timeoutSpy: ReturnType<typeof vi.spyOn>
+
+  beforeEach(() => {
+    fetchMock.mockReset()
+    fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => fullPayload })
+    vi.stubGlobal('fetch', fetchMock)
+    timeoutSpy = vi.spyOn(AbortSignal, 'timeout') // default impl returns a real signal
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    timeoutSpy.mockRestore()
+  })
+
+  it('defaults to the 12s timeout for interactive callers', async () => {
+    await getOracleForecast('Q?')
+    expect(timeoutSpy).toHaveBeenCalledWith(12_000)
+  })
+
+  it('uses a caller-supplied timeout when provided', async () => {
+    await getOracleForecast('Q?', { timeoutMs: BOT_FORECAST_TIMEOUT_MS })
+    expect(timeoutSpy).toHaveBeenCalledWith(BOT_FORECAST_TIMEOUT_MS)
+    expect(BOT_FORECAST_TIMEOUT_MS).toBeGreaterThan(12_000)
+  })
+
+  it('getOracleProbability forwards its timeout option to the request', async () => {
+    await getOracleProbability('Q?', { source: 'bot-voting' }, { timeoutMs: BOT_FORECAST_TIMEOUT_MS })
+    expect(timeoutSpy).toHaveBeenCalledWith(BOT_FORECAST_TIMEOUT_MS)
   })
 })
