@@ -69,6 +69,7 @@ vi.mock('@/lib/services/commitment', () => ({
 // this factory implementation (it clears call history, not implementations).
 vi.mock('@/lib/services/oracle', () => ({
   getOracleProbability: vi.fn().mockResolvedValue(null),
+  BOT_FORECAST_TIMEOUT_MS: 20_000,
 }))
 
 // ─── Logger mock ─────────────────────────────────────────────────────────────
@@ -1299,8 +1300,13 @@ describe('runDueBots — voting', () => {
 
     await runDueBots()
 
-    // Oracle was asked about the claim with the 🤖 prefix stripped
-    expect(getOracleProbability).toHaveBeenCalledWith('Bitcoin tops $100k', expect.objectContaining({ source: 'bot-voting' }))
+    // Oracle was asked about the claim with the 🤖 prefix stripped, with the
+    // longer bot-voting timeout passed through.
+    expect(getOracleProbability).toHaveBeenCalledWith(
+      'Bitcoin tops $100k',
+      expect.objectContaining({ source: 'bot-voting' }),
+      expect.objectContaining({ timeoutMs: expect.any(Number) }),
+    )
     // …and the estimate reached the LLM vote prompt
     const votePromptArg = mockGenerateContent.mock.calls[0][0]
     expect(votePromptArg.prompt).toContain('84%')
@@ -1339,7 +1345,7 @@ describe('runDueBots — voting', () => {
     const { getOracleProbability } = await import('@/lib/services/oracle')
     const { runDueBots } = await import('@/lib/services/bots')
 
-    // 8 candidates, all votable → loop would consult 8× without the cap (5).
+    // 8 candidates, all votable → loop would consult 8× without the cap (3).
     const bot = makeBot({ canCreateForecasts: false, maxVotesPerDay: 8 })
     vi.mocked(prisma.botConfig.findMany).mockResolvedValue([bot] as any)
     vi.mocked(prisma.botRunLog.count).mockResolvedValue(0)
@@ -1359,7 +1365,7 @@ describe('runDueBots — voting', () => {
 
     await runDueBots()
 
-    expect(vi.mocked(getOracleProbability).mock.calls.length).toBe(5)
+    expect(vi.mocked(getOracleProbability).mock.calls.length).toBe(3)
   })
 
   it('respects maxVotesPerDay cap and does not vote more than allowed', async () => {

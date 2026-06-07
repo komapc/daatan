@@ -6,17 +6,19 @@
 import { prisma } from '@/lib/prisma'
 import { createBotLLMService } from '@/lib/llm'
 import { getPromptTemplate, fillPrompt } from '@/lib/llm/bedrock-prompts'
-import { getOracleProbability } from '@/lib/services/oracle'
+import { getOracleProbability, BOT_FORECAST_TIMEOUT_MS } from '@/lib/services/oracle'
 import { createCommitment } from '@/lib/services/commitment'
 import { voteDecisionSchema } from '@/lib/llm/schemas'
 import { type BotWithUser, log, callLLMWithTimeout, logBotAction, randomInt } from './shared'
 
 // Per-run cap on Oracle consultations during voting. Each getOracleProbability
-// call hits the Oracle's /forecast endpoint (article search + analysis, up to a
-// 12s timeout), so consulting it for every vote candidate could push a bot run
-// past its cron interval. We consult the first N candidates and let the rest
-// vote on the LLM's judgement alone.
-const MAX_ORACLE_CONSULTS_PER_VOTE_RUN = 5
+// call hits the Oracle's /forecast endpoint (article search + analysis), which
+// runs sequentially here, so cap × timeout bounds the Oracle time per bot run.
+// We use the longer BOT_FORECAST_TIMEOUT_MS (20s) to let slow-but-valid calls
+// finish instead of aborting at 12s, and lower the cap to keep the product
+// (cap × timeout = 60s) within the run's cron budget. Remaining candidates vote
+// on the LLM's judgement alone.
+const MAX_ORACLE_CONSULTS_PER_VOTE_RUN = 3
 
 export async function runVoting(
   bot: BotWithUser,
@@ -78,7 +80,11 @@ export async function runVoting(
         oracleConsults++
         // Strip the 🤖 author prefix; it's noise in the Oracle's search query.
         const oracleQuestion = forecast.claimText.replace(/^🤖\s*/, '')
-        const oracleProbability = await getOracleProbability(oracleQuestion, { source: 'bot-voting', userId: bot.userId, predictionId: forecast.id })
+        const oracleProbability = await getOracleProbability(
+          oracleQuestion,
+          { source: 'bot-voting', userId: bot.userId, predictionId: forecast.id },
+          { timeoutMs: BOT_FORECAST_TIMEOUT_MS },
+        )
         if (oracleProbability !== null) {
           const pct = Math.round(oracleProbability * 100)
           votePrompt += `\n\nAn external forecasting Oracle estimates the probability that this resolves YES at ${pct}%. Weigh this signal alongside your own judgement.`

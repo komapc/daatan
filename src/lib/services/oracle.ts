@@ -11,6 +11,11 @@ const log = createLogger('oracle')
 
 const EXPECTED_API_VERSION = '0.1'
 const FORECAST_TIMEOUT_MS = 12_000
+// Bot voting runs in a background cron (bots.yml, ~270s budget) where latency is
+// not user-facing, so it tolerates a longer Oracle wait than the interactive
+// paths. Consultations are sequential and capped per run (see voting.ts); that
+// cap is lowered in step so cap × timeout stays within the run budget.
+export const BOT_FORECAST_TIMEOUT_MS = 20_000
 const HEALTH_TIMEOUT_MS = 5_000
 /**
  * Maximum articles fetched per search query and passed to the oracle for forecasting.
@@ -93,7 +98,7 @@ export interface OracleLeaderboardResponse {
  */
 export const getOracleForecast = async (
   question: string,
-  options?: { articles?: ArticleInput[] },
+  options?: { articles?: ArticleInput[]; timeoutMs?: number },
   meta: OracleCallMeta = { source: 'other' },
 ): Promise<OracleForecastResponse | null> => {
   const cfg = getOracleConfig()
@@ -112,7 +117,7 @@ export const getOracleForecast = async (
         max_articles: DEFAULT_MAX_ARTICLES,
         ...(options?.articles?.length ? { articles: options.articles } : {}),
       }),
-      timeoutMs: FORECAST_TIMEOUT_MS,
+      timeoutMs: options?.timeoutMs ?? FORECAST_TIMEOUT_MS,
     })
 
     if (!res.ok) {
@@ -164,8 +169,9 @@ export const getOracleForecast = async (
 export const getOracleProbability = async (
   question: string,
   meta: OracleCallMeta = { source: 'other' },
+  options?: { timeoutMs?: number },
 ): Promise<number | null> => {
-  const data = await getOracleForecast(question, undefined, meta)
+  const data = await getOracleForecast(question, { timeoutMs: options?.timeoutMs }, meta)
   if (!data) return null
   return (data.mean + 1) / 2
 }
