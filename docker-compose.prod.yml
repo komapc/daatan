@@ -82,7 +82,11 @@ services:
         max-file: "3"
 
   postgres:
-    image: pgvector/pgvector:pg16
+    # Pinned by digest on purpose: the mutable :pg16 tag silently swapped its
+    # glibc/ICU on an upstream rebuild, which corrupted text btree indexes via a
+    # collation-version mismatch (slug/username lookups returned 0 rows).
+    # Change this digest deliberately, then REINDEX + verify. See docs/DATABASE_COLLATION.md
+    image: pgvector/pgvector:pg16@sha256:7d400e340efb42f4d8c9c12c6427adb253f726881a9985d2a471bf0eed824dff
     container_name: daatan-postgres
     restart: unless-stopped
     expose:
