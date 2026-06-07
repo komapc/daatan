@@ -186,8 +186,8 @@ echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━
 echo -e "${GREEN}✅ Release $NEW_VERSION created successfully!${NC}"
 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
-echo -e "📦 GitHub Release: ${BLUE}https://github.com/komapc/daatan/releases/tag/$NEW_VERSION${NC}"
-echo -e "🔄 GitHub Actions: ${BLUE}https://github.com/komapc/daatan/actions${NC}"
+echo -e "📦 GitHub Release: ${BLUE}https://github.com/Daatan/daatan/releases/tag/$NEW_VERSION${NC}"
+echo -e "🔄 GitHub Actions: ${BLUE}https://github.com/Daatan/daatan/actions${NC}"
 echo ""
 echo -e "${YELLOW}Production deployment triggered. Monitor Actions for progress.${NC}"
 

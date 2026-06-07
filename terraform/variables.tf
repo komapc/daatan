@@ -31,5 +31,14 @@ variable "ec2_instance_type" {
 variable "github_repository" {
   description = "GitHub repository (org/repo) for OIDC federation"
   type        = string
-  default     = "komapc/daatan"
+  default     = "Daatan/daatan"
+}
+
+# Immutable numeric repo id (stable across renames/owner transfers). The OIDC
+# trust keys on this so a future transfer can't silently break CI again.
+# Get it with: gh api repos/Daatan/daatan --jq .id
+variable "github_repository_id" {
+  description = "GitHub repository numeric id for OIDC federation"
+  type        = string
+  default     = "1134569638"
 }

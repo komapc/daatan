@@ -239,7 +239,7 @@ export default function AboutPage() {
         </div>
         <div className="p-6 space-y-3">
           <a
-            href="https://github.com/komapc/daatan"
+            href="https://github.com/Daatan/daatan"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-3 p-3 bg-navy-800 hover:bg-navy-700 rounded-lg transition-colors"
@@ -292,7 +292,7 @@ export default function AboutPage() {
                 <span className="flex items-center gap-1">
                   <GitCommit className="w-3.5 h-3.5" />
                   <Link
-                    href={`https://github.com/komapc/daatan/commit/${gitCommit}`}
+                    href={`https://github.com/Daatan/daatan/commit/${gitCommit}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="font-mono hover:text-cobalt-light hover:underline"

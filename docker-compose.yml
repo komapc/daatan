@@ -21,7 +21,7 @@ services:
         max-file: "3"
 
   app:
-    image: ghcr.io/komapc/daatan:main
+    image: ghcr.io/daatan/daatan:main
     container_name: daatan-app
     restart: unless-stopped
     # Port 3000 is internal only - accessed via nginx

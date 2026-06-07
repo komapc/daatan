@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Daatan is deployed as a rolling single-tenant service at [daatan.com](https://daatan.com). Only the **latest released tag** (currently the [latest GitHub release](https://github.com/komapc/daatan/releases/latest)) is supported — older tags receive no security fixes. Staging at [staging.daatan.com](https://staging.daatan.com) tracks `main` and is always at or ahead of production.
+Daatan is deployed as a rolling single-tenant service at [daatan.com](https://daatan.com). Only the **latest released tag** (currently the [latest GitHub release](https://github.com/Daatan/daatan/releases/latest)) is supported — older tags receive no security fixes. Staging at [staging.daatan.com](https://staging.daatan.com) tracks `main` and is always at or ahead of production.
 
 | Scope | Supported |
 | ----- | --------- |
@@ -15,7 +15,7 @@ Daatan is deployed as a rolling single-tenant service at [daatan.com](https://da
 If you believe you've found a security issue, **please do not open a public GitHub issue**. Instead:
 
 - Email: **security@daatan.com** (preferred), or
-- Open a [private security advisory](https://github.com/komapc/daatan/security/advisories/new) on this repository.
+- Open a [private security advisory](https://github.com/Daatan/daatan/security/advisories/new) on this repository.
 
 Please include:
 
@@ -37,7 +37,7 @@ Please give us a reasonable window to remediate before any public disclosure.
 In scope:
 
 - the `daatan.com` and `staging.daatan.com` web applications,
-- the `oracle.daatan.com` API (source in the separate [retro](https://github.com/komapc/retro) repo; coordinate with us and we'll route appropriately),
+- the `oracle.daatan.com` API (source in the separate [retro](https://github.com/Daatan/retro) repo; coordinate with us and we'll route appropriately),
 - the HTTP API under `/api/*` (see [docs/API.md](./docs/API.md)),
 - the bot-runner cron and admin endpoints,
 - any code in this repository.
