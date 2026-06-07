@@ -145,7 +145,7 @@ resource "aws_lambda_function" "forwarder" {
   role             = aws_iam_role.lambda_forwarder.arn
   handler          = "index.handler"
   source_code_hash = data.archive_file.mail_forwarder.output_base64sha256
-  runtime          = "nodejs20.x"
+  runtime          = "nodejs22.x"
   timeout          = 30
 
   environment {
