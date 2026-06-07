@@ -29,12 +29,17 @@ resource "aws_iam_role" "github_actions" {
           Federated = aws_iam_openid_connect_provider.github_actions.arn
         }
         Action = "sts:AssumeRoleWithWebIdentity"
+        # Pin trust to the immutable repository_id (survives org transfer /
+        # rename). AWS still requires a sub condition, so we add an
+        # owner-agnostic sub pattern on the repo name — case-proof regardless of
+        # the org login's casing.
         Condition = {
           StringEquals = {
-            "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
+            "token.actions.githubusercontent.com:aud"           = "sts.amazonaws.com"
+            "token.actions.githubusercontent.com:repository_id" = var.github_repository_id
           }
           StringLike = {
-            "token.actions.githubusercontent.com:sub" = "repo:${var.github_repository}:*"
+            "token.actions.githubusercontent.com:sub" = "repo:*/${split("/", var.github_repository)[1]}:*"
           }
         }
       }

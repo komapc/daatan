@@ -97,7 +97,7 @@ const response = await botLlm.generateContent({ prompt: "..." })
 
 ## Oracle API Integration
 
-Calibrated probability estimates for binary forecast questions come from the **TruthMachine Oracle API** (`oracle.daatan.com`) — a FastAPI microservice in the [retro repo](https://github.com/komapc/retro) that runs a multi-source article ingest + gatekeeper + extractor pipeline with credibility-weighted aggregation.
+Calibrated probability estimates for binary forecast questions come from the **TruthMachine Oracle API** (`oracle.daatan.com`) — a FastAPI microservice in the [retro repo](https://github.com/Daatan/retro) that runs a multi-source article ingest + gatekeeper + extractor pipeline with credibility-weighted aggregation.
 
 ### Client
 

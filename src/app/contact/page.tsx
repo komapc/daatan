@@ -42,7 +42,7 @@ export default function ContactPage() {
           </a>
 
           <a
-            href="https://github.com/komapc/daatan/issues"
+            href="https://github.com/Daatan/daatan/issues"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-4 p-4 bg-navy-800 hover:bg-navy-600 rounded-xl transition-colors group"

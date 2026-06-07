@@ -12,7 +12,7 @@
  *   TELEGRAM_BOT_TOKEN          — Bot token from BotFather
  *   TELEGRAM_ROLLBACK_CHAT_IDS  — Comma-separated allowed chat IDs (e.g. "123456,789012")
  *   GH_ROLLBACK_TOKEN           — PAT with actions:write on this repo
- *   GITHUB_REPOSITORY           — e.g. "komapc/daatan"
+ *   GITHUB_REPOSITORY           — e.g. "Daatan/daatan"
  *   AWS_REGION                  — e.g. "eu-central-1"
  *   NEXTAUTH_URL                — production base URL (e.g. "https://daatan.com")
  *   STAGING_URL                 — staging base URL (e.g. "https://staging.daatan.com")
@@ -25,7 +25,7 @@ import { secretsMatch } from '@/lib/cron-auth'
 const log = createLogger('telegram-rollback')
 
 const TELEGRAM_API = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`
-const GITHUB_REPO = process.env.GITHUB_REPOSITORY ?? 'komapc/daatan'
+const GITHUB_REPO = process.env.GITHUB_REPOSITORY ?? 'Daatan/daatan'
 const GITHUB_TOKEN = process.env.GH_ROLLBACK_TOKEN ?? ''
 const ALLOWED_CHAT_IDS = (process.env.TELEGRAM_ROLLBACK_CHAT_IDS ?? '')
   .split(',')

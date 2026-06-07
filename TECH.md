@@ -763,7 +763,7 @@ docker exec daatan-postgres psql -U daatan -d daatan \
 ### Local Setup
 
 ```bash
-git clone https://github.com/komapc/daatan.git
+git clone https://github.com/Daatan/daatan.git
 cd daatan
 npm install
 cp .env.example .env

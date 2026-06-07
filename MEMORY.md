@@ -8,7 +8,7 @@
 - Prisma as ORM
 
 ## Environment
-- **Repository:** https://github.com/komapc/daatan
+- **Repository:** https://github.com/Daatan/daatan
 - **Primary Branch:** main
 - **Local DB Port:** 5432
 - **Production:** AWS EC2 (Ubuntu), Docker

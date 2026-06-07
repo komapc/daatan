@@ -87,7 +87,7 @@ resource "aws_instance" "production" {
 
     # 3. Clone Repository
     if [ ! -d "/home/ubuntu/app/.git" ]; then
-        sudo -u ubuntu git clone "https://x-access-token:$GITHUB_TOKEN@github.com/komapc/daatan.git" /home/ubuntu/app || echo "Repo clone failed"
+        sudo -u ubuntu git clone "https://x-access-token:$GITHUB_TOKEN@github.com/Daatan/daatan.git" /home/ubuntu/app || echo "Repo clone failed"
     else
         echo "Repo already exists"
     fi
@@ -263,7 +263,7 @@ resource "aws_instance" "staging" {
 
     # 3. Clone Repository
     if [ ! -d "/home/ubuntu/app/.git" ]; then
-        sudo -u ubuntu git clone "https://x-access-token:$GITHUB_TOKEN@github.com/komapc/daatan.git" /home/ubuntu/app || echo "Repo clone failed"
+        sudo -u ubuntu git clone "https://x-access-token:$GITHUB_TOKEN@github.com/Daatan/daatan.git" /home/ubuntu/app || echo "Repo clone failed"
     else
         echo "Repo already exists"
     fi
