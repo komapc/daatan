@@ -54,7 +54,69 @@ function statusClass(status: string): string {
   return 'text-amber-400' // EMPTY
 }
 
+// --- Client-side column sorting -------------------------------------------
+
+type SortDir = 'asc' | 'desc'
+type SortState = { key: string; dir: SortDir }
+
+/** Stable-ish sort by an extracted value; nulls always sort last. */
+export function sortRows<T>(rows: T[], get: (r: T) => unknown, dir: SortDir): T[] {
+  const sign = dir === 'asc' ? 1 : -1
+  return [...rows].sort((ra, rb) => {
+    const a = get(ra)
+    const b = get(rb)
+    if (a == null && b == null) return 0
+    if (a == null) return 1
+    if (b == null) return -1
+    if (typeof a === 'number' && typeof b === 'number') return (a - b) * sign
+    return String(a).localeCompare(String(b)) * sign
+  })
+}
+
+function useTableSort(defaultKey: string, defaultDir: SortDir = 'desc') {
+  const [sort, setSort] = useState<SortState>({ key: defaultKey, dir: defaultDir })
+  const toggle = (key: string) =>
+    setSort(s => (s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'desc' }))
+  return { sort, toggle }
+}
+
+function SortHeader({
+  label, sortKey, sort, onSort, align = 'left', padCls = 'pr-4',
+}: {
+  label: string
+  sortKey: string
+  sort: SortState
+  onSort: (k: string) => void
+  align?: 'left' | 'right'
+  padCls?: string
+}) {
+  const active = sort.key === sortKey
+  return (
+    <th
+      onClick={() => onSort(sortKey)}
+      className={`py-2 ${padCls} font-medium cursor-pointer select-none hover:text-gray-700 ${align === 'right' ? 'text-right' : ''}`}
+    >
+      <span className={`inline-flex items-center gap-1 ${align === 'right' ? 'justify-end' : ''}`}>
+        {label}
+        <span className={`text-[10px] ${active ? 'text-blue-400' : 'text-transparent'}`}>
+          {active && sort.dir === 'asc' ? '▲' : '▼'}
+        </span>
+      </span>
+    </th>
+  )
+}
+
+const BREAKDOWN_GETTERS: Record<string, (r: Breakdown) => unknown> = {
+  key: r => r.key,
+  callCount: r => r.callCount,
+  errorCount: r => r.errorCount,
+  avgDurationMs: r => r.avgDurationMs,
+  lastSeenAt: r => r.lastSeenAt,
+}
+
 function BreakdownTable({ title, label, rows }: { title: string; label: string; rows: Breakdown[] }) {
+  const { sort, toggle } = useTableSort('callCount')
+  const sorted = sortRows(rows, BREAKDOWN_GETTERS[sort.key], sort.dir)
   return (
     <section>
       <h3 className="text-sm font-medium text-gray-700 mb-2">{title}</h3>
@@ -65,15 +127,15 @@ function BreakdownTable({ title, label, rows }: { title: string; label: string; 
           <table className="min-w-full text-sm border-collapse">
             <thead>
               <tr className="border-b text-left text-gray-500">
-                <th className="py-2 pr-6 font-medium">{label}</th>
-                <th className="py-2 pr-6 font-medium text-right">Calls</th>
-                <th className="py-2 pr-6 font-medium text-right">Errors</th>
-                <th className="py-2 pr-6 font-medium text-right">Avg duration</th>
-                <th className="py-2 font-medium">Last seen</th>
+                <SortHeader label={label} sortKey="key" sort={sort} onSort={toggle} padCls="pr-6" />
+                <SortHeader label="Calls" sortKey="callCount" sort={sort} onSort={toggle} align="right" padCls="pr-6" />
+                <SortHeader label="Errors" sortKey="errorCount" sort={sort} onSort={toggle} align="right" padCls="pr-6" />
+                <SortHeader label="Avg duration" sortKey="avgDurationMs" sort={sort} onSort={toggle} align="right" padCls="pr-6" />
+                <SortHeader label="Last seen" sortKey="lastSeenAt" sort={sort} onSort={toggle} padCls="" />
               </tr>
             </thead>
             <tbody>
-              {rows.map(row => (
+              {sorted.map(row => (
                 <tr key={row.key} className="border-b last:border-0">
                   <td className="py-2 pr-6 font-mono">{row.key}</td>
                   <td className="py-2 pr-6 text-right tabular-nums">{row.callCount}</td>
@@ -85,6 +147,87 @@ function BreakdownTable({ title, label, rows }: { title: string; label: string; 
                   </td>
                   <td className="py-2 text-gray-500">
                     {row.lastSeenAt ? new Date(row.lastSeenAt).toLocaleString() : '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  )
+}
+
+const RECENT_GETTERS: Record<string, (e: RecentCall) => unknown> = {
+  createdAt: e => e.createdAt,
+  callType: e => e.callType,
+  source: e => e.source,
+  status: e => e.status,
+  searchEngine: e => e.searchEngine,
+  user: e => e.user?.username ?? e.user?.name ?? null,
+  resultCount: e => e.resultCount,
+  durationMs: e => e.durationMs,
+  query: e => e.query,
+  prediction: e => e.prediction?.claimText ?? null,
+}
+
+function RecentCallsTable({ rows }: { rows: RecentCall[] }) {
+  const { sort, toggle } = useTableSort('createdAt')
+  const sorted = sortRows(rows, RECENT_GETTERS[sort.key], sort.dir)
+  return (
+    <section>
+      <h3 className="text-sm font-medium text-gray-700 mb-2">Recent calls (last 50)</h3>
+      {rows.length === 0 ? (
+        <p className="text-sm text-gray-400">No calls recorded yet.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm border-collapse">
+            <thead>
+              <tr className="border-b text-left text-gray-500">
+                <SortHeader label="Time" sortKey="createdAt" sort={sort} onSort={toggle} />
+                <SortHeader label="Type" sortKey="callType" sort={sort} onSort={toggle} />
+                <SortHeader label="Source" sortKey="source" sort={sort} onSort={toggle} />
+                <SortHeader label="Status" sortKey="status" sort={sort} onSort={toggle} />
+                <SortHeader label="Engine" sortKey="searchEngine" sort={sort} onSort={toggle} />
+                <SortHeader label="By" sortKey="user" sort={sort} onSort={toggle} />
+                <SortHeader label="Results" sortKey="resultCount" sort={sort} onSort={toggle} align="right" />
+                <SortHeader label="Duration" sortKey="durationMs" sort={sort} onSort={toggle} align="right" />
+                <SortHeader label="Query" sortKey="query" sort={sort} onSort={toggle} />
+                <SortHeader label="Forecast" sortKey="prediction" sort={sort} onSort={toggle} padCls="" />
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map(entry => (
+                <tr key={entry.id} className="border-b last:border-0 align-top">
+                  <td className="py-2 pr-4 text-gray-500 whitespace-nowrap">{new Date(entry.createdAt).toLocaleString()}</td>
+                  <td className="py-2 pr-4 font-mono whitespace-nowrap">{entry.callType}</td>
+                  <td className="py-2 pr-4 font-mono whitespace-nowrap">{entry.source}</td>
+                  <td className={`py-2 pr-4 font-mono whitespace-nowrap ${statusClass(entry.status)}`}>
+                    {entry.status}{entry.httpStatus != null ? ` (${entry.httpStatus})` : ''}
+                  </td>
+                  <td className="py-2 pr-4 font-mono text-gray-400 whitespace-nowrap">{entry.searchEngine ?? '—'}</td>
+                  <td className="py-2 pr-4 text-gray-500 whitespace-nowrap">
+                    {entry.user ? (
+                      <a href={`/profile/${entry.user.id}`} className="text-blue-500 hover:underline">
+                        {entry.user.username ? `@${entry.user.username}` : entry.user.name || '—'}
+                      </a>
+                    ) : '—'}
+                  </td>
+                  <td className="py-2 pr-4 tabular-nums text-right">{entry.resultCount ?? '—'}</td>
+                  <td className="py-2 pr-4 tabular-nums text-right whitespace-nowrap">{entry.durationMs} ms</td>
+                  <td className="py-2 pr-4 text-gray-600 max-w-xs truncate" title={entry.query ?? ''}>{entry.query ?? '—'}</td>
+                  <td className="py-2 whitespace-nowrap">
+                    {entry.prediction ? (
+                      <a
+                        href={`/forecasts/${entry.prediction.slug ?? entry.prediction.id}`}
+                        className="text-blue-500 hover:underline"
+                        title={entry.prediction.claimText}
+                      >
+                        ↗ open
+                      </a>
+                    ) : (
+                      <span className="text-gray-400">—</span>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -207,68 +350,7 @@ export default function OracleTab() {
           <BreakdownTable title="By call type" label="Call type" rows={stats.byCallType} />
           <BreakdownTable title="By search engine" label="Engine" rows={stats.byEngine} />
 
-          {/* Recent call log */}
-          <section>
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Recent calls (last 50)</h3>
-            {stats.recent.length === 0 ? (
-              <p className="text-sm text-gray-400">No calls recorded yet.</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-sm border-collapse">
-                  <thead>
-                    <tr className="border-b text-left text-gray-500">
-                      <th className="py-2 pr-4 font-medium">Time</th>
-                      <th className="py-2 pr-4 font-medium">Type</th>
-                      <th className="py-2 pr-4 font-medium">Source</th>
-                      <th className="py-2 pr-4 font-medium">Status</th>
-                      <th className="py-2 pr-4 font-medium">Engine</th>
-                      <th className="py-2 pr-4 font-medium">By</th>
-                      <th className="py-2 pr-4 font-medium text-right">Results</th>
-                      <th className="py-2 pr-4 font-medium text-right">Duration</th>
-                      <th className="py-2 pr-4 font-medium">Query</th>
-                      <th className="py-2 font-medium">Forecast</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {stats.recent.map(entry => (
-                      <tr key={entry.id} className="border-b last:border-0 align-top">
-                        <td className="py-2 pr-4 text-gray-500 whitespace-nowrap">{new Date(entry.createdAt).toLocaleString()}</td>
-                        <td className="py-2 pr-4 font-mono whitespace-nowrap">{entry.callType}</td>
-                        <td className="py-2 pr-4 font-mono whitespace-nowrap">{entry.source}</td>
-                        <td className={`py-2 pr-4 font-mono whitespace-nowrap ${statusClass(entry.status)}`}>
-                          {entry.status}{entry.httpStatus != null ? ` (${entry.httpStatus})` : ''}
-                        </td>
-                        <td className="py-2 pr-4 font-mono text-gray-400 whitespace-nowrap">{entry.searchEngine ?? '—'}</td>
-                        <td className="py-2 pr-4 text-gray-500 whitespace-nowrap">
-                          {entry.user ? (
-                            <a href={`/profile/${entry.user.id}`} className="text-blue-500 hover:underline">
-                              {entry.user.username ? `@${entry.user.username}` : entry.user.name || '—'}
-                            </a>
-                          ) : '—'}
-                        </td>
-                        <td className="py-2 pr-4 tabular-nums text-right">{entry.resultCount ?? '—'}</td>
-                        <td className="py-2 pr-4 tabular-nums text-right whitespace-nowrap">{entry.durationMs} ms</td>
-                        <td className="py-2 pr-4 text-gray-600 max-w-xs truncate" title={entry.query ?? ''}>{entry.query ?? '—'}</td>
-                        <td className="py-2 whitespace-nowrap">
-                          {entry.prediction ? (
-                            <a
-                              href={`/forecasts/${entry.prediction.slug ?? entry.prediction.id}`}
-                              className="text-blue-500 hover:underline"
-                              title={entry.prediction.claimText}
-                            >
-                              ↗ open
-                            </a>
-                          ) : (
-                            <span className="text-gray-400">—</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
+          <RecentCallsTable rows={stats.recent} />
         </>
       )}
     </div>
