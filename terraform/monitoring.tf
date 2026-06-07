@@ -101,3 +101,211 @@ resource "aws_cloudwatch_metric_alarm" "prod_ec2_status_check" {
     InstanceId = aws_instance.production.id
   }
 }
+
+# --------------------------------------------------------------------
+# Instance sets reused by the alarm families below
+# --------------------------------------------------------------------
+locals {
+  # retro/TruthMachine Oracle box — not managed by this terraform, but
+  # monitored here so all infra alerting lives in one place.
+  oracle_instance_id = "i-00ac444b94c5ff9b2"
+
+  # All instances that get default-EC2-metric alarms (CPU, status check).
+  monitored_instances = {
+    prod    = aws_instance.production.id
+    staging = aws_instance.staging.id
+    oracle  = local.oracle_instance_id
+  }
+
+  # Only these run the CloudWatch agent, so only these publish
+  # disk_used_percent / mem_used_percent / swap_used_percent. The Oracle
+  # box has no agent — give it one before adding disk/mem/swap alarms for it.
+  cwagent_instances = {
+    prod    = aws_instance.production.id
+    staging = aws_instance.staging.id
+  }
+}
+
+# --------------------------------------------------------------------
+# EC2 status checks — staging + oracle (prod has its own block above)
+# --------------------------------------------------------------------
+resource "aws_cloudwatch_metric_alarm" "staging_ec2_status_check" {
+  alarm_name          = "staging-ec2-status-check-failed"
+  alarm_description   = "Staging EC2 instance status check failed — instance may be unreachable"
+  metric_name         = "StatusCheckFailed"
+  namespace           = "AWS/EC2"
+  statistic           = "Maximum"
+  period              = 60
+  evaluation_periods  = 2
+  threshold           = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "breaching"
+  alarm_actions       = [aws_sns_topic.infra_alerts.arn]
+  ok_actions          = [aws_sns_topic.infra_alerts.arn]
+
+  dimensions = {
+    InstanceId = aws_instance.staging.id
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "oracle_ec2_status_check" {
+  alarm_name          = "oracle-ec2-status-check-failed"
+  alarm_description   = "Oracle (retro/TruthMachine) EC2 status check failed — instance may be unreachable"
+  metric_name         = "StatusCheckFailed"
+  namespace           = "AWS/EC2"
+  statistic           = "Maximum"
+  period              = 60
+  evaluation_periods  = 2
+  threshold           = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "breaching"
+  alarm_actions       = [aws_sns_topic.infra_alerts.arn]
+  ok_actions          = [aws_sns_topic.infra_alerts.arn]
+
+  dimensions = {
+    InstanceId = local.oracle_instance_id
+  }
+}
+
+# --------------------------------------------------------------------
+# Auto-recover — on the SYSTEM status check (AWS host hardware faults).
+# The ec2:recover action reboots the instance on new hardware for free;
+# supported on t3/t4g. Also notifies so we know it happened.
+# --------------------------------------------------------------------
+resource "aws_cloudwatch_metric_alarm" "ec2_autorecover" {
+  for_each = local.monitored_instances
+
+  alarm_name          = "${each.key}-ec2-autorecover"
+  alarm_description   = "${each.key} EC2 system status check failed — auto-recovering instance"
+  metric_name         = "StatusCheckFailed_System"
+  namespace           = "AWS/EC2"
+  statistic           = "Maximum"
+  period              = 60
+  evaluation_periods  = 2
+  threshold           = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  alarm_actions = [
+    "arn:aws:automate:${var.aws_region}:ec2:recover",
+    aws_sns_topic.infra_alerts.arn,
+  ]
+
+  dimensions = {
+    InstanceId = each.value
+  }
+}
+
+# --------------------------------------------------------------------
+# CPU high — all monitored instances (default EC2 metric)
+# --------------------------------------------------------------------
+resource "aws_cloudwatch_metric_alarm" "ec2_cpu_high" {
+  for_each = local.monitored_instances
+
+  alarm_name          = "${each.key}-ec2-cpu-high"
+  alarm_description   = "${each.key} EC2 CPU >= 85% for 15 minutes"
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/EC2"
+  statistic           = "Average"
+  period              = 300
+  evaluation_periods  = 3
+  threshold           = 85
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  alarm_actions       = [aws_sns_topic.infra_alerts.arn]
+  ok_actions          = [aws_sns_topic.infra_alerts.arn]
+
+  dimensions = {
+    InstanceId = each.value
+  }
+}
+
+# --------------------------------------------------------------------
+# Memory high — codifies the two pre-existing live alarms (import these).
+# Live config: Average / period 60 / 5 evals / > 85 / no action.
+# We additionally wire them to infra_alerts (the live ones notify nothing).
+# --------------------------------------------------------------------
+resource "aws_cloudwatch_metric_alarm" "prod_memory_high" {
+  alarm_name          = "daatan-prod-memory-high"
+  alarm_description   = "Production memory usage > 85%"
+  metric_name         = "mem_used_percent"
+  namespace           = "CWAgent"
+  statistic           = "Average"
+  period              = 60
+  evaluation_periods  = 5
+  datapoints_to_alarm = 3
+  threshold           = 85
+  comparison_operator = "GreaterThanThreshold"
+  alarm_actions       = [aws_sns_topic.infra_alerts.arn]
+
+  dimensions = {
+    InstanceId = aws_instance.production.id
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "staging_memory_high" {
+  alarm_name          = "daatan-staging-memory-high"
+  alarm_description   = "Staging memory usage > 85%"
+  metric_name         = "mem_used_percent"
+  namespace           = "CWAgent"
+  statistic           = "Average"
+  period              = 60
+  evaluation_periods  = 5
+  datapoints_to_alarm = 3
+  threshold           = 85
+  comparison_operator = "GreaterThanThreshold"
+  alarm_actions       = [aws_sns_topic.infra_alerts.arn]
+
+  dimensions = {
+    InstanceId = aws_instance.staging.id
+  }
+}
+
+# --------------------------------------------------------------------
+# Disk high — prod + staging only (CWAgent). Root volume usage >= 85%.
+# Dimensions must match exactly what the agent publishes, or the alarm
+# sits in INSUFFICIENT_DATA forever: path=/, device=nvme0n1p1, fstype=ext4.
+# --------------------------------------------------------------------
+resource "aws_cloudwatch_metric_alarm" "ec2_disk_high" {
+  for_each = local.cwagent_instances
+
+  alarm_name          = "${each.key}-ec2-disk-high"
+  alarm_description   = "${each.key} root disk usage >= 85%"
+  metric_name         = "disk_used_percent"
+  namespace           = "CWAgent"
+  statistic           = "Average"
+  period              = 300
+  evaluation_periods  = 1
+  threshold           = 85
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  alarm_actions       = [aws_sns_topic.infra_alerts.arn]
+  ok_actions          = [aws_sns_topic.infra_alerts.arn]
+
+  dimensions = {
+    InstanceId = each.value
+    path       = "/"
+    device     = "nvme0n1p1"
+    fstype     = "ext4"
+  }
+}
+
+# --------------------------------------------------------------------
+# Swap high — prod + staging (CWAgent). Sustained swap on a 2 GB box is
+# an early memory-pressure / pre-OOM signal.
+# --------------------------------------------------------------------
+resource "aws_cloudwatch_metric_alarm" "ec2_swap_high" {
+  for_each = local.cwagent_instances
+
+  alarm_name          = "${each.key}-ec2-swap-high"
+  alarm_description   = "${each.key} swap usage >= 25% — memory pressure"
+  metric_name         = "swap_used_percent"
+  namespace           = "CWAgent"
+  statistic           = "Average"
+  period              = 300
+  evaluation_periods  = 3
+  threshold           = 25
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  alarm_actions       = [aws_sns_topic.infra_alerts.arn]
+  ok_actions          = [aws_sns_topic.infra_alerts.arn]
+
+  dimensions = {
+    InstanceId = each.value
+  }
+}
