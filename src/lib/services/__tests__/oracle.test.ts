@@ -18,6 +18,20 @@ vi.mock('@/env', () => ({
   },
 }))
 
+// oracle.ts fires `void logOracleCall(...)` (fire-and-forget) on every path, and
+// the real impl does an un-awaited Prisma write. Left unmocked it resolves after
+// the test ends, spraying prisma:error to the console during worker teardown —
+// a race that fails the run with EnvironmentTeardownError even though every test
+// passes. No-op it, but keep oracleFetch/getOracleConfig real so the URL/header/
+// timeout assertions below still exercise the actual client.
+vi.mock('@/lib/services/oracleClient', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/services/oracleClient')>()
+  return {
+    ...actual,
+    logOracleCall: vi.fn().mockResolvedValue(undefined),
+  }
+})
+
 import { getOracleForecast, getOracleProbability, BOT_FORECAST_TIMEOUT_MS } from '../oracle'
 
 const sampleSources = [
