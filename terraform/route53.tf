@@ -103,13 +103,15 @@ resource "aws_route53_record" "spf" {
 }
 
 # DMARC Record
+# Aggregate reports (rua) go to Postmark's free DMARC monitoring service,
+# which parses the raw XML into human-readable digests. p=none = monitor only.
 resource "aws_route53_record" "dmarc" {
   zone_id = aws_route53_zone.main.zone_id
   name    = "_dmarc.${var.domain_name}"
   type    = "TXT"
   ttl     = 300
   records = [
-    "v=DMARC1; p=none; rua=mailto:mark@${var.domain_name}"
+    "v=DMARC1; p=none; pct=100; rua=mailto:re+qh4cxpbzeku@dmarc.postmarkapp.com; sp=none; aspf=r;"
   ]
 }
 
