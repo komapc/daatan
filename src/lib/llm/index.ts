@@ -51,6 +51,12 @@ const OPENROUTER_MODEL_ALIASES: Record<string, string> = {
   'google/gemini-2.0-flash-exp':          'google/gemini-2.0-flash',
 }
 
+// OpenRouter no longer offers a free Gemini model (the :free Gemini slugs now
+// 404). For Gemini-preference bots the OpenRouter leg is only a *fallback* —
+// reached when direct Gemini is down — so it uses this free non-Google model,
+// which can actually serve precisely during a Gemini/Google outage.
+const OPENROUTER_FREE_FALLBACK_MODEL = 'meta-llama/llama-3.3-70b-instruct:free'
+
 /**
  * Creates an LLM service backed by OpenRouter for a specific model.
  * Used by the bot runner where each bot may have a different model preference.
@@ -83,8 +89,13 @@ export function createBotLLMService(modelName: string): ResilientLLMService {
   }
 
   if (openrouterApiKey) {
-    log.info({ modelName: resolvedModelName }, 'Adding OpenRouter provider for bot')
-    providers.push(new OpenRouterProvider({ apiKey: openrouterApiKey, modelName: resolvedModelName }))
+    // No free Gemini exists on OpenRouter; substitute a free non-Google model so
+    // this fallback leg works when Gemini/Google is the thing that's unavailable.
+    const openrouterModel = resolvedModelName.toLowerCase().includes('gemini')
+      ? OPENROUTER_FREE_FALLBACK_MODEL
+      : resolvedModelName
+    log.info({ modelName: openrouterModel }, 'Adding OpenRouter provider for bot')
+    providers.push(new OpenRouterProvider({ apiKey: openrouterApiKey, modelName: openrouterModel }))
   }
 
   // Final fallback: direct stable Gemini if we have a key and requested model was Gemini
