@@ -57,12 +57,12 @@ output "s3_backup_bucket_staging" {
 # ====================================================================
 output "route53_zone_id" {
   description = "Route 53 hosted zone ID"
-  value       = aws_route53_zone.main.zone_id
+  value       = data.aws_route53_zone.main.zone_id
 }
 
 output "route53_name_servers" {
   description = "Name servers to configure in Namecheap"
-  value       = aws_route53_zone.main.name_servers
+  value       = data.aws_route53_zone.main.name_servers
 }
 
 output "database_connection_string" {

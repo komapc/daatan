@@ -1,11 +1,9 @@
-# Route 53 Hosted Zone
-resource "aws_route53_zone" "main" {
-  name    = var.domain_name
-  comment = "DAATAN primary domain"
-
-  tags = {
-    Name = "daatan-zone"
-  }
+# Route 53 Hosted Zone — now owned by the platform/foundation stack, not here.
+# This app stack only manages records; it looks the zone up by id so a service
+# repo never reaches "up" into an app's state and the staging backend can't
+# create a duplicate zone. See Daatan/platform foundation/route53.tf.
+data "aws_route53_zone" "main" {
+  zone_id = "Z0878807J7QMMQ2P8AA2" # daatan.com
 }
 
 # ====================================================================
@@ -13,7 +11,7 @@ resource "aws_route53_zone" "main" {
 # ====================================================================
 # Root domain A record pointing to production instance
 resource "aws_route53_record" "root" {
-  zone_id = aws_route53_zone.main.zone_id
+  zone_id = data.aws_route53_zone.main.zone_id
   name    = var.domain_name
   type    = "A"
   ttl     = 300
@@ -22,7 +20,7 @@ resource "aws_route53_record" "root" {
 
 # API subdomain pointing to production instance
 resource "aws_route53_record" "api" {
-  zone_id = aws_route53_zone.main.zone_id
+  zone_id = data.aws_route53_zone.main.zone_id
   name    = "api.${var.domain_name}"
   type    = "A"
   ttl     = 300
@@ -31,7 +29,7 @@ resource "aws_route53_record" "api" {
 
 # WWW CNAME pointing to root
 resource "aws_route53_record" "www" {
-  zone_id = aws_route53_zone.main.zone_id
+  zone_id = data.aws_route53_zone.main.zone_id
   name    = "www.${var.domain_name}"
   type    = "CNAME"
   ttl     = 300
@@ -43,7 +41,7 @@ resource "aws_route53_record" "www" {
 # ====================================================================
 # Staging subdomain A record pointing to staging instance
 resource "aws_route53_record" "staging" {
-  zone_id = aws_route53_zone.main.zone_id
+  zone_id = data.aws_route53_zone.main.zone_id
   name    = "staging.${var.domain_name}"
   type    = "A"
   ttl     = 60
@@ -52,7 +50,7 @@ resource "aws_route53_record" "staging" {
 
 # Next testbed subdomain A record pointing to staging instance
 resource "aws_route53_record" "next" {
-  zone_id = aws_route53_zone.main.zone_id
+  zone_id = data.aws_route53_zone.main.zone_id
   name    = "next.${var.domain_name}"
   type    = "A"
   ttl     = 60
@@ -61,7 +59,7 @@ resource "aws_route53_record" "next" {
 
 # SES Verification TXT record
 resource "aws_route53_record" "ses_verification" {
-  zone_id = aws_route53_zone.main.zone_id
+  zone_id = data.aws_route53_zone.main.zone_id
   name    = "_amazonses.${var.domain_name}"
   type    = "TXT"
   ttl     = 300
@@ -70,7 +68,7 @@ resource "aws_route53_record" "ses_verification" {
 
 # SES MX Records (Inbound Mail)
 resource "aws_route53_record" "mx" {
-  zone_id = aws_route53_zone.main.zone_id
+  zone_id = data.aws_route53_zone.main.zone_id
   name    = var.domain_name
   type    = "MX"
   ttl     = 300
@@ -82,7 +80,7 @@ resource "aws_route53_record" "mx" {
 # SES DKIM Records
 resource "aws_route53_record" "dkim" {
   count   = 3
-  zone_id = aws_route53_zone.main.zone_id
+  zone_id = data.aws_route53_zone.main.zone_id
   name    = "${element(aws_ses_domain_dkim.main.dkim_tokens, count.index)}._domainkey.${var.domain_name}"
   type    = "CNAME"
   ttl     = 600
@@ -91,7 +89,7 @@ resource "aws_route53_record" "dkim" {
 
 # Root TXT record: SPF + Google site verification (must all be in one recordset)
 resource "aws_route53_record" "spf" {
-  zone_id = aws_route53_zone.main.zone_id
+  zone_id = data.aws_route53_zone.main.zone_id
   name    = var.domain_name
   type    = "TXT"
   ttl     = 300
@@ -106,7 +104,7 @@ resource "aws_route53_record" "spf" {
 # Aggregate reports (rua) go to Postmark's free DMARC monitoring service,
 # which parses the raw XML into human-readable digests. p=none = monitor only.
 resource "aws_route53_record" "dmarc" {
-  zone_id = aws_route53_zone.main.zone_id
+  zone_id = data.aws_route53_zone.main.zone_id
   name    = "_dmarc.${var.domain_name}"
   type    = "TXT"
   ttl     = 300
@@ -117,7 +115,7 @@ resource "aws_route53_record" "dmarc" {
 
 # SES MAIL FROM MX and SPF records
 resource "aws_route53_record" "mail_from_mx" {
-  zone_id = aws_route53_zone.main.zone_id
+  zone_id = data.aws_route53_zone.main.zone_id
   name    = aws_ses_domain_mail_from.main.mail_from_domain
   type    = "MX"
   ttl     = 300
@@ -125,7 +123,7 @@ resource "aws_route53_record" "mail_from_mx" {
 }
 
 resource "aws_route53_record" "mail_from_spf" {
-  zone_id = aws_route53_zone.main.zone_id
+  zone_id = data.aws_route53_zone.main.zone_id
   name    = aws_ses_domain_mail_from.main.mail_from_domain
   type    = "TXT"
   ttl     = 300
