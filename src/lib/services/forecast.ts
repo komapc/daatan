@@ -20,6 +20,12 @@ function isSlugUniqueConstraintError(err: unknown): boolean {
   return Array.isArray(target) && target.includes('slug')
 }
 
+// Structural check (not `instanceof`): Prisma throws P2025 ("record required but
+// not found") when delete/update targets a row that no longer exists.
+function isRecordNotFoundError(err: unknown): boolean {
+  return typeof err === 'object' && err !== null && 'code' in err && err.code === 'P2025'
+}
+
 const PREDICTION_AUTHOR_SELECT = {
   id: true,
   name: true,
@@ -437,8 +443,18 @@ export async function updateForecast(id: string, data: UpdateForecastData) {
   })
 }
 
+/**
+ * Delete a prediction. Idempotent: if the record is already gone (e.g. a
+ * double-click or concurrent delete), returns null instead of throwing, so the
+ * route can answer 404 rather than surfacing a 500.
+ */
 export async function deleteForecast(id: string) {
-  return prisma.prediction.delete({ where: { id } })
+  try {
+    return await prisma.prediction.delete({ where: { id } })
+  } catch (err) {
+    if (isRecordNotFoundError(err)) return null
+    throw err
+  }
 }
 
 export async function publishForecast(id: string) {

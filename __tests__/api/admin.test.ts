@@ -159,6 +159,19 @@ describe('DELETE /api/admin/forecasts/[id]', () => {
     expect(data.success).toBe(true)
     expect(prisma.prediction.delete).toHaveBeenCalledWith({ where: { id: 'p1' } })
   })
+
+  it('returns 404 (not 500) when the prediction is already gone', async () => {
+    const { prisma } = await import('@/lib/prisma')
+    const { DELETE } = await import('@/app/api/admin/forecasts/[id]/route')
+
+    vi.mocked(prisma.prediction.delete).mockRejectedValue({ code: 'P2025' } as any)
+
+    const res = await DELETE(makeRequest('http://localhost/api/admin/forecasts/gone', 'DELETE'), CTX_WITH_ID('gone'))
+    const data = await res.json()
+
+    expect(res.status).toBe(404)
+    expect(data.error).toBe('Not found')
+  })
 })
 
 // ═════════════════════════════════════════════════════════════════════════════

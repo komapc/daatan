@@ -40,7 +40,10 @@ export const PATCH = withAuth(async (req, user, { params }) => {
 export const DELETE = withAuth(async (_req, _user, { params }) => {
   const { id } = params
 
-  await deleteForecast(id)
+  const deleted = await deleteForecast(id)
+  if (!deleted) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
 
   return NextResponse.json({ success: true })
 }, { roles: ['ADMIN'] })
