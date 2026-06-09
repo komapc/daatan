@@ -156,7 +156,7 @@ export default function ForecastCard({
     if (!confirm(t('deleteConfirm'))) return
 
     try {
-      const response = await fetch(`/api/admin/forecasts/${prediction.id}`, {
+      const response = await fetch(`/api/forecasts/${prediction.id}`, {
         method: 'DELETE',
       })
       if (response.ok) {
