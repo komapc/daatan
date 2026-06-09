@@ -14,6 +14,10 @@
 REGION="eu-central-1"
 ENV=${1:-staging}
 
+# Repo root, derived from this script's location — path-independent so the
+# workspace can move without breaking this script.
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
 if [[ "$ENV" != "staging" && "$ENV" != "prod" ]]; then
   echo "Usage: $0 [staging|prod]"
   exit 1
@@ -30,7 +34,7 @@ aws secretsmanager put-secret-value \
 echo "Uploading .env variables for $ENV..."
 aws secretsmanager put-secret-value \
     --secret-id "daatan-env-$ENV" \
-    --secret-string file:///home/mark/projects/daatan/.env \
+    --secret-string "file://$REPO_ROOT/.env" \
     --region "$REGION"
 
 echo "✅ Secrets restored for $ENV!"
