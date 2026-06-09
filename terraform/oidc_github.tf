@@ -2,18 +2,11 @@
 # Eliminates long-lived AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY in GitHub Secrets.
 # GitHub Actions obtains short-lived credentials via AssumeRoleWithWebIdentity.
 
-resource "aws_iam_openid_connect_provider" "github_actions" {
+# The OIDC provider is an account-wide singleton (one per URL per account), now
+# owned by the platform/foundation stack. Look it up rather than declaring it here
+# — news-indexer does the same. See Daatan/platform foundation/oidc.tf.
+data "aws_iam_openid_connect_provider" "github_actions" {
   url = "https://token.actions.githubusercontent.com"
-
-  client_id_list = ["sts.amazonaws.com"]
-
-  # GitHub's OIDC thumbprint — required by AWS but not used for validation
-  # when the provider URL is an HTTPS endpoint.
-  thumbprint_list = ["ffffffffffffffffffffffffffffffffffffffff"]
-
-  tags = {
-    Name = "github-actions-oidc"
-  }
 }
 
 # IAM Role assumed by GitHub Actions via OIDC
@@ -26,7 +19,7 @@ resource "aws_iam_role" "github_actions" {
       {
         Effect = "Allow"
         Principal = {
-          Federated = aws_iam_openid_connect_provider.github_actions.arn
+          Federated = data.aws_iam_openid_connect_provider.github_actions.arn
         }
         Action = "sts:AssumeRoleWithWebIdentity"
         # Pin trust to the immutable repository_id (survives org transfer /
