@@ -40,7 +40,7 @@ if [[ "$ENV" == "prod" ]]; then
   echo "    --document-name AWS-RunShellScript \\"
   echo "    --parameters 'commands=[\"cd ~/app && docker compose -f docker-compose.prod.yml restart app\"]'"
 else
-  echo "  aws ssm send-command --instance-ids i-0286f62b47117b85c \\"
+  echo "  aws ssm send-command --instance-ids i-0406d237ca5d92cdf \\"
   echo "    --document-name AWS-RunShellScript \\"
   echo "    --parameters 'commands=[\"cd ~/app && docker compose -f docker-compose.prod.yml restart app-staging\"]'"
 fi
