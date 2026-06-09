@@ -26,7 +26,7 @@ send_alert() {
     if [ -n "${TELEGRAM_BOT_TOKEN:-}" ] && [ -n "${TELEGRAM_CHAT_ID:-}" ]; then
         MSG="🚨 <b>Backup Verification FAILED</b>%0AThe latest backup was uploaded but could not be restored successfully.%0AReason: <code>${reason}</code>%0A<b>Manual investigation required — backup may be corrupt.</b>"
         curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
-            -d "chat_id=$TELEGRAM_CHAT_ID" \
+            -d "chat_id=${TELEGRAM_CLEAN_CHAT_ID:-$TELEGRAM_CHAT_ID}" \
             -d "text=$MSG" \
             -d "parse_mode=HTML" > /dev/null
         echo "⚠️ Alert sent to Telegram"

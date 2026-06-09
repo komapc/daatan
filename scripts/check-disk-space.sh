@@ -30,7 +30,7 @@ if [ "$USAGE" -gt "$THRESHOLD" ]; then
         MESSAGE="💾 <b>[$ENVIRONMENT] Critical: Disk Space Low</b>%0AInstance: <code>$INSTANCE_ID</code>%0AUsage: <b>$USAGE%</b> (Threshold: $THRESHOLD%)%0AImmediate action required!"
         
         curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
-            -d "chat_id=$TELEGRAM_CHAT_ID" \
+            -d "chat_id=${TELEGRAM_CLEAN_CHAT_ID:-$TELEGRAM_CHAT_ID}" \
             -d "text=$MESSAGE" \
             -d "parse_mode=HTML" > /dev/null
             
