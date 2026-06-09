@@ -14,6 +14,8 @@ import {
   notifyNewCommitment,
   notifyNewComment,
   notifyForecastResolved,
+  notifyNewsArticleMatched,
+  notifyBackupVerificationFailed,
 } from '@/lib/services/telegram'
 
 describe('Telegram notification service', () => {
@@ -143,5 +145,86 @@ describe('Telegram notification service', () => {
 
     await new Promise((r) => setTimeout(r, 50))
     expect(fetch).toHaveBeenCalledOnce()
+  })
+})
+
+describe('Telegram channel routing (clean vs noisy)', () => {
+  const originalEnv = process.env
+  const NOISY = '-100noisy'
+  const CLEAN = '-100clean'
+
+  beforeEach(() => {
+    process.env = { ...originalEnv }
+    process.env.TELEGRAM_BOT_TOKEN = 'test-token'
+    process.env.TELEGRAM_CHAT_ID = NOISY
+    vi.spyOn(global, 'fetch').mockResolvedValue({ ok: true } as Response)
+  })
+
+  afterEach(() => {
+    process.env = originalEnv
+    vi.restoreAllMocks()
+  })
+
+  async function lastChatId(): Promise<string> {
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledOnce())
+    const body = JSON.parse(vi.mocked(fetch).mock.calls[0][1]!.body as string)
+    return body.chat_id
+  }
+
+  it('routes a clean event to the clean channel in production', async () => {
+    process.env.APP_ENV = 'production'
+    process.env.TELEGRAM_CLEAN_CHAT_ID = CLEAN
+
+    notifyForecastPublished({ id: 'p1', claimText: 'x' }, { name: 'M', username: null })
+
+    expect(await lastChatId()).toBe(CLEAN)
+  })
+
+  it('falls back to the noisy channel when the clean id is unset in production', async () => {
+    process.env.APP_ENV = 'production'
+    delete process.env.TELEGRAM_CLEAN_CHAT_ID
+
+    notifyBackupVerificationFailed('disk full')
+
+    expect(await lastChatId()).toBe(NOISY)
+  })
+
+  it('routes clean events to the noisy channel on staging (clean is prod-only)', async () => {
+    process.env.APP_ENV = 'staging'
+    process.env.TELEGRAM_CLEAN_CHAT_ID = CLEAN
+
+    notifyForecastPublished({ id: 'p1', claimText: 'x' }, { name: 'M', username: null })
+
+    expect(await lastChatId()).toBe(NOISY)
+  })
+
+  it('keeps noisy events on the noisy channel even in production with a clean id set', async () => {
+    process.env.APP_ENV = 'production'
+    process.env.TELEGRAM_CLEAN_CHAT_ID = CLEAN
+
+    notifyNewsArticleMatched(
+      { id: 'p1', claimText: 'x' },
+      { title: 'Headline', url: 'https://e.com/a', source: 'Reuters' },
+      0.9,
+      72,
+    )
+
+    expect(await lastChatId()).toBe(NOISY)
+  })
+
+  it('news-article match now flows through the shared helper (gets the env prefix)', async () => {
+    process.env.APP_ENV = 'production'
+
+    notifyNewsArticleMatched(
+      { id: 'p1', claimText: 'x' },
+      { title: 'Headline', url: 'https://e.com/a', source: null },
+      0.5,
+      null,
+    )
+
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledOnce())
+    const body = JSON.parse(vi.mocked(fetch).mock.calls[0][1]!.body as string)
+    expect(body.text).toMatch(/^\[prod\] /)
+    expect(body.text).toContain('News match')
   })
 })
