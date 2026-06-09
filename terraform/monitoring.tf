@@ -108,6 +108,18 @@ resource "aws_cloudwatch_metric_alarm" "prod_ec2_status_check" {
 locals {
   # retro/TruthMachine Oracle box — not managed by this terraform, but
   # monitored here so all infra alerting lives in one place.
+  #
+  # Facts (verified 2026-06-09):
+  #   - Instance i-00ac444b94c5ff9b2, name "truthmachine-pipeline"
+  #   - Type t4g.small (ARM/Graviton), AZ eu-central-1c, public IP 3.120.185.111
+  #   - Provisioned out-of-band; operated via retro/infra/*.sh over SSM (no IaC).
+  #     If this terraform is destroyed/recreated the box is untouched, and
+  #     terraform cannot rebuild it if lost — see retro repo for provisioning.
+  #   - Live and in active use: serves oracle.daatan.com (oracle-api.service,
+  #     FastAPI) + bayes.daatan.com (BayesOracle) + the truthmachine.service
+  #     batch pipeline. daatan calls it via ORACLE_URL in the forecast path
+  #     (oracleSearch / getOracleForecast), so it is a load-bearing dependency.
+  #   - No CloudWatch agent installed (see cwagent_instances below).
   oracle_instance_id = "i-00ac444b94c5ff9b2"
 
   # All instances that get default-EC2-metric alarms (CPU, status check).
