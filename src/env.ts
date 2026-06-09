@@ -55,6 +55,12 @@ export const env = createEnv({
 
     // IndexNow — instant Bing/Yandex indexing on publish
     INDEXNOW_KEY: z.string().min(1).optional(),
+
+    // News-indexer integration — shared secret for both directions
+    NEWS_INDEXER_SECRET: z.string().min(1).optional(),
+
+    // Telegram — dedicated channel for news-indexer article match alerts
+    TELEGRAM_NEWS_CHAT_ID: z.string().min(1).optional(),
   },
   client: {
     NEXT_PUBLIC_APP_VERSION: z.string().optional(),
@@ -80,6 +86,8 @@ export const env = createEnv({
     ORACLE_URL: process.env.ORACLE_URL,
     ORACLE_API_KEY: process.env.ORACLE_API_KEY,
     INDEXNOW_KEY: process.env.INDEXNOW_KEY,
+    NEWS_INDEXER_SECRET: process.env.NEWS_INDEXER_SECRET,
+    TELEGRAM_NEWS_CHAT_ID: process.env.TELEGRAM_NEWS_CHAT_ID,
     NEXT_PUBLIC_APP_VERSION: process.env.NEXT_PUBLIC_APP_VERSION,
     NEXT_PUBLIC_ENV: process.env.NEXT_PUBLIC_ENV,
     NEXT_PUBLIC_VAPID_PUBLIC_KEY: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,

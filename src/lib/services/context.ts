@@ -74,6 +74,47 @@ export async function saveContextUpdate(input: SaveContextUpdateInput) {
   return snapshot
 }
 
+export interface SaveNewsIndexerMatchInput {
+  predictionId: string
+  articleUrl: string
+  articleTitle: string
+  articleSource: string | null
+  publishedAt: string | null
+  externalProbability: number
+  ciLow: number
+  ciHigh: number
+  oracleSnapshot: Prisma.InputJsonValue
+}
+
+/**
+ * Persist a news-indexer article match: creates a ContextSnapshot (no LLM summary)
+ * and updates the prediction's probability fields.
+ * Does NOT touch detailsText or contextUpdatedAt — preserves user-triggered context
+ * and does not consume the 1-hour user cooldown.
+ */
+export async function saveNewsIndexerMatch(input: SaveNewsIndexerMatchInput): Promise<void> {
+  await prisma.$transaction([
+    prisma.contextSnapshot.create({
+      data: {
+        predictionId: input.predictionId,
+        summary: '',
+        sources: [{ url: input.articleUrl, title: input.articleTitle, source: input.articleSource, publishedDate: input.publishedAt }],
+        externalProbability: input.externalProbability,
+        externalReasoning: 'TruthMachine Oracle (news-indexer match)',
+        oracleSnapshot: input.oracleSnapshot,
+      },
+    }),
+    prisma.prediction.update({
+      where: { id: input.predictionId },
+      data: {
+        confidence: input.externalProbability,
+        aiCiLow: input.ciLow,
+        aiCiHigh: input.ciHigh,
+      },
+    }),
+  ])
+}
+
 /** Fetch the full context snapshot timeline for a prediction. */
 export async function listContextSnapshots(predictionId: string) {
   return prisma.contextSnapshot.findMany({
