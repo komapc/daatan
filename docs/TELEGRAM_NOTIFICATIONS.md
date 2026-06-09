@@ -1,6 +1,11 @@
 # Telegram Notifications
 
-All notifications go to the channel configured by `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` secrets. Messages are prefixed with `[prod]` or `[staging]` based on `APP_ENV`.
+Application notifications route to **one of two channels** (see [Channel routing](#channel-routing)):
+
+- **clean** (`TELEGRAM_CLEAN_CHAT_ID`) — **production only**, high-signal: new versions, forecasts, users, votes, resolutions, comments, and page-worthy alarms.
+- **noisy** (`TELEGRAM_CHAT_ID`) — everything else, plus **all** non-production traffic (staging/next, bots, indexer, operational errors, health digests).
+
+Messages are prefixed with `[prod]` / `[staging]` / `[next]` based on `APP_ENV`. If `TELEGRAM_CLEAN_CHAT_ID` is unset, clean events fall back to the noisy channel (no messages are dropped).
 
 ---
 
@@ -68,33 +73,47 @@ Sent by the **EC2 app process** via `GET /api/cron/heartbeat` (triggered by `hea
 
 ## Application Notifications (`src/lib/services/telegram.ts`)
 
-Sent by API routes and services on business and operational events.
+Sent by API routes and services on business and operational events. The **Channel** column is the production routing target; on staging/next everything goes to the noisy channel regardless.
 
 ### Business Events
 
-| Event | Icon | Triggered by |
-|---|---|---|
-| New forecast published | 📢 | `POST /api/forecasts/[id]/publish` |
-| New commitment made | 🎯 | `src/lib/services/commitment.ts` → `createCommitment()` |
-| New comment posted | 💬 | `POST /api/comments` |
-| Forecast resolved | ⚖️ | `POST /api/forecasts/[id]/resolve` |
-| Bot forecast approved | ✅ | `POST /api/forecasts/[id]/approve` |
-| Bot forecast rejected | ❌ | `POST /api/forecasts/[id]/reject` |
-| New user registered | 🆕 | `POST /api/auth/signup` (credentials) and OAuth sign-in handler |
+| Event | Icon | Channel | Triggered by |
+|---|---|---|---|
+| New forecast published | 📢 | clean | `POST /api/forecasts/[id]/publish` |
+| New commitment made | 🎯 | clean | `src/lib/services/commitment.ts` → `createCommitment()` |
+| New comment posted | 💬 | clean | `POST /api/comments` |
+| Forecast resolved | ⚖️ | clean | `POST /api/forecasts/[id]/resolve` |
+| New user registered | 🆕 | clean | `POST /api/auth/signup` (credentials) and OAuth sign-in handler |
+| Bot forecast approved | ✅ | noisy | `POST /api/forecasts/[id]/approve` |
+| Bot forecast rejected | ❌ | noisy | `POST /api/forecasts/[id]/reject` |
+| News article matched | 🗞️ | noisy | news-indexer integration |
 
 ### Operational Alerts
 
-| Event | Icon | Rate-limited | Triggered by |
-|---|---|---|---|
-| Server error | 🚨 | 5 min per `route:ErrorType` | `src/lib/api-middleware.ts` |
-| Security event (403/401) | 🛡️ | 5 min per `pathname:status` | `src/lib/api-middleware.ts` |
-| Dead link / 404 | 🔗 | 5 min per `pathname` | API routes on not-found |
-| LLM provider error | 🤖 | 5 min per `provider` | `src/lib/llm/index.ts` |
-| All search providers failed | ⚠️ | 5 min (global) | `src/lib/utils/webSearch.ts` |
-| Oracle search unavailable | ⚠️ | 5 min (global) | `src/lib/services/oracleSearch.ts` |
-| Oracle forecast unavailable | 🚨 | 5 min (global) | `GET /api/cron/oracle-health` |
-| Oracle forecast recovered | ✅ | 5 min (global) | `GET /api/cron/oracle-health` |
-| Search provider health digest | ⚠️/🚨 | 5 min (global, one key) | `GET /api/cron/search-health` (hourly) + `GET /api/health/search` |
+| Event | Icon | Channel | Rate-limited | Triggered by |
+|---|---|---|---|---|
+| Oracle forecast unavailable | 🚨 | clean | 5 min (global) | `GET /api/cron/oracle-health` |
+| Security event (403/401) | 🛡️ | clean | 5 min per `pathname:status` | `src/lib/api-middleware.ts` |
+| Search provider health digest | ⚠️/🚨 | noisy / **clean when critical** | 5 min (global, one key) | `GET /api/cron/search-health` (hourly) + `GET /api/health/search` |
+| Server error | 🚨 | noisy | 5 min per `route:ErrorType` | `src/lib/api-middleware.ts` |
+| Dead link / 404 | 🔗 | noisy | 5 min per `pathname` | API routes on not-found |
+| LLM provider error | 🤖 | noisy | 5 min per `provider` | `src/lib/llm/index.ts` |
+| Oracle search unavailable | ⚠️ | noisy | 5 min (global) | `src/lib/services/oracleSearch.ts` |
+
+> **EC2 alarms are not sent by this module.** Disk/CPU/memory (`check-disk-space.sh`, `check-system-health.sh`) and backup-verification (`verify-backup.sh`) alerts are curled to Telegram **directly from EC2 shell scripts** — see the [Watchdog](#disk--cpu--memory-checks-ec2) and [Daily summary](#daily-summary-heartbeatyml--daily-0900-utc) sections. The matching app exports (`notifyDiskSpaceLow`, `notifyMemoryPressure`, `notifyHighLoad`, `notifyBackupVerificationFailed`, plus back-compat `notifyAllSearchProvidersFailed` / `notifyOracleForecastRecovered`) are routed to **clean** in code but currently have no app caller. To put the *live* EC2 alarms on the clean channel, the shell scripts must be given `TELEGRAM_CLEAN_CHAT_ID` — tracked as bucket-2 (infra) work.
+
+### Channel routing
+
+`sendChannelNotification(message, channel)` (in `src/lib/services/telegram.ts`) resolves the destination:
+
+```
+if channel == 'clean' AND APP_ENV == 'production' AND TELEGRAM_CLEAN_CHAT_ID set
+    → TELEGRAM_CLEAN_CHAT_ID   (clean)
+else
+    → TELEGRAM_CHAT_ID         (noisy)
+```
+
+So staging/next **never** post to the clean channel, and an un-provisioned `TELEGRAM_CLEAN_CHAT_ID` degrades safely to noisy. The search-health digest is the one dynamic case: it routes to **clean** only when critical (no usable providers), otherwise noisy.
 
 **Search health is grouped:** instead of one "credits low" message per provider, `notifySearchHealthDigest()` emits a **single** message per check listing every exhausted/low provider (`🚨 All search providers failed` header when none are usable, `⚠️ Search provider health` otherwise). This replaced the previous per-provider fan-out (`notifySearchCreditsLow` / `notifyAllSearchProvidersFailed`, still exported for back-compat but no longer called by the crons).
 
@@ -109,7 +128,10 @@ Sent by API routes and services on business and operational events.
 | Secret | Description |
 |---|---|
 | `TELEGRAM_BOT_TOKEN` | Bot token from BotFather (format: `123456:ABC-...`) |
-| `TELEGRAM_CHAT_ID` | Target channel/group ID (negative number for groups) |
+| `TELEGRAM_CHAT_ID` | **Noisy** channel/group ID (negative number for groups) — receives everything except prod clean events |
+| `TELEGRAM_CLEAN_CHAT_ID` | **Clean** channel ID — **production only**, optional. High-signal events/alarms. Falls back to `TELEGRAM_CHAT_ID` when unset. The bot must be an admin of this channel. |
 | `CRON_SECRET` | Shared secret for `/api/cron/heartbeat` — same value as `BOT_RUNNER_SECRET` in `.env` |
 
-`TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` are stored in both GitHub Actions secrets (for CI/CD alerts) and AWS Secrets Manager (for runtime app alerts). The EC2 instance reads them from `.env` at runtime.
+`TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` are stored in both GitHub Actions secrets (for CI/CD alerts) and AWS Secrets Manager (for runtime app alerts). The EC2 instance reads them from `.env` at runtime. `TELEGRAM_CLEAN_CHAT_ID` is added to `daatan-env-prod` (Secrets Manager) only — staging is single-channel by design.
+
+> Replaces the former `TELEGRAM_NEWS_CHAT_ID` (a dedicated channel for news-indexer matches). News matches now route through the shared noisy channel.

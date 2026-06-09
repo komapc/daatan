@@ -5,23 +5,59 @@ const log = createLogger('telegram')
 const TELEGRAM_API = 'https://api.telegram.org/bot'
 
 /**
- * Send a message to the configured Telegram channel.
- * Fire-and-forget: never throws, logs errors.
+ * Telegram routing channels.
+ * - `clean`: prod-only high-signal feed (new versions, forecasts, users, votes,
+ *   resolutions, comments, and page-worthy alarms).
+ * - `noisy`: everything else, plus all non-production traffic (staging/next,
+ *   bots, indexer, operational errors, health digests).
  */
-async function sendChannelNotification(message: string): Promise<void> {
+export type TelegramChannel = 'clean' | 'noisy'
+
+function currentEnv(): string {
+  return process.env.APP_ENV || process.env.NEXT_PUBLIC_APP_ENV || 'staging'
+}
+
+function envPrefix(): string {
+  const env = currentEnv()
+  return env === 'production' ? 'prod' : env === 'next' ? 'next' : 'staging'
+}
+
+function isDevEnv(): boolean {
+  return currentEnv() === 'development'
+}
+
+/**
+ * Pick the destination chat id for a channel. The `clean` channel only applies
+ * in production and only when its id is provisioned; otherwise we fall back to
+ * the `noisy` channel so an un-provisioned clean channel never drops messages.
+ */
+function resolveChatId(channel: TelegramChannel): string | undefined {
+  if (channel === 'clean' && currentEnv() === 'production' && process.env.TELEGRAM_CLEAN_CHAT_ID) {
+    return process.env.TELEGRAM_CLEAN_CHAT_ID
+  }
+  return process.env.TELEGRAM_CHAT_ID
+}
+
+/**
+ * Send a message to one of the configured Telegram channels.
+ * Fire-and-forget: never throws, logs errors. Defaults to the noisy channel.
+ */
+async function sendChannelNotification(
+  message: string,
+  channel: TelegramChannel = 'noisy',
+): Promise<void> {
   const token = process.env.TELEGRAM_BOT_TOKEN
-  const chatId = process.env.TELEGRAM_CHAT_ID
+  const chatId = resolveChatId(channel)
 
   if (!token || !chatId) {
-    log.warn({ hasToken: !!token, hasChatId: !!chatId }, 'Telegram not configured')
+    log.warn({ hasToken: !!token, hasChatId: !!chatId, channel }, 'Telegram not configured')
     return
   }
 
-  const env = process.env.APP_ENV || process.env.NEXT_PUBLIC_APP_ENV || 'staging'
-  const prefix = env === 'production' ? 'prod' : (env === 'next' ? 'next' : 'staging')
+  const prefix = envPrefix()
   const prefixed = `[${prefix}] ${message}`
 
-  log.debug({ chatId, prefix }, 'Sending Telegram notification')
+  log.debug({ chatId, prefix, channel }, 'Sending Telegram notification')
 
   try {
     const res = await fetch(`${TELEGRAM_API}${token}/sendMessage`, {
@@ -37,12 +73,12 @@ async function sendChannelNotification(message: string): Promise<void> {
 
     if (!res.ok) {
       const body = await res.text()
-      log.error({ status: res.status, body, chatId }, 'Telegram API error')
+      log.error({ status: res.status, body, chatId, channel }, 'Telegram API error')
     } else {
-      log.info({ chatId }, 'Telegram notification sent successfully')
+      log.info({ chatId, channel }, 'Telegram notification sent successfully')
     }
   } catch (err) {
-    log.error({ err, chatId }, 'Failed to send Telegram notification')
+    log.error({ err, chatId, channel }, 'Failed to send Telegram notification')
   }
 }
 
@@ -58,11 +94,6 @@ function canNotify(key: string): boolean {
   if (last && Date.now() - last < ERROR_COOLDOWN_MS) return false
   errorCooldowns.set(key, Date.now())
   return true
-}
-
-function isDevEnv(): boolean {
-  const env = process.env.APP_ENV || process.env.NEXT_PUBLIC_APP_ENV || 'staging'
-  return env === 'development'
 }
 
 export function notifyServerError(route: string, error: Error): void {
@@ -89,7 +120,7 @@ export function notifyAllSearchProvidersFailed(query?: string): void {
     `Check Serper and SerpAPI credits — express forecast generation is degraded`,
   ].filter(Boolean).join('\n')
 
-  sendChannelNotification(msg)
+  sendChannelNotification(msg, 'clean')
 }
 
 export function notifyOracleSearchUnavailable(query?: string): void {
@@ -156,7 +187,9 @@ export function notifySearchHealthDigest(report: {
     critical ? `Express forecast generation is degraded — top up / investigate.` : '',
   ].filter(Boolean).join('\n')
 
-  sendChannelNotification(msg)
+  // A critical digest (no usable providers) is a page-worthy alarm → clean;
+  // routine low-credit digests stay on the noisy channel.
+  sendChannelNotification(msg, critical ? 'clean' : 'noisy')
 }
 
 // ============================================
@@ -194,7 +227,7 @@ export function notifyForecastPublished(prediction: ForecastInfo, author: UserIn
     `<a href="${forecastUrl(prediction)}">View forecast →</a>`,
   ].join('\n')
 
-  sendChannelNotification(msg)
+  sendChannelNotification(msg, 'clean')
 }
 
 export function notifyNewCommitment(
@@ -210,7 +243,7 @@ export function notifyNewCommitment(
     `<a href="${forecastUrl(prediction)}">View forecast →</a>`,
   ].join('\n')
 
-  sendChannelNotification(msg)
+  sendChannelNotification(msg, 'clean')
 }
 
 export function notifyNewComment(
@@ -225,7 +258,7 @@ export function notifyNewComment(
     `<a href="${forecastUrl(prediction)}">View forecast →</a>`,
   ].join('\n')
 
-  sendChannelNotification(msg)
+  sendChannelNotification(msg, 'clean')
 }
 
 export function notifyForecastResolved(
@@ -241,7 +274,7 @@ export function notifyForecastResolved(
     `<a href="${forecastUrl(prediction)}">View forecast →</a>`,
   ].join('\n')
 
-  sendChannelNotification(msg)
+  sendChannelNotification(msg, 'clean')
 }
 
 export function notifyBotForecastApproved(
@@ -286,7 +319,7 @@ export function notifyNewUserRegistered(user: {
     `Provider: <code>${user.provider || 'credentials'}</code>`,
   ].filter(Boolean).join('\n')
 
-  sendChannelNotification(msg)
+  sendChannelNotification(msg, 'clean')
 }
 
 export function notifySecurityError(
@@ -308,7 +341,7 @@ export function notifySecurityError(
     user ? `User: <code>${user.email || user.id}</code>` : 'User: <i>Anonymous</i>',
   ].join('\n')
 
-  sendChannelNotification(msg)
+  sendChannelNotification(msg, 'clean')
 }
 
 export function notifyResourceNotFound(pathname: string, details?: string): void {
@@ -381,7 +414,7 @@ export function notifyDiskSpaceLow(
     `Immediate action required to avoid deployment failures.`,
   ].join('\n')
 
-  sendChannelNotification(msg)
+  sendChannelNotification(msg, 'clean')
 }
 
 export function notifyMemoryPressure(
@@ -401,7 +434,7 @@ export function notifyMemoryPressure(
     `High memory usage may cause OOM kills or severe slowdowns.`,
   ].join('\n')
 
-  sendChannelNotification(msg)
+  sendChannelNotification(msg, 'clean')
 }
 
 export function notifyHighLoad(
@@ -421,7 +454,7 @@ export function notifyHighLoad(
     `CPU cores: ${cpuCores} — sustained load above ${cpuCores * 2}x normal.`,
   ].join('\n')
 
-  sendChannelNotification(msg)
+  sendChannelNotification(msg, 'clean')
 }
 
 export function notifyOracleForecastUnavailable(): void {
@@ -434,7 +467,7 @@ export function notifyOracleForecastUnavailable(): void {
     `Forecast context analysis is falling back to LLM-only estimates.`,
   ].join('\n')
 
-  sendChannelNotification(msg)
+  sendChannelNotification(msg, 'clean')
 }
 
 export function notifyOracleForecastRecovered(): void {
@@ -442,7 +475,7 @@ export function notifyOracleForecastRecovered(): void {
   if (!canNotify('oracle-forecast-recovered')) return
 
   const msg = `✅ <b>Oracle /forecast recovered</b> — health check passing again.`
-  sendChannelNotification(msg)
+  sendChannelNotification(msg, 'clean')
 }
 
 /**
@@ -485,30 +518,19 @@ export function notifyNewsArticleMatched(
 ): void {
   if (isDevEnv()) return
 
-  const token = process.env.TELEGRAM_BOT_TOKEN
-  const chatId = process.env.TELEGRAM_NEWS_CHAT_ID || process.env.TELEGRAM_CHAT_ID
-  if (!token || !chatId) return
-
-  const env = process.env.APP_ENV || process.env.NEXT_PUBLIC_APP_ENV || 'staging'
-  const prefix = env === 'production' ? 'prod' : (env === 'next' ? 'next' : 'staging')
-
   const sourceLabel = article.source ? ` · ${article.source}` : ''
   const simPct = Math.round(similarity * 100)
   const probLine = probability !== null ? ` · Oracle: <b>${probability}%</b>` : ''
 
   const msg = [
-    `[${prefix}] 🗞️ <b>News match</b>`,
+    `🗞️ <b>News match</b>`,
     `"${truncate(prediction.claimText, 120)}"`,
     `<a href="${article.url}">${truncate(article.title, 100)}</a>`,
     `Similarity: <b>${simPct}%</b>${sourceLabel}${probLine}`,
     `<a href="${forecastUrl(prediction)}">View forecast →</a>`,
   ].join('\n')
 
-  fetch(`${TELEGRAM_API}${token}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text: msg, parse_mode: 'HTML', disable_web_page_preview: true }),
-  }).catch(() => {})
+  sendChannelNotification(msg)
 }
 
 export function notifyBackupVerificationFailed(reason: string): void {
@@ -519,5 +541,5 @@ export function notifyBackupVerificationFailed(reason: string): void {
     `Reason: <code>${reason}</code>`,
     `<b>Manual investigation required — backup may be corrupt.</b>`,
   ].join('\n')
-  sendChannelNotification(msg)
+  sendChannelNotification(msg, 'clean')
 }
