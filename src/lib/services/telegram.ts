@@ -477,6 +477,40 @@ export function notifyDailySummary(stats: {
   sendChannelNotification(msg)
 }
 
+export function notifyNewsArticleMatched(
+  prediction: { id: string; claimText: string },
+  article: { title: string; url: string; source: string | null },
+  similarity: number,
+  probability: number | null,
+): void {
+  if (isDevEnv()) return
+
+  const token = process.env.TELEGRAM_BOT_TOKEN
+  const chatId = process.env.TELEGRAM_NEWS_CHAT_ID || process.env.TELEGRAM_CHAT_ID
+  if (!token || !chatId) return
+
+  const env = process.env.APP_ENV || process.env.NEXT_PUBLIC_APP_ENV || 'staging'
+  const prefix = env === 'production' ? 'prod' : (env === 'next' ? 'next' : 'staging')
+
+  const sourceLabel = article.source ? ` · ${article.source}` : ''
+  const simPct = Math.round(similarity * 100)
+  const probLine = probability !== null ? ` · Oracle: <b>${probability}%</b>` : ''
+
+  const msg = [
+    `[${prefix}] 🗞️ <b>News match</b>`,
+    `"${truncate(prediction.claimText, 120)}"`,
+    `<a href="${article.url}">${truncate(article.title, 100)}</a>`,
+    `Similarity: <b>${simPct}%</b>${sourceLabel}${probLine}`,
+    `<a href="${forecastUrl(prediction)}">View forecast →</a>`,
+  ].join('\n')
+
+  fetch(`${TELEGRAM_API}${token}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: chatId, text: msg, parse_mode: 'HTML', disable_web_page_preview: true }),
+  }).catch(() => {})
+}
+
 export function notifyBackupVerificationFailed(reason: string): void {
   if (isDevEnv()) return
   const msg = [

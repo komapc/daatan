@@ -23,6 +23,7 @@ export type OracleCallSource =
   | 'ibi-fetch-url'
   | 'health-cron'
   | 'leaderboard'
+  | 'news-indexer'
   | 'other'
 
 export interface OracleCallMeta {

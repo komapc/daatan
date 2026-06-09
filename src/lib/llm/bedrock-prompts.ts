@@ -69,6 +69,7 @@ Determine whether the prediction is BINARY or MULTIPLE_CHOICE:
   The claimText for multiple choice should be a question (e.g. "Who will win the 2028 US presidential election?").
   Options should be concise labels (e.g. ["Donald Trump", "Joe Biden", "Ron DeSantis", "Other"]).
   Always include an "Other" option as the last choice for multiple choice predictions.
+  **Important**: If the user's input is a declarative statement that already names one specific side as the expected winner (e.g. "Knicks will win", "X will beat Y"), use BINARY instead — even when the topic involves multiple competitors. MULTIPLE_CHOICE is only for genuinely open questions where the user hasn't committed to a winner.
 
 User wants to predict: "{{userInput}}"
 

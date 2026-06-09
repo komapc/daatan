@@ -43,7 +43,7 @@ const WINDOW_OPTIONS = [1, 7, 30]
 const SOURCE_OPTIONS = [
   'context-update', 'research', 'bot-voting', 'express-creation', 'express-guess',
   'multilingual-search', 'ibi-search', 'ibi-llm', 'ibi-fetch-url',
-  'health-cron', 'leaderboard', 'other',
+  'health-cron', 'leaderboard', 'news-indexer', 'other',
 ]
 const CALLTYPE_OPTIONS = ['SEARCH', 'FORECAST', 'LEADERBOARD', 'HEALTH', 'SEARCH_HEALTH', 'LLM', 'FETCH_URL']
 const STATUS_OPTIONS = ['OK', 'EMPTY', 'ERROR']
