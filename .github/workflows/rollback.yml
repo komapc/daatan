@@ -264,8 +264,14 @@ jobs:
             REASON_TEXT="%0AReason: $REASON"
           fi
           MSG="🔄 [${{ inputs.environment }}] Rollback to v${{ inputs.version }} complete.$REASON_TEXT%0A%0ATriggered by: ${{ github.actor }}%0A<a href='https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'>View logs</a>"
+          # Prod rollback → clean channel; staging stays noisy
+          CHAT_ID="${{ secrets.TELEGRAM_CHAT_ID }}"
+          if [ "${{ inputs.environment }}" = "production" ]; then
+            CHAT_ID="${{ secrets.TELEGRAM_CLEAN_CHAT_ID }}"
+            CHAT_ID="${CHAT_ID:-${{ secrets.TELEGRAM_CHAT_ID }}}"
+          fi
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d "chat_id=$CHAT_ID" \
             -d "text=$MSG" \
             -d "parse_mode=HTML" \
             -d "disable_web_page_preview=true"
@@ -279,8 +285,14 @@ jobs:
             REASON_TEXT="%0AReason: $REASON"
           fi
           MSG="❌ [${{ inputs.environment }}] Rollback to v${{ inputs.version }} FAILED. Manual intervention required.$REASON_TEXT%0A%0A<a href='https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'>View logs</a>"
+          # Prod rollback failure → clean channel; staging stays noisy
+          CHAT_ID="${{ secrets.TELEGRAM_CHAT_ID }}"
+          if [ "${{ inputs.environment }}" = "production" ]; then
+            CHAT_ID="${{ secrets.TELEGRAM_CLEAN_CHAT_ID }}"
+            CHAT_ID="${CHAT_ID:-${{ secrets.TELEGRAM_CHAT_ID }}}"
+          fi
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d "chat_id=$CHAT_ID" \
             -d "text=$MSG" \
             -d "parse_mode=HTML" \
             -d "disable_web_page_preview=true"

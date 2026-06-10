@@ -138,9 +138,15 @@ jobs:
           FAILURES="${{ steps.checks.outputs.failures }}"
           # Format | -separated failures as a bullet list (| → %0A• )
           FAILURE_LINES=$(echo "$FAILURES" | sed 's/|/%0A• /g')
+          # Prod health-check failure → clean channel; staging stays noisy
+          CHAT_ID="${{ secrets.TELEGRAM_CHAT_ID }}"
+          if [ "$ENV" = "production" ]; then
+            CHAT_ID="${{ secrets.TELEGRAM_CLEAN_CHAT_ID }}"
+            CHAT_ID="${CHAT_ID:-${{ secrets.TELEGRAM_CHAT_ID }}}"
+          fi
           MSG="🚨 <b>[$ENV] Health check FAILED</b>%0A%0A• ${FAILURE_LINES}%0A%0A<a href='${{ matrix.env.base_url }}/api/health'>View health endpoint</a>"
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d "chat_id=$CHAT_ID" \
             -d "text=$MSG" \
             -d "parse_mode=HTML" \
             -d "disable_web_page_preview=true"
@@ -197,8 +203,11 @@ jobs:
               echo "Already notified for this drift — skipping Telegram alert"
             else
               MSG="⚠️ [prod] Version drift: prod is running v$PROD_VER but staging has v$STAGING_VER — consider deploying to production"
+              # prod-only advisory → clean channel (fallback to noisy if unset)
+              DRIFT_CHAT_ID="${{ secrets.TELEGRAM_CLEAN_CHAT_ID }}"
+              DRIFT_CHAT_ID="${DRIFT_CHAT_ID:-${{ secrets.TELEGRAM_CHAT_ID }}}"
               curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-                -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+                -d "chat_id=$DRIFT_CHAT_ID" \
                 -d "text=$MSG" \
                 -d "parse_mode=HTML" \
                 -d "disable_web_page_preview=true"
@@ -344,9 +353,12 @@ jobs:
         if: steps.alarms.outputs.count != '0'
         run: |
           ALARM_LINES=$(echo '${{ steps.alarms.outputs.alarms_b64 }}' | base64 -d)
+          # Infra alarms firing → clean channel (fallback to noisy if unset)
+          CHAT_ID="${{ secrets.TELEGRAM_CLEAN_CHAT_ID }}"
+          CHAT_ID="${CHAT_ID:-${{ secrets.TELEGRAM_CHAT_ID }}}"
           MSG="🚨 <b>CloudWatch alarm(s) firing</b>%0A%0A$(echo "$ALARM_LINES" | sed 's/$/%0A/g' | tr -d '\n')"
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d "chat_id=$CHAT_ID" \
             -d "text=$MSG" \
             -d "parse_mode=HTML" \
             -d "disable_web_page_preview=true"
