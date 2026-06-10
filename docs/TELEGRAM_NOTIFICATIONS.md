@@ -11,7 +11,7 @@ Messages are prefixed with `[prod]` / `[staging]` / `[next]` based on `APP_ENV`.
 
 ## CI/CD Notifications (GitHub Actions)
 
-Sent by `deploy.yml`, `backup.yml`, `rollback.yml`. **Production** deploy messages route to the **clean** channel (`TELEGRAM_CLEAN_CHAT_ID`, falling back to `TELEGRAM_CHAT_ID` if unset); **staging** deploy messages stay on **noisy** (`TELEGRAM_CHAT_ID`).
+Sent by `deploy.yml`, `backup.yml`, `rollback.yml`. **Production** events route to the **clean** channel (`TELEGRAM_CLEAN_CHAT_ID`, falling back to `TELEGRAM_CHAT_ID` if unset); **staging** events stay on **noisy** (`TELEGRAM_CHAT_ID`). The fallback uses the runner-side pattern `CHAT_ID="${{ secrets.TELEGRAM_CLEAN_CHAT_ID }}"; CHAT_ID="${CHAT_ID:-${{ secrets.TELEGRAM_CHAT_ID }}}"`.
 
 | Event | Icon | Channel | Message |
 |---|---|---|---|
@@ -19,9 +19,9 @@ Sent by `deploy.yml`, `backup.yml`, `rollback.yml`. **Production** deploy messag
 | Staging deploy failure | ❌ | noisy | `[staging] Deployment failed` — version, PR number+title, PR link + logs link |
 | Production deploy success | ✅ | clean | `[prod] Deployment successful` — version, PR number+title, PR link |
 | Production deploy failure | ❌ | clean | `[prod] Deployment failed` — version, PR number+title, PR link + logs link |
-| DB backup failure | 🚨 | noisy | `DB Backup FAILED` — timestamp (`backup.yml` not yet routed — see follow-up) |
-| Rollback success | 🔄 | noisy | `[env] Rollback to vX complete` — reason, triggered-by |
-| Rollback failure | ❌ | noisy | `[env] Rollback to vX FAILED. Manual intervention required` — reason, logs link |
+| DB backup failure | 🚨 | clean | `DB Backup FAILED` — timestamp (backup verification is prod-only) |
+| Rollback success | 🔄 | clean (prod) / noisy (staging) | `[env] Rollback to vX complete` — reason, triggered-by |
+| Rollback failure | ❌ | clean (prod) / noisy (staging) | `[env] Rollback to vX FAILED. Manual intervention required` — reason, logs link |
 
 ---
 
@@ -29,12 +29,13 @@ Sent by `deploy.yml`, `backup.yml`, `rollback.yml`. **Production** deploy messag
 
 ### HTTP health checks
 
-Sent directly by `watchdog.yml` from the **GitHub Actions runner**. Both `production` and `staging` are checked.
+Sent directly by `watchdog.yml` from the **GitHub Actions runner**. Both `production` and `staging` are checked. Prod-side alerts route to the **clean** channel (with noisy fallback); staging health-check failures stay on **noisy**.
 
-| Event | Icon | Message |
-|---|---|---|
-| Any health check fails | 🚨 | `[env] Health check FAILED` — list of failing checks, health endpoint link |
-| Staging version newer than prod | ⚠️ | `[prod] Version drift: prod is running vX but staging has vY — consider deploying` |
+| Event | Icon | Channel | Message |
+|---|---|---|---|
+| Any health check fails | 🚨 | clean (prod) / noisy (staging) | `[env] Health check FAILED` — list of failing checks, health endpoint link |
+| Staging version newer than prod | ⚠️ | clean | `[prod] Version drift: prod is running vX but staging has vY — consider deploying` |
+| CloudWatch alarm(s) firing | 🚨 | clean | `CloudWatch alarm(s) firing` — alarm name + state reason per line |
 
 **Health checks performed:**
 - `Health (app+db)` — `/api/health` → `status: "ok"`
