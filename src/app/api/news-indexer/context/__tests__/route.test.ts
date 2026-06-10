@@ -1,0 +1,139 @@
+/**
+ * @jest-environment node
+ */
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { NextRequest } from 'next/server'
+
+// ---------------------------------------------------------------------------
+// Mocks — declared before importing the route under test
+// ---------------------------------------------------------------------------
+vi.mock('@/env', () => ({ env: { NEWS_INDEXER_SECRET: 'test-secret' } }))
+
+vi.mock('@/lib/prisma', () => ({
+  prisma: { prediction: { findUnique: vi.fn() } },
+}))
+
+vi.mock('@/lib/services/oracle', () => ({ getOracleForecast: vi.fn() }))
+vi.mock('@/lib/services/context', () => ({ saveNewsIndexerMatch: vi.fn() }))
+vi.mock('@/lib/services/telegram', () => ({ notifyNewsArticleMatched: vi.fn() }))
+
+vi.mock('@/lib/api-error', () => ({
+  apiError: (msg: string, status: number) =>
+    new Response(JSON.stringify({ error: msg }), { status }),
+  handleRouteError: () => new Response(JSON.stringify({ error: 'fail' }), { status: 500 }),
+}))
+
+vi.mock('@/lib/logger', () => ({
+  createLogger: () => ({ info: vi.fn(), warn: vi.fn(), debug: vi.fn(), error: vi.fn() }),
+}))
+
+// ---------------------------------------------------------------------------
+// Imports after mocks
+// ---------------------------------------------------------------------------
+import { POST } from '../route'
+import { prisma } from '@/lib/prisma'
+import { getOracleForecast } from '@/lib/services/oracle'
+import { saveNewsIndexerMatch } from '@/lib/services/context'
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+const VALID_BODY = {
+  predictionId: 'pred-1',
+  articleUrl: 'https://bbc.com/news/x',
+  articleTitle: 'Headline',
+  articleSnippet: 'A snippet.',
+  articleSource: 'bbc.com',
+  publishedAt: '2026-06-10T00:00:00Z',
+  similarity: 0.5,
+}
+
+function post(secret: string | null, body: unknown = VALID_BODY) {
+  return new NextRequest('http://localhost/api/news-indexer/context', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(secret === null ? {} : { 'x-news-indexer-secret': secret }),
+    },
+    body: JSON.stringify(body),
+  })
+}
+
+const ACTIVE_PREDICTION = { id: 'pred-1', claimText: 'Will X happen?', status: 'ACTIVE' }
+
+// One caller article in, so the Oracle returns exactly one source whose url
+// echoes the pushed article (search is skipped — see forecaster.py:506).
+const ORACLE_WITH_SOURCE = {
+  question: 'Will X happen?',
+  mean: 0.5,
+  std: 0.1,
+  ci_low: 0.2,
+  ci_high: 0.8,
+  articles_used: 1,
+  placeholder: false,
+  sources: [
+    {
+      source_id: 'bbc',
+      source_name: 'BBC',
+      url: 'https://bbc.com/news/x',
+      stance: 0.42,
+      certainty: 0.77,
+      credibility_weight: 1.0,
+      claims: ['First extracted claim', 'Second claim'],
+    },
+  ],
+}
+
+describe('POST /api/news-indexer/context', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(prisma.prediction.findUnique).mockResolvedValue(ACTIVE_PREDICTION as never)
+    vi.mocked(saveNewsIndexerMatch).mockResolvedValue(undefined as never)
+  })
+
+  it('rejects a wrong secret with 401 before doing any work', async () => {
+    const res = await POST(post('wrong-secret'))
+    expect(res.status).toBe(401)
+    expect(getOracleForecast).not.toHaveBeenCalled()
+  })
+
+  it('rejects a missing secret header with 401', async () => {
+    const res = await POST(post(null))
+    expect(res.status).toBe(401)
+    expect(getOracleForecast).not.toHaveBeenCalled()
+  })
+
+  it('returns the per-article Oracle output so news-indexer can store it', async () => {
+    vi.mocked(getOracleForecast).mockResolvedValue(ORACLE_WITH_SOURCE as never)
+
+    const res = await POST(post('test-secret'))
+    expect(res.status).toBe(200)
+    const body = await res.json()
+
+    // probability = round(((mean + 1) / 2) * 100) = round(((0.5 + 1) / 2) * 100) = 75
+    expect(body).toMatchObject({
+      ok: true,
+      stance: 0.42,
+      certainty: 0.77,
+      claim: 'First extracted claim', // claims[0]
+      probability: 75,
+    })
+  })
+
+  it('returns null enrichment when the Oracle has no usable forecast', async () => {
+    vi.mocked(getOracleForecast).mockResolvedValue(null as never)
+
+    const res = await POST(post('test-secret'))
+    expect(res.status).toBe(200)
+    const body = await res.json()
+
+    expect(body).toMatchObject({
+      ok: true,
+      stance: null,
+      certainty: null,
+      claim: null,
+      probability: null,
+    })
+    expect(saveNewsIndexerMatch).not.toHaveBeenCalled()
+  })
+})
