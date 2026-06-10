@@ -4,6 +4,7 @@ import { apiError } from '@/lib/api-error'
 import { toError } from '@/lib/utils/error'
 import { withAuth } from '@/lib/api-middleware'
 import { notifyForecastResolved } from '@/lib/services/telegram'
+import { notifyNewsIndexerResolution } from '@/lib/services/news-indexer'
 import { createNotification } from '@/lib/services/notification'
 import { resolvePrediction } from '@/lib/services/prediction-resolution'
 
@@ -28,6 +29,7 @@ export const POST = withAuth(async (request, user, { params }) => {
   const { result, prediction } = resolveResult
 
   notifyForecastResolved(prediction, outcome, prediction.commitments.length)
+  notifyNewsIndexerResolution(prediction.id, outcome)
 
   const forecastLink = `/forecasts/${prediction.slug || prediction.id}`
   for (const commitment of prediction.commitments) {

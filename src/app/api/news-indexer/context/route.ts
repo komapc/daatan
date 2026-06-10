@@ -106,7 +106,15 @@ export async function POST(request: NextRequest) {
       probability,
     )
 
-    return NextResponse.json({ ok: true })
+    // Return per-article Oracle output so news-indexer can store it in forecast_match.
+    const firstSource = oracleForecast?.sources?.[0]
+    return NextResponse.json({
+      ok: true,
+      stance: firstSource?.stance ?? null,
+      certainty: firstSource?.certainty ?? null,
+      claim: firstSource?.claims?.[0] ?? null,
+      probability,
+    })
   } catch (error) {
     return handleRouteError(error, 'Failed to process news-indexer context push')
   }
