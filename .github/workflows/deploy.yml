@@ -523,8 +523,10 @@ jobs:
       - name: Notify Telegram - Production Deployment Success
         if: success()
         run: |
+          CHAT_ID="${{ secrets.TELEGRAM_CLEAN_CHAT_ID }}"
+          CHAT_ID="${CHAT_ID:-${{ secrets.TELEGRAM_CHAT_ID }}}"
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d chat_id="$CHAT_ID" \
             -d text="✅ [prod] Deployment successful%0A%0Av${{ steps.version.outputs.version }} · ${{ steps.pr_info.outputs.label }}%0A%0A<a href=\"${{ steps.pr_info.outputs.url }}\">View changes →</a>" \
             -d parse_mode="HTML" \
             -d disable_web_page_preview="true"
@@ -532,8 +534,10 @@ jobs:
       - name: Notify Telegram - Production Deployment Failure
         if: failure()
         run: |
+          CHAT_ID="${{ secrets.TELEGRAM_CLEAN_CHAT_ID }}"
+          CHAT_ID="${CHAT_ID:-${{ secrets.TELEGRAM_CHAT_ID }}}"
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d chat_id="$CHAT_ID" \
             -d text="❌ [prod] Deployment failed%0A%0Av${{ steps.version.outputs.version }} · ${{ steps.pr_info.outputs.label }}%0A%0A<a href=\"${{ steps.pr_info.outputs.url }}\">View changes →</a> · <a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">View logs →</a>" \
             -d parse_mode="HTML" \
             -d disable_web_page_preview="true"

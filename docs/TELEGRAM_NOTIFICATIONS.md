@@ -11,17 +11,17 @@ Messages are prefixed with `[prod]` / `[staging]` / `[next]` based on `APP_ENV`.
 
 ## CI/CD Notifications (GitHub Actions)
 
-Sent by `deploy.yml`, `backup.yml`, `rollback.yml`.
+Sent by `deploy.yml`, `backup.yml`, `rollback.yml`. **Production** deploy messages route to the **clean** channel (`TELEGRAM_CLEAN_CHAT_ID`, falling back to `TELEGRAM_CHAT_ID` if unset); **staging** deploy messages stay on **noisy** (`TELEGRAM_CHAT_ID`).
 
-| Event | Icon | Message |
-|---|---|---|
-| Staging deploy success | ✅ | `[staging] Deployment successful` — version, PR number+title, PR link |
-| Staging deploy failure | ❌ | `[staging] Deployment failed` — version, PR number+title, PR link + logs link |
-| Production deploy success | ✅ | `[prod] Deployment successful` — version, PR number+title, PR link |
-| Production deploy failure | ❌ | `[prod] Deployment failed` — version, PR number+title, PR link + logs link |
-| DB backup failure | 🚨 | `DB Backup FAILED` — timestamp |
-| Rollback success | 🔄 | `[env] Rollback to vX complete` — reason, triggered-by |
-| Rollback failure | ❌ | `[env] Rollback to vX FAILED. Manual intervention required` — reason, logs link |
+| Event | Icon | Channel | Message |
+|---|---|---|---|
+| Staging deploy success | ✅ | noisy | `[staging] Deployment successful` — version, PR number+title, PR link |
+| Staging deploy failure | ❌ | noisy | `[staging] Deployment failed` — version, PR number+title, PR link + logs link |
+| Production deploy success | ✅ | clean | `[prod] Deployment successful` — version, PR number+title, PR link |
+| Production deploy failure | ❌ | clean | `[prod] Deployment failed` — version, PR number+title, PR link + logs link |
+| DB backup failure | 🚨 | noisy | `DB Backup FAILED` — timestamp (`backup.yml` not yet routed — see follow-up) |
+| Rollback success | 🔄 | noisy | `[env] Rollback to vX complete` — reason, triggered-by |
+| Rollback failure | ❌ | noisy | `[env] Rollback to vX FAILED. Manual intervention required` — reason, logs link |
 
 ---
 
