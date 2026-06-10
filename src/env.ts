@@ -56,8 +56,10 @@ export const env = createEnv({
     // IndexNow — instant Bing/Yandex indexing on publish
     INDEXNOW_KEY: z.string().min(1).optional(),
 
-    // News-indexer integration — shared secret for both directions
-    NEWS_INDEXER_SECRET: z.string().min(1).optional(),
+    // News-indexer integration
+    NEWS_INDEXER_SECRET: z.string().min(1).optional(),  // inbound: news-indexer → Daatan
+    NEWS_INDEXER_URL: z.string().url().optional(),      // outbound: Daatan → news-indexer
+    NEWS_INDEXER_API_KEY: z.string().min(1).optional(), // outbound: api key for news-indexer
 
     // Telegram — prod-only "clean" channel for high-signal events/alarms.
     // Falls back to TELEGRAM_CHAT_ID (the noisy channel) when unset.
@@ -88,6 +90,8 @@ export const env = createEnv({
     ORACLE_API_KEY: process.env.ORACLE_API_KEY,
     INDEXNOW_KEY: process.env.INDEXNOW_KEY,
     NEWS_INDEXER_SECRET: process.env.NEWS_INDEXER_SECRET,
+    NEWS_INDEXER_URL: process.env.NEWS_INDEXER_URL,
+    NEWS_INDEXER_API_KEY: process.env.NEWS_INDEXER_API_KEY,
     TELEGRAM_CLEAN_CHAT_ID: process.env.TELEGRAM_CLEAN_CHAT_ID,
     NEXT_PUBLIC_APP_VERSION: process.env.NEXT_PUBLIC_APP_VERSION,
     NEXT_PUBLIC_ENV: process.env.NEXT_PUBLIC_ENV,
