@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
 import { applyGlicko2Update } from '@/lib/services/expertise'
 import { calculateEloUpdates } from '@/lib/services/elo'
+import { updateTagRatingsInTx } from '@/lib/services/tag-ratings'
 import { notifyIndexNow } from '@/lib/services/indexnow'
 
 const log = createLogger('prediction-resolution')
@@ -36,6 +37,7 @@ export async function resolvePrediction(predictionId: string, options: Resolutio
   const prediction = await prisma.prediction.findUnique({
     where: { id: predictionId },
     include: {
+      tags: { select: { id: true } },
       options: true,
       commitments: {
         include: {
@@ -187,6 +189,11 @@ export async function resolvePrediction(predictionId: string, options: Resolutio
           })
         }
       }
+    }
+
+    // Per-tag ELO + Glicko-2: update stored tag ratings for all tags on this prediction
+    if (!isVoidOutcome && prediction.tags.length > 0) {
+      await updateTagRatingsInTx(tx, prediction.tags, eloInputs)
     }
 
     return updatedPrediction

@@ -96,7 +96,7 @@ export function glicko2Update(
  *
  * Returns a map of userId → { mu, sigma } (Glicko-1 scale).
  */
-export async function replayGlicko2History(tagSlug?: string): Promise<Map<string, { mu: number; sigma: number; count: number }>> {
+export async function replayGlicko2History(tagSlug?: string): Promise<Map<string, { mu: number; sigma: number; volatility: number; count: number }>> {
   const rows = await prisma.commitment.findMany({
     where: {
       brierScore: { not: null },
@@ -124,7 +124,7 @@ export async function replayGlicko2History(tagSlug?: string): Promise<Map<string
     counts.set(row.userId, (counts.get(row.userId) ?? 0) + 1)
   }
 
-  return new Map([...ratings].map(([id, r]) => [id, { mu: r.mu, sigma: r.sigma, count: counts.get(id) ?? 0 }]))
+  return new Map([...ratings].map(([id, r]) => [id, { mu: r.mu, sigma: r.sigma, volatility: r.volatility, count: counts.get(id) ?? 0 }]))
 }
 
 export interface GlickoDataPoint {

@@ -108,6 +108,7 @@ describe('POST /api/predictions/[id]/resolve', () => {
       id: 'pred-1',
       status: 'ACTIVE',
       outcomeType: 'BINARY',
+      tags: [],
       options: [],
       commitments: [],
     } as never)
@@ -147,6 +148,7 @@ describe('POST /api/predictions/[id]/resolve', () => {
       id: 'pred-1',
       status: 'ACTIVE',
       outcomeType: 'BINARY',
+      tags: [],
       options: [],
       commitments: [],
     } as never)

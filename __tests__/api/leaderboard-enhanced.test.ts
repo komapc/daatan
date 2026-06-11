@@ -10,19 +10,17 @@ vi.mock('@/lib/rate-limit', () => ({
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
-    user: {
-      findMany: vi.fn(),
-    },
-    commitment: {
-      groupBy: vi.fn(),
-      findMany: vi.fn(),
-    },
+    user: { findMany: vi.fn() },
+    tag: { findUnique: vi.fn().mockResolvedValue(null) },
+    commitment: { groupBy: vi.fn(), findMany: vi.fn() },
+    userTagRating: { findMany: vi.fn().mockResolvedValue([]) },
   },
 }))
 
-// Mock replay functions so tests don't depend on DB-level ELO/Glicko replay
-vi.mock('@/lib/services/elo', () => ({
-  replayEloHistory: vi.fn().mockResolvedValue(new Map()),
+// tag-ratings: ensureTagRatingsSeeded is a no-op in unit tests
+vi.mock('@/lib/services/tag-ratings', () => ({
+  ensureTagRatingsSeeded: vi.fn().mockResolvedValue(undefined),
+  updateTagRatingsInTx: vi.fn().mockResolvedValue(undefined),
 }))
 
 vi.mock('@/lib/services/expertise', () => ({
@@ -95,8 +93,6 @@ describe('GET /api/leaderboard (enhanced)', () => {
       .mockResolvedValueOnce(mockResolvedCommitments as any)
       .mockResolvedValue([] as any)
 
-    const { replayEloHistory } = await import('@/lib/services/elo')
-    vi.mocked(replayEloHistory).mockResolvedValue(new Map())
   })
 
   it('returns leaderboard sorted by RS (default)', async () => {
@@ -196,31 +192,36 @@ describe('GET /api/leaderboard (enhanced)', () => {
     expect(bob.totalRsGained).toBe(6)
   })
 
-  it('does not replay ELO for the default (no-tag) board and uses stored eloRating', async () => {
+  it('does not seed per-tag ratings for the default (no-tag) board and uses stored eloRating', async () => {
     const { prisma } = await import('@/lib/prisma')
     vi.mocked(prisma.user.findMany).mockResolvedValue(mockUsers as any)
-    const { replayEloHistory } = await import('@/lib/services/elo')
+    const { ensureTagRatingsSeeded } = await import('@/lib/services/tag-ratings')
+    vi.mocked(ensureTagRatingsSeeded).mockClear()
 
     const request = new NextRequest('http://localhost/api/leaderboard?sortBy=elo')
     const response = await GET(request)
     const data = await response.json()
 
-    // No tag → replay skipped; stored eloRating drives the ranking (Bob 1520 > Alice 1500)
-    expect(replayEloHistory).not.toHaveBeenCalled()
+    // No tag → per-tag seeding skipped; stored eloRating drives the ranking (Bob 1520 > Alice 1500)
+    expect(ensureTagRatingsSeeded).not.toHaveBeenCalled()
     expect(data.leaderboard[0].username).toBe('bob')
     expect(data.leaderboard[0].eloRating).toBe(1520)
     expect(data.leaderboard[1].eloRating).toBe(1500)
   })
 
-  it('replays ELO for the selected tag when a tag is provided', async () => {
+  it('seeds and reads per-tag ratings when a tag is provided', async () => {
     const { prisma } = await import('@/lib/prisma')
     vi.mocked(prisma.user.findMany).mockResolvedValue(mockUsers as any)
-    const { replayEloHistory } = await import('@/lib/services/elo')
+    vi.mocked(prisma.tag.findUnique).mockResolvedValue({ id: 'tag-crypto' } as any)
+    const { ensureTagRatingsSeeded } = await import('@/lib/services/tag-ratings')
 
     const request = new NextRequest('http://localhost/api/leaderboard?sortBy=elo&tag=crypto')
     await GET(request)
 
-    expect(replayEloHistory).toHaveBeenCalledWith('crypto')
+    expect(ensureTagRatingsSeeded).toHaveBeenCalledWith('tag-crypto', 'crypto')
+    expect(prisma.userTagRating.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ tagId: 'tag-crypto' }) }),
+    )
   })
 
   it('handles database errors gracefully', async () => {

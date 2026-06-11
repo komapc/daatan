@@ -45,6 +45,7 @@ function makePrediction(overrides = {}) {
     outcomeType: 'BINARY',
     claimText: 'Will X happen?',
     slug: 'will-x-happen',
+    tags: [],
     options: [],
     commitments: [makeCommitment()],
     ...overrides,
