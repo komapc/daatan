@@ -305,6 +305,7 @@ export default function AboutPage() {
             <div className="flex items-center gap-4 text-sm text-text-subtle">
               <Link href="/privacy" className="hover:text-white hover:underline">Privacy Policy</Link>
               <Link href="/terms" className="hover:text-white hover:underline">Terms of Service</Link>
+              <Link href="/disclaimer" className="hover:text-white hover:underline">Disclaimer</Link>
               <p>
                 &copy; {new Date().getFullYear()} DAATAN
               </p>

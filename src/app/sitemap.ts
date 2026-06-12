@@ -67,8 +67,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { route: '/about',    lastModified: new Date('2026-03-26'), frequency: 'monthly' as const, priority: 0.8, localized: false },
     { route: '/leaderboard', lastModified: new Date(),           frequency: 'daily'   as const, priority: 0.8, localized: false },
     { route: '/activity', lastModified: new Date(),              frequency: 'daily'   as const, priority: 0.8, localized: false },
-    { route: '/privacy',  lastModified: new Date('2026-03-26'), frequency: 'monthly' as const, priority: 0.3, localized: true  },
-    { route: '/terms',    lastModified: new Date('2026-03-26'), frequency: 'monthly' as const, priority: 0.3, localized: true  },
+    { route: '/privacy',     lastModified: new Date('2026-03-26'), frequency: 'monthly' as const, priority: 0.3, localized: true  },
+    { route: '/terms',       lastModified: new Date('2026-03-26'), frequency: 'monthly' as const, priority: 0.3, localized: true  },
+    { route: '/disclaimer',  lastModified: new Date('2026-06-12'), frequency: 'monthly' as const, priority: 0.3, localized: true  },
   ]
 
   const staticRoutes: MetadataRoute.Sitemap = staticRouteDefs.map(({ route, lastModified, frequency, priority, localized }) => ({
@@ -108,6 +109,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly' as const,
       priority: 0.3,
       alternates: { languages: localizedAlternates('/terms') },
+    },
+    {
+      url: `${BASE_URL}/${locale}/disclaimer`,
+      lastModified: new Date('2026-06-12'),
+      changeFrequency: 'monthly' as const,
+      priority: 0.3,
+      alternates: { languages: localizedAlternates('/disclaimer') },
     },
   ])
 

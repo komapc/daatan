@@ -411,7 +411,8 @@
   },
   "footer": {
     "privacy": "Privacy Policy",
-    "terms": "Terms of Service"
+    "terms": "Terms of Service",
+    "disclaimer": "Disclaimer"
   },
   "backToFeed": "Back to forecasts",
   "auth": {
