@@ -81,6 +81,9 @@ model User {
   // Bot rejection tracking
   rejectedBotTopics BotRejectedTopic[]
 
+  // Per-tag skill ratings
+  tagRatings UserTagRating[]
+
   // Express Forecast attempt audit log
   forecastCreationAttempts ForecastCreationAttempt[]
 
@@ -182,9 +185,29 @@ model Tag {
   slug      String   @unique @db.VarChar(50) // e.g., "politics", "ai", "crypto"
   createdAt DateTime @default(now())
 
-  predictions Prediction[]
+  predictions    Prediction[]
+  userTagRatings UserTagRating[]
 
   @@map("tags")
+}
+
+model UserTagRating {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tagId      String
+  tag        Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  elo        Float    @default(1500)
+  mu         Float    @default(1500)
+  sigma      Float    @default(350)
+  volatility Float    @default(0.06)
+
+  updatedAt  DateTime @updatedAt
+
+  @@unique([userId, tagId])
+  @@index([tagId])
+  @@map("user_tag_ratings")
 }
 
 // ============================================

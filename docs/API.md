@@ -335,7 +335,7 @@ Top users ranked by the selected scoring system. Public. Rate-limited to 60 requ
 | Query | Type | Default | Description |
 |-------|------|---------|-------------|
 | `sortBy` | enum | `rs` | One of: `rs`, `accuracy`, `totalCorrect`, `cuCommitted`, `brierScore`, `peerScore`, `aiScore`, `elo`, `glicko`, `roi`, `truthScore`, `weightedPeerScore`. See `docs/SCORING_SYSTEMS.md`. |
-| `tag` | string | – | Filter by tag slug. When provided, ELO and Glicko-2 are replayed from scratch for that tag only; other sorts are filtered to commitments on predictions tagged with the slug. |
+| `tag` | string | – | Filter by tag slug. When provided, ELO and Glicko-2 are read from the materialized `UserTagRating` table (seeded lazily on first request for that tag); other sorts are filtered to commitments on predictions tagged with the slug. |
 | `limit` | int | `50` | Max users to return (capped server-side). |
 
 ### `GET /api/top-reputation`

@@ -26,12 +26,31 @@ recorded), so Postgres emitted no warning.
 Blast radius at discovery: ~25% of recent forecast slugs were unreachable, plus
 any other text index (usernames, tag slugs, emails).
 
-## The fix (already applied to prod + staging)
+## The fix (already applied to prod + staging, 2026-06-12)
+
+Two steps were applied in sequence:
+
+**Step 1 — rebuild indexes against the current collation (non-blocking):**
 
 ```sql
--- Rebuild every user index against the current collation (non-blocking).
 REINDEX DATABASE CONCURRENTLY daatan;          -- staging: daatan_staging
 ```
+
+**Step 2 — record the current collation version in the catalog:**
+
+`ALTER DATABASE ... REFRESH COLLATION VERSION` fails with
+`invalid collation version change` when `datcollversion` is NULL (PostgreSQL 16
+refuses to transition from NULL). The workaround is a direct catalog update:
+
+```sql
+UPDATE pg_catalog.pg_database
+   SET datcollversion = pg_database_collation_actual_version(oid)
+ WHERE datname = 'daatan';                     -- staging: daatan_staging
+```
+
+This returned `UPDATE 1` on both prod and staging, setting `datcollversion` to
+`2.36` (glibc 2.36). Postgres no longer emits a collation-mismatch warning on
+startup.
 
 Verify no rows are invisible to a text index:
 
@@ -40,12 +59,6 @@ SELECT count(*) FROM predictions p
 WHERE p.slug IS NOT NULL
   AND NOT EXISTS (SELECT 1 FROM predictions x WHERE x.slug = p.slug);  -- expect 0
 ```
-
-> `ALTER DATABASE ... REFRESH COLLATION VERSION` currently errors
-> (`invalid collation version change`) because `datcollversion` is NULL and there
-> is also an ICU version skew. It is **not** required for the fix — REINDEX
-> rebuilds the indexes correctly regardless. It only governs the startup warning,
-> which we replace with the image pin below.
 
 ## Prevention
 

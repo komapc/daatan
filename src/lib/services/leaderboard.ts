@@ -1,7 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import type { Prisma } from '@prisma/client'
-import { replayEloHistory } from '@/lib/services/elo'
-import { replayGlicko2History } from '@/lib/services/expertise'
+import { ensureTagRatingsSeeded } from '@/lib/services/tag-ratings'
 import { SCORING_SYSTEMS, type SortBy, type ScoringContext } from '@/lib/services/scoring-systems'
 
 export type { SortBy }
@@ -11,6 +10,14 @@ export type { SortBy }
 const DECAY = 0.95
 
 export const getLeaderboard = async (limit: number, sortBy: SortBy, tagSlug?: string) => {
+  // Resolve tag slug → id and seed per-tag ratings lazily if not yet populated
+  let tagId: string | undefined
+  if (tagSlug) {
+    const tag = await prisma.tag.findUnique({ where: { slug: tagSlug }, select: { id: true } })
+    tagId = tag?.id
+    if (tagId) await ensureTagRatingsSeeded(tagId, tagSlug)
+  }
+
   const users = await prisma.user.findMany({
     where: { isPublic: true },
     select: {
@@ -43,8 +50,7 @@ export const getLeaderboard = async (limit: number, sortBy: SortBy, tagSlug?: st
     aiScoreSums,
     rsChangeSums,
     weightedPeerRows,
-    tagEloByUser,
-    tagGlickoByUser,
+    tagRatingRows,
   ] = await Promise.all([
     prisma.commitment.groupBy({
       by: ['userId'],
@@ -107,12 +113,14 @@ export const getLeaderboard = async (limit: number, sortBy: SortBy, tagSlug?: st
         prediction: { select: { resolvedAt: true } },
       },
     }),
-    // Per-tag ELO replay only when a tag is selected. With no tag the stored
-    // eloRating (maintained incrementally at resolution) is identical to a full
-    // replay, so we skip the O(all-commitments) replay on the default board.
-    tagSlug ? replayEloHistory(tagSlug) : Promise.resolve(null),
-    // Per-tag Glicko-2 replay — only when tag is selected; uses stored values otherwise
-    tagSlug ? replayGlicko2History(tagSlug) : Promise.resolve(null),
+    // Per-tag ELO + Glicko-2: read from materialized UserTagRating table.
+    // Already seeded above via ensureTagRatingsSeeded; falls back to global values for missing rows.
+    tagId
+      ? prisma.userTagRating.findMany({
+          where: { tagId, userId: { in: userIds } },
+          select: { userId: true, elo: true, mu: true, sigma: true },
+        })
+      : Promise.resolve(null),
   ])
 
   // --- Build lookup maps ---
@@ -162,14 +170,22 @@ export const getLeaderboard = async (limit: number, sortBy: SortBy, tagSlug?: st
     weightedPeerScoreByUser.set(userId, count >= 3 ? wSum / wTotal : null)
   }
 
-  // ELO: per-tag replay when tag selected; stored global value otherwise
-  const eloByUser: Map<string, number> = tagEloByUser ??
-    new Map(users.map(u => [u.id, u.eloRating]))
+  // ELO + Glicko-2: per-tag from materialized table when tag selected; stored global otherwise.
+  // Falls back to global values for users with no per-tag row.
+  const tagRatingByUser = tagRatingRows
+    ? new Map(tagRatingRows.map(r => [r.userId, r]))
+    : null
 
-  // Glicko-2: per-tag replay when tag selected; stored global values otherwise.
-  // Per-tag entries include `count`; global entries do not (no minimum applied globally).
-  const glickoByUser: Map<string, { mu: number; sigma: number; count?: number }> = tagGlickoByUser ??
-    new Map(users.map(u => [u.id, { mu: u.mu, sigma: u.sigma }]))
+  const eloByUser = new Map(
+    users.map(u => [u.id, tagRatingByUser?.get(u.id)?.elo ?? u.eloRating]),
+  )
+
+  const glickoByUser = new Map<string, { mu: number; sigma: number }>(
+    users.map(u => {
+      const r = tagRatingByUser?.get(u.id)
+      return [u.id, r ? { mu: r.mu, sigma: r.sigma } : { mu: u.mu, sigma: u.sigma }]
+    }),
+  )
 
   const ctx: ScoringContext = {
     cuByUser,
