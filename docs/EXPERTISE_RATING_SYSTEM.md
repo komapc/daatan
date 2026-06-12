@@ -101,6 +101,7 @@ The system version-controls votes rather than overwriting them (already the case
 - [x] ScoringSystem registry in `src/lib/services/scoring-systems.ts` — adding new systems requires no core changes
 - [x] User profile: skill history chart over time — μ ± σ SVG chart, on-the-fly Glicko-2 replay, tag-filtered (v1.10.59, PR #704)
 - [x] Per-tag minimum threshold — ≥3 resolved predictions required before surfacing per-tag Glicko-2 score (v1.10.63, PR #709)
+- [x] Per-tag ELO and Glicko-2 materialized in `UserTagRating` table — eliminates full-history replay on every tag-filtered leaderboard request; seeded lazily on first access, updated incrementally at resolution (v1.10.207, PR #870)
 - [ ] "Signal vs Noise" indicator per user
 
 See `docs/SCORING_SYSTEMS.md` for the full scoring system reference and architecture guide.

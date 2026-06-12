@@ -65,12 +65,12 @@ Ranges:
 
 ### ELO Rating
 
-**Key:** `elo` · **Sort:** higher is better · **Per-tag:** yes (replayed)
+**Key:** `elo` · **Sort:** higher is better · **Per-tag:** yes (materialized)
 
 Head-to-head competitive rating. When two users commit to the same prediction, the more accurate one (lower Brier score) gains ELO from the other.
 
 **Global:** stored incrementally on `User.eloRating`, updated at each resolution.  
-**Per-tag:** replayed from scratch (all start at 1500) using only commitments tagged with the selected tag. Computed by `replayEloHistory(tagSlug)` in `src/lib/services/elo.ts`.
+**Per-tag:** stored in `UserTagRating.elo` — one row per `(userId, tagId)`. Updated incrementally inside the resolution transaction via `updateTagRatingsInTx` in `src/lib/services/tag-ratings.ts`. Seeded lazily on the first leaderboard request for a tag via `ensureTagRatingsSeeded` (which calls `replayEloHistory(tagSlug)` once and writes the results). All users start at 1500 within each tag scope.
 
 **Update formula:** K=32 pairwise:
 ```
@@ -83,12 +83,12 @@ actual_A = brierScore_A < brierScore_B ? 1 : brierScore_A > brierScore_B ? 0 : 0
 
 ### Glicko-2 Rating
 
-**Key:** `glicko` · **Sort:** higher is better · **Per-tag:** yes (replayed)
+**Key:** `glicko` · **Sort:** higher is better · **Per-tag:** yes (materialized)
 
 Uncertainty-aware skill rating. The leaderboard rank uses `μ − 3σ` (lower bound of skill), which prevents one-hit wonders from topping the board — a user with one correct prediction has high σ and thus a low floor.
 
 **Global:** stored incrementally on `User.mu`, `User.sigma`, `User.volatility`, updated at each resolution.  
-**Per-tag:** replayed from scratch (all start at defaults: μ=1500, σ=350, volatility=0.06) using only tag-filtered commitments, in resolvedAt order. Computed by `replayGlicko2History(tagSlug)` in `src/lib/services/expertise.ts`.
+**Per-tag:** stored in `UserTagRating.mu`, `.sigma`, `.volatility` — one row per `(userId, tagId)`. Updated incrementally inside the resolution transaction via `updateTagRatingsInTx`. Seeded lazily on the first leaderboard request for a tag via `ensureTagRatingsSeeded` (which calls `replayGlicko2History(tagSlug)` once and writes the results). All users start at defaults (μ=1500, σ=350, volatility=0.06) within each tag scope.
 
 **Rank formula:** `μ − 3σ`  
 **Outcome signal:** `score = 1 − brierScore` (0=worst, 1=perfect)  
@@ -199,8 +199,8 @@ When a tag is selected via `?tag=slug`:
 | System | Per-tag behaviour |
 |--------|------------------|
 | RS | Global (stored per user, not tag-filterable) |
-| ELO | Replayed from scratch using only tag-filtered commitments |
-| Glicko-2 | Replayed from scratch using only tag-filtered commitments |
+| ELO | Materialized in `UserTagRating.elo`; seeded lazily, updated at resolution |
+| Glicko-2 | Materialized in `UserTagRating.{mu,sigma,volatility}`; seeded lazily, updated at resolution |
 | Brier Score | Filtered: only commitments on tagged predictions |
 | Peer Score | Filtered |
 | AI Score | Filtered |
@@ -211,11 +211,11 @@ When a tag is selected via `?tag=slug`:
 | CU Committed | Filtered |
 | Most Correct | Filtered |
 
-ELO and Glicko-2 per-tag replays start all users at default ratings, so the tag leaderboard represents "if this topic were all you ever predicted, how skilled would you be?"
+ELO and Glicko-2 per-tag ratings start all users at default values within each tag scope, so the tag leaderboard represents "if this topic were all you ever predicted, how skilled would you be?" On first access for a tag, `ensureTagRatingsSeeded` seeds the table from a single replay; subsequent requests read directly from the materialized rows.
 
 **Note:** Per-tag Glicko-2 requires ≥3 resolved predictions in the tag before a score is surfaced; users with fewer appear at the bottom (same as ROI and TruthScore). ELO has no minimum threshold.
 
-**Profile page vs leaderboard:** The profile scores grid (`ScoresGrid.tsx`) shows ELO and Glicko-2 from the globally stored `User.eloRating` / `User.mu` / `User.sigma` — it does **not** replay per-tag histories. Per-tag replays are leaderboard-only due to the O(n×users) cost of replaying all users.
+**Profile page vs leaderboard:** The profile scores grid (`ScoresGrid.tsx`) shows ELO and Glicko-2 from the globally stored `User.eloRating` / `User.mu` / `User.sigma` — it does not read from `UserTagRating`. Per-tag materialized values are leaderboard-only.
 
 ---
 
@@ -228,6 +228,7 @@ ELO and Glicko-2 per-tag replays start all users at default ratings, so the tag 
 | `src/lib/services/profile.ts` | `loadProfileScores` — computes all metrics for the profile scores grid |
 | `src/lib/services/elo.ts` | `calculateEloUpdates`, `replayEloHistory(tagSlug?)` |
 | `src/lib/services/expertise.ts` | `glicko2Update`, `applyGlicko2Update`, `replayGlicko2History(tagSlug?)` |
+| `src/lib/services/tag-ratings.ts` | `ensureTagRatingsSeeded(tagId, tagSlug)` — lazy seed; `updateTagRatingsInTx(tx, tags, commitments)` — incremental update at resolution |
 | `src/app/leaderboard/page.tsx` | Client UI, sort tabs, tag filter, display columns |
 | `src/app/api/leaderboard/route.ts` | `GET /api/leaderboard?sortBy=&tag=&limit=` |
 | `src/components/profile/ScoresGrid.tsx` | Profile page scores grid — renders all metrics for a single user |
