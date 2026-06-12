@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Info, Target, Users, TrendingUp, Shield, Mail, GitCommit, Zap, Github, BookOpen, Lightbulb } from 'lucide-react'
+import { Info, Target, Users, TrendingUp, Shield, Mail, GitCommit, Zap, Github, Twitter, Lightbulb } from 'lucide-react'
 import { VERSION } from '@/lib/version'
 import Link from 'next/link'
 
@@ -137,7 +137,7 @@ export default function AboutPage() {
               Reputation Score (RS)
             </h3>
             <p className="text-sm text-text-secondary mb-3">
-              Your Reputation Score is your long-term credibility metric. It updates after each resolved prediction using an ELO-like system that weighs expected vs. actual outcomes.
+              Your Reputation Score is your long-term credibility metric. It updates after each resolved prediction, weighted by your confidence and the outcome.
             </p>
             <ul className="text-sm text-text-secondary space-y-1 ml-4">
               <li className="flex items-start gap-2">
@@ -150,7 +150,7 @@ export default function AboutPage() {
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-green-500 mt-1">•</span>
-                <span><strong>Domain-specific:</strong> Build reputation separately in politics, economy, tech, and more</span>
+                <span><strong>Global:</strong> RS is a single score across all topics — use the leaderboard&apos;s tag filter to compare forecasters within a specific domain</span>
               </li>
             </ul>
           </div>
@@ -178,19 +178,19 @@ export default function AboutPage() {
           <div className="pt-4 border-t border-navy-600">
             <h3 className="font-medium text-white mb-2 flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-blue-500" />
-              Participation
+              Glicko-2 &amp; ELO Skill Ratings
             </h3>
             <p className="text-sm text-text-secondary mb-3">
-              Every forecast you join — whether active or already resolved — counts towards your participation history. The leaderboard ranks forecasters by reputation, calibration, and depth of engagement.
+              Beyond RS and Brier, the leaderboard offers 11 sorting systems including Glicko-2 (uncertainty-aware skill rating), ELO (head-to-head), Peer Score (vs. community consensus), AI Score (vs. the Oracle), and more. All systems support per-tag filtering so you can compare forecasters within a specific topic.
             </p>
             <ul className="text-sm text-text-secondary space-y-1 ml-4">
               <li className="flex items-start gap-2">
                 <span className="text-blue-500 mt-1">•</span>
-                <span><strong>Active forecasts:</strong> predictions you have joined that are still open</span>
+                <span><strong>Glicko-2:</strong> ranks by μ − 3σ, so one-hit wonders never outrank consistent experts</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-blue-500 mt-1">•</span>
-                <span><strong>Resolved forecasts:</strong> predictions that have been settled and contributed to your score</span>
+                <span><strong>Per-tag leaderboard:</strong> select any topic tag to see who is most skilled in that domain specifically</span>
               </li>
             </ul>
           </div>
@@ -214,7 +214,7 @@ export default function AboutPage() {
             </div>
             <div className="p-3 bg-navy-800 rounded-lg">
               <p className="font-medium text-sm text-white mb-1">🤖 AI Assistance</p>
-              <p className="text-xs text-text-secondary">Express forecasts from news articles and automated suggestions</p>
+              <p className="text-xs text-text-secondary">Extract forecasts from news articles and get AI probability estimates via the Oracle</p>
             </div>
             <div className="p-3 bg-navy-800 rounded-lg">
               <p className="font-medium text-sm text-white mb-1">🔗 Social Sharing</p>
@@ -222,7 +222,7 @@ export default function AboutPage() {
             </div>
             <div className="p-3 bg-navy-800 rounded-lg">
               <p className="font-medium text-sm text-white mb-1">📈 Leaderboards</p>
-              <p className="text-xs text-text-secondary">Rank by accuracy and reputation across all predictions</p>
+              <p className="text-xs text-text-secondary">11 scoring systems — ELO, Glicko-2, Brier, Peer Score, and more — with per-tag filtering</p>
             </div>
             <div className="p-3 bg-navy-800 rounded-lg">
               <p className="font-medium text-sm text-white mb-1">🔔 Notifications</p>
@@ -256,7 +256,7 @@ export default function AboutPage() {
             rel="noopener noreferrer"
             className="flex items-center gap-3 p-3 bg-navy-800 hover:bg-navy-700 rounded-lg transition-colors"
           >
-            <BookOpen className="w-5 h-5 text-text-secondary" />
+            <Twitter className="w-5 h-5 text-text-secondary" />
             <div>
               <p className="font-medium text-white text-sm">Twitter / X</p>
               <p className="text-xs text-text-secondary">Follow for updates and announcements</p>
@@ -277,12 +277,15 @@ export default function AboutPage() {
             </div>
             <div>
               <p className="font-medium text-white">Get in Touch</p>
-              <a
-                href="mailto:office@daatan.com"
-                className="text-sm text-cobalt-light hover:text-cobalt-light hover:underline"
-              >
-                office@daatan.com
-              </a>
+              <div className="flex items-center gap-3 text-sm">
+                <Link href="/contact" className="text-cobalt-light hover:underline">
+                  Contact form
+                </Link>
+                <span className="text-text-subtle">·</span>
+                <a href="mailto:office@daatan.com" className="text-cobalt-light hover:underline">
+                  office@daatan.com
+                </a>
+              </div>
             </div>
           </div>
           <div className="pt-4 border-t border-navy-600 flex flex-wrap items-center justify-between gap-4">
@@ -306,9 +309,7 @@ export default function AboutPage() {
               <Link href="/privacy" className="hover:text-white hover:underline">Privacy Policy</Link>
               <Link href="/terms" className="hover:text-white hover:underline">Terms of Service</Link>
               <Link href="/disclaimer" className="hover:text-white hover:underline">Disclaimer</Link>
-              <p>
-                &copy; {new Date().getFullYear()} DAATAN
-              </p>
+              <span>&copy; {new Date().getFullYear()} DAATAN</span>
             </div>
           </div>
         </div>
