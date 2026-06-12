@@ -33,6 +33,7 @@ import { ResolutionInfo } from './_forecast/ResolutionInfo'
 import { BotApprovalSection } from './_forecast/BotApprovalSection'
 import { SimilarForecasts } from './_forecast/SimilarForecasts'
 import { CommitmentsHistory } from './_forecast/CommitmentsHistory'
+import ProbabilityChart from '@/components/forecasts/ProbabilityChart'
 import type { Prediction } from './_forecast/types'
 
 const log = createClientLogger('ForecastDetail')
@@ -664,6 +665,14 @@ export default function ForecastDetailClient({
       <ModeratorResolutionSection
         predictionId={prediction.id}
         predictionStatus={prediction.status}
+        outcomeType={prediction.outcomeType}
+        options={prediction.options}
+      />
+
+      {/* Probability chart — shown when ≥3 commitments exist */}
+      <ProbabilityChart
+        commitments={prediction.commitments}
+        snapshots={initialContextSnapshots ?? []}
         outcomeType={prediction.outcomeType}
         options={prediction.options}
       />
